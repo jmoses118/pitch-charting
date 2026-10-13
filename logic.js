@@ -137,14 +137,20 @@ function missColor(avg){if(avg==null)return null;for(const s of MISS_SCALE)if(av
 const VIRIDIS=['#440154','#46327e','#365c8d','#277f8e','#1fa187','#4ac16d','#a0da39','#fde725'];
 function heatColor(n,max){if(!n||!max)return null;const t=Math.min(1,n/max);const i=Math.min(VIRIDIS.length-1,Math.floor(t*(VIRIDIS.length-1)+0.0001));return{fill:VIRIDIS[i],text:i>=5?'#000':'#fff'};}
 function pct(a,b){return b?Math.round(1000*a/b)/10:null;}
-function summarize(pitches){const P=pitches.filter(countsAsPitch);const strikeOf=p=>p.result?isStrike(p.result):isZone(p.loc);
+// Official K rule (Jim's choice): if a pitcher leaves with 2 strikes on the batter and the reliever finishes the strikeout
+// (K, K-D3, D3 thrown out, foul-tip K), the K is credited to the pitcher who threw strike 2. Pitch counts stay with whoever threw each pitch.
+// Walks and other outcomes are not changed. `all` must be in pitch order (a game's pitches array, or games concatenated).
+function kCredit(all){const m=new Map();(all||[]).forEach((p,i)=>{if(!p||(p.end!=='K'&&p.end!=='K-D3'))return;let by=p.pitcherId;
+  if(p.abn!=null&&p.s===2){let s=p.s;for(let j=i-1;j>=0;j--){const q=all[j];if(!q||q.abn!==p.abn||q.inning!==p.inning||q.slot!==p.slot||q.s>s||q.end)break;s=q.s;if(q.s<2&&!q.noPitch){by=q.pitcherId;break;}}}
+  m.set(p,by);});return m;}
+function summarize(pitches,opt){const P=pitches.filter(countsAsPitch);const strikeOf=p=>p.result?isStrike(p.result):isZone(p.loc);
   const fp=P.filter(p=>p.firstPitch!==undefined?p.firstPitch:(p.b===0&&p.s===0));
   const called=P.filter(p=>p.targets&&p.targets.length&&p.loc!=null);
   const group=(keyf)=>{const o={};P.forEach(p=>{const k=keyf(p);if(k==null)return;(o[k]=o[k]||[]).push(p);});
     const out={};for(const k in o){const q=o[k];const c=q.filter(x=>x.targets&&x.targets.length&&x.loc!=null);
       out[k]={n:q.length,strikes:q.filter(strikeOf).length,strikePct:pct(q.filter(strikeOf).length,q.length),spotPct:pct(c.filter(hitSpot).length,c.length),
         whiff:q.filter(x=>x.result==='swinging').length,inPlay:q.filter(x=>x.result==='inplay').length};}return out;};
-  const ks=pitches.filter(p=>p.end==='K'||p.end==='K-D3');
+  let ks=pitches.filter(p=>p.end==='K'||p.end==='K-D3');if(opt&&opt.all&&opt.pid!=null){const m=kCredit(opt.all);ks=[...m].filter(([,by])=>by===opt.pid).map(([p])=>p);}
   return{k:ks.length,kd3:ks.filter(p=>p.end==='K-D3').length,n:P.length,strikes:P.filter(strikeOf).length,strikePct:pct(P.filter(strikeOf).length,P.length),
     fps:fp.filter(strikeOf).length,fpsN:fp.length,fpsPct:pct(fp.filter(strikeOf).length,fp.length),
     spotN:called.length,spot:called.filter(hitSpot).length,spotPct:pct(called.filter(hitSpot).length,called.length),
@@ -354,6 +360,6 @@ function typeFeedback(t,g,best,weak){const nm=TYPE_NAME[t]||t,out=[];
   else if(out.length<2&&weak)out.push(`Work on ${weak.label} (${weak.good} of ${weak.called} on target).`);
   if(!out.length)out.push(`${g.good} of ${g.called} on target – keep repping it.`);return out.slice(0,2);}
 
-const PC={CALL_SUFFIX,WRISTBAND_1,defaultCallSheet,parseCellRef,sheetCols,chUp,CH_MIN_SEV,typeFeedback,gloveCol,pitchMiss,sessionReport,grpStats,TYPE_NAME,insideCol,awayCol,cz,isZone,isCorner,isOut,locInfo,BASE_TYPES,normType,parseCall,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,summarize,hitSpot,toCSV,parseCSV,CSV_COLS,KEY,ROSTER,defaultState,makeStore,uid,uuid,isUUID,pct,makeSync,buildRows,GRID_XY,missDist,missData,isMiddleMiss,MAX_MISS,missColor,MISS_SCALE,ALL_CELLS,heatItems,heatFilter,heatData,heatColor,VIRIDIS,HEAT_KEYS,roleAllows,bullpenStep,bullpenTap,gameStatus,mergeRemote,pitchRow,TABLES};
+const PC={kCredit,CALL_SUFFIX,WRISTBAND_1,defaultCallSheet,parseCellRef,sheetCols,chUp,CH_MIN_SEV,typeFeedback,gloveCol,pitchMiss,sessionReport,grpStats,TYPE_NAME,insideCol,awayCol,cz,isZone,isCorner,isOut,locInfo,BASE_TYPES,normType,parseCall,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,summarize,hitSpot,toCSV,parseCSV,CSV_COLS,KEY,ROSTER,defaultState,makeStore,uid,uuid,isUUID,pct,makeSync,buildRows,GRID_XY,missDist,missData,isMiddleMiss,MAX_MISS,missColor,MISS_SCALE,ALL_CELLS,heatItems,heatFilter,heatData,heatColor,VIRIDIS,HEAT_KEYS,roleAllows,bullpenStep,bullpenTap,gameStatus,mergeRemote,pitchRow,TABLES};
 if(typeof module!=='undefined'&&module.exports)module.exports=PC;else root.PC=PC;
 })(typeof window!=='undefined'?window:globalThis);

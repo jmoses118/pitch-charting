@@ -212,3 +212,30 @@ test('wristband: R-C cell refs',()=>{const s=PC.defaultCallSheet();assert.equal(
 test('call sheets sync for coach only and round-trip',async()=>{const{st,ff,sy}=setup();const cs=st.state.callSheets[0];cs.rows[0][0]='CH 9';st.markDirty('call_sheets',cs.id);await sy.push();assert.equal(ff.db.call_sheets.cs_wristband1.rows[0][0],'CH 9');
   const st2=PC.makeStore(mem());Object.assign(st2.real.sync,{teamCode:'TEAMCODE-TEST-0000000000',role:'coach',teamId:'team-x'});st2.real.callSheets=[];await PC.makeSync(st2,{url:'u',key:'k',fetch:ff.f}).pull();assert.equal(st2.state.callSheets[0].rows[0][0],'CH 9');
   const{rows,held}=PC.buildRows(Object.assign(PC.defaultState(),{callSheets:[PC.defaultCallSheet()],sync:{role:'player',teamId:'t',pitcherId:'p_woods',queue:{call_sheets:{cs_wristband1:1}}}}));assert.equal((rows.call_sheets||[]).length,0,'players never push call sheets');});
+test('mid-game pitching change: each pitch keeps its own pitcher; count/state untouched; rows carry pitcher_id; switching back resumes',()=>{
+  const g={id:'g_pc',lineup:Array.from({length:9},(_,i)=>({slot:i+1,name:'B'+i,hand:'R'})),pitches:[],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:0}};const c=g.cur;
+  const throwP=(pid,res,loc)=>{const before=JSON.stringify(c);const o=PC.applyPitch(c,res);const r={id:PC.uuid(),pitcherId:pid,type:'FB',loc,result:res,b:c.b,s:c.s,end:o.end,targets:[]};g.pitches.push(r);c.b=o.b;c.s=o.s;if(o.end){c.outs+=o.outs;c.b=0;c.s=0;c.abn++;c.slot++;}return before;};
+  ['called','swinging','swinging'].forEach(r=>throwP('p_woods',r,5));throwP('p_woods','ball',16);
+  const snap=JSON.stringify(c);// switch mid at-bat (1-0): nothing in game state changes
+  assert.equal(PC.pitchCount(g.pitches,'p_crich'),0);assert.equal(JSON.stringify(c),snap);
+  ['called','swinging','swinging'].forEach(r=>throwP('p_crich',r,5));
+  assert.equal(PC.pitchCount(g.pitches,'p_woods'),4);throwP('p_woods','called',2);assert.equal(PC.pitchCount(g.pitches,'p_woods'),5,'back to Woods resumes at 5');
+  const W=PC.summarize(g.pitches.filter(p=>p.pitcherId==='p_woods')),C=PC.summarize(g.pitches.filter(p=>p.pitcherId==='p_crich'));
+  assert.equal(W.k,1);assert.equal(W.strikes,4);assert.equal(C.k,1,'K finished by Critchfield goes to Critchfield');assert.equal(C.n,3);
+  g.pitches.forEach(p=>assert.equal(PC.pitchRow(p,{mode:'game',game_id:g.id}).pitcher_id,p.pitcherId));});
+
+test('official K rule: replaced with 2 strikes -> K to the original pitcher; pitches stay with thrower; walks unchanged',()=>{
+  const ab=(rows)=>{const c={inning:1,outs:0,slot:0,b:0,s:0,abn:0};return rows.map(([pid,res])=>{const r={id:PC.uuid(),pitcherId:pid,result:res,b:c.b,s:c.s,abn:c.abn,inning:c.inning,slot:c.slot,type:'FB',loc:5};const o=PC.applyPitch(c,res);r.end=o.end;c.b=o.b;c.s=o.s;if(o.end){c.abn++;c.slot++;c.b=0;c.s=0;}return r;});};
+  const sum=(all,id)=>PC.summarize(all.filter(p=>p.pitcherId===id),{all,pid:id});
+  for(const fin of ['swinging','called','kd3','kd3out','foultip']){const all=ab([['A','called'],['A','swinging'],['A','foul'],['B','ball'],['B',fin]]);
+    assert.equal(sum(all,'A').k,1,fin+' credited to A');assert.equal(sum(all,'B').k,0,fin);assert.equal(sum(all,'A').n,3);assert.equal(sum(all,'B').n,2);assert.equal(sum(all,'A').kd3,fin==='kd3'?1:0);}
+  // relieved at 1 strike: reliever throws strike 2 and 3 -> reliever's K
+  let all=ab([['A','called'],['B','swinging'],['B','swinging']]);assert.equal(sum(all,'A').k,0);assert.equal(sum(all,'B').k,1);
+  // A threw strike 1, B strike 2, C strike 3 -> B (left with 2 strikes)
+  all=ab([['A','called'],['B','called'],['C','swinging']]);assert.equal(sum(all,'B').k,1);assert.equal(sum(all,'C').k,0);
+  // same pitcher whole AB
+  all=ab([['A','called'],['A','called'],['A','called']]);assert.equal(sum(all,'A').k,1);
+  // walk after change unchanged: goes to whoever threw ball 4
+  all=ab([['A','ball'],['A','ball'],['A','called'],['A','called'],['B','ball'],['B','ball']]);assert.equal(sum(all,'A').k+sum(all,'B').k,0);assert.equal(all[5].end,'BB');assert.equal(all[5].pitcherId,'B');
+  // without context summarize still counts raw (bullpen/legacy callers)
+  all=ab([['A','called'],['A','swinging'],['B','swinging']]);assert.equal(PC.summarize(all.filter(p=>p.pitcherId==='B')).k,1);assert.equal(sum(all,'B').k,0);});
