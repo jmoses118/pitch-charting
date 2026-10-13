@@ -36,7 +36,7 @@
 </section>
 <!-- BULLPEN -->
 <section id="tab-bullpen" class="hide">
- <div class="card"><div class="row sp"><div><b id="bpTitle">Bullpen</b><div class="mut" id="bpSum"></div></div><button id="bpNew">New session</button></div>
+ <div class="card"><div class="row sp"><div><b id="bpTitle">Bullpen</b><div class="mut" id="bpSum"></div></div><div class="row"><button id="bpEnd" style="background:var(--grn)">End session</button><button id="bpNew">New</button></div></div>
   <button id="bpTest" style="width:100%;margin-top:8px" aria-pressed="false"></button></div>
 </section>
 <!-- shared entry (game + bullpen) -->
@@ -74,7 +74,7 @@
 </section>
 <!-- STATS -->
 <section id="tab-stats" class="hide">
- <div class="card"><div class="row"><select id="sScope"></select></div><div class="row" style="margin-top:6px"><select id="sPitcher"></select></div></div>
+ <div class="card"><div class="row"><select id="sScope"></select></div><div class="row" style="margin-top:6px"><select id="sPitcher"></select></div><button id="sReport" class="hide" style="width:100%;margin-top:6px;background:var(--blue)">📋 Session report</button></div>
  <div class="card" id="heatCard"><div class="row sp"><div class="lbl" style="margin:0">Zone heat map</div><div class="row" role="group" aria-label="Heat map view"><button id="hvI" aria-pressed="true" aria-label="Miss by intended target">Miss</button><button id="hvA" aria-pressed="false" aria-label="Where pitches landed">Landed</button></div></div>
   <div class="row wrap" id="hfChips" style="margin:8px 0;gap:6px" aria-live="polite"></div>
   <div class="row"><button id="hfOpen" style="flex:1">⚙︎ Filters</button><button id="hfReset">Reset</button></div>
@@ -118,6 +118,8 @@
 <dialog id="hfDlg" aria-labelledby="hfT"><form method="dialog"><div class="lbl" id="hfT">Heat map filters</div>
  <div id="hfForm" style="display:grid;gap:6px"></div>
  <div class="row" style="margin-top:10px"><button value="reset" style="flex:1">Reset</button><button value="ok" style="flex:1;background:var(--blue)">Show</button></div></form></dialog>
+<dialog id="rDlg" aria-labelledby="rT" style="width:min(96vw,480px);max-height:92vh;padding:12px"><div id="rBody"></div>
+ <div class="row noprint" style="margin-top:10px;position:sticky;bottom:0;background:var(--card);padding-top:6px"><button id="rShare" style="flex:1;background:var(--blue)">Share image</button><button id="rPrint" style="flex:1">PDF</button><button id="rClose" style="flex:1">Close</button></div></dialog>
 <div id="toast"></div>
 <script src="config.js"></script><script src="logic.js"></script><script src="app.js"></script>
 </body></html>

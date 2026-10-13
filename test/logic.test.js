@@ -137,3 +137,14 @@ test("middle-middle rule: landing in 5 when aimed elsewhere = max severity, coun
   const d=PC.missData(PC.heatItems(st),{});assert.equal(d.mm,1);assert.equal(d.cells[2].mm,1);assert.equal(d.cells[2].avg,2);assert.equal(d.cells[5].avg,0);assert.equal(d.cells[5].mm,0);assert.equal(d.cells[9].avg,1);
   assert.ok(PC.isMiddleMiss({loc:5,targets:[2]}));assert.ok(!PC.isMiddleMiss({loc:5,targets:[5]}));
   const only=PC.missData(PC.heatItems({pitchers:st.pitchers,games:[],sessions:[{id:'x',pitches:[{type:'FB',targets:[6],loc:5}]}]}),{});assert.equal(only.cells[6].avg,4);assert.equal(PC.missColor(only.cells[6].avg).fill,'#7d1414');});
+test("session report: good = on target/1 off, MM severe, feedback + best/weakest + trend",()=>{const P=[];const add=(type,t,l)=>P.push({type,targets:[t],loc:l,hand:'R'});
+  [[7,4],[7,1],[7,4],[7,7],[7,4],[7,4]].forEach(([t,l])=>add('CH',t,l));[[6,6],[6,6],[6,3],[6,6],[6,5]].forEach(([t,l])=>add('FB',t,l));
+  const r=PC.sessionReport(P);assert.equal(r.n,11);assert.equal(r.mm,1);assert.equal(r.called,11);
+  // CH: 7->4 is 1 square (good), 7->1 is 2 (bad); FB 6->5 is MM (bad)
+  assert.equal(r.byType.CH.good,5);assert.equal(r.byType.FB.good,4);assert.equal(r.good,9);assert.equal(r.byType.FB.mm,1);
+  assert.equal(r.byType.CH.up,5);assert.ok(r.feedback.length>=2&&r.feedback.length<=4);assert.ok(r.feedback.some(t=>/middle-middle/.test(t)));
+  assert.ok(r.feedback.some(t=>/Change-up missed up 5 of 6/.test(t)),r.feedback.join('|'));
+  assert.ok(r.best&&r.weakest&&r.best.avgMiss<=r.weakest.avgMiss);assert.ok(r.trend&&r.trend.first.n+r.trend.second.n===11);
+  const m=PC.pitchMiss({targets:[6],loc:5,hand:'R'});assert.equal(m.sev,4);assert.equal(m.horiz,'away');
+  assert.equal(PC.pitchMiss({targets:[6],loc:5,hand:'L'}).horiz,'in');assert.equal(PC.pitchMiss({type:'FB',targets:[],loc:5}),null);
+  const e=PC.sessionReport([{type:'FB',targets:[],loc:5}]);assert.equal(e.goodPct,null);assert.equal(e.feedback.length,2);});

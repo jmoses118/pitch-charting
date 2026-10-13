@@ -185,6 +185,7 @@ function renderStats(){const s=S();const sel=$('sScope').value||(s.activeGame||'
   const own=role()==='player'?store.real.sync.pitcherId:null;const pf=own||$('sPitcher').value;$('sPitcher').disabled=!!own;$('sPitcher').innerHTML=(own?'':'<option value="">All pitchers</option>')+s.pitchers.filter(p=>!own||p.id===own).map(p=>`<option value="${p.id}" ${p.id===pf?'selected':''}>${H(p.name)}${p.archived?' (archived)':''}</option>`).join('');
   const all=scopePitches($('sScope').value);const P=pf?all.filter(p=>p.pitcherId===pf):all;const sum=PC.summarize(P);
   const isGame=P.some(p=>p.result);
+  $('sReport').classList.toggle('hide',!s.sessions.some(q=>q.id===$('sScope').value));
   $('sGrid').innerHTML=[['Pitches',sum.n],['Strike %',fmt(sum.strikePct)],['1st-pitch K%',isGame?fmt(sum.fpsPct):'–'],['Hit spot',fmt(sum.spotPct)],['Called',sum.spotN],['Balls',sum.n-sum.strikes]].map(([k,v])=>`<div class="stat"><b>${v}</b><span>${k}</span></div>`).join('');
   const pids=[...new Set(all.map(p=>p.pitcherId))];
   $('sPit').innerHTML='<tr><th>Pitcher</th><th>#</th><th>K%</th><th>FPS%</th><th>Spot</th></tr>'+pids.map(id=>{const q=PC.summarize(all.filter(p=>p.pitcherId===id));return`<tr><td>${H(pName(id))}</td><td>${q.n}</td><td>${fmt(q.strikePct)}</td><td>${fmt(q.fpsPct)}</td><td>${fmt(q.spotPct)}</td></tr>`;}).join('');
@@ -194,6 +195,50 @@ function renderStats(){const s=S();const sel=$('sScope').value||(s.activeGame||'
   $('sRes').innerHTML='<tr><th>Result</th><th>#</th></tr>'+Object.entries(sum.byResult).map(([k,v])=>`<tr><td>${H(k)}</td><td>${v.n}</td></tr>`).join('');
   const mx=Math.max(1,...Object.values(sum.byLoc).map(v=>v.n));const lab={};for(const k in sum.byLoc)lab[k]=sum.byLoc[k].n+' · '+fmt(sum.byLoc[k].strikePct);
   zoneSVG($('sHeat'),'R',{labels:lab});for(const k in sum.byLoc){const e=$('sHeat').querySelector(`[data-z="${k}"]`);if(e){e.style.fill=`rgba(245,${Math.round(197-150*sum.byLoc[k].n/mx)},24,${.25+.6*sum.byLoc[k].n/mx})`;}}}
+
+// ---------- bullpen session report ----------
+let RPT=null;
+function reportFor(sess){const own=role()==='player'?store.real.sync.pitcherId:null;let P=sess.pitches.filter(p=>!p.deleted);if(own)P=P.filter(p=>p.pitcherId===own);
+  const pids=[...new Set(P.map(p=>p.pitcherId).filter(Boolean))];const who=pids.length?pids.map(pName).join(', '):(sess.pitcherId?pName(sess.pitcherId):'Bullpen');
+  const items=P.map(p=>({p,src:'bullpen',sessionId:sess.id,side:'N'}));return{sess,P,who,r:PC.sessionReport(P),miss:PC.missData(items,{}),test:!!store.isTest};}
+function paintMiss(svg,d){zoneSVG(svg,'R',{noNums:true,noSide:true});let ex='';PC.ALL_CELLS.forEach(z=>{const c=d.cells[z],el=svg.querySelector(`[data-z="${z}"]`);if(!el)return;const[cx,cy]=center(z);
+  const col=PC.missColor(c.avg);el.style.fill=col?col.fill:'#161b22';const tc=col?col.text:'#6e7681';const lbl=c.n?`Aimed at zone ${z}: ${c.n}, avg miss ${c.avg}${c.mm?`, ${c.mm} middle-middle mistakes`:''}`:`Zone ${z}: none aimed`;el.setAttribute('aria-label',lbl);el.innerHTML=`<title>${lbl}</title>`;
+  if(c.n){ex+=`<text x="${cx}" y="${cy-2.5}" style="fill:${tc};font-size:6px;font-weight:800;text-anchor:middle;dominant-baseline:middle">${c.avg<=1?'✓':'✗'}${c.avg.toFixed(1)}</text><text x="${cx}" y="${cy+4}" style="fill:${tc};font-size:4px;font-weight:700;text-anchor:middle">n=${c.n}</text>`;if(c.mm)ex+=`<text x="${cx}" y="${cy+9}" style="fill:${tc};font-size:3.8px;font-weight:800;text-anchor:middle">⚠MM ${c.mm}</text>`;}});svg.insertAdjacentHTML('beforeend',ex);}
+function openReport(sess){if(!sess)return toast('No session');const R=reportFor(sess);RPT=R;const r=R.r;
+  if(!R.P.length){$('rBody').innerHTML='<h2 id="rT">Bullpen report</h2><p class="mut">No pitches in this session'+(role()==='player'?' for you':'')+'.</p>';$('rDlg').showModal();return;}
+  const st=[['Pitches',r.n],['Strike %',fmt(r.strikePct)],['Hit spot',fmt(r.goodPct)],['Avg miss',r.avgMiss==null?'–':r.avgMiss+' sq'],['MM mistakes',r.mm],['Called',r.called]];
+  const sp=x=>x?`<b>${H(x.label)}</b> – ${x.good}/${x.called} good · avg ${x.avgMiss} sq`:'<span class="mut">need 2+ pitches at a spot</span>';
+  const tr=r.trend&&r.trend.first.called&&r.trend.second.called?`<div class="lbl" style="margin-top:10px">Trend</div><div>1st half: ${fmt(r.trend.first.goodPct)} good · ${fmt(r.trend.first.strikePct)} K · avg ${r.trend.first.avgMiss} sq<br>2nd half: ${fmt(r.trend.second.goodPct)} good · ${fmt(r.trend.second.strikePct)} K · avg ${r.trend.second.avgMiss} sq</div>`:'';
+  $('rBody').innerHTML=`${R.test?'<div class="tag" style="background:var(--red)">TEST – not saved</div>':''}<h2 id="rT">Bullpen report</h2><div class="mut">${H(R.who)} · ${H(sess.date||'')} </div>
+  <div class="grid3" style="margin-top:8px">${st.map(([k,v])=>`<div class="stat"><b>${v}</b><span>${k}</span></div>`).join('')}</div>
+  <div class="lbl" style="margin-top:10px">Feedback</div><ul class="fb">${r.feedback.map(t=>`<li>${H(t)}</li>`).join('')}</ul>
+  <div class="lbl">Miss heat map (by intended spot)</div><svg id="rMap" viewBox="-14 -6 128 138" style="width:100%;max-width:340px;display:block;margin:auto"></svg>
+  <div class="mut" style="font-size:12px">✓ = avg on target or 1 square off (good) · ✗ = avg miss · MM = landed middle-middle when aimed elsewhere (scored as a 4-square miss)</div>
+  <div class="lbl" style="margin-top:10px">Best / weakest</div><div>Best: ${sp(r.best)}</div><div>Weakest: ${sp(r.weakest)}</div>${tr}
+  <div class="lbl" style="margin-top:10px">By pitch type</div><table><tr><th>Type</th><th>#</th><th>K%</th><th>Spot</th><th>Avg</th><th>MM</th></tr>${Object.entries(r.byType).sort((a,b)=>b[1].n-a[1].n).map(([k,v])=>`<tr><td>${H(k)}</td><td>${v.n}</td><td>${fmt(v.strikePct)}</td><td>${fmt(v.goodPct)}</td><td>${v.avgMiss==null?'–':v.avgMiss}</td><td>${v.mm}</td></tr>`).join('')}</table>`;
+  if(R.miss.total)paintMiss($('rMap'),R.miss);else $('rMap').outerHTML='<div class="mut">No intended spots logged – tap a target before the actual location to get the heat map.</div>';
+  $('rDlg').showModal();}
+function reportPNG(R){const W=720,r=R.r,lines=[];const cv=document.createElement('canvas');const ctx=cv.getContext('2d');
+  const wrap=(t,w,font)=>{ctx.font=font;const out=[];let cur='';t.split(' ').forEach(x=>{const n=cur?cur+' '+x:x;if(ctx.measureText(n).width>w){out.push(cur);cur=x;}else cur=n;});if(cur)out.push(cur);return out;};
+  cv.width=W;cv.height=10;const fbl=r.feedback.map(t=>wrap('• '+t,W-60,'22px sans-serif'));const types=Object.entries(r.byType);
+  const H2=200+fbl.flat().length*30+40+5*90+30+60+types.length*30+(r.trend?70:0)+80;cv.width=W;cv.height=H2;
+  ctx.fillStyle='#0d1117';ctx.fillRect(0,0,W,H2);let y=50;const tx=(t,x,yy,f,c)=>{ctx.font=f;ctx.fillStyle=c||'#e6edf3';ctx.fillText(t,x,yy);};
+  tx('THUNDER ELITE · Bullpen report'+(R.test?' (TEST)':''),30,y,'bold 28px sans-serif','#4c7dff');y+=36;tx(`${R.who} · ${R.sess.date||''}`,30,y,'22px sans-serif','#9aa4b2');y+=46;
+  [['Pitches',r.n],['Strike',fmt(r.strikePct)],['Hit spot',fmt(r.goodPct)],['Avg miss',r.avgMiss==null?'–':r.avgMiss],['MM',r.mm]].forEach(([k,v],i)=>{const x=30+i*134;ctx.fillStyle='#161b22';ctx.fillRect(x,y-30,124,72);tx(String(v),x+10,y+4,'bold 28px sans-serif');tx(k,x+10,y+32,'16px sans-serif','#9aa4b2');});y+=80;
+  fbl.forEach(ls=>ls.forEach(l=>{tx(l,30,y,'22px sans-serif');y+=30;}));y+=20;
+  const S=90,ox=(W-5*S)/2;PC.ALL_CELLS.forEach(z=>{const [gx,gy]=PC.GRID_XY[z];const c=R.miss.cells[z];const col=PC.missColor(c.avg);const x=ox+gx*S,yy=y+gy*S;
+    ctx.fillStyle=col?col.fill:'#161b22';ctx.fillRect(x+2,yy+2,S-4,S-4);ctx.textAlign='center';if(c.n){tx((c.avg<=1?'✓':'✗')+c.avg.toFixed(1),x+S/2,yy+40,'bold 24px sans-serif',col.text);tx('n='+c.n+(c.mm?' MM'+c.mm:''),x+S/2,yy+66,'15px sans-serif',col.text);}else tx(String(z),x+S/2,yy+52,'16px sans-serif','#555');ctx.textAlign='left';});
+  ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.strokeRect(ox+S,y+S,3*S,3*S);y+=5*S+30;tx('Pitcher\'s view · ✓ = on target or 1 square off · MM = middle-middle mistake',30,y,'16px sans-serif','#9aa4b2');y+=40;
+  tx('Best: '+(r.best?`${r.best.label} (${r.best.good}/${r.best.called})`:'–')+'   Weakest: '+(r.weakest?`${r.weakest.label} (avg ${r.weakest.avgMiss})`:'–'),30,y,'18px sans-serif');y+=36;
+  types.forEach(([k,v])=>{tx(`${k}: ${v.n} · ${fmt(v.strikePct)} K · ${fmt(v.goodPct)} spot · avg ${v.avgMiss==null?'–':v.avgMiss} · MM ${v.mm}`,30,y,'19px sans-serif');y+=30;});
+  if(r.trend){y+=10;tx(`Trend: 1st half ${fmt(r.trend.first.goodPct)} good → 2nd half ${fmt(r.trend.second.goodPct)}`,30,y,'19px sans-serif');}
+  return new Promise(res=>cv.toBlob(res,'image/png'));}
+$('rShare').onclick=async()=>{if(!RPT||!RPT.P.length)return;const b=await reportPNG(RPT);const name=`bullpen-${(RPT.who||'').replace(/#.*$/,'').trim().split(' ').pop()}-${RPT.sess.date||''}.png`.replace(/[^\w.-]/g,'_');
+  const f=new File([b],name,{type:'image/png'});try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:'Bullpen report'});return;}}catch(e){if(e&&e.name==='AbortError')return;}
+  const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000);toast('Image saved');};
+$('rPrint').onclick=()=>window.print();$('rClose').onclick=()=>$('rDlg').close();
+$('bpEnd').onclick=()=>{const s=session();if(!s||!s.pitches.length)return toast('No pitches in this session yet');openReport(s);S().activeSession=null;resetDraft();save();render();};
+$('sReport').onclick=()=>{const x=S().sessions.find(q=>q.id===$('sScope').value);openReport(x);};
 // ---------- zone heat map ----------
 const HKEY='te_pitch_heat_v1';let HF={},HV='miss';try{const o=JSON.parse(storage&&storage.getItem(HKEY)||'{}');HF=o.f||{};HV=o.v==='actual'?'actual':'miss';}catch(e){}
 const saveHF=()=>{try{storage&&storage.setItem(HKEY,JSON.stringify({f:HF,v:HV}));}catch(e){}};
