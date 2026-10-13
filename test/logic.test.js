@@ -148,3 +148,15 @@ test("session report: good = on target/1 off, MM severe, feedback + best/weakest
   const m=PC.pitchMiss({targets:[6],loc:5,hand:'R'});assert.equal(m.sev,4);assert.equal(m.horiz,'away');
   assert.equal(PC.pitchMiss({targets:[6],loc:5,hand:'L'}).horiz,'in');assert.equal(PC.pitchMiss({type:'FB',targets:[],loc:5}),null);
   const e=PC.sessionReport([{type:'FB',targets:[],loc:5}]);assert.equal(e.goodPct,null);assert.equal(e.feedback.length,2);});
+test("no batter: glove/arm side wording by pitcher hand; in/away kept with a batter",()=>{
+  // RHP glove side = pitcher's left (col 0); LHP (Woods) glove side = pitcher's right (col 2)
+  assert.equal(PC.locInfo(7,'N','R').label,'down glove side');assert.equal(PC.locInfo(9,'N','R').label,'down arm side');
+  assert.equal(PC.locInfo(9,'N','L').label,'down glove side');assert.equal(PC.locInfo(4,'N','L').label,'middle arm side');
+  assert.equal(PC.locInfo(16,'N','L').label,'center arm side (ball)');assert.equal(PC.locInfo(12,'N','R').label,'up arm side (ball)');assert.equal(PC.locInfo(2,'N','L').label,'up and middle');
+  assert.equal(PC.locInfo(7,'R','L').label,'down and away');assert.equal(PC.locInfo(9,'L','R').label,'down and away');assert.equal(PC.locInfo(7,'N').label,'down and away');
+  assert.equal(PC.parseCall('DC 9','N','L').desc,'down glove side');
+  assert.equal(PC.pitchMiss({targets:[5],loc:6,hand:'N'},'L').horiz,'glove side');assert.equal(PC.pitchMiss({targets:[5],loc:6,hand:'N'},'R').horiz,'arm side');assert.equal(PC.pitchMiss({targets:[5],loc:6,hand:'R'},'L').horiz,'in');
+  const P=[];for(let i=0;i<6;i++)P.push({pitcherId:'p_woods',type:'CH',targets:[8],hand:'N',loc:i<4?9:8});P.push({pitcherId:'p_woods',type:'DC',targets:[9],hand:'N',loc:9},{pitcherId:'p_woods',type:'DC',targets:[9],hand:'N',loc:9});
+  const r=PC.sessionReport(P,{p_woods:'L'});const txt=r.feedback.join(' | ')+' '+r.best.label+' '+(r.weakest&&r.weakest.label);
+  assert.ok(/Change-up missed glove side 4 of 6/.test(txt),txt);assert.ok(/glove side/.test(r.best.label),r.best.label);assert.ok(!/\b(in|away)\b/.test(txt),txt);
+  const rb=PC.sessionReport(P.map(p=>Object.assign({},p,{hand:'R'})),{p_woods:'L'});assert.ok(rb.feedback.some(t=>/missed in 4 of 6/.test(t)),rb.feedback.join('|'));});

@@ -10,7 +10,15 @@ const awayCol=hand=>2-insideCol(hand);
 const cz=(col,row)=>row*3+col+1;
 const isZone=z=>z>=1&&z<=9, isCorner=z=>z>=11&&z<=14, isOut=z=>z>=11&&z<=18;
 // 15 = center up (above 2), 16 = middle, pitcher's left (beside 4), 17 = middle, pitcher's right (beside 6), 18 = center down (below 8). All balls.
-function locInfo(z,hand){hand=hand==='L'?'L':'R';
+// glove side in the pitcher's view: RHP = pitcher's left (col 0, 1B side), LHP = pitcher's right (col 2, 3B side)
+const gloveCol=throws=>throws==='L'?2:0;
+// No batter + known pitcher hand: describe horizontally as glove side / arm side instead of in/away
+function locInfo(z,hand,throws){if(hand==='N'&&(throws==='L'||throws==='R')){const i=locInfoRaw(z,'R');if(!i)return i;let col=null;
+    if(isZone(z))col=(z-1)%3;else if(isCorner(z))col=(z===11||z===13)?0:2;else if(z===16||z===17)col=z===16?0:2;
+    if(col===null||col===1)return i;const h=col===gloveCol(throws)?'glove side':'arm side';
+    const label=isZone(z)?(i.vert==='middle'?`middle ${h}`:`${i.vert} ${h}`):(isCorner(z)?`${i.vert} ${h} (ball)`:`center ${h} (ball)`);return Object.assign({},i,{horiz:h,label});}
+  return locInfoRaw(z,hand);}
+function locInfoRaw(z,hand){hand=hand==='L'?'L':'R';
   if(isZone(z)){const r=(z-1)/3|0,c=(z-1)%3;
     const v=['up','middle','down'][r];const h=c===1?'middle':(c===insideCol(hand)?'in':'away');
     return{z,strikeZone:true,vert:v,horiz:h,label:(v==='middle'&&h==='middle')?'middle-middle':`${v} and ${h}`};}
@@ -29,7 +37,7 @@ function normType(t,custom){if(!t)return null;const u=String(t).toUpperCase().re
   return u||null;}
 // parseCall("CHG 7"|"FB IN"|"FB A"|"H+"|"CB"...,batterHand,pitcherThrows,customTypes)
 // returns {type, suffix, targets:[zones], waste:bool, desc, norm} or null
-function parseCall(code,hand,throws,custom){if(code==null)return null;hand=hand==='L'?'L':'R';throws=throws==='L'?'L':'R';
+function parseCall(code,hand,throws,custom){if(code==null)return null;const hand0=hand;hand=hand==='L'?'L':'R';throws=throws==='L'?'L':'R';
   let s=String(code).toUpperCase().trim().replace(/\s+/g,' ');if(!s)return null;
   if(s==='H+'||s==='A'||s==='IN')s='FB '+s;              // bare waste/in calls are fastballs
   let m=s.match(/^([A-Z]+?)\s*(\d{1,2}|IN|I|A|O|H\+|H|L)?$/);
@@ -40,7 +48,7 @@ function parseCall(code,hand,throws,custom){if(code==null)return null;hand=hand=
   const type=normType(rawT,custom);if(!type)return null;
   const inC=insideCol(hand),awC=awayCol(hand);
   let targets=[],alts=[],waste=false,desc='';
-  if(/^\d+$/.test(suf)){const z=+suf;if(!(isZone(z)||isOut(z)))return null;targets=[z];desc=locInfo(z,hand).label;}
+  if(/^\d+$/.test(suf)){const z=+suf;if(!(isZone(z)||isOut(z)))return null;targets=[z];desc=locInfo(z,hand0,throws).label;}
   else if(suf==='IN'||suf==='I'){targets=[cz(inC,1)];desc=`inside to ${hand}HB`;}
   else if(suf==='O'){targets=[cz(awC,1)];desc=`away edge vs ${hand}HB`;}
   else if(suf==='A'){waste=true;targets=[awC===0?16:17];desc=`center away waste vs ${hand}HB`;}
@@ -250,35 +258,39 @@ function makeSync(store,cfg){const f=cfg.fetch||(typeof fetch!=='undefined'?fetc
 // ---------- Bullpen session report ----------
 // Per called pitch: d = squares from nearest target; sev = d, except landing in 5 when aimed elsewhere = MAX_MISS (middle-middle mistake).
 // "Good" = sev <= 1 (on target or 1 square off).
-function pitchMiss(p){const t=p.targets&&p.targets.length?p.targets:null;if(!t||p.loc==null||!GRID_XY[p.loc])return null;let best=null,bt=null;
+function pitchMiss(p,throws){throws=throws||p.throws;const t=p.targets&&p.targets.length?p.targets:null;if(!t||p.loc==null||!GRID_XY[p.loc])return null;let best=null,bt=null;
   t.forEach(z=>{const d=missDist(p.loc,z);if(d!=null&&(best==null||d<best)){best=d;bt=z;}});if(best==null)return null;
   const mm=p.loc===5&&!t.includes(5);const sev=mm?MAX_MISS:best;const a=GRID_XY[p.loc],b=GRID_XY[bt];const dx=a[0]-b[0],dy=a[1]-b[1];
   const hand=p.hand==='L'?'L':'R';// no batter -> RHB for in/away
   const toward3B=dx>0;// pitcher's view: +x = 3B side, where an RHB stands
-  const horiz=dx===0?null:((toward3B===(hand==='R'))?'in':'away');const vert=dy===0?null:(dy<0?'up':'down');
+  const noBat=p.hand!=='L'&&p.hand!=='R'&&(throws==='L'||throws==='R');
+  const horiz=dx===0?null:noBat?((dx>0)===(gloveCol(throws)===2)?'glove side':'arm side'):((toward3B===(hand==='R'))?'in':'away');const vert=dy===0?null:(dy<0?'up':'down');
   return{d:best,sev,mm,good:sev<=1,target:bt,vert,horiz};}
-function grpStats(list){const c=list.map(p=>({p,m:pitchMiss(p)})).filter(x=>x.m);const good=c.filter(x=>x.m.good).length;
+function grpStats(list,thr){thr=thr||(()=>null);const c=list.map(p=>({p,m:pitchMiss(p,thr(p))})).filter(x=>x.m);const good=c.filter(x=>x.m.good).length;
   const strikes=list.filter(p=>isZone(p.loc)).length;
   return{n:list.length,strikes,strikePct:pct(strikes,list.length),called:c.length,good,goodPct:pct(good,c.length),
     avgMiss:c.length?Math.round(10*c.reduce((a,x)=>a+x.m.sev,0)/c.length)/10:null,mm:c.filter(x=>x.m.mm).length,
     hits:c.filter(x=>x.m.d===0).length,
     up:c.filter(x=>x.m.d>0&&x.m.vert==='up').length,down:c.filter(x=>x.m.d>0&&x.m.vert==='down').length,
-    in:c.filter(x=>x.m.d>0&&x.m.horiz==='in').length,away:c.filter(x=>x.m.d>0&&x.m.horiz==='away').length};}
+    in:c.filter(x=>x.m.d>0&&x.m.horiz==='in').length,away:c.filter(x=>x.m.d>0&&x.m.horiz==='away').length,
+    'glove side':c.filter(x=>x.m.d>0&&x.m.horiz==='glove side').length,'arm side':c.filter(x=>x.m.d>0&&x.m.horiz==='arm side').length};}
 const TYPE_NAME={FB:'Fastball',CH:'Change-up',CB:'Curveball',DR:'Drop',DC:'Drop curve',RS:'Rise',SC:'Screw'};
-const FIX={up:'finishing down',down:'staying on top / getting it up',in:'working it away',away:'getting it in'};
-function sessionReport(pitches){const P=(pitches||[]).filter(p=>p.loc!=null);const all=grpStats(P);
-  const byType={};P.forEach(p=>{const k=p.type||'?';(byType[k]=byType[k]||[]).push(p);});for(const k in byType)byType[k]=grpStats(byType[k]);
+const FIX={up:'finishing down',down:'staying on top / getting it up',in:'working it away',away:'getting it in','glove side':'staying through it to the arm side','arm side':'finishing to the glove side'};
+// throws: optional {pitcherId:'L'|'R'} (or a function p=>throws) so no-batter pitches read glove/arm side
+function sessionReport(pitches,throws){const thr=typeof throws==='function'?throws:(p=>(throws||{})[p.pitcherId]||p.throws||null);const G=l=>grpStats(l,thr);
+  const P=(pitches||[]).filter(p=>p.loc!=null);const all=G(P);
+  const byType={};P.forEach(p=>{const k=p.type||'?';(byType[k]=byType[k]||[]).push(p);});for(const k in byType)byType[k]=G(byType[k]);
   // spot = type + intended location (call text when logged)
-  const spots={};P.forEach(p=>{const m=pitchMiss(p);if(!m)return;const lab=(p.call||`${p.type||'?'} ${locInfo(m.target,p.hand).label.replace(' (ball)',' (waste)')}`);const k=(p.type||'?')+'|'+m.target;
+  const spots={};P.forEach(p=>{const m=pitchMiss(p,thr(p));if(!m)return;const lab=(p.call||`${p.type||'?'} ${locInfo(m.target,p.hand==='L'||p.hand==='R'?p.hand:'N',thr(p)).label.replace(' (ball)',' (waste)')}`);const k=(p.type||'?')+'|'+m.target;
     (spots[k]=spots[k]||{key:k,label:lab,type:p.type,target:m.target,hand:p.hand,list:[]}).list.push(p);});
-  const spotArr=Object.values(spots).map(s=>Object.assign(s,grpStats(s.list),{list:undefined})).filter(s=>s.called>=2);
+  const spotArr=Object.values(spots).map(s=>Object.assign(s,G(s.list),{list:undefined})).filter(s=>s.called>=2);
   const rank=spotArr.slice().sort((a,b)=>a.avgMiss-b.avgMiss||b.goodPct-a.goodPct||b.called-a.called);
   const best=rank.length?rank[0]:null;const lw=rank[rank.length-1];const weakest=rank.length>1&&(lw.avgMiss>best.avgMiss||lw.goodPct<best.goodPct)?lw:null;
-  const h=Math.floor(P.length/2);const trend=P.length>=8?{first:grpStats(P.slice(0,h)),second:grpStats(P.slice(h))}:null;
+  const h=Math.floor(P.length/2);const trend=P.length>=8?{first:G(P.slice(0,h)),second:G(P.slice(h))}:null;
   const fb=[],flagged=new Set();const nm=t=>TYPE_NAME[t]||t;
   // 1) a consistent miss direction per pitch type
   Object.entries(byType).sort((a,b)=>b[1].called-a[1].called).forEach(([t,g])=>{if(g.called<3)return;const miss=g.called-g.hits;
-    const dirs=['up','down','in','away'].map(d=>[d,g[d]]).sort((a,b)=>b[1]-a[1]);const [d,c]=dirs[0];
+    const dirs=['up','down','in','away','glove side','arm side'].map(d=>[d,g[d]]).sort((a,b)=>b[1]-a[1]);const [d,c]=dirs[0];
     if(c>=3&&c>=0.5*g.called){flagged.add(t);fb.push({w:1,t:`${nm(t)} missed ${d} ${c} of ${g.called} times – focus on ${FIX[d]}.`});}});
   if(all.mm)fb.push({w:0,t:`${all.mm} middle-middle mistake${all.mm===1?'':'s'} – those are the pitches that get hit. Miss off the plate, not over it.`});
   if(best&&best.avgMiss<=1&&best.called>=3&&!flagged.has(best.type))fb.push({w:2,t:`Great command on ${best.label} (${best.good} of ${best.called} on target or 1 square off).`});
@@ -292,6 +304,6 @@ function sessionReport(pitches){const P=(pitches||[]).filter(p=>p.loc!=null);con
     if(lines.length<2)lines.push(`${all.n} pitch${all.n===1?'':'es'} logged${all.goodPct!=null?` · ${all.goodPct}% good spots`:''} – keep building.`);}
   return Object.assign({},all,{byType,best,weakest,trend,feedback:lines.slice(0,4)});}
 
-const PC={pitchMiss,sessionReport,grpStats,TYPE_NAME,insideCol,awayCol,cz,isZone,isCorner,isOut,locInfo,BASE_TYPES,normType,parseCall,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,summarize,hitSpot,toCSV,parseCSV,CSV_COLS,KEY,ROSTER,defaultState,makeStore,uid,uuid,isUUID,pct,makeSync,buildRows,GRID_XY,missDist,missData,isMiddleMiss,MAX_MISS,missColor,MISS_SCALE,ALL_CELLS,heatItems,heatFilter,heatData,heatColor,VIRIDIS,HEAT_KEYS,roleAllows,bullpenStep,bullpenTap,gameStatus,mergeRemote,pitchRow,TABLES};
+const PC={gloveCol,pitchMiss,sessionReport,grpStats,TYPE_NAME,insideCol,awayCol,cz,isZone,isCorner,isOut,locInfo,BASE_TYPES,normType,parseCall,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,summarize,hitSpot,toCSV,parseCSV,CSV_COLS,KEY,ROSTER,defaultState,makeStore,uid,uuid,isUUID,pct,makeSync,buildRows,GRID_XY,missDist,missData,isMiddleMiss,MAX_MISS,missColor,MISS_SCALE,ALL_CELLS,heatItems,heatFilter,heatData,heatColor,VIRIDIS,HEAT_KEYS,roleAllows,bullpenStep,bullpenTap,gameStatus,mergeRemote,pitchRow,TABLES};
 if(typeof module!=='undefined'&&module.exports)module.exports=PC;else root.PC=PC;
 })(typeof window!=='undefined'?window:globalThis);

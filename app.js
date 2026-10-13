@@ -42,13 +42,14 @@ function zoneSVG(svg,hand,o={}){let h='';
   // side labels by handedness (RHB stands on pitcher's right)
   if(o.noSide)h+=`<text class="side" transform="translate(-8 60) rotate(-90)">1B side</text><text class="side" transform="translate(108 60) rotate(90)">3B side</text>`;
   else{  const inRight=PC.insideCol(hand)===2;
-  h+=`<text class="side" transform="translate(-8 60) rotate(-90)">${inRight?'AWAY':'IN'}</text><text class="side" transform="translate(108 60) rotate(90)">${inRight?'IN':'AWAY'}</text>`;
-  h+=hand==='N'?`<text class="side" style="fill:#8b949e;font-size:5px" x="50" y="128">No batter · in/away shown as RHB</text>`:`<text class="side" style="fill:#5b8cff;font-size:5.5px" x="${inRight?88:12}" y="128">${hand==='L'?'LHB':'RHB'} ${inRight?'▶':'◀'}</text><text class="side" x="${inRight?12:88}" y="128" style="opacity:.5">${inRight?'LHB side':'RHB side'}</text>`;
+  const gl=hand==='N'&&(o.throws==='L'||o.throws==='R');const gR=o.throws==='L';
+  h+=gl?`<text class="side" transform="translate(-8 60) rotate(-90)">${gR?'ARM':'GLOVE'}</text><text class="side" transform="translate(108 60) rotate(90)">${gR?'GLOVE':'ARM'}</text>`:`<text class="side" transform="translate(-8 60) rotate(-90)">${inRight?'AWAY':'IN'}</text><text class="side" transform="translate(108 60) rotate(90)">${inRight?'IN':'AWAY'}</text>`;
+  h+=hand==='N'?`<text class="side" style="fill:#8b949e;font-size:5px" x="50" y="128">${gl?`No batter · glove/arm side (${o.throws}HP) · IN/A calls map as RHB`:'No batter · in/away shown as RHB'}</text>`:`<text class="side" style="fill:#5b8cff;font-size:5.5px" x="${inRight?88:12}" y="128">${hand==='L'?'LHB':'RHB'} ${inRight?'▶':'◀'}</text><text class="side" x="${inRight?12:88}" y="128" style="opacity:.5">${inRight?'LHB side':'RHB side'}</text>`;
   }
   svg.innerHTML=h+(o.extra||'');}
 function drawZone(){const hand=curHand();let ex='';const tset=D.parsed&&D.parsed.targets.length?D.parsed.targets:(D.target?[D.target]:[]);
   const lab={};tset.forEach(z=>lab[z]='TARGET');
-  zoneSVG($('zone'),hand,{labels:lab});
+  zoneSVG($('zone'),hand,{labels:lab,throws:throwsOf()});
   tset.forEach(z=>{const e=$('zone').querySelector(`[data-z="${z}"]`);e&&e.classList.add('zt');});
   if(D.loc){const e=$('zone').querySelector(`[data-z="${D.loc}"]`);e&&e.classList.add(tset.includes(D.loc)?'zta':'za');}}
 $('zone').addEventListener('click',e=>{const svg=$('zone');const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const p=pt.matrixTransform(svg.getScreenCTM().inverse());
@@ -149,9 +150,9 @@ function rowsFor(scope){const s=S();if(s.isTest)return[];const rows=[];
   const pmeta=id=>pById(id)||{};
   const gs=scope==='all'||scope==='games'?s.games:(scope.startsWith('g_')?s.games.filter(g=>g.id===scope):[]);
   gs.forEach(g=>{const pc={};let n=0;g.pitches.forEach(p=>{const pm=pmeta(p.pitcherId);if(!p.noPitch){n++;pc[p.pitcherId]=(pc[p.pitcherId]||0)+1;}
-    rows.push({mode:'game',game_id:g.id,date:g.date,opponent:g.opponent,event:g.event,home_away:g.homeAway,session:'',pitcher:pm.name,pitcher_num:pm.num,throws:pm.throws,inning:p.inning,outs_before:p.outsBefore,lineup_slot:p.slot+1,batter:p.batter,batter_num:p.batterNum,bats:p.hand,balls_before:p.b,strikes_before:p.s,pitch_no:p.noPitch?'':n,pitcher_pitch_no:p.noPitch?'':pc[p.pitcherId],call:p.call,call_target:(p.targets||[]).join('/'),type:p.type,location:p.loc,location_desc:p.loc?PC.locInfo(p.loc,p.hand).label:'',result:p.noPitch?'ibb':p.result,in_play:p.ip,strike:p.noPitch?'':(PC.isStrike(p.result)?1:0),hit_spot:p.targets&&p.targets.length&&p.loc?(PC.hitSpot(p)?1:0):'',ab_end:p.end,ts:new Date(p.ts).toISOString()});});});
+    rows.push({mode:'game',game_id:g.id,date:g.date,opponent:g.opponent,event:g.event,home_away:g.homeAway,session:'',pitcher:pm.name,pitcher_num:pm.num,throws:pm.throws,inning:p.inning,outs_before:p.outsBefore,lineup_slot:p.slot+1,batter:p.batter,batter_num:p.batterNum,bats:p.hand,balls_before:p.b,strikes_before:p.s,pitch_no:p.noPitch?'':n,pitcher_pitch_no:p.noPitch?'':pc[p.pitcherId],call:p.call,call_target:(p.targets||[]).join('/'),type:p.type,location:p.loc,location_desc:p.loc?PC.locInfo(p.loc,p.hand,pm.throws).label:'',result:p.noPitch?'ibb':p.result,in_play:p.ip,strike:p.noPitch?'':(PC.isStrike(p.result)?1:0),hit_spot:p.targets&&p.targets.length&&p.loc?(PC.hitSpot(p)?1:0):'',ab_end:p.end,ts:new Date(p.ts).toISOString()});});});
   const ss=scope==='all'||scope==='bullpen'?s.sessions:(scope.startsWith('s_')?s.sessions.filter(x=>x.id===scope):[]);
-  ss.forEach(x=>{x.pitches.forEach((p,i)=>{const pm=pmeta(p.pitcherId);rows.push({mode:'bullpen',session:x.id,date:x.date,pitcher:pm.name,pitcher_num:pm.num,throws:pm.throws,bats:p.hand,pitch_no:i+1,call:p.call,call_target:(p.targets||[]).join('/'),type:p.type,location:p.loc,location_desc:p.loc?PC.locInfo(p.loc,p.hand).label:'',strike:PC.isZone(p.loc)?1:0,hit_spot:p.targets&&p.targets.length&&p.loc?(PC.hitSpot(p)?1:0):'',ts:new Date(p.ts).toISOString()});});});
+  ss.forEach(x=>{x.pitches.forEach((p,i)=>{const pm=pmeta(p.pitcherId);rows.push({mode:'bullpen',session:x.id,date:x.date,pitcher:pm.name,pitcher_num:pm.num,throws:pm.throws,bats:p.hand,pitch_no:i+1,call:p.call,call_target:(p.targets||[]).join('/'),type:p.type,location:p.loc,location_desc:p.loc?PC.locInfo(p.loc,p.hand,pm.throws).label:'',strike:PC.isZone(p.loc)?1:0,hit_spot:p.targets&&p.targets.length&&p.loc?(PC.hitSpot(p)?1:0):'',ts:new Date(p.ts).toISOString()});});});
   return rows;}
 function download(name,text,type){const blob=new Blob([text],{type});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);}
 const noTest=()=>{if(store.isTest){toast('Test mode: nothing to export');return true;}return false;};
@@ -200,7 +201,7 @@ function renderStats(){const s=S();const sel=$('sScope').value||(s.activeGame||'
 let RPT=null;
 function reportFor(sess){const own=role()==='player'?store.real.sync.pitcherId:null;let P=sess.pitches.filter(p=>!p.deleted);if(own)P=P.filter(p=>p.pitcherId===own);
   const pids=[...new Set(P.map(p=>p.pitcherId).filter(Boolean))];const who=pids.length?pids.map(pName).join(', '):(sess.pitcherId?pName(sess.pitcherId):'Bullpen');
-  const items=P.map(p=>({p,src:'bullpen',sessionId:sess.id,side:'N'}));return{sess,P,who,r:PC.sessionReport(P),miss:PC.missData(items,{}),test:!!store.isTest};}
+  const items=P.map(p=>({p,src:'bullpen',sessionId:sess.id,side:'N'}));const thm={};S().pitchers.forEach(q=>thm[q.id]=q.throws);return{sess,P,who,r:PC.sessionReport(P,thm),miss:PC.missData(items,{}),test:!!store.isTest};}
 function paintMiss(svg,d){zoneSVG(svg,'R',{noNums:true,noSide:true});let ex='';PC.ALL_CELLS.forEach(z=>{const c=d.cells[z],el=svg.querySelector(`[data-z="${z}"]`);if(!el)return;const[cx,cy]=center(z);
   const col=PC.missColor(c.avg);el.style.fill=col?col.fill:'#161b22';const tc=col?col.text:'#6e7681';const lbl=c.n?`Aimed at zone ${z}: ${c.n}, avg miss ${c.avg}${c.mm?`, ${c.mm} middle-middle mistakes`:''}`:`Zone ${z}: none aimed`;el.setAttribute('aria-label',lbl);el.innerHTML=`<title>${lbl}</title>`;
   if(c.n){ex+=`<text x="${cx}" y="${cy-2.5}" style="fill:${tc};font-size:6px;font-weight:800;text-anchor:middle;dominant-baseline:middle">${c.avg<=1?'✓':'✗'}${c.avg.toFixed(1)}</text><text x="${cx}" y="${cy+4}" style="fill:${tc};font-size:4px;font-weight:700;text-anchor:middle">n=${c.n}</text>`;if(c.mm)ex+=`<text x="${cx}" y="${cy+9}" style="fill:${tc};font-size:3.8px;font-weight:800;text-anchor:middle">⚠MM ${c.mm}</text>`;}});svg.insertAdjacentHTML('beforeend',ex);}
@@ -349,7 +350,7 @@ function render(skipCallInput){const s=S();document.body.classList.toggle('test'
   $('callAlt').innerHTML=D.parsed&&D.parsed.alts&&D.parsed.alts.length?D.parsed.alts.concat(D.parsed.targets).filter((z,i,x)=>x.indexOf(z)===i).map(z=>`<button data-alt="${z}" class="${(D.target||D.parsed.targets[0])===z?'sel':''}">CB → ${z}</button>`).join(''):'';
   $('callDesc').textContent=D.callTxt?(D.parsed?`${D.parsed.norm} = ${types.find(t=>t.code===D.parsed.type)?.name||D.parsed.type}${D.parsed.targets.length?' → zone '+D.parsed.targets.join('/'):' → tap target on grid'}${D.target?' '+D.target:''} · ${D.parsed.desc}`:'Unrecognized code'):'Type a code or tap buttons. Digits = zone (pitcher\'s view).';
   const needTarget=callOn&&D.parsed&&!D.parsed.targets.length&&!D.target;
-  $('phase').innerHTML=needTarget?'Tap the <b>called target</b> on the grid':(tab==='bullpen'?bpPhase():`Optional: type + where it went${D.loc?` → <b>${D.type||''} @${D.loc}</b> (${PC.locInfo(D.loc,hand).label})`:''}, then the result`);
+  $('phase').innerHTML=needTarget?'Tap the <b>called target</b> on the grid':(tab==='bullpen'?bpPhase():`Optional: type + where it went${D.loc?` → <b>${D.type||''} @${D.loc}</b> (${PC.locInfo(D.loc,hand,throwsOf()).label})`:''}, then the result`);
   $('resBtns').classList.toggle('hide',tab!=='game'||D.ip);$('ipBtns').classList.toggle('hide',tab!=='game'||!D.ip);$('undo').textContent=tab==='bullpen'&&(D.type||D.target||D.callTxt)?'↶ Back a step':'↶ Undo last pitch';
   drawZone();
   // log
