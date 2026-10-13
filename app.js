@@ -22,10 +22,12 @@ function throwsOf(){const p=pById(curPitcherId());return p?p.throws:'R';}
 function resetDraft(){Object.assign(D,{type:null,callTxt:'',parsed:null,target:null,loc:null,ip:false});$('callTxt').value='';}
 // ---------- zone ----------
 const ZX0=20,ZY0=24,CW=20,CHh=24;
-const QUAD={11:'M0 0H50V24H20V60H0Z',12:'M50 0H100V60H80V24H50Z',13:'M0 60H20V96H50V120H0Z',14:'M100 60V120H50V96H80V60Z'};
-const QLBL={11:[10,12],12:[90,12],13:[10,108],14:[90,108]};
+const QUAD={11:'M0 0H40V24H20V48H0Z',12:'M60 0H100V48H80V24H60Z',13:'M0 72H20V96H40V120H0Z',14:'M100 72V120H60V96H80V72Z',15:'M40 0H60V24H40Z',16:'M0 48H20V72H0Z',17:'M80 48H100V72H80Z',18:'M40 96H60V120H40Z'};
+const QLBL={11:[10,12],12:[90,12],13:[10,108],14:[90,108],15:[50,12],16:[10,60],17:[90,60],18:[50,108]};
 function zoneOf(x,y){if(x>=ZX0&&x<=80&&y>=ZY0&&y<=96){const c=Math.min(2,Math.floor((x-ZX0)/CW)),r=Math.min(2,Math.floor((y-ZY0)/CHh));return r*3+c+1;}
-  if(x<-14||x>114||y<-6||y>132)return null;return x<50?(y<60?11:13):(y<60?12:14);}
+  if(x<-14||x>114||y<-6||y>132)return null;
+  if(x>=40&&x<=60)return y<60?15:18; if(y>=48&&y<=72)return x<50?16:17;
+  return x<50?(y<60?11:13):(y<60?12:14);}
 const center=z=>z<10?[ZX0+((z-1)%3+.5)*CW,ZY0+(((z-1)/3|0)+.5)*CHh]:QLBL[z];
 function zoneSVG(svg,hand,o={}){let h='';
   for(const q in QUAD)h+=`<path data-z="${q}" class="zb" d="${QUAD[q]}" stroke="#0d1117" stroke-width=".8"/>`;

@@ -8,7 +8,8 @@
 const insideCol=hand=>hand==='L'?0:2;
 const awayCol=hand=>2-insideCol(hand);
 const cz=(col,row)=>row*3+col+1;
-const isZone=z=>z>=1&&z<=9, isCorner=z=>z>=11&&z<=14;
+const isZone=z=>z>=1&&z<=9, isCorner=z=>z>=11&&z<=14, isOut=z=>z>=11&&z<=18;
+// 15 = center up (above 2), 16 = middle, pitcher's left (beside 4), 17 = middle, pitcher's right (beside 6), 18 = center down (below 8). All balls.
 function locInfo(z,hand){hand=hand==='L'?'L':'R';
   if(isZone(z)){const r=(z-1)/3|0,c=(z-1)%3;
     const v=['up','middle','down'][r];const h=c===1?'middle':(c===insideCol(hand)?'in':'away');
@@ -16,10 +17,12 @@ function locInfo(z,hand){hand=hand==='L'?'L':'R';
   if(isCorner(z)){const top=z<=12,left=(z===11||z===13);const col=left?0:2;
     const h=col===insideCol(hand)?'in':'away';const v=top?'up':'down';
     return{z,strikeZone:false,vert:v,horiz:h,label:`${v} and ${h} (ball)`};}
+  if(z===15||z===18)return{z,strikeZone:false,vert:z===15?'up':'down',horiz:'middle',label:(z===15?'center up':'center down')+' (ball)'};
+  if(z===16||z===17){const h=(z===16?0:2)===insideCol(hand)?'in':'away';return{z,strikeZone:false,vert:'middle',horiz:h,label:`center ${h} (ball)`};}
   return null;}
 // ---------- Pitch types & call codes ----------
-const BASE_TYPES=[{code:'FB',name:'Fastball'},{code:'CH',name:'Change-up'},{code:'CB',name:'Curveball'},{code:'DR',name:'Drop'},{code:'RS',name:'Rise'},{code:'SC',name:'Screw'}];
-const ALIAS={FB:'FB',FAST:'FB',FASTBALL:'FB',CH:'CH',CHG:'CH',CHANGE:'CH',CU:'CB',CB:'CB',CRV:'CB',CURVE:'CB',DR:'DR',DB:'DR',DROP:'DR',RS:'RS',RISE:'RS',SC:'SC',SRW:'SC',SCREW:'SC'};
+const BASE_TYPES=[{code:'FB',name:'Fastball'},{code:'CH',name:'Change-up'},{code:'CB',name:'Curveball'},{code:'DR',name:'Drop'},{code:'DC',name:'Drop curve'},{code:'RS',name:'Rise'},{code:'SC',name:'Screw'}];
+const ALIAS={FB:'FB',FAST:'FB',FASTBALL:'FB',CH:'CH',CHG:'CH',CHANGE:'CH',CU:'CB',CB:'CB',CRV:'CB',CURVE:'CB',DR:'DR',DB:'DR',DROP:'DR',DC:'DC',DROPCURVE:'DC',RS:'RS',RISE:'RS',SC:'SC',SRW:'SC',SCREW:'SC'};
 function normType(t,custom){if(!t)return null;const u=String(t).toUpperCase().replace(/\s+/g,'');
   if(ALIAS[u])return ALIAS[u];
   for(const c of custom||[]){if(c.code.toUpperCase()===u||c.name.toUpperCase().replace(/\s+/g,'')===u)return c.code.toUpperCase();}
@@ -33,15 +36,15 @@ function parseCall(code,hand,throws,custom){if(code==null)return null;hand=hand=
   // allow e.g. "FBIN","CHG7"
   if(!m)return null;
   let rawT=m[1],suf=m[2]||'';
-  if(!suf){const m2=rawT.match(/^(FB|CHG|CH|CB|CRV|DR|DB|RS|SRW|SC)(IN|A|O|H|L|I)$/);if(m2){rawT=m2[1];suf=m2[2];}}
+  if(!suf){const m2=rawT.match(/^(FB|CHG|CH|CB|CRV|DR|DB|DC|RS|SRW|SC)(IN|A|O|H|L|I)$/);if(m2){rawT=m2[1];suf=m2[2];}}
   const type=normType(rawT,custom);if(!type)return null;
   const inC=insideCol(hand),awC=awayCol(hand);
   let targets=[],alts=[],waste=false,desc='';
-  if(/^\d+$/.test(suf)){const z=+suf;if(!(isZone(z)||isCorner(z)))return null;targets=[z];desc=locInfo(z,hand).label;}
+  if(/^\d+$/.test(suf)){const z=+suf;if(!(isZone(z)||isOut(z)))return null;targets=[z];desc=locInfo(z,hand).label;}
   else if(suf==='IN'||suf==='I'){targets=[cz(inC,1)];desc=`inside to ${hand}HB`;}
   else if(suf==='O'){targets=[cz(awC,1)];desc=`away edge vs ${hand}HB`;}
-  else if(suf==='A'){waste=true;targets=awC===0?[11,13]:[12,14];desc=`away waste vs ${hand}HB`;}
-  else if(suf==='H+'){waste=true;targets=[11,12];desc='high waste';}
+  else if(suf==='A'){waste=true;targets=[awC===0?16:17];desc=`center away waste vs ${hand}HB`;}
+  else if(suf==='H+'){waste=true;targets=[15];desc='center up waste';}
   else if(suf==='H'){targets=[2];desc='up in zone';}
   else if(suf==='L'){targets=[8];desc='down in zone';}
   else if(type==='CB'){targets=throws==='L'?[9]:[7];alts=throws==='L'?[6]:[4];desc=`glove side of ${throws}HP (alt ${alts[0]})`;} // RHP glove side = pitcher's left: 7 (alt 4); LHP: 9 (alt 6)
@@ -120,6 +123,6 @@ function makeStore(storage){
     archivePitcher(id,on=true){const p=api.state.pitchers.find(x=>x.id===id);if(p){p.archived=!!on;api.save();}return p;},
     activePitchers(){return api.state.pitchers.filter(p=>!p.archived);},
   };return api;}
-const PC={insideCol,awayCol,cz,isZone,isCorner,locInfo,BASE_TYPES,normType,parseCall,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,summarize,hitSpot,toCSV,parseCSV,CSV_COLS,KEY,ROSTER,defaultState,makeStore,uid,pct};
+const PC={insideCol,awayCol,cz,isZone,isCorner,isOut,locInfo,BASE_TYPES,normType,parseCall,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,summarize,hitSpot,toCSV,parseCSV,CSV_COLS,KEY,ROSTER,defaultState,makeStore,uid,pct};
 if(typeof module!=='undefined'&&module.exports)module.exports=PC;else root.PC=PC;
 })(typeof window!=='undefined'?window:globalThis);

@@ -5,7 +5,7 @@ test('grid: CH7 vs RHB = down and away',()=>{assert.equal(PC.locInfo(PC.parseCal
 test('grid: FB IN for LHB is opposite side from RHB',()=>{const r=PC.parseCall('FB IN','R').targets[0],l=PC.parseCall('FB IN','L').targets[0];
   assert.equal(r,6);assert.equal(l,4);assert.equal(PC.locInfo(l,'L').horiz,'in');assert.equal(PC.locInfo(l,'R').horiz,'away');});
 test('grid: corners 11-14 pitcher view; waste calls',()=>{assert.equal(PC.locInfo(12,'R').label,'up and in (ball)');assert.equal(PC.locInfo(13,'R').label,'down and away (ball)');
-  assert.deepEqual(PC.parseCall('FB A','R').targets,[11,13]);assert.deepEqual(PC.parseCall('FB A','L').targets,[12,14]);assert.deepEqual(PC.parseCall('H+','R').targets,[11,12]);
+  assert.deepEqual(PC.parseCall('FB A','R').targets,[16]);assert.deepEqual(PC.parseCall('FB A','L').targets,[17]);assert.equal(PC.locInfo(16,'R').label,'center away (ball)');assert.equal(PC.locInfo(17,'L').label,'center away (ball)');assert.deepEqual(PC.parseCall('H+','R').targets,[15]);assert.deepEqual(PC.parseCall('FB H+','L').targets,[15]);assert.equal(PC.locInfo(15,'R').label,'center up (ball)');assert.equal(PC.isZone(15),false);
   const rc=PC.parseCall('CB','R','R'),lc=PC.parseCall('CB','L','L');assert.deepEqual(rc.targets,[7]);assert.deepEqual(rc.alts,[4]);assert.deepEqual(lc.targets,[9]);assert.deepEqual(lc.alts,[6]);});
 test('CH and CHG merge',()=>{const a=PC.parseCall('CHG 7','R'),b=PC.parseCall('CH7','R');assert.equal(a.norm,'CH7');assert.equal(a.norm,b.norm);assert.equal(a.type,'CH');
   const s=PC.summarize([{type:a.type,call:a.norm,targets:a.targets,loc:7,result:'called',b:0,s:0},{type:b.type,call:b.norm,targets:b.targets,loc:8,result:'ball',b:0,s:1}]);
@@ -33,3 +33,5 @@ test('CSV round trip',()=>{const csv=PC.toCSV([{mode:'game',batter:'O"Neil, J',p
 test('dropped 3rd: K for pitcher, no out, batter reaches, counts as pitch',()=>{const o=PC.applyPitch({b:1,s:2},'kd3');assert.equal(o.end,'K-D3');assert.equal(o.outs,0);assert.equal(o.s,3);assert.ok(PC.isStrike('kd3'));assert.equal(PC.pitchCount([{result:'kd3'}]),1);});
 test('FB IN stays mid inside edge: 6 RHB, 4 LHB',()=>{assert.deepEqual(PC.parseCall('FB IN','R').targets,[6]);assert.deepEqual(PC.parseCall('FBIN','L').targets,[4]);});
 test('Woods stays left-handed',()=>{assert.equal(PC.defaultState().pitchers.find(p=>p.name==='Woods').throws,'L');});
+test('waste spots count as balls-zone and hit-the-spot',()=>{const c=PC.parseCall('FB A','R');const s=PC.summarize([{type:'FB',call:c.norm,targets:c.targets,loc:16,b:0,s:0},{type:'FB',call:'FB H+',targets:[15],loc:2,b:0,s:0}]);assert.equal(s.strikes,1);assert.equal(s.spotPct,50);});
+test('DC drop curve is its own type',()=>{const c=PC.parseCall('DC 8','R');assert.equal(c.type,'DC');assert.ok(PC.BASE_TYPES.some(t=>t.code==='DC'));const s=PC.summarize([{type:'DC',loc:8},{type:'DR',loc:8},{type:'CB',loc:7}]);assert.equal(s.byType.DC.n,1);assert.equal(s.byType.DR.n,1);assert.equal(s.byType.CB.n,1);});
