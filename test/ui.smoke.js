@@ -13,7 +13,10 @@ await pg.click('#undo');await pg.click('[data-r="kd3"]');const o2=await pg.$$eva
 await pg.screenshot({path:'/workspace/pitch-charting-app/test/shot-game.png',fullPage:true});
 // bullpen with call
 await pg.click('nav [data-t="bullpen"]');await pg.check('#callOn');await pg.fill('#callTxt','chg 7');await tap(7);
-await pg.fill('#callTxt','FB A');console.log('desc',await pg.textContent('#callDesc'),await pg.isVisible('#callTxt'),await pg.inputValue('#callTxt'));await tap(16);console.log('afterA',await pg.evaluate(()=>{const s=__app.store.state;return [s.activeSession,s.sessions.map(x=>x.id+':'+x.pitches.length)]}),await pg.textContent('#bpSum'),await pg.textContent('#callDesc'));await pg.fill('#callTxt','H+');await tap(15);await pg.click('#types [data-c="DC"]');await tap(8);console.log('bullpen sum:',await pg.textContent('#bpSum'));
+await pg.fill('#callTxt','FB A');console.log('desc',await pg.textContent('#callDesc'),await pg.isVisible('#callTxt'),await pg.inputValue('#callTxt'));await tap(16);console.log('afterA',await pg.evaluate(()=>{const s=__app.store.state;return [s.activeSession,s.sessions.map(x=>x.id+':'+x.pitches.length)]}),await pg.textContent('#bpSum'),await pg.textContent('#callDesc'));await pg.fill('#callTxt','H+');await tap(15);await pg.click('#types [data-c="DC"]');await tap(8);await tap(9);
+await pg.uncheck('#callOn');
+for(const [t,want,act] of [['FB',3,3],['CH',7,8]]){await pg.click(`#types [data-c="${t}"]`);if(!(await pg.textContent('#phase')).includes('intended'))throw 'step2 '+t;await tap(want);if(!(await pg.textContent('#phase')).includes('actually'))throw 'step3 '+t;await tap(act);if(!(await pg.textContent('#phase')).includes('Choose the pitch'))throw 'reset '+t;}
+console.log('bullpen sum:',await pg.textContent('#bpSum'));
 await pg.screenshot({path:'/workspace/pitch-charting-app/test/shot-bullpen.png',fullPage:true});
 // test mode
 const before=await pg.evaluate(()=>localStorage.getItem('te_pitchchart_v1'));

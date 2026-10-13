@@ -49,8 +49,13 @@ function drawZone(){const hand=curHand();let ex='';const tset=D.parsed&&D.parsed
   if(D.loc){const e=$('zone').querySelector(`[data-z="${D.loc}"]`);e&&e.classList.add(tset.includes(D.loc)?'zta':'za');}}
 $('zone').addEventListener('click',e=>{const svg=$('zone');const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const p=pt.matrixTransform(svg.getScreenCTM().inverse());
   const z=zoneOf(p.x,p.y);if(!z)return;
+  if(tab==='bullpen'){if(!D.type&&D.parsed)D.type=D.parsed.type;
+    const r=PC.bullpenTap({type:D.type,target:D.target,callTargets:callOn&&D.parsed?D.parsed.targets:[]},z);
+    if(r.action==='need_type'){toast('Pick the pitch type first');return;}
+    if(r.action==='target'){D.target=z;render();return;}
+    D.loc=z;logBullpen(r.targets);return;}
   if(callOn&&D.parsed&&!D.parsed.targets.length&&!D.target){D.target=z;}
-  else{D.loc=z;if(tab==='bullpen'){if(!D.type&&D.parsed)D.type=D.parsed.type;if(D.type){logBullpen();return;}else toast('Tap a pitch type');}}
+  else{D.loc=z;}
   render();});
 // ---------- call entry ----------
 function setCall(t){D.callTxt=t;$('callTxt').value=t;D.parsed=PC.parseCall(t,curHand(),throwsOf(),S().customTypes);D.target=null;if(D.parsed&&!D.type)D.type=D.parsed.type;render();}
@@ -66,8 +71,8 @@ function setHand(h){if(tab==='game'&&game()){game().cur.hand=h;dirty('games',gam
 // ---------- record building ----------
 function baseRec(){return{id:PC.uuid(),ts:Date.now(),pitcherId:curPitcherId(),hand:curHand(),type:D.type||(D.parsed&&D.parsed.type)||null,
   call:callOn&&D.parsed?D.parsed.norm:null,callRaw:callOn&&D.callTxt?D.callTxt:null,targets:callOn?(D.parsed&&D.parsed.targets.length?D.parsed.targets:(D.target?[D.target]:[])):[],loc:D.loc||null};}
-function logBullpen(){let s=session();if(!s)s=newSession();const r=baseRec();r.b=0;r.s=0;s.pitches.push(r);dirty('pitches',r.id);save();
-  const ok=PC.hitSpot(r);toast(`${r.type||'?'} @${r.loc}${r.targets.length?(ok?' ✓ hit spot':' ✗ missed'):''}`);const keepCall=false;D.loc=null;D.target=null;if(!keepCall){D.callTxt='';D.parsed=null;$('callTxt').value='';}render();}
+function logBullpen(targets){let s=session();if(!s)s=newSession();const r=baseRec();r.b=0;r.s=0;if(targets)r.targets=targets;s.pitches.push(r);dirty('pitches',r.id);save();
+  const ok=PC.hitSpot(r);toast(`${r.type||'?'} @${r.loc}${r.targets.length?(ok?' ✓ hit spot':' ✗ missed'):''}`);resetDraft();render();}
 function newSession(){const s={id:'s_'+PC.uid(),date:new Date().toISOString().slice(0,10),started:Date.now(),pitches:[]};S().sessions.push(s);S().activeSession=s.id;dirty('sessions',s.id);save();return s;}
 $('bpNew').onclick=()=>{newSession();resetDraft();render();toast('New bullpen session');};
 // game result
@@ -84,7 +89,7 @@ function recordGame(result,ip,noPitch){const g=game();if(!g)return;const c=g.cur
 $('ibb').onclick=()=>{if(confirm('Intentional walk (no pitches counted, per GC)?'))recordGame('ibb',null,true);};
 $('undo').onclick=()=>{if(tab==='game'){const g=game();if(!g||!g.pitches.length)return toast('Nothing to undo');const r=g.pitches.pop();store.tombstone(r,{mode:'game',game_id:g.id});dirty('games',g.id);
     Object.assign(g.cur,{inning:r.inning,outs:r.outsBefore,slot:r.slot,b:r.b,s:r.s,abn:r.abn,hand:r.prevHand});}
-  else{const s=session();if(!s||!s.pitches.length)return toast('Nothing to undo');const r=s.pitches.pop();store.tombstone(r,{mode:'bullpen',session_id:s.id});}
+  else{if(D.target||D.type||D.callTxt){if(D.target)D.target=null;else resetDraft();render();return;}const s=session();if(!s||!s.pitches.length)return toast('Nothing to undo');const r=s.pitches.pop();store.tombstone(r,{mode:'bullpen',session_id:s.id});}
   resetDraft();save();render();toast('Last pitch undone');};
 // game controls
 $('outPlus').onclick=()=>{const c=game().cur;c.outs++;if(c.outs>=3){c.outs=0;c.inning++;c.b=0;c.s=0;toast('Side retired');}dirty('games',game().id);save();render();};
@@ -140,9 +145,9 @@ function rowsFor(scope){const s=S();if(s.isTest)return[];const rows=[];
   const pmeta=id=>pById(id)||{};
   const gs=scope==='all'||scope==='games'?s.games:(scope.startsWith('g_')?s.games.filter(g=>g.id===scope):[]);
   gs.forEach(g=>{const pc={};let n=0;g.pitches.forEach(p=>{const pm=pmeta(p.pitcherId);if(!p.noPitch){n++;pc[p.pitcherId]=(pc[p.pitcherId]||0)+1;}
-    rows.push({mode:'game',game_id:g.id,date:g.date,opponent:g.opponent,event:g.event,home_away:g.homeAway,session:'',pitcher:pm.name,pitcher_num:pm.num,throws:pm.throws,inning:p.inning,outs_before:p.outsBefore,lineup_slot:p.slot+1,batter:p.batter,batter_num:p.batterNum,bats:p.hand,balls_before:p.b,strikes_before:p.s,pitch_no:p.noPitch?'':n,pitcher_pitch_no:p.noPitch?'':pc[p.pitcherId],call:p.call,call_target:(p.targets||[]).join('/'),type:p.type,location:p.loc,location_desc:p.loc?PC.locInfo(p.loc,p.hand).label:'',result:p.noPitch?'ibb':p.result,in_play:p.ip,strike:p.noPitch?'':(PC.isStrike(p.result)?1:0),hit_spot:p.call&&p.loc?(PC.hitSpot(p)?1:0):'',ab_end:p.end,ts:new Date(p.ts).toISOString()});});});
+    rows.push({mode:'game',game_id:g.id,date:g.date,opponent:g.opponent,event:g.event,home_away:g.homeAway,session:'',pitcher:pm.name,pitcher_num:pm.num,throws:pm.throws,inning:p.inning,outs_before:p.outsBefore,lineup_slot:p.slot+1,batter:p.batter,batter_num:p.batterNum,bats:p.hand,balls_before:p.b,strikes_before:p.s,pitch_no:p.noPitch?'':n,pitcher_pitch_no:p.noPitch?'':pc[p.pitcherId],call:p.call,call_target:(p.targets||[]).join('/'),type:p.type,location:p.loc,location_desc:p.loc?PC.locInfo(p.loc,p.hand).label:'',result:p.noPitch?'ibb':p.result,in_play:p.ip,strike:p.noPitch?'':(PC.isStrike(p.result)?1:0),hit_spot:p.targets&&p.targets.length&&p.loc?(PC.hitSpot(p)?1:0):'',ab_end:p.end,ts:new Date(p.ts).toISOString()});});});
   const ss=scope==='all'||scope==='bullpen'?s.sessions:(scope.startsWith('s_')?s.sessions.filter(x=>x.id===scope):[]);
-  ss.forEach(x=>{x.pitches.forEach((p,i)=>{const pm=pmeta(p.pitcherId);rows.push({mode:'bullpen',session:x.id,date:x.date,pitcher:pm.name,pitcher_num:pm.num,throws:pm.throws,bats:p.hand,pitch_no:i+1,call:p.call,call_target:(p.targets||[]).join('/'),type:p.type,location:p.loc,location_desc:p.loc?PC.locInfo(p.loc,p.hand).label:'',strike:PC.isZone(p.loc)?1:0,hit_spot:p.call&&p.loc?(PC.hitSpot(p)?1:0):'',ts:new Date(p.ts).toISOString()});});});
+  ss.forEach(x=>{x.pitches.forEach((p,i)=>{const pm=pmeta(p.pitcherId);rows.push({mode:'bullpen',session:x.id,date:x.date,pitcher:pm.name,pitcher_num:pm.num,throws:pm.throws,bats:p.hand,pitch_no:i+1,call:p.call,call_target:(p.targets||[]).join('/'),type:p.type,location:p.loc,location_desc:p.loc?PC.locInfo(p.loc,p.hand).label:'',strike:PC.isZone(p.loc)?1:0,hit_spot:p.targets&&p.targets.length&&p.loc?(PC.hitSpot(p)?1:0):'',ts:new Date(p.ts).toISOString()});});});
   return rows;}
 function download(name,text,type){const blob=new Blob([text],{type});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);}
 const noTest=()=>{if(store.isTest){toast('Test mode: nothing to export');return true;}return false;};
@@ -202,6 +207,9 @@ $('teamSave').onclick=()=>{if(store.isTest)return toast('Exit test mode first');
 $('syncNow').onclick=()=>doSync(true);
 $('pullCloud').onclick=()=>{if(confirm('Download this team\'s data from the cloud and merge it into this phone?'))doSync(true,true);};
 window.addEventListener('online',()=>doSync(false));document.addEventListener('visibilitychange',()=>{if(!document.hidden)doSync(false);});setInterval(()=>doSync(false),60000);
+function bpPhase(){const st=PC.bullpenStep({type:D.type||(D.parsed&&D.parsed.type),target:D.target,callTargets:callOn&&D.parsed?D.parsed.targets:[]});
+  const it=(callOn&&D.parsed&&D.parsed.targets.length)?D.parsed.targets.join('/'):D.target;
+  return st==='type'?'<b>1.</b> Choose the pitch':st==='target'?`<b>2.</b> ${H(D.type||D.parsed.type)} – tap the <b>intended</b> spot`:`<b>3.</b> ${H(D.type||D.parsed.type)} → ${it} – tap where it <b>actually</b> went`;}
 // ---------- render ----------
 function render(skipCallInput){const s=S();document.body.classList.toggle('test',store.isTest);$('testbar').classList.toggle('hide',!store.isTest);
   $('testBtn').textContent=store.isTest?'Exit test mode (discard)':'Start test mode';$('testBtn').style.background=store.isTest?'var(--red)':'';
@@ -234,12 +242,12 @@ function render(skipCallInput){const s=S();document.body.classList.toggle('test'
   $('callAlt').innerHTML=D.parsed&&D.parsed.alts&&D.parsed.alts.length?D.parsed.alts.concat(D.parsed.targets).filter((z,i,x)=>x.indexOf(z)===i).map(z=>`<button data-alt="${z}" class="${(D.target||D.parsed.targets[0])===z?'sel':''}">CB → ${z}</button>`).join(''):'';
   $('callDesc').textContent=D.callTxt?(D.parsed?`${D.parsed.norm} = ${types.find(t=>t.code===D.parsed.type)?.name||D.parsed.type}${D.parsed.targets.length?' → zone '+D.parsed.targets.join('/'):' → tap target on grid'}${D.target?' '+D.target:''} · ${D.parsed.desc}`:'Unrecognized code'):'Type a code or tap buttons. Digits = zone (pitcher\'s view).';
   const needTarget=callOn&&D.parsed&&!D.parsed.targets.length&&!D.target;
-  $('phase').innerHTML=needTarget?'Tap the <b>called target</b> on the grid':(tab==='bullpen'?(D.type?`<b>${D.type}</b> – tap where it went to log`:'Tap a pitch type, then tap the zone'):`Optional: type + where it went${D.loc?` → <b>${D.type||''} @${D.loc}</b> (${PC.locInfo(D.loc,hand).label})`:''}, then the result`);
-  $('resBtns').classList.toggle('hide',tab!=='game'||D.ip);$('ipBtns').classList.toggle('hide',tab!=='game'||!D.ip);$('bpBtns').classList.add('hide');
+  $('phase').innerHTML=needTarget?'Tap the <b>called target</b> on the grid':(tab==='bullpen'?bpPhase():`Optional: type + where it went${D.loc?` → <b>${D.type||''} @${D.loc}</b> (${PC.locInfo(D.loc,hand).label})`:''}, then the result`);
+  $('resBtns').classList.toggle('hide',tab!=='game'||D.ip);$('ipBtns').classList.toggle('hide',tab!=='game'||!D.ip);$('undo').textContent=tab==='bullpen'&&(D.type||D.target||D.callTxt)?'↶ Back a step':'↶ Undo last pitch';
   drawZone();
   // log
   const RL={ball:'Ball',called:'Called K',swinging:'Swing K',foul:'Foul',inplay:'In play',hbp:'HBP',ibb:'IBB',kd3:'K-reached'};
-  const line=(p,i)=>`<div><span class="n">${i+1}</span><span style="flex:1">${tab==='game'?H(pName(p.pitcherId).split(' ')[0])+' vs '+H(p.batter)+': ':''}${p.call?'<b>['+H(p.call)+']</b> ':''}${H(p.type||'')}${p.loc?' <span class="tag">@'+p.loc+'</span>':''}${p.call&&p.loc?(PC.hitSpot(p)?' ✓':' ✗'):''}</span><span>${p.result?RL[p.result]+(p.ip?' '+p.ip:''):(PC.isZone(p.loc)?'K':'B')}${p.end?' · <b>'+p.end+'</b>':''}</span>${p.result?`<span class="tag">${p.b}-${p.s}</span>`:''}</div>`;
+  const line=(p,i)=>`<div><span class="n">${i+1}</span><span style="flex:1">${tab==='game'?H(pName(p.pitcherId).split(' ')[0])+' vs '+H(p.batter)+': ':''}${p.call?'<b>['+H(p.call)+']</b> ':''}${H(p.type||'')}${p.loc?' <span class="tag">@'+p.loc+'</span>':''}${p.targets&&p.targets.length&&p.loc?(PC.hitSpot(p)?' ✓':' ✗'):''}</span><span>${p.result?RL[p.result]+(p.ip?' '+p.ip:''):(PC.isZone(p.loc)?'K':'B')}${p.end?' · <b>'+p.end+'</b>':''}</span>${p.result?`<span class="tag">${p.b}-${p.s}</span>`:''}</div>`;
   if(tab==='game'&&g){$('logTitle').textContent='Game log (newest first)';$('log').innerHTML=g.pitches.map(line).reverse().join('')||'<div class="mut">No pitches yet</div>';}
   if(tab==='bullpen'){const x=session();$('logTitle').textContent='Session log (newest first)';$('log').innerHTML=x?x.pitches.map(line).reverse().join(''):'<div class="mut">No pitches yet</div>';
     const q=PC.summarize(x?x.pitches:[]);$('bpTitle').textContent='Bullpen '+(x?x.date:'');

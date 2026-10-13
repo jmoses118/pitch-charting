@@ -72,12 +72,18 @@ const countsAsPitch=p=>!p.noPitch;
 const pitchCount=(pitches,pid)=>pitches.filter(p=>countsAsPitch(p)&&(pid==null||p.pitcherId===pid)).length;
 // ---------- Stats ----------
 const hitSpot=p=>p.loc!=null&&p.targets&&p.targets.length&&p.targets.includes(p.loc);
+// Bullpen per-pitch flow (same order as game mode): 1) pitch type 2) tap intended spot 3) tap actual spot -> log + reset.
+// A call-sheet code that already names a spot counts as step 2.
+function bullpenStep(d){if(!d.type)return'type';const it=(d.callTargets&&d.callTargets.length)?d.callTargets:(d.target?[d.target]:[]);return it.length?'actual':'target';}
+function bullpenTap(d,z){const st=bullpenStep(d);if(st==='type')return{action:'need_type',draft:d};
+  if(st==='target')return{action:'target',draft:Object.assign({},d,{target:z})};
+  const targets=(d.callTargets&&d.callTargets.length)?d.callTargets.slice():[d.target];return{action:'log',draft:Object.assign({},d,{loc:z}),targets};}
 function pct(a,b){return b?Math.round(1000*a/b)/10:null;}
 function summarize(pitches){const P=pitches.filter(countsAsPitch);const strikeOf=p=>p.result?isStrike(p.result):isZone(p.loc);
   const fp=P.filter(p=>p.firstPitch!==undefined?p.firstPitch:(p.b===0&&p.s===0));
-  const called=P.filter(p=>p.call&&p.targets&&p.targets.length&&p.loc!=null);
+  const called=P.filter(p=>p.targets&&p.targets.length&&p.loc!=null);
   const group=(keyf)=>{const o={};P.forEach(p=>{const k=keyf(p);if(k==null)return;(o[k]=o[k]||[]).push(p);});
-    const out={};for(const k in o){const q=o[k];const c=q.filter(x=>x.call&&x.targets&&x.targets.length&&x.loc!=null);
+    const out={};for(const k in o){const q=o[k];const c=q.filter(x=>x.targets&&x.targets.length&&x.loc!=null);
       out[k]={n:q.length,strikes:q.filter(strikeOf).length,strikePct:pct(q.filter(strikeOf).length,q.length),spotPct:pct(c.filter(hitSpot).length,c.length),
         whiff:q.filter(x=>x.result==='swinging').length,inPlay:q.filter(x=>x.result==='inplay').length};}return out;};
   return{n:P.length,strikes:P.filter(strikeOf).length,strikePct:pct(P.filter(strikeOf).length,P.length),
@@ -188,6 +194,6 @@ function makeSync(store,cfg){const f=cfg.fetch||(typeof fetch!=='undefined'?fetc
       catch(e){st.sync.lastError=String(e.message||e);store.save();return{error:st.sync.lastError};}},
     async sync(){if(store.isTest)return{skipped:'test'};const a=await api.push();if(a.error||a.skipped)return a;const b=await api.pull();return Object.assign({},a,b);}};
   return api;}
-const PC={insideCol,awayCol,cz,isZone,isCorner,isOut,locInfo,BASE_TYPES,normType,parseCall,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,summarize,hitSpot,toCSV,parseCSV,CSV_COLS,KEY,ROSTER,defaultState,makeStore,uid,uuid,isUUID,pct,makeSync,buildRows,gameStatus,mergeRemote,pitchRow,TABLES};
+const PC={insideCol,awayCol,cz,isZone,isCorner,isOut,locInfo,BASE_TYPES,normType,parseCall,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,summarize,hitSpot,toCSV,parseCSV,CSV_COLS,KEY,ROSTER,defaultState,makeStore,uid,uuid,isUUID,pct,makeSync,buildRows,bullpenStep,bullpenTap,gameStatus,mergeRemote,pitchRow,TABLES};
 if(typeof module!=='undefined'&&module.exports)module.exports=PC;else root.PC=PC;
 })(typeof window!=='undefined'?window:globalThis);

@@ -82,3 +82,11 @@ test('Woods ace tag removed: old phones migrated, cloud pull clears note',async(
   const st=PC.makeStore(m);const w=st.state.pitchers.find(p=>p.id==='p_woods');assert.equal(w.note,undefined);assert.equal(w.num,'45');assert.equal(w.throws,'L');
   w.note='ace';st.real.sync.queue.pitchers={};PC.mergeRemote(st.real,{pitchers:[{id:'p_woods',name:'Woods',num:'45',throws:'L',archived:false,note:null}]});assert.equal(w.note,undefined);
   assert.ok(!JSON.stringify(PC.defaultState()).includes('ace'));});
+test('bullpen flow: type -> intended -> actual -> log, then reset',()=>{let d={type:null,target:null,callTargets:[]};
+  assert.equal(PC.bullpenStep(d),'type');assert.equal(PC.bullpenTap(d,5).action,'need_type');
+  d.type='FB';assert.equal(PC.bullpenStep(d),'target');let r=PC.bullpenTap(d,3);assert.equal(r.action,'target');d=r.draft;assert.equal(d.target,3);
+  assert.equal(PC.bullpenStep(d),'actual');r=PC.bullpenTap(d,6);assert.equal(r.action,'log');assert.deepEqual(r.targets,[3]);assert.equal(r.draft.loc,6);});
+test('bullpen flow: call sheet spot counts as intended (skips step 2)',()=>{const c=PC.parseCall('CHG 7','R');const r=PC.bullpenTap({type:c.type,target:null,callTargets:c.targets},7);assert.equal(r.action,'log');assert.deepEqual(r.targets,[7]);
+  const w=PC.parseCall('FB','R');assert.equal(PC.bullpenTap({type:'FB',callTargets:w.targets},2).action,'target');});
+test('hit-spot counts tapped intended spots without a call; old called data still counts',()=>{const s=PC.summarize([{type:'FB',targets:[3],loc:3},{type:'FB',targets:[3],loc:6},{type:'CH',call:'CH7',targets:[7],loc:7},{type:'DR',targets:[],loc:8}]);
+  assert.equal(s.spotN,3);assert.equal(s.spot,2);assert.equal(s.byType.FB.spotPct,50);assert.equal(s.byType.CH.spotPct,100);assert.equal(s.n,4);});
