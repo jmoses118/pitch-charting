@@ -9,7 +9,7 @@ const dirty=(k,id)=>{store.markDirty(k,id);};
 const save=()=>{schedSync();if(!store.save()&&!store.isTest&&!store.saveOk)toast('Not saving: storage blocked. Open in Safari (not private).');};
 let tab='game';
 const D={type:null,callTxt:'',parsed:null,target:null,loc:null,ip:false}; // current pitch draft
-let callOn=false,bpHand='R';
+let callOn=false,bpHand='N'; // bullpen default: no batter (in/away calls map as RHB)
 function toast(t){const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),1300);}
 // ---------- helpers ----------
 const allTypes=()=>PC.BASE_TYPES.concat(S().customTypes.map(c=>({code:c.code.toUpperCase(),name:c.name})));
@@ -37,12 +37,14 @@ function zoneSVG(svg,hand,o={}){let h='';
   for(let i=0;i<9;i++)h+=`<rect data-z="${i+1}" class="zs" x="${ZX0+(i%3)*CW}" y="${ZY0+((i/3)|0)*CHh}" width="${CW}" height="${CHh}" stroke="#0d1117" stroke-width=".8"/>`;
   h+='<path d="M20 24H80V96H20Z" fill="none" stroke="#e6edf3" stroke-width="1"/>';
   const lab=o.labels||{};
-  for(const q in QLBL)h+=`<text class="zl" x="${QLBL[q][0]}" y="${QLBL[q][1]-(lab[q]?3:0)}">${q}</text>${lab[q]?`<text class="zl" style="font-size:5px;fill:#8fb0ff" x="${QLBL[q][0]}" y="${QLBL[q][1]+4}">${lab[q]}</text>`:''}`;
-  for(let i=1;i<=9;i++){const[c,r]=center(i);h+=`<text class="zl" x="${c}" y="${r-(lab[i]?3:0)}">${i}</text>${lab[i]?`<text class="zl" style="font-size:5px;fill:#8fb0ff" x="${c}" y="${r+5}">${lab[i]}</text>`:''}`;}
+  if(!o.noNums)for(const q in QLBL)h+=`<text class="zl" x="${QLBL[q][0]}" y="${QLBL[q][1]-(lab[q]?3:0)}">${q}</text>${lab[q]?`<text class="zl" style="font-size:5px;fill:#8fb0ff" x="${QLBL[q][0]}" y="${QLBL[q][1]+4}">${lab[q]}</text>`:''}`;
+  if(!o.noNums)for(let i=1;i<=9;i++){const[c,r]=center(i);h+=`<text class="zl" x="${c}" y="${r-(lab[i]?3:0)}">${i}</text>${lab[i]?`<text class="zl" style="font-size:5px;fill:#8fb0ff" x="${c}" y="${r+5}">${lab[i]}</text>`:''}`;}
   // side labels by handedness (RHB stands on pitcher's right)
-  const inRight=PC.insideCol(hand)===2;
+  if(o.noSide)h+=`<text class="side" transform="translate(-8 60) rotate(-90)">1B side</text><text class="side" transform="translate(108 60) rotate(90)">3B side</text>`;
+  else{  const inRight=PC.insideCol(hand)===2;
   h+=`<text class="side" transform="translate(-8 60) rotate(-90)">${inRight?'AWAY':'IN'}</text><text class="side" transform="translate(108 60) rotate(90)">${inRight?'IN':'AWAY'}</text>`;
-  h+=`<text class="side" style="fill:#5b8cff;font-size:5.5px" x="${inRight?88:12}" y="128">${hand==='L'?'LHB':'RHB'} ${inRight?'▶':'◀'}</text><text class="side" x="${inRight?12:88}" y="128" style="opacity:.5">${inRight?'LHB side':'RHB side'}</text>`;
+  h+=hand==='N'?`<text class="side" style="fill:#8b949e;font-size:5px" x="50" y="128">No batter · in/away shown as RHB</text>`:`<text class="side" style="fill:#5b8cff;font-size:5.5px" x="${inRight?88:12}" y="128">${hand==='L'?'LHB':'RHB'} ${inRight?'▶':'◀'}</text><text class="side" x="${inRight?12:88}" y="128" style="opacity:.5">${inRight?'LHB side':'RHB side'}</text>`;
+  }
   svg.innerHTML=h+(o.extra||'');}
 function drawZone(){const hand=curHand();let ex='';const tset=D.parsed&&D.parsed.targets.length?D.parsed.targets:(D.target?[D.target]:[]);
   const lab={};tset.forEach(z=>lab[z]='TARGET');
@@ -68,7 +70,7 @@ $('callTypes').addEventListener('click',e=>{const c=e.target.dataset.c;if(!c)ret
 $('callSuf').addEventListener('click',e=>{const s=e.target.dataset.s;if(s==null)return;const t=(D.parsed&&D.parsed.type)||'FB';setCall(s==='H+'&&!D.parsed?'H+':(t+(s?' '+s:'')));});
 $('callOn').onchange=e=>{callOn=e.target.checked;S().callOn=callOn;save();render();};
 $('types').addEventListener('click',e=>{const c=e.target.dataset.c;if(!c)return;D.type=D.type===c?null:c;render();});
-$('hL').onclick=()=>setHand('L');$('hR').onclick=()=>setHand('R');
+$('hL').onclick=()=>setHand('L');$('hR').onclick=()=>setHand('R');$('hN').onclick=()=>setHand('N');$('bpTest').onclick=()=>toggleTest();
 function setHand(h){if(tab==='game'&&game()){game().cur.hand=h;dirty('games',game().id);save();}else bpHand=h;if(D.callTxt)D.parsed=PC.parseCall(D.callTxt,h,throwsOf(),S().customTypes);render();}
 // ---------- record building ----------
 function baseRec(){return{id:PC.uuid(),ts:Date.now(),pitcherId:curPitcherId(),hand:curHand(),type:D.type||(D.parsed&&D.parsed.type)||null,
@@ -192,6 +194,43 @@ function renderStats(){const s=S();const sel=$('sScope').value||(s.activeGame||'
   $('sRes').innerHTML='<tr><th>Result</th><th>#</th></tr>'+Object.entries(sum.byResult).map(([k,v])=>`<tr><td>${H(k)}</td><td>${v.n}</td></tr>`).join('');
   const mx=Math.max(1,...Object.values(sum.byLoc).map(v=>v.n));const lab={};for(const k in sum.byLoc)lab[k]=sum.byLoc[k].n+' · '+fmt(sum.byLoc[k].strikePct);
   zoneSVG($('sHeat'),'R',{labels:lab});for(const k in sum.byLoc){const e=$('sHeat').querySelector(`[data-z="${k}"]`);if(e){e.style.fill=`rgba(245,${Math.round(197-150*sum.byLoc[k].n/mx)},24,${.25+.6*sum.byLoc[k].n/mx})`;}}}
+// ---------- zone heat map ----------
+const HKEY='te_pitch_heat_v1';let HF={},HV='actual';try{const o=JSON.parse(storage&&storage.getItem(HKEY)||'{}');HF=o.f||{};HV=o.v||'actual';}catch(e){}
+const saveHF=()=>{try{storage&&storage.setItem(HKEY,JSON.stringify({f:HF,v:HV}));}catch(e){}};
+const SIDE_L={R:'RHB',L:'LHB',N:'No batter'},SRC_L={game:'Games',bullpen:'Bullpen'},TH_L={R:'RHP',L:'LHP'};
+function heatOptions(items){const s=S(),own=role()==='player'?store.real.sync.pitcherId:null;const uniq=a=>[...new Set(a.filter(Boolean))];
+  return{type:uniq(items.map(i=>i.p.type)).sort().map(v=>[v,v]),pitcher:s.pitchers.filter(p=>!own||p.id===own).map(p=>[p.id,p.name]),throws:[['R','RHP'],['L','LHP']],
+    batter:uniq(items.map(i=>i.batter)).sort().map(v=>[v,v]),side:[['R','RHB'],['L','LHB'],['N','No batter']],src:[['game','Games'],['bullpen','Bullpen']],
+    game:s.games.map(g=>[g.id,`${g.date||''} ${vsAt(g)} ${g.opponent}`]),session:s.sessions.map(x=>[x.id,`Bullpen ${x.date||''} (${x.pitches.length})`])};}
+const HF_LBL={type:'Pitch',pitcher:'Pitcher',throws:'Pitcher hand',batter:'Batter',side:'Batter side',src:'Source',game:'Game',session:'Bullpen session'};
+function heatChipText(k,v,opts){const o=(opts[k]||[]).find(x=>x[0]===v);return `${HF_LBL[k]}: ${o?o[1]:v}`;}
+function renderHeat(){const items0=PC.heatItems(S());const own=role()==='player'?store.real.sync.pitcherId:null;const items=own?items0.filter(i=>i.p.pitcherId===own):items0;
+  const opts=heatOptions(items);const f=Object.assign({},HF);if(own)f.pitcher=own;
+  const d=PC.heatData(items,f,HV);
+  $('hvA').classList.toggle('sel',HV==='actual');$('hvI').classList.toggle('sel',HV==='intended');$('hvA').setAttribute('aria-pressed',String(HV==='actual'));$('hvI').setAttribute('aria-pressed',String(HV==='intended'));
+  const act=PC.HEAT_KEYS.filter(k=>HF[k]&&!(own&&k==='pitcher'));
+  $('hfChips').innerHTML=(act.length?act.map(k=>`<button class="tag" data-hfx="${k}" aria-label="Remove filter ${H(heatChipText(k,HF[k],opts))}" style="min-height:34px;font-size:13px;background:#1d2a55;border:1px solid #2f4fb0">${H(heatChipText(k,HF[k],opts))} ✕</button>`).join(''):'<span class="mut">All pitches'+(own?' (yours)':'')+'</span>');
+  $('hfReset').disabled=!act.length;
+  const what=HV==='actual'?'where pitches landed':'where pitches were aimed (with hit-the-spot %)';
+  $('hSummary').textContent=`${d.total} pitch${d.total===1?'':'es'} · ${what}`+(HV==='intended'&&d.matched>d.total?` · ${d.matched-d.total} had no intended spot`:'');
+  const empty=d.total===0;$('hEmpty').classList.toggle('hide',!empty);$('hMap').classList.toggle('hide',empty);$('hLegend').classList.toggle('hide',empty);if(empty)return;
+  zoneSVG($('hMap'),'R',{noNums:true,noSide:true});let ex='';
+  PC.ALL_CELLS.forEach(z=>{const c=d.cells[z],col=PC.heatColor(c.n,d.max),el=$('hMap').querySelector(`[data-z="${z}"]`);if(!el)return;
+    el.style.fill=col?col.fill:'#161b22';const[cx,cy]=center(z);const tc=col?col.text:'#6e7681';
+    const lbl=`Zone ${z}: ${c.n} pitch${c.n===1?'':'es'}${HV==='intended'&&c.n?`, ${Math.round(100*c.hit/c.n)}% hit the spot`:''}`;
+    el.insertAdjacentHTML('beforeend','');el.innerHTML=`<title>${lbl}</title>`;el.setAttribute('aria-label',lbl);
+    ex+=`<text x="${cx}" y="${cy-1}" style="fill:${tc};font-size:7px;font-weight:800;text-anchor:middle;dominant-baseline:middle;pointer-events:none">${c.n||''}</text>`;
+    if(HV==='intended'&&c.n)ex+=`<text x="${cx}" y="${cy+6}" style="fill:${tc};font-size:4.2px;font-weight:700;text-anchor:middle;pointer-events:none">${Math.round(100*c.hit/c.n)}%</text>`;
+    ex+=`<text x="${cx+(z<10?8:7)}" y="${cy-(z<10?9:8)}" style="fill:${tc};opacity:.65;font-size:3.6px;text-anchor:end;pointer-events:none">${z}</text>`;});
+  $('hMap').insertAdjacentHTML('beforeend',ex);
+  $('hLegend').innerHTML=`<div class="row" style="gap:6px;font-size:12px" aria-label="Color scale from 1 to ${d.max} pitches"><span class="mut">1</span><div style="flex:1;height:12px;border-radius:6px;background:linear-gradient(90deg,${PC.VIRIDIS.join(',')})"></div><span class="mut">${d.max}</span></div><div class="mut" style="font-size:12px;margin-top:4px">Pitcher's view · number = pitches${HV==='intended'?' aimed there · % = hit the spot':''} · darker = fewer, yellow = most · 11–18 are outside the zone</div>`;}
+function openHF(){const items0=PC.heatItems(S());const own=role()==='player'?store.real.sync.pitcherId:null;const opts=heatOptions(own?items0.filter(i=>i.p.pitcherId===own):items0);
+  $('hfForm').innerHTML=PC.HEAT_KEYS.filter(k=>!(own&&k==='pitcher')).map(k=>`<label class="mut" style="font-size:13px">${HF_LBL[k]}<select data-hk="${k}" style="width:100%;margin-top:2px"><option value="">Any</option>${(opts[k]||[]).map(([v,l])=>`<option value="${H(v)}" ${HF[k]===v?'selected':''}>${H(l)}</option>`).join('')}</select></label>`).join('');$('hfDlg').showModal();}
+$('hfOpen').onclick=openHF;
+$('hfDlg').addEventListener('close',()=>{const rv=$('hfDlg').returnValue;if(rv==='reset')HF={};else if(rv==='ok'){HF={};$('hfForm').querySelectorAll('select').forEach(s=>{if(s.value)HF[s.dataset.hk]=s.value;});}else return;saveHF();renderHeat();});
+$('hfChips').addEventListener('click',e=>{const k=e.target.dataset.hfx;if(k){delete HF[k];saveHF();renderHeat();}});
+$('hfReset').onclick=$('hfReset2').onclick=()=>{HF={};saveHF();renderHeat();};
+$('hvA').onclick=()=>{HV='actual';saveHF();renderHeat();};$('hvI').onclick=()=>{HV='intended';saveHF();renderHeat();};
 $('sScope').onchange=renderStats;$('sPitcher').onchange=renderStats;
 // ---------- cloud sync ----------
 const CFG=window.PC_CONFIG||{};const sync=CFG.url&&CFG.key?PC.makeSync(store,{url:CFG.url,key:CFG.key}):null;let syncT=null,syncing=false;
@@ -245,7 +284,8 @@ function render(skipCallInput){const s=S();document.body.classList.toggle('test'
   $('schedCard').classList.toggle('hide',!(tab==='game'&&!g&&sch.length));
   $('schedList').innerHTML=sch.map(x=>`<div class="prow"><button data-sg="${x.id}" style="flex:1;text-align:left;${schedId===x.id?'border-color:var(--acc)':''}"><b>${H((x.date||'').slice(5))} ${H(x.time||'')}</b> ${vsAt(x)} ${H(x.opponent)}<br><small class="mut">${[x.gameNo,x.field,x.location].filter(Boolean).map(H).join(' · ')}</small></button>${x.link&&/^https:\/\//.test(x.link)?`<a href="${H(x.link)}" target="_blank" rel="noopener" style="color:var(--acc);padding:0 6px">GC↗</a>`:''}</div>`).join('');
   if(tab==='game'&&!g){renderLineupForm();if(!$('gDate').value)$('gDate').value=new Date().toISOString().slice(0,10);}
-  const hand=curHand();$('hL').classList.toggle('sel',hand==='L');$('hR').classList.toggle('sel',hand==='R');
+  const hand=curHand();$('hL').classList.toggle('sel',hand==='L');$('hR').classList.toggle('sel',hand==='R');$('hN').classList.toggle('sel',hand==='N');$('hN').classList.toggle('hide',tab==='game');
+  $('bpTest').textContent=store.isTest?'🧪 Test mode ON – tap to exit (discard)':'🧪 Start test mode (not saved)';$('bpTest').style.background=store.isTest?'var(--red)':'';$('bpTest').setAttribute('aria-pressed',String(store.isTest));
   $('batSide').classList.toggle('hide',tab==='game');
   if(g){const c=g.cur;$('inn').textContent=c.inning;$('cnt').textContent=c.b+'-'+c.s;$('outs').innerHTML=[0,1,2].map(i=>`<span class="${i<c.outs?'on':''}"></span>`).join('');
     $('pc').textContent=PC.pitchCount(g.pitches,cp);
@@ -273,7 +313,7 @@ function render(skipCallInput){const s=S();document.body.classList.toggle('test'
     $('bpSum').textContent=`${q.n} pitches · ${fmt(q.strikePct)} strikes · hit spot ${fmt(q.spotPct)} · `+Object.entries(q.byType).map(([k,v])=>`${k} ${v.n} (${fmt(v.strikePct)})`).join(', ');}
   if(tab==='setup'){renderCodes();renderPitchers();renderRoster();$('cTypes').innerHTML=s.customTypes.map((c,i)=>`<span class="tag" data-ct="${i}">${H(c.code)} = ${H(c.name)} ✕</span> `).join('')||'None yet';
     $('storeMsg').textContent=store.isTest?'Test mode: storage untouched.':(storage?'Saved on this device (localStorage). Export a JSON backup regularly.':'Storage is blocked here – open in Safari (not private browsing).');}
-  if(tab==='stats')renderStats();
+  if(tab==='stats'){renderStats();renderHeat();}
   renderSync();if(tab==='setup'&&!store.isTest&&document.activeElement!==$('teamCode'))$('teamCode').value=store.real.sync.teamCode||'';}
 document.querySelector('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;tab=b.dataset.t;document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));resetDraft();render();scrollTo(0,0);});
 if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js').catch(()=>{});

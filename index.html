@@ -36,7 +36,8 @@
 </section>
 <!-- BULLPEN -->
 <section id="tab-bullpen" class="hide">
- <div class="card"><div class="row sp"><div><b id="bpTitle">Bullpen</b><div class="mut" id="bpSum"></div></div><button id="bpNew">New session</button></div></div>
+ <div class="card"><div class="row sp"><div><b id="bpTitle">Bullpen</b><div class="mut" id="bpSum"></div></div><button id="bpNew">New session</button></div>
+  <button id="bpTest" style="width:100%;margin-top:8px" aria-pressed="false"></button></div>
 </section>
 <!-- shared entry (game + bullpen) -->
 <section id="entry" class="hide">
@@ -55,7 +56,7 @@
  </div>
  <div class="card">
   <div class="phase" id="phase"></div>
-  <div class="row sp" id="batSide"><span class="mut">Batter</span><div class="row"><button id="hL">LHB</button><button id="hR">RHB</button></div></div>
+  <div class="row sp" id="batSide"><span class="mut">Batter</span><div class="row"><button id="hN" title="No batter (in/away mapped as RHB)">None</button><button id="hL">LHB</button><button id="hR">RHB</button></div></div>
   <div class="zonewrap"><svg id="zone" viewBox="-14 -6 128 138"></svg></div>
   <div class="lbl" style="text-align:center">Pitcher's view (looking in at the catcher)</div>
   <div id="resBtns" class="grid2 big" style="margin-top:6px">
@@ -74,6 +75,13 @@
 <!-- STATS -->
 <section id="tab-stats" class="hide">
  <div class="card"><div class="row"><select id="sScope"></select></div><div class="row" style="margin-top:6px"><select id="sPitcher"></select></div></div>
+ <div class="card" id="heatCard"><div class="row sp"><div class="lbl" style="margin:0">Zone heat map</div><div class="row" role="group" aria-label="Heat map view"><button id="hvA" aria-pressed="true">Actual</button><button id="hvI" aria-pressed="false">Intended</button></div></div>
+  <div class="row wrap" id="hfChips" style="margin:8px 0;gap:6px" aria-live="polite"></div>
+  <div class="row"><button id="hfOpen" style="flex:1">⚙︎ Filters</button><button id="hfReset">Reset</button></div>
+  <div id="hSummary" class="mut" style="margin:8px 0"></div>
+  <svg id="hMap" viewBox="-14 -6 128 138" role="img" aria-labelledby="hSummary" style="width:100%;max-width:380px;display:block;margin:auto"></svg>
+  <div id="hEmpty" class="mut hide" style="text-align:center;padding:24px 8px">No pitches match these filters.<br><button id="hfReset2" style="margin-top:8px">Reset filters</button></div>
+  <div id="hLegend" style="margin-top:8px"></div></div>
  <div class="card"><div class="stats" id="sGrid"></div></div>
  <div class="card"><div class="lbl">Per pitcher</div><table id="sPit"></table></div>
  <div class="card"><div class="lbl">By pitch type</div><table id="sType"></table></div>
@@ -107,6 +115,9 @@
 <dialog id="pDlg"><form method="dialog"><div class="lbl" id="pDlgT">Pitcher</div>
  <input id="pdName" placeholder="Name" style="width:100%"><div class="row" style="margin-top:6px"><input id="pdNum" placeholder="#" inputmode="numeric" style="width:90px"><select id="pdThrows"><option value="R">Throws R</option><option value="L">Throws L</option></select></div>
  <div class="row" style="margin-top:10px"><button value="cancel" style="flex:1">Cancel</button><button value="ok" id="pdOk" style="flex:1;background:var(--grn)">Save</button></div></form></dialog>
+<dialog id="hfDlg" aria-labelledby="hfT"><form method="dialog"><div class="lbl" id="hfT">Heat map filters</div>
+ <div id="hfForm" style="display:grid;gap:6px"></div>
+ <div class="row" style="margin-top:10px"><button value="reset" style="flex:1">Reset</button><button value="ok" style="flex:1;background:var(--blue)">Show</button></div></form></dialog>
 <div id="toast"></div>
 <script src="config.js"></script><script src="logic.js"></script><script src="app.js"></script>
 </body></html>

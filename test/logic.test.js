@@ -114,3 +114,15 @@ test('full names: old phones renamed in place (same ids, data kept), cloud pull 
   const st=PC.makeStore(m);assert.deepEqual(st.state.pitchers.map(p=>p.name),['Avery Woods','Jules Critchfield','Reese Larbus']);assert.equal(st.state.pitchers[0].num,'45');assert.equal(st.state.pitchers[0].throws,'L');
   assert.equal(st.state.sessions[0].pitches[0].pitcherId,'p_larbus');
   const st2=PC.makeStore(mem());st2.real.sync.queue.pitchers={};st2.real.pitchers[1].name='Crichfield';PC.mergeRemote(st2.real,{pitchers:[{id:'p_crich',name:'Jules Critchfield',num:null,throws:'R'}]});assert.equal(st2.real.pitchers[1].name,'Jules Critchfield');});
+// ---------- heat map ----------
+function heatState(){const st=PC.defaultState();st.games.push({id:'g1',date:'2026-10-17',opponent:'X',homeAway:'tbd',lineup:[],cur:{},pitches:[
+  {id:'a',pitcherId:'p_woods',type:'FB',loc:3,hand:'R',batter:'Smith',result:'called',targets:[]},{id:'b',pitcherId:'p_woods',type:'CH',loc:15,hand:'L',batter:'Jones',result:'ball',targets:[]},
+  {id:'c',pitcherId:'p_crich',type:'FB',loc:3,hand:'R',batter:'Smith',result:'foul',targets:[]},{id:'i',noPitch:true,pitcherId:'p_woods',result:'ibb'}]});
+  st.sessions.push({id:'s1',date:'2026-10-16',pitches:[{id:'d',pitcherId:'p_larbus',type:'FB',loc:16,hand:'N',targets:[16]},{id:'e',pitcherId:'p_larbus',type:'DC',loc:8,hand:'N',targets:[7]},{id:'f',pitcherId:'p_woods',type:'FB',loc:null,hand:'N',targets:[3]}]});return st;}
+test('heat map covers the whole grid incl. waste spots 11-18',()=>{assert.deepEqual([...PC.ALL_CELLS].sort((a,b)=>a-b),[1,2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18]);
+  const d=PC.heatData(PC.heatItems(heatState()),{},'actual');assert.equal(d.total,5);assert.equal(d.cells[3].n,2);assert.equal(d.cells[15].n,1);assert.equal(d.cells[16].n,1);assert.equal(d.max,2);});
+test('heat filters: type, pitcher, hand, batter, side, source, game, session',()=>{const it=PC.heatItems(heatState());const n=f=>PC.heatData(it,f,'actual').total;
+  assert.equal(n({type:'FB'}),3);assert.equal(n({pitcher:'p_woods'}),2);assert.equal(n({throws:'L'}),2);assert.equal(n({batter:'Smith'}),2);assert.equal(n({side:'L'}),1);assert.equal(n({side:'N'}),2);
+  assert.equal(n({src:'bullpen'}),2);assert.equal(n({src:'game'}),3);assert.equal(n({game:'g1'}),3);assert.equal(n({session:'s1'}),2);assert.equal(n({type:'FB',src:'game',pitcher:'p_crich'}),1);assert.equal(n({type:'SC'}),0);});
+test('heat intended view: aimed counts + hit-the-spot',()=>{const d=PC.heatData(PC.heatItems(heatState()),{},'intended');assert.equal(d.total,2);assert.equal(d.cells[16].n,1);assert.equal(d.cells[16].hit,1);assert.equal(d.cells[7].n,1);assert.equal(d.cells[7].hit,0);});
+test('heat colors: sequential viridis, empty cells uncolored, readable text',()=>{assert.equal(PC.heatColor(0,5),null);assert.equal(PC.heatColor(5,5).fill,'#fde725');assert.equal(PC.heatColor(5,5).text,'#000');assert.equal(PC.heatColor(1,10).text,'#fff');});

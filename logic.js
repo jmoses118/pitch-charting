@@ -78,6 +78,23 @@ function bullpenStep(d){if(!d.type)return'type';const it=(d.callTargets&&d.callT
 function bullpenTap(d,z){const st=bullpenStep(d);if(st==='type')return{action:'need_type',draft:d};
   if(st==='target')return{action:'target',draft:Object.assign({},d,{target:z})};
   const targets=(d.callTargets&&d.callTargets.length)?d.callTargets.slice():[d.target];return{action:'log',draft:Object.assign({},d,{loc:z}),targets};}
+// ---------- Heat map ----------
+const ALL_CELLS=[11,15,12,1,2,3,16,4,5,6,17,7,8,9,13,18,14];
+// flatten state into pitch items with context (deleted/undone pitches are already gone from the arrays)
+function heatItems(st){const th={};st.pitchers.forEach(p=>th[p.id]=p.throws);const out=[];
+  st.games.forEach(g=>g.pitches.forEach(p=>{if(!p.noPitch)out.push({p,src:'game',gameId:g.id,sessionId:null,throws:th[p.pitcherId]||null,side:p.hand==='L'?'L':p.hand==='N'?'N':(p.hand?'R':'N'),batter:p.batter||''});}));
+  st.sessions.forEach(x=>x.pitches.forEach(p=>out.push({p,src:'bullpen',gameId:null,sessionId:x.id,throws:th[p.pitcherId]||null,side:p.hand==='L'?'L':p.hand==='R'?'R':'N',batter:''})));return out;}
+const HEAT_KEYS=['type','pitcher','throws','batter','side','src','game','session'];
+function heatFilter(items,f){f=f||{};return items.filter(it=>(!f.type||it.p.type===f.type)&&(!f.pitcher||it.p.pitcherId===f.pitcher)&&(!f.throws||it.throws===f.throws)&&(!f.batter||it.batter===f.batter)
+  &&(!f.side||it.side===f.side)&&(!f.src||it.src===f.src)&&(!f.game||it.gameId===f.game)&&(!f.session||it.sessionId===f.session));}
+// view: 'actual' = where pitches landed; 'intended' = where they were aimed (counts + hit-the-spot % per aimed cell)
+function heatData(items,f,view){const q=heatFilter(items,f);const cells={};ALL_CELLS.forEach(z=>cells[z]={n:0,hit:0});let total=0;
+  q.forEach(({p})=>{if(view==='intended'){const t=p.targets&&p.targets.length?p.targets:null;if(!t||p.loc==null)return;total++;const hit=t.includes(p.loc);t.forEach(z=>{if(cells[z]){cells[z].n++;if(hit)cells[z].hit++;}});}
+    else{if(p.loc==null||!cells[p.loc])return;total++;cells[p.loc].n++;}});
+  const max=Math.max(0,...Object.values(cells).map(c=>c.n));return{cells,total,max,matched:q.length};}
+// colorblind-friendly sequential palette (viridis)
+const VIRIDIS=['#440154','#46327e','#365c8d','#277f8e','#1fa187','#4ac16d','#a0da39','#fde725'];
+function heatColor(n,max){if(!n||!max)return null;const t=Math.min(1,n/max);const i=Math.min(VIRIDIS.length-1,Math.floor(t*(VIRIDIS.length-1)+0.0001));return{fill:VIRIDIS[i],text:i>=5?'#000':'#fff'};}
 function pct(a,b){return b?Math.round(1000*a/b)/10:null;}
 function summarize(pitches){const P=pitches.filter(countsAsPitch);const strikeOf=p=>p.result?isStrike(p.result):isZone(p.loc);
   const fp=P.filter(p=>p.firstPitch!==undefined?p.firstPitch:(p.b===0&&p.s===0));
@@ -212,6 +229,6 @@ function makeSync(store,cfg){const f=cfg.fetch||(typeof fetch!=='undefined'?fetc
       if(st0.sync.role===null)return{error:'Code not recognized (typo or revoked)'};
       const a=st0.sync.role==='viewer'?{sent:0}:await api.push();if(a.error||a.skipped)return a;const b=await api.pull();return Object.assign({},a,b);}};
   return api;}
-const PC={insideCol,awayCol,cz,isZone,isCorner,isOut,locInfo,BASE_TYPES,normType,parseCall,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,summarize,hitSpot,toCSV,parseCSV,CSV_COLS,KEY,ROSTER,defaultState,makeStore,uid,uuid,isUUID,pct,makeSync,buildRows,roleAllows,bullpenStep,bullpenTap,gameStatus,mergeRemote,pitchRow,TABLES};
+const PC={insideCol,awayCol,cz,isZone,isCorner,isOut,locInfo,BASE_TYPES,normType,parseCall,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,summarize,hitSpot,toCSV,parseCSV,CSV_COLS,KEY,ROSTER,defaultState,makeStore,uid,uuid,isUUID,pct,makeSync,buildRows,ALL_CELLS,heatItems,heatFilter,heatData,heatColor,VIRIDIS,HEAT_KEYS,roleAllows,bullpenStep,bullpenTap,gameStatus,mergeRemote,pitchRow,TABLES};
 if(typeof module!=='undefined'&&module.exports)module.exports=PC;else root.PC=PC;
 })(typeof window!=='undefined'?window:globalThis);
