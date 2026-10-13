@@ -20,7 +20,7 @@ test('pitch count matches GC (all pitches incl. fouls, in play, HBP; IBB no pitc
   const s=PC.summarize(P.filter(p=>p.pitcherId==='A'));assert.equal(s.n,7);assert.equal(s.strikes,5);});
 test('in play results and HBP',()=>{assert.equal(PC.applyPitch({b:0,s:0},'inplay','2B').end,'2B');assert.equal(PC.applyPitch({b:0,s:0},'inplay','FC').outs,1);assert.equal(PC.applyPitch({b:3,s:2},'hbp').end,'HBP');});
 test('first-pitch strike %',()=>{const s=PC.summarize([{result:'called',b:0,s:0},{result:'ball',b:1,s:0},{result:'ball',b:0,s:0}]);assert.equal(s.fpsPct,50);});
-test('roster prefill',()=>{const s=PC.defaultState();assert.equal(s.roster.length,13);const w=s.pitchers.find(p=>p.name==='Woods');assert.equal(w.throws,'L');assert.deepEqual(s.pitchers.map(p=>p.name),['Woods','Crichfield','Larbus']);});
+test('roster prefill',()=>{const s=PC.defaultState();assert.equal(s.roster.length,13);const w=s.pitchers.find(p=>p.name==='Woods');assert.equal(w.throws,'L');assert.equal(w.num,'45');assert.equal(w.note,undefined);assert.deepEqual(s.pitchers.map(p=>p.name),['Woods','Crichfield','Larbus']);});
 test('add / edit / archive pitcher persists',()=>{const m=mem();const st=PC.makeStore(m);const p=st.addPitcher({name:'Nagy',num:'7',throws:'L'});
   let saved=JSON.parse(m.getItem(PC.KEY));assert.ok(saved.pitchers.find(x=>x.name==='Nagy'&&x.num==='7'&&x.throws==='L'));
   st.editPitcher(p.id,{num:'8',throws:'R'});st.archivePitcher(p.id);saved=JSON.parse(m.getItem(PC.KEY));const q=saved.pitchers.find(x=>x.id===p.id);assert.equal(q.num,'8');assert.equal(q.throws,'R');assert.equal(q.archived,true);
@@ -78,3 +78,7 @@ test('pending queue retries after a team-code typo is corrected',async()=>{const
   st.real.sync.teamCode='TE13U-P2KQ6-HYANK-HMBA-ABN5Q';let r=await sy.push();assert.ok(r.error);assert.equal(st.pendingCount(),3);r=await sy.push();assert.ok(r.error);assert.equal(st.pendingCount(),3,'still queued after repeated failures');
   // reload from storage (phone restarted) keeps the queue
   const st2=PC.makeStore(m);assert.equal(st2.pendingCount(),3);st2.real.sync.teamCode=GOOD;const r2=await PC.makeSync(st2,{url:'u',key:'k',fetch:f}).push();assert.equal(r2.sent,3);assert.equal(st2.pendingCount(),0);assert.equal(sent.length,3);assert.equal(st2.real.sync.lastError,null);});
+test('Woods ace tag removed: old phones migrated, cloud pull clears note',async()=>{const m=mem();const s0=PC.defaultState();s0.pitchers[0].note='ace';s0.pitchers[0].num='';m.setItem(PC.KEY,JSON.stringify(s0));
+  const st=PC.makeStore(m);const w=st.state.pitchers.find(p=>p.id==='p_woods');assert.equal(w.note,undefined);assert.equal(w.num,'45');assert.equal(w.throws,'L');
+  w.note='ace';st.real.sync.queue.pitchers={};PC.mergeRemote(st.real,{pitchers:[{id:'p_woods',name:'Woods',num:'45',throws:'L',archived:false,note:null}]});assert.equal(w.note,undefined);
+  assert.ok(!JSON.stringify(PC.defaultState()).includes('ace'));});

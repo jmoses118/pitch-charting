@@ -102,7 +102,7 @@ const uuid=()=>{if(typeof crypto!=='undefined'&&crypto.randomUUID)return crypto.
 const isUUID=v=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v||'');
 const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);
 function defaultState(){return{v:1,roster:ROSTER.map(n=>({name:n,num:''})),
-  pitchers:[{id:'p_woods',name:'Woods',num:'',throws:'L',archived:false,note:'ace'},{id:'p_crich',name:'Crichfield',num:'',throws:'R',archived:false},{id:'p_larbus',name:'Larbus',num:'',throws:'R',archived:false}],
+  pitchers:[{id:'p_woods',name:'Woods',num:'45',throws:'L',archived:false},{id:'p_crich',name:'Crichfield',num:'',throws:'R',archived:false},{id:'p_larbus',name:'Larbus',num:'',throws:'R',archived:false}],
   customTypes:[],games:[],sessions:[],activeGame:null,activeSession:null};}
 function makeStore(storage){
   let real=null,test=null;
@@ -132,7 +132,9 @@ function makeStore(storage){
     archivePitcher(id,on=true){const p=api.state.pitchers.find(x=>x.id===id);if(p){p.archived=!!on;api.markDirty('pitchers',id);api.save();}return p;},
     activePitchers(){return api.state.pitchers.filter(p=>!p.archived);},
   };return api;}
-function ensureSync(st){if(!st.sync)st.sync={queue:{pitchers:{},games:{},sessions:{},pitches:{}},tomb:{},last:null,lastError:null,teamCode:'',deviceId:'d_'+uid()};
+function ensureSync(st){
+  // one-time: Woods has no 'ace' tag, is #45 and throws L (queued so the cloud stays consistent)
+  if(!st.migWoods1){const w=(st.pitchers||[]).find(p=>p.id==='p_woods');if(w){delete w.note;if(!w.num)w.num='45';w.throws='L';if(st.sync)st.sync.queue.pitchers[w.id]=(st.sync.queue.pitchers[w.id]||0)+1;}st.migWoods1=true;}if(!st.sync)st.sync={queue:{pitchers:{},games:{},sessions:{},pitches:{}},tomb:{},last:null,lastError:null,teamCode:'',deviceId:'d_'+uid()};
   // first run with sync: give every pitch a uuid and queue everything once
   if(!st.sync.migrated){const q=st.sync.queue;st.pitchers.forEach(p=>q.pitchers[p.id]=1);
     [].concat(st.games||[],st.sessions||[]).forEach(c=>{q[c.pitches&&c.lineup?'games':'sessions'][c.id]=1;c.pitches.forEach(p=>{if(!isUUID(p.id))p.id=uuid();q.pitches[p.id]=1;});});st.sync.migrated=true;}
@@ -157,7 +159,7 @@ function buildRows(st){const q=st.sync.queue,team=st.sync.teamCode,dev=st.sync.d
   return{rows:out,ver};}
 const gameStatus=g=>g.status||(g.ended?'final':'active');
 function mergeRemote(st,data){const q=st.sync.queue;let added=0,removed=0;
-  (data.pitchers||[]).forEach(r=>{if(q.pitchers[r.id]||r.deleted)return;const p=st.pitchers.find(x=>x.id===r.id),v={id:r.id,name:r.name,num:r.num||'',throws:r.throws||'R',archived:!!r.archived,note:r.note||undefined};if(p)Object.assign(p,v);else st.pitchers.push(v);});
+  (data.pitchers||[]).forEach(r=>{if(q.pitchers[r.id]||r.deleted)return;const p=st.pitchers.find(x=>x.id===r.id),v={id:r.id,name:r.name,num:r.num||'',throws:r.throws||'R',archived:!!r.archived,note:r.note||undefined};if(p){Object.assign(p,v);if(!r.note)delete p.note;}else st.pitchers.push(v);});
   (data.games||[]).forEach(r=>{if(q.games[r.id]||r.deleted)return;let g=st.games.find(x=>x.id===r.id);const v={id:r.id,date:r.date,opponent:r.opponent,event:r.event||'',homeAway:r.home_away,lineup:r.lineup||[],cur:r.cur||{inning:1,outs:0,slot:0,b:0,s:0,abn:0},started:r.started,ended:r.ended,imported:r.imported,status:r.status||(r.ended?'final':'active'),link:r.link||'',notes:r.notes||'',time:r.game_time||'',field:r.field||'',gameNo:r.game_no||'',location:r.location||''};
     if(g){if(g.pitches.length&&v.status==='scheduled')v.status=g.status||'active';Object.assign(g,v);}else st.games.push(Object.assign(v,{pitches:[]}));});
   (data.sessions||[]).forEach(r=>{if(q.sessions[r.id]||r.deleted)return;if(!st.sessions.find(x=>x.id===r.id))st.sessions.push({id:r.id,date:r.date,started:r.started,imported:r.imported,pitches:[]});});
