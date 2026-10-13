@@ -96,12 +96,16 @@ function heatData(items,f,view){const q=heatFilter(items,f);const cells={};ALL_C
 // Zone 1-9 = columns 1-3 x rows 1-3; outside spots: 11=(0,0) 15=(2,0) 12=(4,0) 16=(0,2) 17=(4,2) 13=(0,4) 18=(2,4) 14=(4,4).
 // Distance = Chebyshev "squares away" = max(|dx|,|dy|), so diagonal neighbours are 1 and the max is 4 (e.g. 11 -> 14).
 const GRID_XY={11:[0,0],15:[2,0],12:[4,0],16:[0,2],17:[4,2],13:[0,4],18:[2,4],14:[4,4]};for(let z=1;z<=9;z++)GRID_XY[z]=[(z-1)%3+1,Math.floor((z-1)/3)+1];
+const MAX_MISS=4;
+function isMiddleMiss(p){return p.loc===5&&p.targets&&p.targets.length>0&&!p.targets.includes(5);}
 function missDist(a,b){const p=GRID_XY[a],q=GRID_XY[b];if(!p||!q)return null;return Math.max(Math.abs(p[0]-q[0]),Math.abs(p[1]-q[1]));}
 // per intended cell: n pitches aimed there, average miss distance (to the nearest called spot), hits
-function missData(items,f){const q=heatFilter(items,f);const cells={};ALL_CELLS.forEach(z=>cells[z]={n:0,sum:0,hit:0,avg:null});let total=0;
+function missData(items,f){const q=heatFilter(items,f);const cells={};ALL_CELLS.forEach(z=>cells[z]={n:0,sum:0,hit:0,avg:null,mm:0});let total=0,mm=0;
   q.forEach(({p})=>{const t=p.targets&&p.targets.length?p.targets:null;if(!t||p.loc==null||!GRID_XY[p.loc])return;const d=Math.min(...t.map(z=>missDist(p.loc,z)).filter(v=>v!=null));if(!isFinite(d))return;total++;
-    t.forEach(z=>{const c=cells[z];if(!c)return;c.n++;c.sum+=d;if(d===0)c.hit++;});});
-  ALL_CELLS.forEach(z=>{const c=cells[z];if(c.n)c.avg=Math.round(10*c.sum/c.n)/10;});return{cells,total,matched:q.length};}
+    // Jim's rule: landing middle-middle (5) when aimed anywhere else is a severe miss, scored at max severity (4) regardless of distance
+    const mmMiss=p.loc===5&&!t.includes(5);const sev=mmMiss?MAX_MISS:d;if(mmMiss)mm++;
+    t.forEach(z=>{const c=cells[z];if(!c)return;c.n++;c.sum+=sev;if(d===0)c.hit++;if(mmMiss)c.mm++;});});
+  ALL_CELLS.forEach(z=>{const c=cells[z];if(c.n)c.avg=Math.round(10*c.sum/c.n)/10;});return{cells,total,matched:q.length,mm};}
 // Jim's scale: hit or 1 square = green (no ding); then darker red as the average miss grows, darkest at 4
 const MISS_SCALE=[{max:1,fill:'#2ea043',text:'#fff',label:'0–1 good'},{max:2,fill:'#f47067',text:'#000',label:'1–2'},{max:3,fill:'#c93c37',text:'#fff',label:'2–3'},{max:4,fill:'#7d1414',text:'#fff',label:'3–4'}];
 function missColor(avg){if(avg==null)return null;for(const s of MISS_SCALE)if(avg<=s.max)return s;return MISS_SCALE[MISS_SCALE.length-1];}
@@ -242,6 +246,6 @@ function makeSync(store,cfg){const f=cfg.fetch||(typeof fetch!=='undefined'?fetc
       if(st0.sync.role===null)return{error:'Code not recognized (typo or revoked)'};
       const a=st0.sync.role==='viewer'?{sent:0}:await api.push();if(a.error||a.skipped)return a;const b=await api.pull();return Object.assign({},a,b);}};
   return api;}
-const PC={insideCol,awayCol,cz,isZone,isCorner,isOut,locInfo,BASE_TYPES,normType,parseCall,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,summarize,hitSpot,toCSV,parseCSV,CSV_COLS,KEY,ROSTER,defaultState,makeStore,uid,uuid,isUUID,pct,makeSync,buildRows,GRID_XY,missDist,missData,missColor,MISS_SCALE,ALL_CELLS,heatItems,heatFilter,heatData,heatColor,VIRIDIS,HEAT_KEYS,roleAllows,bullpenStep,bullpenTap,gameStatus,mergeRemote,pitchRow,TABLES};
+const PC={insideCol,awayCol,cz,isZone,isCorner,isOut,locInfo,BASE_TYPES,normType,parseCall,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,summarize,hitSpot,toCSV,parseCSV,CSV_COLS,KEY,ROSTER,defaultState,makeStore,uid,uuid,isUUID,pct,makeSync,buildRows,GRID_XY,missDist,missData,isMiddleMiss,MAX_MISS,missColor,MISS_SCALE,ALL_CELLS,heatItems,heatFilter,heatData,heatColor,VIRIDIS,HEAT_KEYS,roleAllows,bullpenStep,bullpenTap,gameStatus,mergeRemote,pitchRow,TABLES};
 if(typeof module!=='undefined'&&module.exports)module.exports=PC;else root.PC=PC;
 })(typeof window!=='undefined'?window:globalThis);
