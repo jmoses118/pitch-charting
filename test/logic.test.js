@@ -60,3 +60,21 @@ test('restore from cloud onto a new phone',async()=>{const{st,ff,sy}=setup();con
   const st2=PC.makeStore(mem());st2.real.sync.teamCode='TEAMCODE-TEST-0000000000';st2.real.sync.queue={pitchers:{},games:{},sessions:{},pitches:{}};const r=await PC.makeSync(st2,{url:'u',key:'k',fetch:ff.f}).pull();
   assert.equal(r.added,1);const g2=st2.state.games.find(x=>x.id==='g_1');assert.equal(g2.opponent,'Storm');assert.equal(g2.pitches[0].type,'DC');assert.equal(g2.pitches[0].result,'called');assert.equal(PC.pitchCount(g2.pitches,'p_woods'),1);});
 test('legacy non-uuid pitch ids are migrated to uuids',()=>{const m=mem();const s0=PC.defaultState();s0.sessions.push({id:'s_x',date:'d',pitches:[{id:'abc123',type:'FB'}]});m.setItem(PC.KEY,JSON.stringify(s0));const st=PC.makeStore(m);assert.ok(PC.isUUID(st.state.sessions[0].pitches[0].id));});
+test('pull merges cloud scheduled games by id without wiping local data',async()=>{const{st,ff,sy}=setup();
+  const local={id:'g_local',date:'2026-10-10',opponent:'Storm',homeAway:'home',lineup:[],cur:{inning:3,outs:0,slot:0,b:0,s:0,abn:0},pitches:[{id:PC.uuid(),type:'FB',result:'ball',b:0,s:0,ts:1}]};st.state.games.push(local);st.markDirty('games','g_local');st.markDirty('pitches',local.pitches[0].id);
+  st.state.sessions.push({id:'s_l',date:'d',pitches:[{id:PC.uuid(),type:'CH',loc:7}]});
+  ff.db.games.g_sched={team_code:'TEAMCODE-TEST-0000000000',id:'g_sched',date:'2026-10-17',opponent:'Finesse Colyer',event:"America's Premier Fall Showcase",home_away:'tbd',lineup:[],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:0},status:'scheduled',link:'https://web.gc.com/x',game_time:'3:30 PM',field:'Field 21',game_no:'P31',location:'Berliner Sports Park, Columbus'};
+  const r=await sy.sync();assert.ok(!r.error,r.error);
+  const g=st.state.games.find(x=>x.id==='g_sched');assert.equal(g.status,'scheduled');assert.equal(g.link,'https://web.gc.com/x');assert.equal(g.time,'3:30 PM');assert.equal(g.gameNo,'P31');assert.equal(g.homeAway,'tbd');
+  const l=st.state.games.find(x=>x.id==='g_local');assert.equal(l.pitches.length,1);assert.equal(l.cur.inning,3);assert.equal(st.state.sessions.find(x=>x.id==='s_l').pitches.length,1);
+  await sy.pull();assert.equal(st.state.games.filter(x=>x.id==='g_sched').length,1,'no duplicates on re-pull');
+  // starting it locally pushes status active back by the same id
+  Object.assign(g,{status:'active',started:5});st.markDirty('games','g_sched');await sy.push();assert.equal(ff.db.games.g_sched.status,'active');assert.equal(ff.db.games.g_sched.link,'https://web.gc.com/x');});
+test('pending queue retries after a team-code typo is corrected',async()=>{const m=mem();const st=PC.makeStore(m);const GOOD='TE13U-P2KQ6-HYANK-HMB3A-ABN5Q';const sent=[];
+  const f=async(url,opt)=>{const team=opt.headers['x-team-code'];if(team!==GOOD)return{ok:false,status:401,text:async()=>'new row violates row-level security policy'};
+    if(opt.method==='POST'){JSON.parse(opt.body).forEach(r=>{assert.equal(r.team_code,GOOD);sent.push(r.id);});return{ok:true,text:async()=>''};}return{ok:true,json:async()=>[]};};
+  const sy=PC.makeSync(st,{url:'u',key:'k',fetch:f});st.real.sync.queue={pitchers:{},games:{},sessions:{},pitches:{}};
+  const s={id:'s_q',date:'d',pitches:[]};st.state.sessions.push(s);st.markDirty('sessions','s_q');for(let i=0;i<2;i++){const p={id:PC.uuid(),type:'FB',loc:5};s.pitches.push(p);st.markDirty('pitches',p.id);}
+  st.real.sync.teamCode='TE13U-P2KQ6-HYANK-HMBA-ABN5Q';let r=await sy.push();assert.ok(r.error);assert.equal(st.pendingCount(),3);r=await sy.push();assert.ok(r.error);assert.equal(st.pendingCount(),3,'still queued after repeated failures');
+  // reload from storage (phone restarted) keeps the queue
+  const st2=PC.makeStore(m);assert.equal(st2.pendingCount(),3);st2.real.sync.teamCode=GOOD;const r2=await PC.makeSync(st2,{url:'u',key:'k',fetch:f}).push();assert.equal(r2.sent,3);assert.equal(st2.pendingCount(),0);assert.equal(sent.length,3);assert.equal(st2.real.sync.lastError,null);});

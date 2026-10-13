@@ -93,7 +93,7 @@ $('innPlus').onclick=()=>{const c=game().cur;c.inning++;c.outs=0;c.b=0;c.s=0;dir
 $('batter').onchange=e=>{const c=game().cur;if(c.b||c.s){if(!confirm('Count is not 0-0. Switch batter anyway?')){render();return;}}c.slot=+e.target.value;c.b=0;c.s=0;c.abn++;c.hand=null;dirty('games',game().id);save();render();};
 $('bHand').onclick=()=>setHand(curHand()==='L'?'R':'L');
 $('pitcher').onchange=e=>{S().curPitcher=e.target.value;save();render();if(tab==='game'&&game())toast('Pitching change: '+pName(e.target.value));};
-$('gEnd').onclick=()=>{if(!confirm('End this game? It stays in Stats.'))return;game().ended=Date.now();dirty('games',game().id);S().activeGame=null;save();render();};
+$('gEnd').onclick=()=>{if(!confirm('End this game? It stays in Stats.'))return;game().ended=Date.now();game().status='final';dirty('games',game().id);S().activeGame=null;save();render();};
 // new game form
 let draftLineup=[];function blankLineup(){draftLineup=Array.from({length:9},(_,i)=>({slot:i+1,name:'',num:'',hand:'R'}));}
 blankLineup();
@@ -101,10 +101,17 @@ function renderLineupForm(){$('gLineup').innerHTML=draftLineup.map((b,i)=>`<div 
 $('gLineup').addEventListener('input',e=>{const{i,f}=e.target.dataset;if(f)draftLineup[i][f]=e.target.value;});
 $('gLineup').addEventListener('click',e=>{const{i,f}=e.target.dataset;if(f==='hand'){draftLineup[i].hand=draftLineup[i].hand==='L'?'R':'L';renderLineupForm();}});
 $('gAddB').onclick=()=>{draftLineup.push({slot:draftLineup.length+1,name:'',num:'',hand:'R'});renderLineupForm();};
+let schedId=null;
+const vsAt=g=>g.homeAway==='away'?'@':'vs';
+function pickScheduled(id){const g=S().games.find(x=>x.id===id);if(!g)return;schedId=id;$('gDate').value=g.date||'';$('gOpp').value=g.opponent||'';$('gEvent').value=g.event||'';$('gHA').value=g.homeAway||'tbd';
+  if(g.lineup&&g.lineup.length)draftLineup=g.lineup.map(b=>Object.assign({},b));$('newGameLbl').textContent=`Start ${g.gameNo||''} ${vsAt(g)} ${g.opponent} – set lineup`;renderLineupForm();$('noGame').scrollIntoView({behavior:'smooth'});}
+$('schedList').addEventListener('click',e=>{const b=e.target.closest('[data-sg]');if(b)pickScheduled(b.dataset.sg);});
 $('gStart').onclick=()=>{const lineup=draftLineup.map((b,i)=>({slot:i+1,name:b.name.trim()||('Batter '+(i+1)),num:b.num.trim(),hand:b.hand}));
-  const g={id:'g_'+PC.uid(),date:$('gDate').value||new Date().toISOString().slice(0,10),opponent:$('gOpp').value.trim()||'Opponent',event:$('gEvent').value.trim(),homeAway:$('gHA').value,lineup,pitches:[],
-    cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:0,hand:null},started:Date.now()};
-  S().games.push(g);S().activeGame=g.id;dirty('games',g.id);blankLineup();save();resetDraft();render();toast('Game on! Pick your pitcher up top.');};
+  const fields={date:$('gDate').value||new Date().toISOString().slice(0,10),opponent:$('gOpp').value.trim()||'Opponent',event:$('gEvent').value.trim(),homeAway:$('gHA').value,lineup,
+    cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:0,hand:null},started:Date.now(),status:'active'};
+  let g=schedId&&S().games.find(x=>x.id===schedId);
+  if(g){Object.assign(g,fields);g.pitches=g.pitches||[];}else{g=Object.assign({id:'g_'+PC.uid(),pitches:[]},fields);S().games.push(g);}
+  schedId=null;$('newGameLbl').textContent='New game';S().activeGame=g.id;dirty('games',g.id);blankLineup();save();resetDraft();render();toast('Game on! Pick your pitcher up top.');};
 // ---------- pitchers ----------
 let pdEdit=null;
 function openPDlg(p){pdEdit=p?p.id:null;$('pDlgT').textContent=p?'Edit pitcher':'Add pitcher';$('pdName').value=p?p.name:'';$('pdNum').value=p?p.num:'';$('pdThrows').value=p?p.throws:'R';$('pDlg').showModal();}
@@ -164,7 +171,7 @@ function scopePitches(sc){const s=S();let out=[];
   if(sc.startsWith('s_'))out=(s.sessions.find(g=>g.id===sc)||{pitches:[]}).pitches;return out;}
 const fmt=v=>v==null?'–':v+'%';
 function renderStats(){const s=S();const sel=$('sScope').value||(s.activeGame||'all');
-  const opts=[['all','Everything'],['games','All games'],['bullpen','All bullpen']].concat(s.games.slice().reverse().map(g=>[g.id,`${g.date} ${g.homeAway==='home'?'vs':'@'} ${g.opponent}${g.event?' ('+g.event+')':''}`])).concat(s.sessions.slice().reverse().map(x=>[x.id,`Bullpen ${x.date} (${x.pitches.length})`]));
+  const opts=[['all','Everything'],['games','All games'],['bullpen','All bullpen']].concat(s.games.slice().reverse().map(g=>[g.id,`${g.date} ${vsAt(g)} ${g.opponent}${PC.gameStatus(g)==='scheduled'?' (scheduled)':''}${g.event?' ('+g.event+')':''}`])).concat(s.sessions.slice().reverse().map(x=>[x.id,`Bullpen ${x.date} (${x.pitches.length})`]));
   $('sScope').innerHTML=opts.map(([v,l])=>`<option value="${v}" ${v===sel?'selected':''}>${H(l)}</option>`).join('');
   const pf=$('sPitcher').value;$('sPitcher').innerHTML='<option value="">All pitchers</option>'+s.pitchers.map(p=>`<option value="${p.id}" ${p.id===pf?'selected':''}>${H(p.name)}${p.archived?' (archived)':''}</option>`).join('');
   const all=scopePitches($('sScope').value);const P=pf?all.filter(p=>p.pitcherId===pf):all;const sum=PC.summarize(P);
@@ -207,12 +214,15 @@ function render(skipCallInput){const s=S();document.body.classList.toggle('test'
   const showEntry=(tab==='game'&&g)||tab==='bullpen';$('entry').classList.toggle('hide',!showEntry);
   $('gameHead').classList.toggle('hide',!(tab==='game'&&g));
   $('noGame').classList.toggle('hide',!!g);$('inGame').classList.toggle('hide',!g);
+  const sch=s.games.filter(x=>PC.gameStatus(x)==='scheduled').sort((x,y)=>(x.date+x.gameNo).localeCompare(y.date+y.gameNo,undefined,{numeric:true}));
+  $('schedCard').classList.toggle('hide',!(tab==='game'&&!g&&sch.length));
+  $('schedList').innerHTML=sch.map(x=>`<div class="prow"><button data-sg="${x.id}" style="flex:1;text-align:left;${schedId===x.id?'border-color:var(--acc)':''}"><b>${H(x.date.slice(5))} ${H(x.time||'')}</b> ${vsAt(x)} ${H(x.opponent)}<br><small class="mut">${[x.gameNo,x.field,x.location].filter(Boolean).map(H).join(' · ')}</small></button>${x.link&&/^https:\/\//.test(x.link)?`<a href="${H(x.link)}" target="_blank" rel="noopener" style="color:var(--acc);padding:0 6px">GC↗</a>`:''}</div>`).join('');
   if(tab==='game'&&!g){renderLineupForm();if(!$('gDate').value)$('gDate').value=new Date().toISOString().slice(0,10);}
   const hand=curHand();$('hL').classList.toggle('sel',hand==='L');$('hR').classList.toggle('sel',hand==='R');
   $('batSide').classList.toggle('hide',tab==='game');
   if(g){const c=g.cur;$('inn').textContent=c.inning;$('cnt').textContent=c.b+'-'+c.s;$('outs').innerHTML=[0,1,2].map(i=>`<span class="${i<c.outs?'on':''}"></span>`).join('');
     $('pc').textContent=PC.pitchCount(g.pitches,cp);
-    $('gTitle').textContent=`${g.date} ${g.homeAway==='home'?'vs':'@'} ${g.opponent}${g.event?' · '+g.event:''}`;
+    $('gTitle').textContent=`${g.date} ${vsAt(g)} ${g.opponent}`;$('gSub').innerHTML=[g.gameNo,g.time,g.field,g.event,g.homeAway==='tbd'?'H/A TBD':''].filter(Boolean).map(H).join(' · ')+(g.link&&/^https:\/\//.test(g.link)?` · <a href="${H(g.link)}" target="_blank" rel="noopener" style="color:var(--acc);font-weight:700">GameChanger ↗</a>`:'');
     $('batter').innerHTML=g.lineup.map((b,i)=>`<option value="${i}" ${i===c.slot?'selected':''}>${i+1}. ${b.num?'#'+H(b.num)+' ':''}${H(b.name)} (${b.hand})</option>`).join('');
     $('bHand').textContent='Bats '+hand;}
   // entry

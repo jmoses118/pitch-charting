@@ -16,9 +16,10 @@
 <main>
 <!-- GAME -->
 <section id="tab-game">
+ <div id="schedCard" class="card hide"><div class="lbl">Scheduled games – tap to chart</div><div id="schedList"></div></div>
  <div id="noGame" class="card">
-  <div class="lbl">New game</div>
-  <div class="grid2"><input id="gDate" type="date"><select id="gHA"><option value="home">Home</option><option value="away">Away</option></select></div>
+  <div class="lbl" id="newGameLbl">New game</div>
+  <div class="grid2"><input id="gDate" type="date"><select id="gHA"><option value="home">Home</option><option value="away">Away</option><option value="tbd">Home/away TBD</option></select></div>
   <div class="row" style="margin-top:6px"><input id="gOpp" placeholder="Opponent" style="flex:1"></div>
   <div class="row" style="margin-top:6px"><input id="gEvent" placeholder="Tournament / event" style="flex:1"></div>
   <div class="lbl" style="margin-top:8px">Opponent lineup (slot · name · # · bats) – editable later</div>
@@ -27,7 +28,7 @@
   <div class="mut" style="margin-top:8px">Past games are in Stats.</div>
  </div>
  <div id="inGame" class="hide">
-  <div class="card"><div class="row sp"><div id="gTitle" style="font-weight:700"></div><button id="gEnd">End game</button></div>
+  <div class="card"><div class="row sp"><div><div id="gTitle" style="font-weight:700"></div><div class="mut" id="gSub"></div></div><button id="gEnd">End game</button></div>
    <div class="row" style="margin-top:6px"><select id="batter" aria-label="Batter"></select><button id="bHand" style="min-width:64px"></button></div>
    <div class="row" style="margin-top:6px"><button id="outMinus">Out −</button><button id="outPlus">Out +</button><button id="innPlus">Next inn</button><button id="ibb" title="Intentional walk, no pitches">IBB</button></div>
   </div>

@@ -150,15 +150,16 @@ function buildRows(st){const q=st.sync.queue,team=st.sync.teamCode,dev=st.sync.d
   const idx={};st.games.forEach(g=>g.pitches.forEach(p=>idx[p.id]=[p,{mode:'game',game_id:g.id}]));st.sessions.forEach(x=>x.pitches.forEach(p=>idx[p.id]=[p,{mode:'bullpen',session_id:x.id}]));
   for(const t of TABLES){out[t]=[];ver[t]={};for(const id in q[t]){ver[t][id]=q[t][id];let row=null;
     if(t==='pitchers'){const p=st.pitchers.find(x=>x.id===id);if(p)row={id:p.id,name:p.name,num:p.num||null,throws:p.throws,archived:!!p.archived,note:p.note||null};}
-    else if(t==='games'){const g=st.games.find(x=>x.id===id);if(g)row={id:g.id,date:g.date,opponent:g.opponent,event:g.event||null,home_away:g.homeAway,lineup:g.lineup,cur:g.cur,started:g.started||null,ended:g.ended||null,imported:!!g.imported};}
+    else if(t==='games'){const g=st.games.find(x=>x.id===id);if(g)row={id:g.id,date:g.date,opponent:g.opponent,event:g.event||null,home_away:g.homeAway,lineup:g.lineup,cur:g.cur,started:g.started||null,ended:g.ended||null,imported:!!g.imported,status:gameStatus(g),link:g.link||null,notes:g.notes||null,game_time:g.time||null,field:g.field||null,game_no:g.gameNo||null,location:g.location||null};}
     else if(t==='sessions'){const x=st.sessions.find(y=>y.id===id);if(x)row={id:x.id,date:x.date,started:x.started||null,imported:!!x.imported};}
     else{const hit=idx[id];if(hit)row=pitchRow(hit[0],hit[1]);else if(st.sync.tomb[id]){const tb=st.sync.tomb[id];row=pitchRow(tb,{mode:tb.mode,game_id:tb.game_id,session_id:tb.session_id});row.deleted=true;}}
     if(row){row.team_code=team;row.device_id=dev;out[t].push(row);}else delete q[t][id];}}
   return{rows:out,ver};}
+const gameStatus=g=>g.status||(g.ended?'final':'active');
 function mergeRemote(st,data){const q=st.sync.queue;let added=0,removed=0;
   (data.pitchers||[]).forEach(r=>{if(q.pitchers[r.id]||r.deleted)return;const p=st.pitchers.find(x=>x.id===r.id),v={id:r.id,name:r.name,num:r.num||'',throws:r.throws||'R',archived:!!r.archived,note:r.note||undefined};if(p)Object.assign(p,v);else st.pitchers.push(v);});
-  (data.games||[]).forEach(r=>{if(q.games[r.id]||r.deleted)return;let g=st.games.find(x=>x.id===r.id);const v={id:r.id,date:r.date,opponent:r.opponent,event:r.event||'',homeAway:r.home_away,lineup:r.lineup||[],cur:r.cur||{inning:1,outs:0,slot:0,b:0,s:0,abn:0},started:r.started,ended:r.ended,imported:r.imported};
-    if(g)Object.assign(g,v);else st.games.push(Object.assign(v,{pitches:[]}));});
+  (data.games||[]).forEach(r=>{if(q.games[r.id]||r.deleted)return;let g=st.games.find(x=>x.id===r.id);const v={id:r.id,date:r.date,opponent:r.opponent,event:r.event||'',homeAway:r.home_away,lineup:r.lineup||[],cur:r.cur||{inning:1,outs:0,slot:0,b:0,s:0,abn:0},started:r.started,ended:r.ended,imported:r.imported,status:r.status||(r.ended?'final':'active'),link:r.link||'',notes:r.notes||'',time:r.game_time||'',field:r.field||'',gameNo:r.game_no||'',location:r.location||''};
+    if(g){if(g.pitches.length&&v.status==='scheduled')v.status=g.status||'active';Object.assign(g,v);}else st.games.push(Object.assign(v,{pitches:[]}));});
   (data.sessions||[]).forEach(r=>{if(q.sessions[r.id]||r.deleted)return;if(!st.sessions.find(x=>x.id===r.id))st.sessions.push({id:r.id,date:r.date,started:r.started,imported:r.imported,pitches:[]});});
   const where={};st.games.forEach(g=>g.pitches.forEach(p=>where[p.id]=g));st.sessions.forEach(x=>x.pitches.forEach(p=>where[p.id]=x));const touched=new Set();
   (data.pitches||[]).forEach(r=>{if(q.pitches[r.id])return;const c=where[r.id];
@@ -185,6 +186,6 @@ function makeSync(store,cfg){const f=cfg.fetch||(typeof fetch!=='undefined'?fetc
       catch(e){st.sync.lastError=String(e.message||e);store.save();return{error:st.sync.lastError};}},
     async sync(){if(store.isTest)return{skipped:'test'};const a=await api.push();if(a.error||a.skipped)return a;const b=await api.pull();return Object.assign({},a,b);}};
   return api;}
-const PC={insideCol,awayCol,cz,isZone,isCorner,isOut,locInfo,BASE_TYPES,normType,parseCall,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,summarize,hitSpot,toCSV,parseCSV,CSV_COLS,KEY,ROSTER,defaultState,makeStore,uid,uuid,isUUID,pct,makeSync,buildRows,mergeRemote,pitchRow,TABLES};
+const PC={insideCol,awayCol,cz,isZone,isCorner,isOut,locInfo,BASE_TYPES,normType,parseCall,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,summarize,hitSpot,toCSV,parseCSV,CSV_COLS,KEY,ROSTER,defaultState,makeStore,uid,uuid,isUUID,pct,makeSync,buildRows,gameStatus,mergeRemote,pitchRow,TABLES};
 if(typeof module!=='undefined'&&module.exports)module.exports=PC;else root.PC=PC;
 })(typeof window!=='undefined'?window:globalThis);
