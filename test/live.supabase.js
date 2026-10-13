@@ -1,0 +1,20 @@
+// Live round trip using the public publishable key + throwaway team code. Also checks RLS denials.
+global.window={};require('../config.js');const CFG=global.window.PC_CONFIG;const PC=require('../logic.js');
+const TEAM='ZZTEST-YZV4K-2S5KW-YEGGZ-AN9QH';const mem=()=>{const m={};return{getItem:k=>m[k]??null,setItem:(k,v)=>m[k]=v};};
+const H=team=>Object.assign({apikey:CFG.key,Authorization:'Bearer '+CFG.key,'Content-Type':'application/json'},team?{'x-team-code':team}:{});
+(async()=>{const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1;};
+  const st=PC.makeStore(mem());st.real.sync.teamCode=TEAM;st.real.sync.queue={pitchers:{},games:{},sessions:{},pitches:{}};
+  const s={id:'s_livetest_'+Date.now(),date:'2026-10-13',started:Date.now(),pitches:[]};st.real.sessions.push(s);st.markDirty('sessions',s.id);
+  const p={id:PC.uuid(),pitcherId:'p_woods',type:'CH',call:'CH7',targets:[7],loc:7,ts:Date.now(),hand:'R',b:0,s:0};s.pitches.push(p);st.markDirty('pitches',p.id);
+  const sy=PC.makeSync(st,{url:CFG.url,key:CFG.key});const r=await sy.push();ok(r.sent===2,'push session+pitch '+JSON.stringify(r));
+  const r2=await sy.push();ok(!r2.error,'re-push idempotent');
+  const st2=PC.makeStore(mem());st2.real.sync.teamCode=TEAM;st2.real.sync.queue={pitchers:{},games:{},sessions:{},pitches:{}};const pr=await PC.makeSync(st2,{url:CFG.url,key:CFG.key}).pull();
+  const back=st2.real.sessions.find(x=>x.id===s.id);ok(back&&back.pitches[0]&&back.pitches[0].id===p.id&&back.pitches[0].call==='CH7','read back on fresh store ('+JSON.stringify(pr)+')');
+  s.pitches.pop();st.tombstone(p,{mode:'bullpen',session_id:s.id});await sy.push();
+  let a=await (await fetch(`${CFG.url}/rest/v1/pitches?id=eq.${p.id}&select=deleted`,{headers:H(TEAM)})).json();ok(a[0]&&a[0].deleted===true,'undo soft-delete synced');
+  a=await (await fetch(`${CFG.url}/rest/v1/pitches?id=eq.${p.id}&select=id`,{headers:H(null)})).json();ok(Array.isArray(a)&&a.length===0,'no header: cannot read');
+  a=await (await fetch(`${CFG.url}/rest/v1/pitches?id=eq.${p.id}&select=id`,{headers:H('WRONG-CODE-XXXXXXXXXXXXXXX')})).json();ok(Array.isArray(a)&&a.length===0,'wrong code: cannot read');
+  let x=await fetch(`${CFG.url}/rest/v1/pitches`,{method:'POST',headers:H('WRONG-CODE-XXXXXXXXXXXXXXX'),body:JSON.stringify([{id:PC.uuid(),team_code:'WRONG-CODE-XXXXXXXXXXXXXXX',mode:'bullpen'}])});ok(x.status===401||x.status===403,'unregistered code: insert denied ('+x.status+')');
+  x=await fetch(`${CFG.url}/rest/v1/pitches`,{method:'POST',headers:H(TEAM),body:JSON.stringify([{id:PC.uuid(),team_code:'TE13U-OTHER-TEAM-XXXXXXXXX',mode:'bullpen'}])});ok(x.status===401||x.status===403,'cannot write into another team ('+x.status+')');
+  x=await fetch(`${CFG.url}/rest/v1/pitches?id=eq.${p.id}`,{method:'DELETE',headers:Object.assign(H(TEAM),{Prefer:'return=representation'})});ok(x.status===401||x.status===403||(await x.text())==='[]','anon hard DELETE denied ('+x.status+')');
+  console.log('TEST_SESSION',s.id,'TEST_PITCH',p.id);})();

@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="style.css"><link rel="manifest" href="manifest.json"></head><body>
 <header>
  <div id="testbar" class="testbar hide">TEST MODE – NOT SAVED · <u id="exitTest2">exit</u></div>
- <div class="row sp" style="margin-bottom:6px"><span class="brand">⚡ THUNDER ELITE 13U</span><span id="modeTag" class="tag"></span></div>
+ <div class="row sp" style="margin-bottom:6px"><span class="brand">⚡ THUNDER ELITE 13U</span><span class="row" style="gap:6px"><span id="syncTag" class="tag"></span><span id="modeTag" class="tag"></span></span></div>
  <div class="row" style="margin-bottom:6px"><select id="pitcher" aria-label="Pitcher"></select><button id="addPQuick" aria-label="Add pitcher">+P</button></div>
  <div id="gameHead" class="row sp">
   <div class="count"><div><small>INN</small><span id="inn">1</span></div><div><small>COUNT</small><span id="cnt">0-0</span></div><div><small>OUTS</small><span class="dots" id="outs"></span></div><div><small>PITCHES</small><span id="pc">0</span></div></div>
@@ -85,6 +85,10 @@
 <section id="tab-setup" class="hide">
  <div class="card"><div class="lbl">Practice / test mode</div><button id="testBtn" style="width:100%"></button>
   <div class="mut" style="margin-top:6px">Test mode works like normal but nothing is saved, nothing goes into history, stats or exports, and it's wiped when you exit.</div></div>
+ <div class="card"><div class="lbl">Cloud sync</div>
+  <div class="row"><input id="teamCode" placeholder="Team code (same on every phone)" autocapitalize="characters" autocomplete="off" style="flex:1"><button id="teamSave">Save</button></div>
+  <div class="grid2" style="margin-top:6px"><button id="syncNow" style="background:var(--blue)">Sync now</button><button id="pullCloud">Restore from cloud</button></div>
+  <div class="mut" id="syncMsg" style="margin-top:6px"></div></div>
  <div class="card"><div class="lbl">Pitchers</div><div id="pList"></div><button id="addP" style="width:100%;margin-top:6px">+ Add pitcher</button>
   <details style="margin-top:8px"><summary class="mut">Archived</summary><div id="pArch"></div></details></div>
  <div class="card"><div class="lbl">Team roster</div><div id="roster"></div><button id="addR" style="width:100%">+ Add player</button></div>
@@ -101,5 +105,5 @@
  <input id="pdName" placeholder="Name" style="width:100%"><div class="row" style="margin-top:6px"><input id="pdNum" placeholder="#" inputmode="numeric" style="width:90px"><select id="pdThrows"><option value="R">Throws R</option><option value="L">Throws L</option></select></div>
  <div class="row" style="margin-top:10px"><button value="cancel" style="flex:1">Cancel</button><button value="ok" id="pdOk" style="flex:1;background:var(--grn)">Save</button></div></form></dialog>
 <div id="toast"></div>
-<script src="logic.js"></script><script src="app.js"></script>
+<script src="config.js"></script><script src="logic.js"></script><script src="app.js"></script>
 </body></html>

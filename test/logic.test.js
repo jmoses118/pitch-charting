@@ -35,3 +35,28 @@ test('FB IN stays mid inside edge: 6 RHB, 4 LHB',()=>{assert.deepEqual(PC.parseC
 test('Woods stays left-handed',()=>{assert.equal(PC.defaultState().pitchers.find(p=>p.name==='Woods').throws,'L');});
 test('waste spots count as balls-zone and hit-the-spot',()=>{const c=PC.parseCall('FB A','R');const s=PC.summarize([{type:'FB',call:c.norm,targets:c.targets,loc:16,b:0,s:0},{type:'FB',call:'FB H+',targets:[15],loc:2,b:0,s:0}]);assert.equal(s.strikes,1);assert.equal(s.spotPct,50);});
 test('DC drop curve is its own type',()=>{const c=PC.parseCall('DC 8','R');assert.equal(c.type,'DC');assert.ok(PC.BASE_TYPES.some(t=>t.code==='DC'));const s=PC.summarize([{type:'DC',loc:8},{type:'DR',loc:8},{type:'CB',loc:7}]);assert.equal(s.byType.DC.n,1);assert.equal(s.byType.DR.n,1);assert.equal(s.byType.CB.n,1);});
+// ---------- sync ----------
+function fakeFetch(){const calls=[];const db={pitchers:{},games:{},sessions:{},pitches:{}};
+  const f=async(url,opt={})=>{const t=url.split('/rest/v1/')[1].split('?')[0];calls.push({t,method:opt.method||'GET',headers:opt.headers,body:opt.body?JSON.parse(opt.body):null});
+    if(opt.method==='POST'){JSON.parse(opt.body).forEach(r=>db[t][r.id]=Object.assign(db[t][r.id]||{},r));return{ok:true,text:async()=>''};}
+    const team=decodeURIComponent(url.match(/team_code=eq\.([^&]+)/)[1]);return{ok:true,json:async()=>Object.values(db[t]).filter(r=>r.team_code===team)};};
+  return{f,calls,db};}
+function setup(){const m=mem();const st=PC.makeStore(m);st.real.sync.teamCode='TEAMCODE-TEST-0000000000';const ff=fakeFetch();const sy=PC.makeSync(st,{url:'https://x.supabase.co',key:'pk',fetch:ff.f});return{m,st,ff,sy};}
+test('queue: new pitch is queued, pushed by upsert with team header, then cleared',async()=>{const{st,ff,sy}=setup();await sy.push();ff.calls.length=0;
+  const s={id:'s_1',date:'2026-10-13',pitches:[]};st.state.sessions.push(s);st.markDirty('sessions','s_1');const p={id:PC.uuid(),pitcherId:'p_woods',type:'FB',loc:3,ts:1,b:0,s:0,targets:[]};s.pitches.push(p);st.markDirty('pitches',p.id);
+  assert.equal(st.pendingCount(),2);const r=await sy.push();assert.equal(r.sent,2);assert.equal(st.pendingCount(),0);
+  const call=ff.calls.find(c=>c.t==='pitches');assert.equal(call.headers['x-team-code'],'TEAMCODE-TEST-0000000000');assert.match(call.headers.Prefer,/merge-duplicates/);assert.equal(call.body[0].id,p.id);assert.equal(call.body[0].mode,'bullpen');
+  await sy.push();assert.equal(Object.keys(ff.db.pitches).length,1,'idempotent upsert');});
+test('queue: failed push keeps items pending',async()=>{const{st}=setup();const sy=PC.makeSync(st,{url:'u',key:'k',fetch:async()=>({ok:false,status:500,text:async()=>'boom'})});const n=st.pendingCount();assert.ok(n>0);const r=await sy.push();assert.ok(r.error);assert.equal(st.pendingCount(),n);});
+test('queue: no team code = nothing sent',async()=>{const m=mem();const st=PC.makeStore(m);const ff=fakeFetch();const r=await PC.makeSync(st,{url:'u',key:'k',fetch:ff.f}).push();assert.equal(r.skipped,'no team code');assert.equal(ff.calls.length,0);});
+test('undo = soft delete tombstone that syncs',async()=>{const{st,ff,sy}=setup();const s={id:'s_2',date:'d',pitches:[]};st.state.sessions.push(s);const p={id:PC.uuid(),type:'CH',loc:7,ts:2,targets:[]};s.pitches.push(p);st.markDirty('pitches',p.id);await sy.push();
+  s.pitches.pop();st.tombstone(p,{mode:'bullpen',session_id:'s_2'});await sy.push();assert.equal(ff.db.pitches[p.id].deleted,true);assert.equal(st.pendingCount(),0);assert.ok(!st.real.sync.tomb[p.id]);});
+test('test mode never queues or syncs',async()=>{const{st,ff,sy}=setup();await sy.push();ff.calls.length=0;st.enterTest();
+  const s={id:'s_t',date:'d',pitches:[{id:PC.uuid(),type:'FB',loc:1}]};st.state.sessions.push(s);assert.equal(st.markDirty('sessions','s_t'),false);assert.equal(st.markDirty('pitches',s.pitches[0].id),false);assert.equal(st.tombstone(s.pitches[0],{}),false);
+  assert.equal(st.pendingCount(),0);assert.equal((await sy.sync()).skipped,'test');assert.equal((await sy.pull()).skipped,'test');assert.equal(ff.calls.length,0);
+  st.exitTest();assert.equal(st.pendingCount(),0);await sy.push();assert.equal(ff.calls.length,0,'nothing from test mode leaked into the queue');});
+test('restore from cloud onto a new phone',async()=>{const{st,ff,sy}=setup();const g={id:'g_1',date:'2026-10-13',opponent:'Storm',event:'Fall Classic',homeAway:'away',lineup:[{slot:1,name:'A',num:'1',hand:'L'}],cur:{inning:2,outs:1,slot:0,b:0,s:0,abn:3},pitches:[]};
+  st.state.games.push(g);st.markDirty('games','g_1');const p={id:PC.uuid(),pitcherId:'p_woods',type:'DC',loc:8,result:'called',ts:5,b:0,s:0,inning:1,outsBefore:0,slot:0,batter:'A',targets:[],firstPitch:true};g.pitches.push(p);st.markDirty('pitches',p.id);await sy.push();
+  const st2=PC.makeStore(mem());st2.real.sync.teamCode='TEAMCODE-TEST-0000000000';st2.real.sync.queue={pitchers:{},games:{},sessions:{},pitches:{}};const r=await PC.makeSync(st2,{url:'u',key:'k',fetch:ff.f}).pull();
+  assert.equal(r.added,1);const g2=st2.state.games.find(x=>x.id==='g_1');assert.equal(g2.opponent,'Storm');assert.equal(g2.pitches[0].type,'DC');assert.equal(g2.pitches[0].result,'called');assert.equal(PC.pitchCount(g2.pitches,'p_woods'),1);});
+test('legacy non-uuid pitch ids are migrated to uuids',()=>{const m=mem();const s0=PC.defaultState();s0.sessions.push({id:'s_x',date:'d',pitches:[{id:'abc123',type:'FB'}]});m.setItem(PC.KEY,JSON.stringify(s0));const st=PC.makeStore(m);assert.ok(PC.isUUID(st.state.sessions[0].pitches[0].id));});
