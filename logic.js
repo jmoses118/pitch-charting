@@ -327,7 +327,7 @@ function typeFeedback(t,g,best,weak){const nm=TYPE_NAME[t]||t,out=[];
   if(!g.called)return[`${g.n} ${nm.toLowerCase()}${g.n===1?'':'s'} thrown – tap where you're aiming to see how close you get.`];
   if(t==='CH'&&g.chUp)out.push(`Up in the zone ${g.chUp} time${g.chUp===1?'':'s'} – keep it at the knees.`);
   if(g.mm)out.push(`${g.mm} souvenir${g.mm===1?'':'s'} 🎁 – if you miss, miss off the plate.`);
-  const dirs=['up','down','in','away','glove side','arm side'].map(d=>[d,g[d]]).sort((a,b)=>b[1]-a[1]);if(out.length<2&&dirs[0][1]>=2&&dirs[0][1]>=0.5*(g.called-g.hits)&&!(t==='CH'&&dirs[0][0]==='up'&&g.chUp))out.push(`Misses mostly ${dirs[0][0]} – focus on ${FIX[dirs[0][0]]}.`);
+  const dirs=['up','down','in','away','glove side','arm side'].map(d=>[d,g[d]]).sort((a,b)=>b[1]-a[1]);if(out.length<2&&g.goodPct<75&&dirs[0][1]>=2&&dirs[0][1]>=0.5*(g.called-g.hits)&&!(t==='CH'&&dirs[0][0]==='up'&&g.chUp))out.push(`Misses mostly ${dirs[0][0]} – focus on ${FIX[dirs[0][0]]}.`);
   if(out.length<2&&g.goodPct>=75)out.push(`Great command – ${g.good} of ${g.called} on target${best?`, best at ${best.label}`:''}.`);
   else if(out.length<2&&weak)out.push(`Work on ${weak.label} (${weak.good} of ${weak.called} on target).`);
   if(!out.length)out.push(`${g.good} of ${g.called} on target – keep repping it.`);return out.slice(0,2);}
