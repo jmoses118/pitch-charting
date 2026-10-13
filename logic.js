@@ -68,7 +68,7 @@ const isStrike=r=>r==='kd3'||r==='called'||r==='swinging'||r==='foul'||r==='inpl
 function applyPitch(cnt,result,ip){let b=cnt.b,s=cnt.s,end=null,outs=0;
   if(result==='ball'){b++;if(b>=4)end='BB';}
   else if(result==='called'||result==='swinging'){s++;if(s>=3){end='K';outs=1;}}
-  else if(result==='kd3'){s++;end='K-D3';} // strikeout for pitcher, batter reaches, no out
+  else if(result==='kd3'){if(s!==2)throw new Error('Dropped 3rd strike only with 2 strikes');s++;end='K-D3';} // strikeout for pitcher, batter reaches, no out
   else if(result==='foul'){if(s<2)s++;}
   else if(result==='hbp'){end='HBP';}
   else if(result==='inplay'){end=ip||'out';if(end==='out'||end==='FC')outs=1;}
@@ -128,7 +128,8 @@ function summarize(pitches){const P=pitches.filter(countsAsPitch);const strikeOf
     const out={};for(const k in o){const q=o[k];const c=q.filter(x=>x.targets&&x.targets.length&&x.loc!=null);
       out[k]={n:q.length,strikes:q.filter(strikeOf).length,strikePct:pct(q.filter(strikeOf).length,q.length),spotPct:pct(c.filter(hitSpot).length,c.length),
         whiff:q.filter(x=>x.result==='swinging').length,inPlay:q.filter(x=>x.result==='inplay').length};}return out;};
-  return{n:P.length,strikes:P.filter(strikeOf).length,strikePct:pct(P.filter(strikeOf).length,P.length),
+  const ks=pitches.filter(p=>p.end==='K'||p.end==='K-D3');
+  return{k:ks.length,kd3:ks.filter(p=>p.end==='K-D3').length,n:P.length,strikes:P.filter(strikeOf).length,strikePct:pct(P.filter(strikeOf).length,P.length),
     fps:fp.filter(strikeOf).length,fpsN:fp.length,fpsPct:pct(fp.filter(strikeOf).length,fp.length),
     spotN:called.length,spot:called.filter(hitSpot).length,spotPct:pct(called.filter(hitSpot).length,called.length),
     byType:group(p=>p.type),byLoc:group(p=>p.loc!=null?String(p.loc):null),byCall:group(p=>p.call||null),
@@ -292,7 +293,7 @@ function sessionReport(pitches,throws){const thr=typeof throws==='function'?thro
   Object.entries(byType).sort((a,b)=>b[1].called-a[1].called).forEach(([t,g])=>{if(g.called<3)return;const miss=g.called-g.hits;
     const dirs=['up','down','in','away','glove side','arm side'].map(d=>[d,g[d]]).sort((a,b)=>b[1]-a[1]);const [d,c]=dirs[0];
     if(c>=3&&c>=0.5*g.called){flagged.add(t);fb.push({w:1,t:`${nm(t)} missed ${d} ${c} of ${g.called} times – focus on ${FIX[d]}.`});}});
-  if(all.mm)fb.push({w:0,t:`${all.mm} fat pitch${all.mm===1?'':'es'} (right down the middle when you didn't aim there) – that's the pitch hitters crush. If you miss, miss off the plate.`});
+  if(all.mm)fb.push({w:0,t:`${all.mm} souvenir${all.mm===1?'':'s'} 🎁 (right down the middle when you didn't aim there) – hitters send those out of the park. If you miss, miss off the plate.`});
   if(best&&best.avgMiss<=1&&best.called>=3&&!flagged.has(best.type))fb.push({w:2,t:`Great command on ${best.label} – ${best.good} of ${best.called} on target.`});
   if(trend&&trend.first.called>=3&&trend.second.called>=3){const a=trend.first.goodPct,b=trend.second.goodPct;
     if(b-a>=15)fb.push({w:3,t:`You got sharper as you went: ${Math.round(a)}% on target early, ${Math.round(b)}% late.`});

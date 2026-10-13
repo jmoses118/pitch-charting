@@ -9,7 +9,7 @@ await pg.click('[data-r="foul"]');await pg.click('[data-r="foul"]');await pg.cli
 let cnt=await pg.textContent('#cnt'),pc=await pg.textContent('#pc');console.log('after K,F,F,F count',cnt,'pc',pc);
 if(cnt!=='0-2'||pc!=='4')throw 'count';
 await pg.click('[data-r="swinging"]');console.log('after K3 count',await pg.textContent('#cnt'),'outs',await pg.$$eval('#outs .on',x=>x.length));
-await pg.click('#undo');await pg.click('[data-r="kd3"]');const o2=await pg.$$eval('#outs .on',x=>x.length);console.log('after K-D3 outs',o2,'count',await pg.textContent('#cnt'));if(o2!==0)throw 'kd3';await pg.click('#undo');console.log('after undo',await pg.textContent('#cnt'),await pg.textContent('#pc'));
+{const h=await pg.isVisible('[data-r="kd3"]');console.log('K-D3 button hidden at 0-0:',!h);if(h)throw 'kd3 visible at 0-0';}await pg.click('#undo');{const v=await pg.isVisible('[data-r="kd3"]');console.log('K-D3 button shown at 2 strikes:',v);if(!v)throw 'kd3 hidden at 2 strikes';}await pg.click('[data-r="kd3"]');const o2=await pg.$$eval('#outs .on',x=>x.length);console.log('after K-D3 outs',o2,'count',await pg.textContent('#cnt'));if(o2!==0)throw 'kd3';await pg.click('#undo');console.log('after undo',await pg.textContent('#cnt'),await pg.textContent('#pc'));
 await pg.screenshot({path:'/workspace/pitch-charting-app/test/shot-game.png',fullPage:true});
 // bullpen with call
 await pg.click('nav [data-t="bullpen"]');await pg.check('#callOn');await pg.fill('#callTxt','chg 7');await tap(7);
