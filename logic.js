@@ -301,7 +301,7 @@ function sessionReport(pitches,throws){const thr=typeof throws==='function'?thro
     (spots[k]=spots[k]||{key:k,label:lab,type:p.type,target:m.target,hand:p.hand,list:[]}).list.push(p);});
   const spotArr=Object.values(spots).map(s=>Object.assign(s,G(s.list),{list:undefined})).filter(s=>s.called>=2);
   const rank=spotArr.slice().sort((a,b)=>a.avgMiss-b.avgMiss||b.goodPct-a.goodPct||b.called-a.called);
-  const best=rank.length?rank[0]:null;const lw=rank[rank.length-1];const weakest=rank.length>1&&(lw.avgMiss>best.avgMiss||lw.goodPct<best.goodPct)?lw:null;
+  const best=rank.length?rank[0]:null;const lw=rank[rank.length-1];const weakest=rank.length>1&&(lw.goodPct<best.goodPct||lw.avgMiss>=1.5)?lw:null;
   const h=Math.floor(P.length/2);const trend=P.length>=8?{first:G(P.slice(0,h)),second:G(P.slice(h))}:null;
   const fb=[],flagged=new Set();const nm=t=>TYPE_NAME[t]||t;
   // 1) a consistent miss direction per pitch type
@@ -320,7 +320,7 @@ function sessionReport(pitches,throws){const thr=typeof throws==='function'?thro
   if(lines.length<2){if(!all.called)lines.push('Turn on the call sheet (or tap an intended spot) so you can see how often you hit your spot.');
     if(lines.length<2)lines.push(`${all.n} pitch${all.n===1?'':'es'} logged${all.goodPct!=null?` · ${Math.round(all.goodPct)}% on target`:''} – keep building.`);}
   // one section per pitch type: its own numbers, best / work-on spot and 1-2 kid-friendly lines
-  const types={};Object.entries(byType).sort((a,b)=>b[1].n-a[1].n).forEach(([t,g])=>{const sp=rank.filter(s=>(s.type||'?')===t);const tb=sp.length?sp[0]:null;const tw=sp.length>1&&(sp[sp.length-1].avgMiss>tb.avgMiss||sp[sp.length-1].goodPct<tb.goodPct)?sp[sp.length-1]:null;
+  const types={};Object.entries(byType).sort((a,b)=>b[1].n-a[1].n).forEach(([t,g])=>{const sp=rank.filter(s=>(s.type||'?')===t);const tb=sp.length?sp[0]:null;const tw=sp.length>1&&(sp[sp.length-1].goodPct<tb.goodPct||sp[sp.length-1].avgMiss>=1.5)?sp[sp.length-1]:null;
     types[t]={stats:g,best:tb,weakest:tw,feedback:typeFeedback(t,g,tb,tw)};});
   return Object.assign({},all,{byType,types,best,weakest,trend,feedback:lines.slice(0,4)});}
 function typeFeedback(t,g,best,weak){const nm=TYPE_NAME[t]||t,out=[];
