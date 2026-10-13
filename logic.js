@@ -212,8 +212,8 @@ function ensureSync(st){
   // one-time: Woods has no 'ace' tag, is #45 and throws L (queued so the cloud stays consistent)
   if(!st.migWoods1){const w=(st.pitchers||[]).find(p=>p.id==='p_woods');if(w){delete w.note;if(!w.num)w.num='45';w.throws='L';if(st.sync)st.sync.queue.pitchers[w.id]=(st.sync.queue.pitchers[w.id]||0)+1;}st.migWoods1=true;}if(!st.sync)st.sync={queue:{pitchers:{},games:{},sessions:{},pitches:{}},tomb:{},last:null,lastError:null,teamCode:'',deviceId:'d_'+uid()};
   TABLES.forEach(t=>{st.sync.queue[t]=st.sync.queue[t]||{};});
-  // one-time: preload Jim's wristband call sheet
-  if(!st.migSheets1){if(!Array.isArray(st.callSheets)||!st.callSheets.length){st.callSheets=[defaultCallSheet()];st.sync.queue.call_sheets['cs_wristband1']=1;}if(!st.activeSheet)st.activeSheet=st.callSheets[0].id;st.migSheets1=true;}
+  // one-time: preload Jim's wristband (pushed only once edited, so a stale default never overwrites the cloud copy)
+  if(!st.migSheets1){if(!Array.isArray(st.callSheets)||!st.callSheets.length){st.callSheets=[defaultCallSheet()];}if(!st.activeSheet)st.activeSheet=st.callSheets[0].id;st.migSheets1=true;}
   // first run with sync: give every pitch a uuid and queue everything once
   if(!st.sync.migrated){const q=st.sync.queue;st.pitchers.forEach(p=>q.pitchers[p.id]=1);
     [].concat(st.games||[],st.sessions||[]).forEach(c=>{q[c.pitches&&c.lineup?'games':'sessions'][c.id]=1;c.pitches.forEach(p=>{if(!isUUID(p.id))p.id=uuid();q.pitches[p.id]=1;});});st.sync.migrated=true;}
