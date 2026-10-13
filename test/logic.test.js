@@ -39,9 +39,9 @@ test('DC drop curve is its own type',()=>{const c=PC.parseCall('DC 8','R');asser
 function fakeFetch(){const calls=[];const db={pitchers:{},games:{},sessions:{},pitches:{}};
   const f=async(url,opt={})=>{const t=url.split('/rest/v1/')[1].split('?')[0];calls.push({t,method:opt.method||'GET',headers:opt.headers,body:opt.body?JSON.parse(opt.body):null});
     if(opt.method==='POST'){JSON.parse(opt.body).forEach(r=>db[t][r.id]=Object.assign(db[t][r.id]||{},r));return{ok:true,text:async()=>''};}
-    const team=decodeURIComponent(url.match(/team_code=eq\.([^&]+)/)[1]);return{ok:true,json:async()=>Object.values(db[t]).filter(r=>r.team_code===team)};};
+    const team=decodeURIComponent(url.match(/team_id=eq\.([^&]+)/)[1]);return{ok:true,json:async()=>Object.values(db[t]).filter(r=>r.team_id===team)};};
   return{f,calls,db};}
-function setup(){const m=mem();const st=PC.makeStore(m);st.real.sync.teamCode='TEAMCODE-TEST-0000000000';const ff=fakeFetch();const sy=PC.makeSync(st,{url:'https://x.supabase.co',key:'pk',fetch:ff.f});return{m,st,ff,sy};}
+function setup(){const m=mem();const st=PC.makeStore(m);st.real.sync.teamCode='TEAMCODE-TEST-0000000000';st.real.sync.role='coach';st.real.sync.teamId='team-x';const ff=fakeFetch();const sy=PC.makeSync(st,{url:'https://x.supabase.co',key:'pk',fetch:ff.f});return{m,st,ff,sy};}
 test('queue: new pitch is queued, pushed by upsert with team header, then cleared',async()=>{const{st,ff,sy}=setup();await sy.push();ff.calls.length=0;
   const s={id:'s_1',date:'2026-10-13',pitches:[]};st.state.sessions.push(s);st.markDirty('sessions','s_1');const p={id:PC.uuid(),pitcherId:'p_woods',type:'FB',loc:3,ts:1,b:0,s:0,targets:[]};s.pitches.push(p);st.markDirty('pitches',p.id);
   assert.equal(st.pendingCount(),2);const r=await sy.push();assert.equal(r.sent,2);assert.equal(st.pendingCount(),0);
@@ -57,13 +57,13 @@ test('test mode never queues or syncs',async()=>{const{st,ff,sy}=setup();await s
   st.exitTest();assert.equal(st.pendingCount(),0);await sy.push();assert.equal(ff.calls.length,0,'nothing from test mode leaked into the queue');});
 test('restore from cloud onto a new phone',async()=>{const{st,ff,sy}=setup();const g={id:'g_1',date:'2026-10-13',opponent:'Storm',event:'Fall Classic',homeAway:'away',lineup:[{slot:1,name:'A',num:'1',hand:'L'}],cur:{inning:2,outs:1,slot:0,b:0,s:0,abn:3},pitches:[]};
   st.state.games.push(g);st.markDirty('games','g_1');const p={id:PC.uuid(),pitcherId:'p_woods',type:'DC',loc:8,result:'called',ts:5,b:0,s:0,inning:1,outsBefore:0,slot:0,batter:'A',targets:[],firstPitch:true};g.pitches.push(p);st.markDirty('pitches',p.id);await sy.push();
-  const st2=PC.makeStore(mem());st2.real.sync.teamCode='TEAMCODE-TEST-0000000000';st2.real.sync.queue={pitchers:{},games:{},sessions:{},pitches:{}};const r=await PC.makeSync(st2,{url:'u',key:'k',fetch:ff.f}).pull();
+  const st2=PC.makeStore(mem());st2.real.sync.teamCode='TEAMCODE-TEST-0000000000';st2.real.sync.role='coach';st2.real.sync.teamId='team-x';st2.real.sync.queue={pitchers:{},games:{},sessions:{},pitches:{}};const r=await PC.makeSync(st2,{url:'u',key:'k',fetch:ff.f}).pull();
   assert.equal(r.added,1);const g2=st2.state.games.find(x=>x.id==='g_1');assert.equal(g2.opponent,'Storm');assert.equal(g2.pitches[0].type,'DC');assert.equal(g2.pitches[0].result,'called');assert.equal(PC.pitchCount(g2.pitches,'p_woods'),1);});
 test('legacy non-uuid pitch ids are migrated to uuids',()=>{const m=mem();const s0=PC.defaultState();s0.sessions.push({id:'s_x',date:'d',pitches:[{id:'abc123',type:'FB'}]});m.setItem(PC.KEY,JSON.stringify(s0));const st=PC.makeStore(m);assert.ok(PC.isUUID(st.state.sessions[0].pitches[0].id));});
 test('pull merges cloud scheduled games by id without wiping local data',async()=>{const{st,ff,sy}=setup();
   const local={id:'g_local',date:'2026-10-10',opponent:'Storm',homeAway:'home',lineup:[],cur:{inning:3,outs:0,slot:0,b:0,s:0,abn:0},pitches:[{id:PC.uuid(),type:'FB',result:'ball',b:0,s:0,ts:1}]};st.state.games.push(local);st.markDirty('games','g_local');st.markDirty('pitches',local.pitches[0].id);
   st.state.sessions.push({id:'s_l',date:'d',pitches:[{id:PC.uuid(),type:'CH',loc:7}]});
-  ff.db.games.g_sched={team_code:'TEAMCODE-TEST-0000000000',id:'g_sched',date:'2026-10-17',opponent:'Finesse Colyer',event:"America's Premier Fall Showcase",home_away:'tbd',lineup:[],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:0},status:'scheduled',link:'https://web.gc.com/x',game_time:'3:30 PM',field:'Field 21',game_no:'P31',location:'Berliner Sports Park, Columbus'};
+  ff.db.games.g_sched={team_id:'team-x',id:'g_sched',date:'2026-10-17',opponent:'Finesse Colyer',event:"America's Premier Fall Showcase",home_away:'tbd',lineup:[],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:0},status:'scheduled',link:'https://web.gc.com/x',game_time:'3:30 PM',field:'Field 21',game_no:'P31',location:'Berliner Sports Park, Columbus'};
   const r=await sy.sync();assert.ok(!r.error,r.error);
   const g=st.state.games.find(x=>x.id==='g_sched');assert.equal(g.status,'scheduled');assert.equal(g.link,'https://web.gc.com/x');assert.equal(g.time,'3:30 PM');assert.equal(g.gameNo,'P31');assert.equal(g.homeAway,'tbd');
   const l=st.state.games.find(x=>x.id==='g_local');assert.equal(l.pitches.length,1);assert.equal(l.cur.inning,3);assert.equal(st.state.sessions.find(x=>x.id==='s_l').pitches.length,1);
@@ -72,12 +72,12 @@ test('pull merges cloud scheduled games by id without wiping local data',async()
   Object.assign(g,{status:'active',started:5});st.markDirty('games','g_sched');await sy.push();assert.equal(ff.db.games.g_sched.status,'active');assert.equal(ff.db.games.g_sched.link,'https://web.gc.com/x');});
 test('pending queue retries after a team-code typo is corrected',async()=>{const m=mem();const st=PC.makeStore(m);const GOOD='TE13U-P2KQ6-HYANK-HMB3A-ABN5Q';const sent=[];
   const f=async(url,opt)=>{const team=opt.headers['x-team-code'];if(team!==GOOD)return{ok:false,status:401,text:async()=>'new row violates row-level security policy'};
-    if(opt.method==='POST'){JSON.parse(opt.body).forEach(r=>{assert.equal(r.team_code,GOOD);sent.push(r.id);});return{ok:true,text:async()=>''};}return{ok:true,json:async()=>[]};};
+    if(opt.method==='POST'){JSON.parse(opt.body).forEach(r=>{assert.equal(r.team_id,'team-x');assert.ok(!('team_code' in r));sent.push(r.id);});return{ok:true,text:async()=>''};}return{ok:true,json:async()=>[]};};
   const sy=PC.makeSync(st,{url:'u',key:'k',fetch:f});st.real.sync.queue={pitchers:{},games:{},sessions:{},pitches:{}};
   const s={id:'s_q',date:'d',pitches:[]};st.state.sessions.push(s);st.markDirty('sessions','s_q');for(let i=0;i<2;i++){const p={id:PC.uuid(),type:'FB',loc:5};s.pitches.push(p);st.markDirty('pitches',p.id);}
-  st.real.sync.teamCode='TE13U-P2KQ6-HYANK-HMBA-ABN5Q';let r=await sy.push();assert.ok(r.error);assert.equal(st.pendingCount(),3);r=await sy.push();assert.ok(r.error);assert.equal(st.pendingCount(),3,'still queued after repeated failures');
+  st.real.sync.teamCode='TE13U-P2KQ6-HYANK-HMBA-ABN5Q';st.real.sync.teamId='team-x';let r=await sy.push();assert.ok(r.error);assert.equal(st.pendingCount(),3);r=await sy.push();assert.ok(r.error);assert.equal(st.pendingCount(),3,'still queued after repeated failures');
   // reload from storage (phone restarted) keeps the queue
-  const st2=PC.makeStore(m);assert.equal(st2.pendingCount(),3);st2.real.sync.teamCode=GOOD;const r2=await PC.makeSync(st2,{url:'u',key:'k',fetch:f}).push();assert.equal(r2.sent,3);assert.equal(st2.pendingCount(),0);assert.equal(sent.length,3);assert.equal(st2.real.sync.lastError,null);});
+  const st2=PC.makeStore(m);assert.equal(st2.pendingCount(),3);st2.real.sync.teamCode=GOOD;st2.real.sync.teamId='team-x';const r2=await PC.makeSync(st2,{url:'u',key:'k',fetch:f}).push();assert.equal(r2.sent,3);assert.equal(st2.pendingCount(),0);assert.equal(sent.length,3);assert.equal(st2.real.sync.lastError,null);});
 test('Woods ace tag removed: old phones migrated, cloud pull clears note',async()=>{const m=mem();const s0=PC.defaultState();s0.pitchers[0].note='ace';s0.pitchers[0].num='';m.setItem(PC.KEY,JSON.stringify(s0));
   const st=PC.makeStore(m);const w=st.state.pitchers.find(p=>p.id==='p_woods');assert.equal(w.note,undefined);assert.equal(w.num,'45');assert.equal(w.throws,'L');
   w.note='ace';st.real.sync.queue.pitchers={};PC.mergeRemote(st.real,{pitchers:[{id:'p_woods',name:'Woods',num:'45',throws:'L',archived:false,note:null}]});assert.equal(w.note,undefined);
@@ -90,3 +90,22 @@ test('bullpen flow: call sheet spot counts as intended (skips step 2)',()=>{cons
   const w=PC.parseCall('FB','R');assert.equal(PC.bullpenTap({type:'FB',callTargets:w.targets},2).action,'target');});
 test('hit-spot counts tapped intended spots without a call; old called data still counts',()=>{const s=PC.summarize([{type:'FB',targets:[3],loc:3},{type:'FB',targets:[3],loc:6},{type:'CH',call:'CH7',targets:[7],loc:7},{type:'DR',targets:[],loc:8}]);
   assert.equal(s.spotN,3);assert.equal(s.spot,2);assert.equal(s.byType.FB.spotPct,50);assert.equal(s.byType.CH.spotPct,100);assert.equal(s.n,4);});
+// ---------- roles ----------
+function roleStore(role,pid){const st=PC.makeStore(mem());Object.assign(st.real.sync,{teamCode:'TEP-AAAAA-BBBBB-CCCCC-DDDDD',teamId:'team-x',role,pitcherId:pid||null,queue:{pitchers:{},games:{},sessions:{},pitches:{}}});
+  const own={id:'s_own',date:'d',pitcherId:'p_woods',pitches:[{id:PC.uuid(),pitcherId:'p_woods',type:'FB',loc:3,targets:[3]},{id:PC.uuid(),pitcherId:'p_larbus',type:'CH',loc:7}]};
+  const coachS={id:'s_coach',date:'d',pitches:[{id:PC.uuid(),pitcherId:'p_woods',type:'DR',loc:8}]};st.real.sessions.push(own,coachS);
+  const g={id:'g1',date:'d',opponent:'X',homeAway:'home',lineup:[],cur:{},pitches:[{id:PC.uuid(),pitcherId:'p_woods',type:'FB',result:'ball',b:0,s:0}]};st.real.games.push(g);
+  st.markAllDirty();return st;}
+test('player code only sends own bullpen data; everything else dropped from queue',()=>{const st=roleStore('player','p_woods');const{rows}=PC.buildRows(st.real);
+  assert.equal(rows.pitchers.length,0);assert.equal(rows.games.length,0);assert.deepEqual(rows.sessions.map(r=>r.id),['s_own']);
+  assert.equal(rows.pitches.length,2);assert.ok(rows.pitches.every(r=>r.pitcher_id==='p_woods'&&r.mode==='bullpen'));assert.equal(st.pendingCount(),3);});
+test('view-only code sends nothing',async()=>{const st=roleStore('viewer');const{rows}=PC.buildRows(st.real);assert.equal(Object.values(rows).flat().length,0);
+  const calls=[];const sy=PC.makeSync(st,{url:'u',key:'k',fetch:async(u,o)=>{calls.push(o.method||'GET');return{ok:true,json:async()=>[],text:async()=>''};}});await sy.sync();assert.ok(!calls.includes('POST'));});
+test('coach code sends everything',()=>{const st=roleStore('coach');const{rows}=PC.buildRows(st.real);assert.equal(rows.games.length,1);assert.equal(rows.sessions.length,2);assert.equal(rows.pitches.length,4);assert.equal(rows.pitchers.length,3);});
+test('whoami sets role; unknown code blocks sync',async()=>{const st=PC.makeStore(mem());st.real.sync.teamCode='TEP-AAAAA-BBBBB-CCCCC-DDDDD';
+  let who={role:'player',team_id:'team-x',pitcher_id:'p_reese',pitcher_name:'Reese'};const f=async(u,o)=>u.includes('/rpc/whoami')?{ok:true,text:async()=>JSON.stringify(who)}:{ok:true,json:async()=>[],text:async()=>''};
+  const sy=PC.makeSync(st,{url:'u',key:'k',fetch:f});await sy.whoami();assert.equal(st.real.sync.role,'player');assert.equal(st.real.sync.teamId,'team-x');assert.equal(st.real.sync.pitcherId,'p_reese');assert.ok(st.real.pitchers.find(p=>p.id==='p_reese'&&p.name==='Reese'));
+  who=null;await sy.whoami();assert.equal(st.real.sync.role,null);const r=await sy.sync();assert.match(r.error,/not recognized/);});
+test('rows never carry the secret code, only the team id',()=>{const st=roleStore('coach');st.real.sync.teamId='thunder-elite-13u';const{rows}=PC.buildRows(st.real);const all=Object.values(rows).flat();
+  assert.ok(all.length>0);assert.ok(all.every(r=>r.team_id==='thunder-elite-13u'&&!('team_code' in r)));assert.ok(!JSON.stringify(all).includes(st.real.sync.teamCode));});
+test('no push until the team is identified by whoami',async()=>{const st=PC.makeStore(mem());st.real.sync.teamCode='TE13U-P2KQ6-HYANK-HMB3A-ABN5Q';const calls=[];const r=await PC.makeSync(st,{url:'u',key:'k',fetch:async()=>{calls.push(1);return{ok:true}}}).push();assert.match(r.skipped,/not identified/);assert.equal(calls.length,0);});

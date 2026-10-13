@@ -147,28 +147,32 @@ function ensureSync(st){
   return st;}
 // ---------- Cloud sync (Supabase REST, team code header checked by RLS) ----------
 const TABLES=['pitchers','games','sessions','pitches'];
-const keyOf={pitchers:'team_code,id',games:'team_code,id',sessions:'team_code,id',pitches:'id'};
+const keyOf={pitchers:'team_id,id',games:'team_id,id',sessions:'team_id,id',pitches:'id'};
 function pitchRow(p,ctx){return{id:p.id,mode:ctx.mode,game_id:ctx.game_id||null,session_id:ctx.session_id||null,pitcher_id:p.pitcherId||null,ts:p.ts||null,hand:p.hand||null,type:p.type||null,call:p.call||null,call_raw:p.callRaw||null,
   targets:p.targets||[],loc:p.loc==null?null:p.loc,result:p.result||null,ip:p.ip||null,end_event:p.end||null,inning:p.inning==null?null:p.inning,outs_before:p.outsBefore==null?null:p.outsBefore,slot:p.slot==null?null:p.slot,
   batter:p.batter==null?null:p.batter,batter_num:p.batterNum==null?null:String(p.batterNum),b:p.b==null?null:p.b,s:p.s==null?null:p.s,abn:p.abn==null?null:p.abn,first_pitch:p.firstPitch==null?null:!!p.firstPitch,no_pitch:!!p.noPitch,prev_hand:p.prevHand||null,deleted:!!p.deleted};}
 function rowPitch(r){const p={id:r.id,ts:+r.ts||0,pitcherId:r.pitcher_id,hand:r.hand,type:r.type,call:r.call,callRaw:r.call_raw,targets:r.targets||[],loc:r.loc,result:r.result,ip:r.ip,end:r.end_event};
   if(r.mode==='game')Object.assign(p,{inning:r.inning,outsBefore:r.outs_before,slot:r.slot,batter:r.batter,batterNum:r.batter_num,b:r.b,s:r.s,abn:r.abn,firstPitch:r.first_pitch,prevHand:r.prev_hand});else{p.b=0;p.s=0;}
   if(r.no_pitch)p.noPitch=true;return p;}
-function buildRows(st){const q=st.sync.queue,team=st.sync.teamCode,dev=st.sync.deviceId,out={},ver={};
+// role rules (mirrors server RLS): coach = everything; player = own bullpen sessions/pitches only; viewer = read only
+function roleAllows(sync,table,row){const role=sync.role||'coach';if(role==='coach')return true;if(role==='viewer')return false;
+  if(table==='sessions')return row.pitcher_id===sync.pitcherId;if(table==='pitches')return row.mode==='bullpen'&&row.pitcher_id===sync.pitcherId;return false;}
+function buildRows(st){const q=st.sync.queue,team=st.sync.teamId,dev=st.sync.deviceId,out={},ver={};
   const idx={};st.games.forEach(g=>g.pitches.forEach(p=>idx[p.id]=[p,{mode:'game',game_id:g.id}]));st.sessions.forEach(x=>x.pitches.forEach(p=>idx[p.id]=[p,{mode:'bullpen',session_id:x.id}]));
   for(const t of TABLES){out[t]=[];ver[t]={};for(const id in q[t]){ver[t][id]=q[t][id];let row=null;
     if(t==='pitchers'){const p=st.pitchers.find(x=>x.id===id);if(p)row={id:p.id,name:p.name,num:p.num||null,throws:p.throws,archived:!!p.archived,note:p.note||null};}
     else if(t==='games'){const g=st.games.find(x=>x.id===id);if(g)row={id:g.id,date:g.date,opponent:g.opponent,event:g.event||null,home_away:g.homeAway,lineup:g.lineup,cur:g.cur,started:g.started||null,ended:g.ended||null,imported:!!g.imported,status:gameStatus(g),link:g.link||null,notes:g.notes||null,game_time:g.time||null,field:g.field||null,game_no:g.gameNo||null,location:g.location||null};}
-    else if(t==='sessions'){const x=st.sessions.find(y=>y.id===id);if(x)row={id:x.id,date:x.date,started:x.started||null,imported:!!x.imported};}
+    else if(t==='sessions'){const x=st.sessions.find(y=>y.id===id);if(x)row={id:x.id,date:x.date,started:x.started||null,imported:!!x.imported,pitcher_id:x.pitcherId||null};}
     else{const hit=idx[id];if(hit)row=pitchRow(hit[0],hit[1]);else if(st.sync.tomb[id]){const tb=st.sync.tomb[id];row=pitchRow(tb,{mode:tb.mode,game_id:tb.game_id,session_id:tb.session_id});row.deleted=true;}}
-    if(row){row.team_code=team;row.device_id=dev;out[t].push(row);}else delete q[t][id];}}
+    if(row&&!roleAllows(st.sync,t,row))row=null; // never send what this code can't write (and drop it from the queue)
+    if(row){row.team_id=team;row.device_id=dev;out[t].push(row);}else delete q[t][id];}}
   return{rows:out,ver};}
 const gameStatus=g=>g.status||(g.ended?'final':'active');
 function mergeRemote(st,data){const q=st.sync.queue;let added=0,removed=0;
   (data.pitchers||[]).forEach(r=>{if(q.pitchers[r.id]||r.deleted)return;const p=st.pitchers.find(x=>x.id===r.id),v={id:r.id,name:r.name,num:r.num||'',throws:r.throws||'R',archived:!!r.archived,note:r.note||undefined};if(p){Object.assign(p,v);if(!r.note)delete p.note;}else st.pitchers.push(v);});
   (data.games||[]).forEach(r=>{if(q.games[r.id]||r.deleted)return;let g=st.games.find(x=>x.id===r.id);const v={id:r.id,date:r.date,opponent:r.opponent,event:r.event||'',homeAway:r.home_away,lineup:r.lineup||[],cur:r.cur||{inning:1,outs:0,slot:0,b:0,s:0,abn:0},started:r.started,ended:r.ended,imported:r.imported,status:r.status||(r.ended?'final':'active'),link:r.link||'',notes:r.notes||'',time:r.game_time||'',field:r.field||'',gameNo:r.game_no||'',location:r.location||''};
     if(g){if(g.pitches.length&&v.status==='scheduled')v.status=g.status||'active';Object.assign(g,v);}else st.games.push(Object.assign(v,{pitches:[]}));});
-  (data.sessions||[]).forEach(r=>{if(q.sessions[r.id]||r.deleted)return;if(!st.sessions.find(x=>x.id===r.id))st.sessions.push({id:r.id,date:r.date,started:r.started,imported:r.imported,pitches:[]});});
+  (data.sessions||[]).forEach(r=>{if(q.sessions[r.id]||r.deleted)return;{const x=st.sessions.find(y=>y.id===r.id);if(!x)st.sessions.push({id:r.id,date:r.date,started:r.started,imported:r.imported,pitcherId:r.pitcher_id||undefined,pitches:[]});else if(r.pitcher_id)x.pitcherId=r.pitcher_id;}});
   const where={};st.games.forEach(g=>g.pitches.forEach(p=>where[p.id]=g));st.sessions.forEach(x=>x.pitches.forEach(p=>where[p.id]=x));const touched=new Set();
   (data.pitches||[]).forEach(r=>{if(q.pitches[r.id])return;const c=where[r.id];
     if(r.deleted){if(c){c.pitches=c.pitches.filter(p=>p.id!==r.id);removed++;}return;}
@@ -179,7 +183,7 @@ function mergeRemote(st,data){const q=st.sync.queue;let added=0,removed=0;
 function makeSync(store,cfg){const f=cfg.fetch||(typeof fetch!=='undefined'?fetch.bind(globalThis):null);let busy=false;
   const hdr=team=>({apikey:cfg.key,Authorization:'Bearer '+cfg.key,'x-team-code':team,'Content-Type':'application/json'});
   const api={
-    async push(){if(store.isTest)return{skipped:'test'};const st=store.real;const team=st.sync.teamCode;if(!team)return{skipped:'no team code'};if(busy)return{skipped:'busy'};busy=true;
+    async push(){if(store.isTest)return{skipped:'test'};const st=store.real;const team=st.sync.teamCode;if(!team)return{skipped:'no team code'};if(!st.sync.teamId)return{skipped:'team not identified yet'};if(busy)return{skipped:'busy'};busy=true;
       try{const{rows,ver}=buildRows(st);let sent=0;
         for(const t of TABLES){if(!rows[t].length)continue;for(let i=0;i<rows[t].length;i+=500){const chunk=rows[t].slice(i,i+500);
           const r=await f(`${cfg.url}/rest/v1/${t}?on_conflict=${keyOf[t]}`,{method:'POST',headers:Object.assign(hdr(team),{Prefer:'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(chunk)});
@@ -188,12 +192,23 @@ function makeSync(store,cfg){const f=cfg.fetch||(typeof fetch!=='undefined'?fetc
         st.sync.last=Date.now();st.sync.lastError=null;store.save();return{sent};}
       catch(e){st.sync.lastError=String(e.message||e);store.save();return{error:st.sync.lastError};}finally{busy=false;}},
     async pull(){if(store.isTest)return{skipped:'test'};const st=store.real;const team=st.sync.teamCode;if(!team)return{skipped:'no team code'};
-      try{const data={};for(const t of TABLES){data[t]=[];for(let off=0;;off+=1000){const r=await f(`${cfg.url}/rest/v1/${t}?select=*&team_code=eq.${encodeURIComponent(team)}&order=${t==='pitches'?'ts':'created_at'}.asc&limit=1000&offset=${off}`,{headers:hdr(team)});
+      try{const data={};for(const t of TABLES){data[t]=[];for(let off=0;;off+=1000){const r=await f(`${cfg.url}/rest/v1/${t}?select=*&team_id=eq.${encodeURIComponent(st.sync.teamId)}&order=${t==='pitches'?'ts':'created_at'}.asc&limit=1000&offset=${off}`,{headers:hdr(team)});
           if(!r.ok)throw new Error(t+' '+r.status+' '+(await r.text()).slice(0,200));const a=await r.json();data[t]=data[t].concat(a);if(a.length<1000)break;}}
         const res=mergeRemote(st,data);st.sync.last=Date.now();st.sync.lastError=null;store.save();return res;}
       catch(e){st.sync.lastError=String(e.message||e);store.save();return{error:st.sync.lastError};}},
-    async sync(){if(store.isTest)return{skipped:'test'};const a=await api.push();if(a.error||a.skipped)return a;const b=await api.pull();return Object.assign({},a,b);}};
+    async rpc(name,args){const st=store.real;const r=await f(`${cfg.url}/rest/v1/rpc/${name}`,{method:'POST',headers:hdr(st.sync.teamCode),body:JSON.stringify(args||{})});
+      if(!r.ok)throw new Error(name+' '+r.status+' '+(await r.text()).slice(0,200));const t=await r.text();return t?JSON.parse(t):null;},
+    // detect role from the code; null = code not recognized
+    async whoami(){if(store.isTest)return{skipped:'test'};const st=store.real;if(!st.sync.teamCode)return{skipped:'no team code'};
+      try{const w=await api.rpc('whoami');if(!w){st.sync.role=null;st.sync.lastError='Code not recognized (typo or revoked)';store.save();return{role:null};}
+        st.sync.role=w.role;st.sync.teamId=w.team_id||null;st.sync.pitcherId=w.pitcher_id||null;st.sync.pitcherName=w.pitcher_name||null;
+        if(w.role==='player'&&w.pitcher_id&&!st.pitchers.find(p=>p.id===w.pitcher_id))st.pitchers.push({id:w.pitcher_id,name:w.pitcher_name||'Me',num:'',throws:'R',archived:false});
+        if(w.role==='viewer'){st.sync.queue={pitchers:{},games:{},sessions:{},pitches:{}};st.sync.tomb={};}
+        store.save();return{role:w.role};}catch(e){return{error:String(e.message||e)};}},
+    async sync(){if(store.isTest)return{skipped:'test'};const st0=store.real;if(st0.sync.teamCode&&(st0.sync.role===undefined||!st0.sync.teamId)){const w=await api.whoami();if(w.error)return w;}
+      if(st0.sync.role===null)return{error:'Code not recognized (typo or revoked)'};
+      const a=st0.sync.role==='viewer'?{sent:0}:await api.push();if(a.error||a.skipped)return a;const b=await api.pull();return Object.assign({},a,b);}};
   return api;}
-const PC={insideCol,awayCol,cz,isZone,isCorner,isOut,locInfo,BASE_TYPES,normType,parseCall,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,summarize,hitSpot,toCSV,parseCSV,CSV_COLS,KEY,ROSTER,defaultState,makeStore,uid,uuid,isUUID,pct,makeSync,buildRows,bullpenStep,bullpenTap,gameStatus,mergeRemote,pitchRow,TABLES};
+const PC={insideCol,awayCol,cz,isZone,isCorner,isOut,locInfo,BASE_TYPES,normType,parseCall,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,summarize,hitSpot,toCSV,parseCSV,CSV_COLS,KEY,ROSTER,defaultState,makeStore,uid,uuid,isUUID,pct,makeSync,buildRows,roleAllows,bullpenStep,bullpenTap,gameStatus,mergeRemote,pitchRow,TABLES};
 if(typeof module!=='undefined'&&module.exports)module.exports=PC;else root.PC=PC;
 })(typeof window!=='undefined'?window:globalThis);

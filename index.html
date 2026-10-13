@@ -89,10 +89,12 @@
  <div class="card"><div class="lbl">Cloud sync</div>
   <div class="row"><input id="teamCode" placeholder="Team code (same on every phone)" autocapitalize="characters" autocomplete="off" style="flex:1"><button id="teamSave">Save</button></div>
   <div class="grid2" style="margin-top:6px"><button id="syncNow" style="background:var(--blue)">Sync now</button><button id="pullCloud">Restore from cloud</button></div>
-  <div class="mut" id="syncMsg" style="margin-top:6px"></div></div>
- <div class="card"><div class="lbl">Pitchers</div><div id="pList"></div><button id="addP" style="width:100%;margin-top:6px">+ Add pitcher</button>
+  <div class="mut" id="syncMsg" style="margin-top:6px"></div><div id="roleMsg" class="tag hide" style="margin-top:6px;display:inline-block"></div></div>
+ <div class="card hide" id="codesCard"><div class="lbl">Access codes (coach only)</div><div class="mut" style="margin-bottom:6px">Player code = bullpen only, their own data. View-only = read the whole team. Revoke anytime.</div><div id="codesList"></div>
+  <div class="row" style="margin-top:6px"><select id="ncPitcher"></select><button id="ncPlayer">New player code</button></div><button id="ncViewer" style="width:100%;margin-top:6px">New view-only code</button></div>
+ <div class="card" id="pCard"><div class="lbl">Pitchers</div><div id="pList"></div><button id="addP" style="width:100%;margin-top:6px">+ Add pitcher</button>
   <details style="margin-top:8px"><summary class="mut">Archived</summary><div id="pArch"></div></details></div>
- <div class="card"><div class="lbl">Team roster</div><div id="roster"></div><button id="addR" style="width:100%">+ Add player</button></div>
+ <div class="card" id="rosterCard"><div class="lbl">Team roster</div><div id="roster"></div><button id="addR" style="width:100%">+ Add player</button></div>
  <div class="card"><div class="lbl">Custom pitch types</div><div id="cTypes" class="mut"></div><div class="row" style="margin-top:6px"><input id="ctCode" placeholder="Code (e.g. SL)" style="width:110px"><input id="ctName" placeholder="Name" style="flex:1"><button id="ctAdd">Add</button></div></div>
  <div class="card"><div class="lbl">Data</div><div class="grid2">
   <button id="expJSON">Export JSON backup</button><button id="impJSON">Import JSON</button>
