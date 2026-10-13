@@ -112,7 +112,7 @@ function missData(items,f){const q=heatFilter(items,f);const cells={};ALL_CELLS.
   q.forEach(({p})=>{const t=p.targets&&p.targets.length?p.targets:null;if(!t||p.loc==null||!GRID_XY[p.loc])return;const d=Math.min(...t.map(z=>missDist(p.loc,z)).filter(v=>v!=null));if(!isFinite(d))return;total++;
     // Jim's rule: landing middle-middle (5) when aimed anywhere else is a severe miss, scored at max severity (4) regardless of distance
     const mmMiss=p.loc===5&&!t.includes(5);const sev=mmMiss?MAX_MISS:d;if(mmMiss)mm++;
-    t.forEach(z=>{const c=cells[z];if(!c)return;c.n++;c.sum+=sev;if(d===0)c.hit++;if(mmMiss)c.mm++;});});
+    t.forEach(z=>{const c=cells[z];if(!c)return;c.n++;c.sum+=sev;if(d===0)c.hit++;if(sev<=1)c.good=(c.good||0)+1;if(mmMiss)c.mm++;});});
   ALL_CELLS.forEach(z=>{const c=cells[z];if(c.n)c.avg=Math.round(10*c.sum/c.n)/10;});return{cells,total,matched:q.length,mm};}
 // Jim's scale: hit or 1 square = green (no ding); then darker red as the average miss grows, darkest at 4
 const MISS_SCALE=[{max:1,fill:'#2ea043',text:'#fff',label:'0–1 good'},{max:2,fill:'#f47067',text:'#000',label:'1–2'},{max:3,fill:'#c93c37',text:'#fff',label:'2–3'},{max:4,fill:'#7d1414',text:'#fff',label:'3–4'}];

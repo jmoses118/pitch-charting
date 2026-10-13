@@ -265,6 +265,7 @@ function renderHeat(){const items0=PC.heatItems(S());const own=role()==='player'
   const what=miss?'each box = where pitches were aimed, colored by how far they missed':'where pitches landed';
   $('hSummary').textContent=`${d.total} pitch${d.total===1?'':'es'} · ${what}`+(miss&&d.mm?` · ⚠ ${d.mm} middle-middle mistake${d.mm===1?'':'s'}`:'')+(miss&&d.matched>d.total?` · ${d.matched-d.total} had no intended spot`:'');
   const empty=d.total===0;$('hEmpty').classList.toggle('hide',!empty);$('hMap').classList.toggle('hide',empty);$('hLegend').classList.toggle('hide',empty);if(empty)return;
+  if(miss&&own){paintKid($('hMap'),d);$('hSummary').textContent=`${d.total} pitch${d.total===1?'':'es'} with a spot aimed`+(d.mm?` · 🔥 ${d.mm} fat pitch${d.mm===1?'':'es'}`:'');$('hLegend').innerHTML=`<div style="font-size:13px;line-height:1.4">${KID_LEGEND}</div>`;return;}
   zoneSVG($('hMap'),'R',{noNums:true,noSide:true});let ex='';
   PC.ALL_CELLS.forEach(z=>{const c=d.cells[z],el=$('hMap').querySelector(`[data-z="${z}"]`);if(!el)return;const[cx,cy]=center(z);
     const col=miss?PC.missColor(c.avg):PC.heatColor(c.n,d.max);el.style.fill=col?col.fill:'#161b22';const tc=col?col.text:'#6e7681';
@@ -325,7 +326,7 @@ function render(skipCallInput){const s=S();document.body.classList.toggle('test'
   document.querySelectorAll('nav button').forEach(b=>{b.classList.toggle('hide',!tabs.includes(b.dataset.t));b.classList.toggle('on',b.dataset.t===tab);});
   document.body.dataset.role=R0;$('addPQuick').classList.toggle('hide',R0!=='coach');$('pitcher').disabled=R0!=='coach';
   ['pCard','rosterCard','impJSON','impCSV'].forEach(id=>$(id).classList.toggle('hide',R0!=='coach'));
-  $('roleMsg').textContent=R0==='coach'?'':R0==='player'?`Player code: bullpen only, ${store.real.sync.pitcherName||'your'} data only.`:'View-only code: you can look, not change.';$('roleMsg').classList.toggle('hide',R0==='coach');
+  $('roleMsg').textContent=R0==='coach'?'':R0==='player'?`Player code: log your bullpens and view your own games (${store.real.sync.pitcherName||"your"} data only).`:'View-only code: you can look, not change.';$('roleMsg').classList.toggle('hide',R0==='coach');
   const cp=curPitcherId();
   $('pitcher').innerHTML=store.activePitchers().filter(p=>R0!=='player'||p.id===cp).map(p=>`<option value="${p.id}" ${p.id===cp?'selected':''}>${H(p.name)}${p.num?' #'+H(p.num):''} (${p.throws})</option>`).join('')||'<option>Add a pitcher</option>';
   const g=game();
