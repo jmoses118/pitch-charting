@@ -75,9 +75,9 @@ test('pending queue retries after a team-code typo is corrected',async()=>{const
     if(opt.method==='POST'){JSON.parse(opt.body).forEach(r=>{assert.equal(r.team_id,'team-x');assert.ok(!('team_code' in r));sent.push(r.id);});return{ok:true,text:async()=>''};}return{ok:true,json:async()=>[]};};
   const sy=PC.makeSync(st,{url:'u',key:'k',fetch:f});st.real.sync.queue={pitchers:{},games:{},sessions:{},pitches:{}};
   const s={id:'s_q',date:'d',pitches:[]};st.state.sessions.push(s);st.markDirty('sessions','s_q');for(let i=0;i<2;i++){const p={id:PC.uuid(),type:'FB',loc:5};s.pitches.push(p);st.markDirty('pitches',p.id);}
-  st.real.sync.teamCode='TEST1-AAAAA-BBBBB-CCCC-DDDDD';st.real.sync.teamId='team-x';let r=await sy.push();assert.ok(r.error);assert.equal(st.pendingCount(),3);r=await sy.push();assert.ok(r.error);assert.equal(st.pendingCount(),3,'still queued after repeated failures');
+  st.real.sync.teamCode='TEST1-AAAAA-BBBBB-CCCC-DDDDD';st.real.sync.teamId='team-x';st.real.sync.role='coach';let r=await sy.push();assert.ok(r.error);assert.equal(st.pendingCount(),3);r=await sy.push();assert.ok(r.error);assert.equal(st.pendingCount(),3,'still queued after repeated failures');
   // reload from storage (phone restarted) keeps the queue
-  const st2=PC.makeStore(m);assert.equal(st2.pendingCount(),3);st2.real.sync.teamCode=GOOD;st2.real.sync.teamId='team-x';const r2=await PC.makeSync(st2,{url:'u',key:'k',fetch:f}).push();assert.equal(r2.sent,3);assert.equal(st2.pendingCount(),0);assert.equal(sent.length,3);assert.equal(st2.real.sync.lastError,null);});
+  const st2=PC.makeStore(m);assert.equal(st2.pendingCount(),3);st2.real.sync.teamCode=GOOD;st2.real.sync.teamId='team-x';st2.real.sync.role='coach';const r2=await PC.makeSync(st2,{url:'u',key:'k',fetch:f}).push();assert.equal(r2.sent,3);assert.equal(st2.pendingCount(),0);assert.equal(sent.length,3);assert.equal(st2.real.sync.lastError,null);});
 test('Woods ace tag removed: old phones migrated, cloud pull clears note',async()=>{const m=mem();const s0=PC.defaultState();s0.pitchers[0].note='ace';s0.pitchers[0].num='';m.setItem(PC.KEY,JSON.stringify(s0));
   const st=PC.makeStore(m);const w=st.state.pitchers.find(p=>p.id==='p_woods');assert.equal(w.note,undefined);assert.equal(w.num,'45');assert.equal(w.throws,'L');
   w.note='ace';st.real.sync.queue.pitchers={};PC.mergeRemote(st.real,{pitchers:[{id:'p_woods',name:'Woods',num:'45',throws:'L',archived:false,note:null}]});assert.equal(w.note,undefined);
@@ -96,9 +96,9 @@ function roleStore(role,pid){const st=PC.makeStore(mem());Object.assign(st.real.
   const coachS={id:'s_coach',date:'d',pitches:[{id:PC.uuid(),pitcherId:'p_woods',type:'DR',loc:8}]};st.real.sessions.push(own,coachS);
   const g={id:'g1',date:'d',opponent:'X',homeAway:'home',lineup:[],cur:{},pitches:[{id:PC.uuid(),pitcherId:'p_woods',type:'FB',result:'ball',b:0,s:0}]};st.real.games.push(g);
   st.markAllDirty();return st;}
-test('player code only sends own bullpen data; everything else dropped from queue',()=>{const st=roleStore('player','p_woods');const{rows}=PC.buildRows(st.real);
+test('player code only sends own bullpen data; everything else stays queued (held), never dropped',()=>{const st=roleStore('player','p_woods');const before=st.pendingCount();const{rows,held}=PC.buildRows(st.real);
   assert.equal(rows.pitchers.length,0);assert.equal(rows.games.length,0);assert.deepEqual(rows.sessions.map(r=>r.id),['s_own']);
-  assert.equal(rows.pitches.length,2);assert.ok(rows.pitches.every(r=>r.pitcher_id==='p_woods'&&r.mode==='bullpen'));assert.equal(st.pendingCount(),3);});
+  assert.equal(rows.pitches.length,2);assert.ok(rows.pitches.every(r=>r.pitcher_id==='p_woods'&&r.mode==='bullpen'));assert.equal(st.pendingCount(),before);assert.equal(held,before-3);});
 test('view-only code sends nothing',async()=>{const st=roleStore('viewer');const{rows}=PC.buildRows(st.real);assert.equal(Object.values(rows).flat().length,0);
   const calls=[];const sy=PC.makeSync(st,{url:'u',key:'k',fetch:async(u,o)=>{calls.push(o.method||'GET');return{ok:true,json:async()=>[],text:async()=>''};}});await sy.sync();assert.ok(!calls.includes('POST'));});
 test('coach code sends everything',()=>{const st=roleStore('coach');const{rows}=PC.buildRows(st.real);assert.equal(rows.games.length,1);assert.equal(rows.sessions.length,2);assert.equal(rows.pitches.length,4);assert.equal(rows.pitchers.length,3);});
@@ -163,3 +163,28 @@ test("no batter: glove/arm side wording by pitcher hand; in/away kept with a bat
 test('dropped 3rd only at 2 strikes; SO total incl. K-D3',()=>{assert.throws(()=>PC.applyPitch({b:0,s:0},'kd3'));assert.throws(()=>PC.applyPitch({b:3,s:1},'kd3'));
   const o=PC.applyPitch({b:1,s:2},'kd3');assert.equal(o.end,'K-D3');assert.equal(o.outs,0);
   const s=PC.summarize([{result:'swinging',b:0,s:2,end:'K'},{result:'kd3',b:2,s:2,end:'K-D3'},{result:'ball',b:3,s:0,end:'BB'},{result:'called',b:0,s:0}]);assert.equal(s.k,2);assert.equal(s.kd3,1);});
+// ---- review fixes ----
+test('one rejected row does not block sync: retried singly, quarantined, rest sent, pull still runs',async()=>{const st=PC.makeStore(mem());const sy0=st.real.sync;sy0.teamCode='TE-AAAAA-BBBBB-CCCCC-DDDDD';sy0.teamId='team-x';sy0.role='coach';sy0.queue={pitchers:{},games:{},sessions:{},pitches:{}};
+  const s={id:'s_r',date:'d',pitches:[]};st.state.sessions.push(s);st.markDirty('sessions','s_r');const bad=PC.uuid();[PC.uuid(),bad,PC.uuid()].forEach(id=>{s.pitches.push({id,type:'FB',loc:5});st.markDirty('pitches',id);});
+  const sent=[],gets=[];const f=async(u,o)=>{if(o&&o.method==='POST'){const rows=JSON.parse(o.body);if(rows.some(r=>r.id===bad))return{ok:false,status:400,text:async()=>'violates check constraint'};rows.forEach(r=>sent.push(r.id));return{ok:true,text:async()=>''};}gets.push(u);return{ok:true,json:async()=>[]};};
+  const r=await PC.makeSync(st,{url:'u',key:'k',fetch:f}).sync();assert.equal(r.rejected,1);assert.equal(sent.filter(x=>x!=='s_r').length,2);assert.equal(st.pendingCount(),0);
+  assert.ok(st.real.sync.rejected['pitches:'+bad]);assert.ok(gets.length>=4,'pulled all tables');assert.match(st.real.sync.lastError,/rejected/);});
+test('auth failure (bad code) keeps everything queued; pull still attempted',async()=>{const st=PC.makeStore(mem());const y=st.real.sync;y.teamCode='TE-AAAAA-BBBBB-CCCCC-DDDDD';y.teamId='team-x';y.role='coach';y.queue={pitchers:{},games:{},sessions:{},pitches:{}};st.markDirty('pitchers','p_woods');
+  let gets=0;const f=async(u,o)=>o&&o.method==='POST'?{ok:false,status:401,text:async()=>'rls'}:(gets++,{ok:true,json:async()=>[]});const r=await PC.makeSync(st,{url:'u',key:'k',fetch:f}).sync();assert.ok(r.error);assert.equal(st.pendingCount(),1);assert.ok(gets>0);});
+test('unrecognized / unverified code never pushes',()=>{for(const role of [null,undefined,'bogus']){const st=PC.makeStore(mem());st.real.sync.role=role;st.real.sync.teamId='t';st.markAllDirty();const n=st.pendingCount();const{rows,held}=PC.buildRows(st.real);assert.equal(Object.values(rows).flat().length,0);assert.equal(held,n);assert.equal(st.pendingCount(),n);}});
+test('coach code coming back re-queues everything',async()=>{const st=PC.makeStore(mem());st.real.sync.teamCode='TE-AAAAA-BBBBB-CCCCC-DDDDD';st.real.sync.role='player';st.real.sync.queue={pitchers:{},games:{},sessions:{},pitches:{}};
+  const f=async u=>({ok:true,text:async()=>JSON.stringify({role:'coach',team_id:'t'})});await PC.makeSync(st,{url:'u',key:'k',fetch:f}).whoami();assert.equal(st.real.sync.role,'coach');assert.ok(st.pendingCount()>=3);});
+test('server-function calls no-op in test mode',async()=>{const st=PC.makeStore(mem());st.real.sync.teamCode='TE-AAAAA-BBBBB-CCCCC-DDDDD';st.enterTest();let called=0;const sy=PC.makeSync(st,{url:'u',key:'k',fetch:async()=>{called++;return{ok:true,text:async()=>'[]'};}});
+  assert.equal(await sy.rpc('coach_list_codes'),null);assert.equal(called,0);});
+test('mergeRemote: older cloud rows never overwrite newer local copies; newer ones do',()=>{const st=PC.defaultState();PC.makeStore(mem());st.sync={queue:{pitchers:{},games:{},sessions:{},pitches:{}},tomb:{}};
+  PC.mergeRemote(st,{pitchers:[{id:'p_woods',name:'Avery Woods',throws:'L',updated_at:'2026-10-13T10:00:00Z'}]});PC.mergeRemote(st,{pitchers:[{id:'p_woods',name:'OLD',throws:'R',updated_at:'2026-10-12T10:00:00Z'}]});assert.equal(st.pitchers.find(p=>p.id==='p_woods').name,'Avery Woods');
+  const id=PC.uuid();st.sessions.push({id:'s1',pitches:[]});PC.mergeRemote(st,{pitches:[{id,mode:'bullpen',session_id:'s1',loc:3,updated_at:'2026-10-13T10:00:00Z'}]});PC.mergeRemote(st,{pitches:[{id,mode:'bullpen',session_id:'s1',loc:9,updated_at:'2026-10-13T11:00:00Z'}]});assert.equal(st.sessions[0].pitches[0].loc,9);
+  PC.mergeRemote(st,{pitches:[{id,mode:'bullpen',session_id:'s1',loc:1,updated_at:'2026-10-13T09:00:00Z'}]});assert.equal(st.sessions[0].pitches[0].loc,9);});
+test('cloud rows are sanitized (loc/targets must be grid numbers)',()=>{const st=PC.defaultState();st.sync={queue:{pitchers:{},games:{},sessions:{},pitches:{}},tomb:{}};st.sessions.push({id:'s1',pitches:[]});
+  PC.mergeRemote(st,{pitches:[{id:PC.uuid(),mode:'bullpen',session_id:'s1',loc:'"]<img src=x onerror=alert(1)>',targets:['3','x<',99]}]});const p=st.sessions[0].pitches[0];assert.equal(p.loc,null);assert.deepEqual(p.targets,[3]);});
+test('game logic: no pitch after the at-bat ends; K-D3 thrown out; foul tip; double play',()=>{assert.throws(()=>PC.applyPitch({b:4,s:0},'ball'));assert.throws(()=>PC.applyPitch({b:0,s:3},'foul'));
+  let o=PC.applyPitch({b:1,s:2},'kd3out');assert.equal(o.end,'K');assert.equal(o.outs,1);assert.throws(()=>PC.applyPitch({b:0,s:1},'kd3out'));
+  o=PC.applyPitch({b:0,s:1},'foultip');assert.equal(o.s,2);assert.equal(o.end,null);o=PC.applyPitch({b:2,s:2},'foultip');assert.equal(o.end,'K');assert.equal(o.outs,1);assert.ok(PC.isStrike('foultip'));
+  o=PC.applyPitch({b:0,s:0},'inplay','DP');assert.equal(o.outs,2);assert.equal(o.end,'DP');
+  const s=PC.summarize([{result:'kd3out',end:'K'},{result:'foultip',end:'K'},{result:'kd3',end:'K-D3'}]);assert.equal(s.k,3);assert.equal(s.strikes,3);});
+test('new pitcher requires a throwing hand',()=>{const st=PC.makeStore(mem());assert.throws(()=>st.addPitcher({name:'X'}));assert.throws(()=>st.addPitcher({name:'X',throws:''}));assert.equal(st.addPitcher({name:'X',throws:'L'}).throws,'L');});

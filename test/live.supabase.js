@@ -1,6 +1,7 @@
+const __E=(()=>{const fs=require('fs'),p=require('path').join(__dirname,'..','.test-env');const o={};try{fs.readFileSync(p,'utf8').split('\n').forEach(l=>{const m=l.match(/^(\w+)=(.*)$/);if(m)o[m[1]]=m[2].trim();});}catch(e){}return o;})();const TEST_COACH=process.env.PC_TEST_COACH||__E.PC_TEST_COACH;if(!TEST_COACH){console.error('Set PC_TEST_COACH (throwaway zztest coach code) or create .test-env');process.exit(2);}
 // Live round trip using the public publishable key + throwaway team code. Also checks RLS denials.
 global.window={};require('../config.js');const CFG=global.window.PC_CONFIG;const PC=require('../logic.js');
-const TEAM='ZZTEST-YZV4K-2S5KW-YEGGZ-AN9QH';const mem=()=>{const m={};return{getItem:k=>m[k]??null,setItem:(k,v)=>m[k]=v};};
+const TEAM=TEST_COACH;const mem=()=>{const m={};return{getItem:k=>m[k]??null,setItem:(k,v)=>m[k]=v};};
 const H=team=>Object.assign({apikey:CFG.key,Authorization:'Bearer '+CFG.key,'Content-Type':'application/json'},team?{'x-team-code':team}:{});
 (async()=>{const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1;};
   const st=PC.makeStore(mem());st.real.sync.teamCode=TEAM;st.real.sync.teamId='zztest';st.real.sync.role='coach';st.real.sync.queue={pitchers:{},games:{},sessions:{},pitches:{}};

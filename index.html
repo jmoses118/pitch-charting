@@ -62,11 +62,11 @@
   <div id="resBtns" class="grid2 big" style="margin-top:6px">
    <button class="b-ball" data-r="ball">Ball</button><button class="b-cs" data-r="called">Called strike</button>
    <button class="b-ss" data-r="swinging">Swinging strike</button><button class="b-foul" data-r="foul">Foul</button>
-   <button class="b-ip" data-r="inplay">In play…</button><button class="b-hbp" data-r="hbp">HBP</button><button class="b-ss" data-r="kd3" style="grid-column:span 2">K – reached (dropped 3rd)</button>
+   <button class="b-ip" data-r="inplay">In play…</button><button class="b-hbp" data-r="hbp">HBP</button><button class="b-ss" data-r="foultip">Foul tip</button><button class="b-ss" data-r="kd3">K – reached (D3)</button><button class="b-ss" data-r="kd3out">K – D3 thrown out</button>
   </div>
   <div id="ipBtns" class="grid4 big hide" style="margin-top:6px">
    <button data-ip="out">Out</button><button data-ip="1B">1B</button><button data-ip="2B">2B</button><button data-ip="3B">3B</button>
-   <button data-ip="HR">HR</button><button data-ip="E">Error</button><button data-ip="FC">FC</button><button data-ip="">Cancel</button>
+   <button data-ip="HR">HR</button><button data-ip="E">Error</button><button data-ip="FC">FC</button><button data-ip="DP">DP</button><button data-ip="" style="grid-column:span 4">Cancel</button>
   </div>
   <div class="row" style="margin-top:8px"><button id="undo" style="flex:1">↶ Undo last pitch</button></div>
  </div>
@@ -113,7 +113,7 @@
 </main>
 <nav><button data-t="game" class="on">⚾ Game</button><button data-t="bullpen">🎯 Bullpen</button><button data-t="stats">📊 Stats</button><button data-t="setup">⚙️ Setup</button></nav>
 <dialog id="pDlg"><form method="dialog"><div class="lbl" id="pDlgT">Pitcher</div>
- <input id="pdName" placeholder="Name" style="width:100%"><div class="row" style="margin-top:6px"><input id="pdNum" placeholder="#" inputmode="numeric" style="width:90px"><select id="pdThrows"><option value="R">Throws R</option><option value="L">Throws L</option></select></div>
+ <input id="pdName" placeholder="Name" style="width:100%"><div class="row" style="margin-top:6px"><input id="pdNum" placeholder="#" inputmode="numeric" style="width:90px"><select id="pdThrows" required><option value="">Throws…?</option><option value="R">Throws R</option><option value="L">Throws L</option></select></div>
  <div class="row" style="margin-top:10px"><button value="cancel" style="flex:1">Cancel</button><button value="ok" id="pdOk" style="flex:1;background:var(--grn)">Save</button></div></form></dialog>
 <dialog id="hfDlg" aria-labelledby="hfT"><form method="dialog"><div class="lbl" id="hfT">Heat map filters</div>
  <div id="hfForm" style="display:grid;gap:6px"></div>

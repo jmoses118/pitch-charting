@@ -1,0 +1,9 @@
+// Malicious ids/names in local or pulled data must render as text, never run.
+const {chromium}=require('playwright-core');const BASE=process.argv[2]||'http://localhost:8766/';(async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});const p=await (await b.newContext({viewport:{width:390,height:844}})).newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());
+await p.goto(BASE);const X='"><img src=x onerror="window.__pwn=1">';
+await p.evaluate(X=>{const s=__app.store.state;s.pitchers.push({id:'p'+X,name:'N'+X,num:X,throws:'R'});s.games.push({id:'g'+X,date:X,opponent:X,event:X,homeAway:'home',lineup:[{name:X,num:X,hand:'R'}],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:0},pitches:[{id:'x',pitcherId:'p'+X,type:'FB',loc:3,result:'called',b:0,s:0}],status:'scheduled',link:'javascript:alert(1)'});
+  s.sessions.push({id:'s'+X,date:X,pitches:[{id:'y',pitcherId:'p'+X,type:X,loc:3,targets:[3]}]});s.customTypes.push({code:X,name:X});},X);
+for(const t of ['game','bullpen','stats','setup']){await p.click(`nav [data-t="${t}"]`);await p.waitForTimeout(300);}
+await p.click('nav [data-t="stats"]');const opts=await p.$$eval('#sScope option',o=>o.map(x=>x.value));await p.selectOption('#sScope',opts.find(v=>v.startsWith('s"'))).catch(()=>{});await p.waitForTimeout(300);
+const pwn=await p.evaluate(()=>window.__pwn===1||!!document.querySelector('img[src="x"]'));const jsLink=await p.evaluate(()=>[...document.querySelectorAll('a')].some(a=>/^javascript:/i.test(a.getAttribute('href')||'')));
+console.log('injected markup executed:',pwn,'| javascript: link rendered:',jsLink,'| errors',errs);await b.close();if(pwn||jsLink||errs.length)process.exit(1);})().catch(e=>{console.error(e);process.exit(1)});

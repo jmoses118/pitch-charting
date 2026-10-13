@@ -1,5 +1,6 @@
+const __E=(()=>{const fs=require('fs'),p=require('path').join(__dirname,'..','.test-env');const o={};try{fs.readFileSync(p,'utf8').split('\n').forEach(l=>{const m=l.match(/^(\w+)=(.*)$/);if(m)o[m[1]]=m[2].trim();});}catch(e){}return o;})();const TEST_COACH=process.env.PC_TEST_COACH||__E.PC_TEST_COACH;if(!TEST_COACH){console.error('Set PC_TEST_COACH (throwaway zztest coach code) or create .test-env');process.exit(2);}
 global.window={};require('../config.js');const CFG=global.window.PC_CONFIG;const PC=require('../logic.js');
-const COACH='ZZTEST-YZV4K-2S5KW-YEGGZ-AN9QH',U=CFG.url+'/rest/v1/';
+const COACH=TEST_COACH,U=CFG.url+'/rest/v1/';
 const H=c=>({apikey:CFG.key,Authorization:'Bearer '+CFG.key,'Content-Type':'application/json','x-team-code':c});
 const rpc=async(c,n,a)=>{const r=await fetch(U+'rpc/'+n,{method:'POST',headers:H(c),body:JSON.stringify(a||{})});return{status:r.status,body:await r.text()};};
 const post=(c,t,rows)=>fetch(U+t+'?on_conflict='+(t==='pitches'?'id':'team_id,id'),{method:'POST',headers:Object.assign(H(c),{Prefer:'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(rows)});
@@ -25,6 +26,11 @@ const get=async(c,q)=>(await fetch(U+q,{headers:H(c)})).json();
   r=await post(pa,'games',[{team_id:'zztest',id:'g_hack',opponent:'x'}]);ok(!r.ok,'player: create game DENIED ('+r.status+')');
   r=await post(pa,'pitchers',[{team_id:'zztest',id:'p_new',name:'N',throws:'R'}]);ok(!r.ok,'player: add pitcher DENIED ('+r.status+')');
   r=await fetch(U+'pitches?id=eq.'+own.id,{method:'DELETE',headers:Object.assign(H(pa),{Prefer:'return=representation'})});ok(!r.ok||(await r.text())==='[]','player: hard delete DENIED ('+r.status+')');
+  // coach-charted bullpen pitch for ZA: player must not be able to modify it
+  const coachA={team_id:'zztest',id:PC.uuid(),mode:'bullpen',session_id:'s_za',pitcher_id:'p_za',type:'FB',loc:3};r=await post(COACH,'pitches',[coachA]);ok(r.ok,'coach charts ZA bullpen pitch');
+  r=await post(pa,'pitches',[Object.assign({},coachA,{loc:5})]);const chk=await get(COACH,'pitches?select=loc&id=eq.'+coachA.id);ok(chk[0]&&chk[0].loc===3,"player: edit coach-charted pitch DENIED ("+r.status+", loc still "+(chk[0]&&chk[0].loc)+')');
+  r=await fetch(U+'pitches?id=eq.'+coachA.id,{method:'PATCH',headers:Object.assign(H(pa),{Prefer:'return=representation'}),body:JSON.stringify({deleted:true})});ok(!r.ok||(await r.text())==='[]','player: soft-delete coach-charted pitch DENIED');
+  r=await post(COACH,'sessions',[{team_id:'zztest',id:'bad id"><x',pitcher_id:'p_za'}]);ok(!r.ok,'unsafe id rejected by CHECK ('+r.status+')');
   // game data: coach charts game g_zt (ZA + ZB pitched) and g_zt2 (only ZB)
   await post(COACH,'games',[{team_id:'zztest',id:'g_zt2',opponent:'T2',status:'final'}]);
   r=await post(COACH,'pitches',[{team_id:'zztest',id:PC.uuid(),mode:'game',game_id:gid,pitcher_id:'p_za',type:'FB',loc:3,result:'called'},{team_id:'zztest',id:PC.uuid(),mode:'game',game_id:gid,pitcher_id:'p_zb',type:'CH',loc:7,result:'ball'},{team_id:'zztest',id:PC.uuid(),mode:'game',game_id:'g_zt2',pitcher_id:'p_zb',type:'FB',loc:5,result:'inplay'}]);ok(r.ok,'coach writes game pitches');

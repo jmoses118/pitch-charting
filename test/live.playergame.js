@@ -1,6 +1,7 @@
+const __E=(()=>{const fs=require('fs'),p=require('path').join(__dirname,'..','.test-env');const o={};try{fs.readFileSync(p,'utf8').split('\n').forEach(l=>{const m=l.match(/^(\w+)=(.*)$/);if(m)o[m[1]]=m[2].trim();});}catch(e){}return o;})();const TEST_COACH=process.env.PC_TEST_COACH||__E.PC_TEST_COACH;if(!TEST_COACH){console.error('Set PC_TEST_COACH (throwaway zztest coach code) or create .test-env');process.exit(2);}
 // Live: player code pulls games she pitched in + only her own game pitches; read-only. Uses throwaway team zztest.
 global.window={};require('../config.js');const CFG=global.window.PC_CONFIG;const PC=require('../logic.js');const {chromium}=require('playwright-core');const BASE=process.argv[2];
-const COACH='ZZTEST-YZV4K-2S5KW-YEGGZ-AN9QH',U=CFG.url+'/rest/v1/';const H=c=>({apikey:CFG.key,Authorization:'Bearer '+CFG.key,'Content-Type':'application/json','x-team-code':c});
+const COACH=TEST_COACH,U=CFG.url+'/rest/v1/';const H=c=>({apikey:CFG.key,Authorization:'Bearer '+CFG.key,'Content-Type':'application/json','x-team-code':c});
 const post=(t,rows)=>fetch(U+t+'?on_conflict='+(t==='pitches'?'id':'team_id,id'),{method:'POST',headers:Object.assign(H(COACH),{Prefer:'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(rows)});
 (async()=>{const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1;};
   await post('pitchers',[{team_id:'zztest',id:'p_za',name:'ZA',throws:'R'},{team_id:'zztest',id:'p_zb',name:'ZB',throws:'L'}]);

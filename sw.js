@@ -1,4 +1,7 @@
-const C='te-pitch-v18',F=['./','index.html','style.css','config.js','logic.js','app.js','manifest.json','icons/te-wordmark.svg','icons/icon.svg','icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png','icons/favicon-32.png'];
-self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(F)));self.skipWaiting();});
+const C='te-pitch-v19',F=['./','index.html','style.css','config.js','logic.js','app.js','manifest.json','icons/te-wordmark.svg','icons/icon.svg','icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png','icons/favicon-32.png'];
+// install: fetch every app file fresh from the network (bypass HTTP cache) so one version is cached together
+self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>Promise.all(F.map(u=>fetch(new Request(u,{cache:'reload'})).then(r=>{if(!r.ok)throw new Error(u+' '+r.status);return c.put(u,r);})))));self.skipWaiting();});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim();});
-self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).then(r=>{const cp=r.clone();caches.open(C).then(c=>c.put(e.request,cp));return r;}).catch(()=>caches.match(e.request,{ignoreSearch:true})));});
+// only same-origin GETs are handled; Supabase / any other origin goes straight to the network and is never cached
+self.addEventListener('fetch',e=>{const q=e.request;if(q.method!=='GET')return;const u=new URL(q.url);if(u.origin!==self.location.origin)return;
+  e.respondWith(fetch(q,{cache:'no-cache'}).then(r=>{if(r.ok&&r.type==='basic'){const cp=r.clone();caches.open(C).then(c=>c.put(q,cp));}return r;}).catch(()=>caches.match(q,{ignoreSearch:true}).then(m=>m||caches.match('index.html'))));});
