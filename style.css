@@ -55,3 +55,6 @@ svg text{pointer-events:none}
 .wbTbl td.on{background:var(--blue)!important;outline:2px solid #fff}
 .wbTbl td.bad button{color:var(--red)}
 .wbEdit td input{width:100%;min-height:34px;border:0;border-radius:0;padding:2px;font-size:12px;text-align:center;background:transparent;color:inherit}
+
+#wayBtns button{font-size:12px;padding:6px 2px;min-height:36px;background:#2a1517;border:1px solid #6e2b2b}
+#wayBtns button.sel{background:var(--red);color:#fff}

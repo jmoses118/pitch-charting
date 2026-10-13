@@ -128,10 +128,10 @@ test('heat intended view: aimed counts + hit-the-spot',()=>{const d=PC.heatData(
 test('heat colors: sequential viridis, empty cells uncolored, readable text',()=>{assert.equal(PC.heatColor(0,5),null);assert.equal(PC.heatColor(5,5).fill,'#fde725');assert.equal(PC.heatColor(5,5).text,'#000');assert.equal(PC.heatColor(1,10).text,'#fff');});
 test('miss distance: Chebyshev squares on the 5x5 grid incl. outside spots',()=>{const d=PC.missDist;assert.equal(d(5,5),0);assert.equal(d(1,5),1);assert.equal(d(3,7),2);assert.equal(d(11,14),4);assert.equal(d(15,2),1);assert.equal(d(16,6),3);assert.equal(d(17,6),1);assert.equal(d(18,2),3);assert.equal(d(13,3),3);assert.equal(d(12,13),4);});
 test('miss heat map: per intended cell avg miss + colors (green <=1, darker red to 4)',()=>{const st=PC.defaultState();st.sessions.push({id:'s',date:'d',pitches:[
-  {id:'1',pitcherId:'p_woods',type:'FB',targets:[3],loc:3,hand:'N'},{id:'2',pitcherId:'p_woods',type:'FB',targets:[3],loc:6,hand:'N'},{id:'3',pitcherId:'p_woods',type:'CH',targets:[7],loc:14,hand:'N'},{id:'4',pitcherId:'p_woods',type:'CH',targets:[11],loc:14,hand:'N'},{id:'5',pitcherId:'p_woods',type:'FB',targets:[],loc:5}]});
+  {id:'1',pitcherId:'p_woods',type:'FB',targets:[3],loc:3,hand:'N'},{id:'2',pitcherId:'p_woods',type:'FB',targets:[3],loc:6,hand:'N'},{id:'3',pitcherId:'p_woods',type:'FB',targets:[7],loc:14,hand:'N'},{id:'4',pitcherId:'p_woods',type:'CB',targets:[11],loc:14,hand:'N'},{id:'5',pitcherId:'p_woods',type:'FB',targets:[],loc:5}]});
   const d=PC.missData(PC.heatItems(st),{});assert.equal(d.total,4);assert.equal(d.cells[3].n,2);assert.equal(d.cells[3].avg,0.5);assert.equal(d.cells[3].hit,1);assert.equal(d.cells[7].avg,3);assert.equal(d.cells[11].avg,4);
   assert.equal(PC.missColor(0.5).fill,'#2ea043');assert.equal(PC.missColor(1).fill,'#2ea043');assert.equal(PC.missColor(1.5).fill,'#f47067');assert.equal(PC.missColor(3).fill,'#c93c37');assert.equal(PC.missColor(4).fill,'#7d1414');assert.equal(PC.missColor(null),null);
-  assert.equal(PC.missData(PC.heatItems(st),{type:'CH'}).total,2);});
+  assert.equal(PC.missData(PC.heatItems(st),{type:'FB'}).total,3);});
 test("middle-middle rule: landing in 5 when aimed elsewhere = max severity, counted as MM",()=>{const st=PC.defaultState();st.sessions.push({id:'s',date:'d',pitches:[
   {id:'1',pitcherId:'p_woods',type:'FB',targets:[2],loc:5,hand:'N'},{id:'2',pitcherId:'p_woods',type:'FB',targets:[2],loc:2,hand:'N'},{id:'3',pitcherId:'p_woods',type:'CH',targets:[5],loc:5,hand:'N'},{id:'4',pitcherId:'p_woods',type:'CH',targets:[9],loc:6,hand:'N'}]});
   const d=PC.missData(PC.heatItems(st),{});assert.equal(d.mm,1);assert.equal(d.cells[2].mm,1);assert.equal(d.cells[2].avg,2);assert.equal(d.cells[5].avg,2);assert.equal(d.cells[5].mm,0);assert.equal(d.cells[9].avg,2); // CH up in the zone = miss (change-up rule)
@@ -239,3 +239,27 @@ test('official K rule: replaced with 2 strikes -> K to the original pitcher; pit
   all=ab([['A','ball'],['A','ball'],['A','called'],['A','called'],['B','ball'],['B','ball']]);assert.equal(sum(all,'A').k+sum(all,'B').k,0);assert.equal(all[5].end,'BB');assert.equal(all[5].pitcherId,'B');
   // without context summarize still counts raw (bullpen/legacy callers)
   all=ab([['A','called'],['A','swinging'],['B','swinging']]);assert.equal(PC.summarize(all.filter(p=>p.pitcherId==='B')).k,1);assert.equal(sum(all,'B').k,0);});
+test('ring is competitive, way off is a miss, CH/drop low ring is good; raw strike % kept; game unchanged',()=>{
+  const bp=(type,t,loc)=>({id:PC.uuid(),pitcherId:'p_larbus',type,targets:t==null?[]:[t],loc,hand:'N'});const M=(p)=>PC.pitchMiss(p,'R');
+  // ring scored by normal distance
+  assert.ok(M(bp('FB',3,12)).good,'aim 3, land 12 (1 off, ring) = on target');assert.ok(M(bp('FB',16,16)).good);assert.ok(M(bp('FB',16,4)).good,'aim 16, land 4 = 1 off');assert.ok(!M(bp('FB',16,11)).good,'16->11 is 2 boxes');
+  // way off: miss at max-1, not a souvenir, regardless of target
+  for(const w of [21,22,23,24]){const m=M(bp('FB',15,w));assert.equal(m.sev,PC.WAY_SEV);assert.equal(PC.WAY_SEV,3);assert.ok(!m.good&&!m.mm&&m.way);}
+  assert.equal(M(bp('FB',2,21)).vert,'up');assert.equal(M(bp('FB',2,22)).vert,'down');
+  // CH / drop / drop curve in the bottom ring = good even when aimed elsewhere; FB not; CH up still a miss
+  for(const ty of ['CH','DR','DC'])for(const z of [13,18,14])assert.ok(M(bp(ty,1,z)).good,ty+' '+z);
+  assert.ok(!M(bp('FB',1,14)).good);assert.ok(M(bp('CH',2,2)).chUp&&!M(bp('CH',2,2)).good,'CH-up rule kept');
+  // report: competitive % = strikes + ring / all; raw strike % visible; way-off count
+  const L=[bp('FB',3,3),bp('FB',3,12),bp('FB',9,17),bp('CH',8,18),bp('FB',16,16),bp('FB',3,21),bp('FB',9,22),bp('FB',5,5),bp('FB',1,1),bp('FB',2,2)];
+  const r=PC.sessionReport(L,{p_larbus:'R'});assert.equal(r.n,10);assert.equal(r.strikes,4);assert.equal(r.strikePct,40);assert.equal(r.compPct,80);assert.equal(r.wayOff,2);
+  assert.ok(r.feedback.some(x=>/2 pitches way off/.test(x)),JSON.stringify(r.feedback));assert.ok(!r.feedback.some(x=>/Only \d+% (strikes|competitive)/.test(x)),'40% strikes but 80% competitive -> no ding');
+  assert.deepEqual(r.waste,{n:1,good:1});
+  const md=PC.missData(L.map(p=>({p})));assert.equal(md.cells[3].land[21].n,1);assert.equal(md.cells[3].land[21].sev,3);assert.equal(md.cells[8].good,1,'CH low ring good on heat map');
+  // drill-down landing data and actual heat data tolerate way-off spots
+  assert.equal(PC.heatData(L.map(p=>({p})),{},'actual').total,8);assert.equal(PC.locInfo(21,'R').label,'way high (not competitive)');
+  // bullpen summarize: raw strike %, competitive %, way off
+  const s=PC.summarize(L);assert.equal(s.strikePct,40);assert.equal(s.compPct,80);assert.equal(s.wayOff,2);
+  // game: strike % unchanged (GameChanger), low ring not auto-good, way off can be recorded and synced
+  const g=L.map((p,i)=>Object.assign({},p,{abn:i,inning:1,result:PC.isZone(p.loc)?'called':'ball'}));assert.equal(PC.summarize(g).strikePct,40);assert.ok(!PC.pitchMiss(Object.assign({},bp('CH',1,14),{abn:1,inning:1}),'R').good);
+  const st=PC.defaultState();st.sync={queue:{pitchers:{},games:{},sessions:{},pitches:{},call_sheets:{}},tomb:{}};PC.mergeRemote(st,{pitches:[{id:PC.uuid(),mode:'bullpen',session_id:'s1',pitcher_id:'p_woods',loc:22,targets:[8],type:'FB',ts:1}],sessions:[{id:'s1',date:'d'}]});
+  assert.equal(st.sessions.find(x=>x.id==='s1').pitches[0].loc,22,'way-off loc survives a pull');});
