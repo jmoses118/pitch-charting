@@ -1,9 +1,9 @@
-/* Thunder Elite pitch charting – store.js: Local state, storage, migrations, notes, pitch-count settings.
+/* Thunder Elite pitch charting – store.js: Local state, storage, migrations, notes.
    Pure logic (no DOM). Loads in the browser (window.PC) and in node (see logic.js). */
 (function(root){
 'use strict';
 const PC=root.PC=root.PC||{};
-const {defaultCallSheet,countsAsPitch,TABLES}=PC;
+const {defaultCallSheet,TABLES,DEFAULT_ALERTS,DEFAULT_REST,DEFAULT_LIMITS}=PC;
 // ---------- State / store ----------
 const KEY='te_pitchchart_v1';
 const ROSTER=['Crego','Nagy','Woods','Moses','Stuckey','Larbus','Jabour','Barrett','Elliott','Martin','Crichfield','Henn','Rennie'];
@@ -12,7 +12,7 @@ const isUUID=v=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);
 function defaultState(){return{v:1,roster:ROSTER.map(n=>({name:n,num:''})),
   pitchers:[{id:'p_woods',name:'Avery Woods',num:'45',throws:'L',archived:false},{id:'p_crich',name:'Jules Critchfield',num:'',throws:'R',archived:false},{id:'p_larbus',name:'Reese Larbus',num:'',throws:'R',archived:false}],
-  customTypes:[],notes:[],settings:{alerts:DEFAULT_ALERTS.slice(),rest:DEFAULT_REST.map(x=>Object.assign({},x))},callSheets:[defaultCallSheet()],activeSheet:'cs_wristband1',games:[],sessions:[],activeGame:null,activeSession:null};}
+  customTypes:[],notes:[],settings:{alerts:DEFAULT_ALERTS.slice(),rest:DEFAULT_REST.map(x=>Object.assign({},x)),limits:Object.assign({},DEFAULT_LIMITS),showRest:false},callSheets:[defaultCallSheet()],activeSheet:'cs_wristband1',games:[],sessions:[],activeGame:null,activeSession:null};}
 function makeStore(storage){
   let real=null,test=null;
   try{const raw=storage&&storage.getItem(KEY);if(raw)real=JSON.parse(raw);}catch(e){}
@@ -47,7 +47,7 @@ function ensureSync(st){
   if(!st.migNames1){(st.pitchers||[]).forEach(p=>{const f=FULL_NAMES[p.id];if(f&&p.name===f[0]){p.name=f[1];if(st.sync)st.sync.queue.pitchers[p.id]=(st.sync.queue.pitchers[p.id]||0)+1;}});st.migNames1=true;}
   // one-time: Woods has no 'ace' tag, is #45 and throws L (queued so the cloud stays consistent)
   if(!st.migWoods1){const w=(st.pitchers||[]).find(p=>p.id==='p_woods');if(w){delete w.note;if(!w.num)w.num='45';w.throws='L';if(st.sync)st.sync.queue.pitchers[w.id]=(st.sync.queue.pitchers[w.id]||0)+1;}st.migWoods1=true;}if(!st.sync)st.sync={queue:{pitchers:{},games:{},sessions:{},pitches:{}},tomb:{},last:null,lastError:null,teamCode:'',deviceId:'d_'+uid()};
-  TABLES.forEach(t=>{st.sync.queue[t]=st.sync.queue[t]||{};});st.notes=st.notes||[];st.settings=st.settings||{};if(!Array.isArray(st.settings.alerts))st.settings.alerts=DEFAULT_ALERTS.slice();if(!Array.isArray(st.settings.rest))st.settings.rest=DEFAULT_REST.map(x=>Object.assign({},x));
+  TABLES.forEach(t=>{st.sync.queue[t]=st.sync.queue[t]||{};});st.notes=st.notes||[];st.settings=st.settings||{};if(!Array.isArray(st.settings.alerts))st.settings.alerts=DEFAULT_ALERTS.slice();if(!Array.isArray(st.settings.rest))st.settings.rest=DEFAULT_REST.map(x=>Object.assign({},x));st.settings.limits=Object.assign({},DEFAULT_LIMITS,st.settings.limits);if(typeof st.settings.showRest!=='boolean')st.settings.showRest=false;
   // one-time: preload Jim's wristband (pushed only once edited, so a stale default never overwrites the cloud copy)
   if(!st.migSheets1){if(!Array.isArray(st.callSheets)||!st.callSheets.length){st.callSheets=[defaultCallSheet()];}if(!st.activeSheet)st.activeSheet=st.callSheets[0].id;st.migSheets1=true;}
   // first run with sync: give every pitch a uuid and queue everything once
@@ -57,16 +57,5 @@ function ensureSync(st){
 // ---------- notes (pitching coach / coach -> player's report) ----------
 const noteId=(o)=>o.sessionId?'n_'+o.sessionId+(o.pitcherId?'_'+o.pitcherId:''):'n_'+o.gameId+'_'+o.pitcherId;
 function findNote(st,o){return (st.notes||[]).find(n=>!n.deleted&&n.pitcherId===o.pitcherId&&(o.sessionId?n.sessionId===o.sessionId:n.gameId===o.gameId))||null;}
-// ---------- pitch count alerts + rest days ----------
-const DEFAULT_ALERTS=[75,90];
-// sensible youth (12U-14U fastpitch) rest guide; coach can edit. up to `max` pitches in an outing -> `days` of rest
-const DEFAULT_REST=[{max:20,days:0},{max:35,days:1},{max:50,days:2},{max:65,days:3},{max:9999,days:4}];
-function restDays(n,table){const t=(table&&table.length?table:DEFAULT_REST).slice().sort((a,b)=>a.max-b.max);const r=t.find(x=>n<=x.max)||t[t.length-1];return r?r.days:0;}
-function lastOuting(st,pid){let best=null;(st.games||[]).forEach(g=>{const P=g.pitches.filter(p=>p.pitcherId===pid&&countsAsPitch(p)&&!p.deleted);if(!P.length)return;const ts=Math.max(...P.map(p=>p.ts||0));const date=g.date||new Date(ts).toISOString().slice(0,10);
-    if(!best||date>best.date||(date===best.date&&ts>best.ts))best={gameId:g.id,date,ts,n:P.length,opponent:g.opponent};});return best;}
-function addDays(d,n){const x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);return x.toISOString().slice(0,10);}
-function restInfo(st,pid,today,table){const lo=lastOuting(st,pid);if(!lo)return null;const days=restDays(lo.n,table);const ready=addDays(lo.date,days+1);// days of full rest after the outing
-  return Object.assign({},lo,{days,ready,ok:today>=ready});}
-function alertLevel(n,th){const t=(th&&th.length?th:DEFAULT_ALERTS).slice().sort((a,b)=>a-b);let lvl=-1;t.forEach((x,i)=>{if(n>=x)lvl=i;});return{lvl,at:lvl>=0?t[lvl]:null,next:t.find(x=>n<x)||null};}
-Object.assign(PC,{KEY,ROSTER,uuid,isUUID,uid,defaultState,makeStore,FULL_NAMES,ensureSync,noteId,findNote,DEFAULT_ALERTS,DEFAULT_REST,restDays,lastOuting,addDays,restInfo,alertLevel});
+Object.assign(PC,{KEY,ROSTER,uuid,isUUID,uid,defaultState,makeStore,FULL_NAMES,ensureSync,noteId,findNote});
 })(typeof window!=='undefined'?window:globalThis);

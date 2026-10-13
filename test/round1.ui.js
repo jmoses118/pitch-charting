@@ -25,6 +25,8 @@ await p.evaluate(()=>{const S=__app.store.real,PC=window.PC;let k=7;const rnd=()
   S.curPitcher='p_woods';__app.store.save();__app.render();});
 // ---------- 4) rest-day reminder + alert settings ----------
 await asRole('coach');await p.click('nav [data-t="bullpen"]');await p.waitForTimeout(200);
+ok(!(await p.isVisible('#restMsg')),'rest guide hidden by default');ok(/^Today: \d+ game \+ \d+ bullpen · (Last weekend|Weekend): \d+ game \+ \d+ bullpen$/.test(await p.textContent('#wlMsg')),'workload line on pitcher select');
+await p.evaluate(()=>{__app.store.state.settings.showRest=true;__app.render();});await p.waitForTimeout(100);
 const rm=await p.textContent('#restMsg');ok(/62 pitches/.test(rm)&&/3 days rest/.test(rm)&&/Rest until/.test(rm),'rest reminder for Woods: '+rm);
 await p.evaluate(()=>scrollTo(0,0));await shot('rest-reminder','Pick a pitcher: last outing + rest days (youth guide, editable)');
 await p.selectOption('#pitcher','p_larbus');await p.waitForTimeout(150);ok(/Ready to pitch/.test(await p.textContent('#restMsg')),'Reese ready to pitch');await p.selectOption('#pitcher','p_woods');
