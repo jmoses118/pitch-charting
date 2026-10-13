@@ -20,7 +20,7 @@ test('pitch count matches GC (all pitches incl. fouls, in play, HBP; IBB no pitc
   const s=PC.summarize(P.filter(p=>p.pitcherId==='A'));assert.equal(s.n,7);assert.equal(s.strikes,5);});
 test('in play results and HBP',()=>{assert.equal(PC.applyPitch({b:0,s:0},'inplay','2B').end,'2B');assert.equal(PC.applyPitch({b:0,s:0},'inplay','FC').outs,1);assert.equal(PC.applyPitch({b:3,s:2},'hbp').end,'HBP');});
 test('first-pitch strike %',()=>{const s=PC.summarize([{result:'called',b:0,s:0},{result:'ball',b:1,s:0},{result:'ball',b:0,s:0}]);assert.equal(s.fpsPct,50);});
-test('roster prefill',()=>{const s=PC.defaultState();assert.equal(s.roster.length,13);const w=s.pitchers.find(p=>p.name==='Woods');assert.equal(w.throws,'L');assert.equal(w.num,'45');assert.equal(w.note,undefined);assert.deepEqual(s.pitchers.map(p=>p.name),['Woods','Crichfield','Larbus']);});
+test('roster prefill',()=>{const s=PC.defaultState();assert.equal(s.roster.length,13);const w=s.pitchers.find(p=>p.id==='p_woods');assert.equal(w.throws,'L');assert.equal(w.num,'45');assert.equal(w.note,undefined);assert.deepEqual(s.pitchers.map(p=>p.name),['Avery Woods','Jules Critchfield','Reese Larbus']);assert.deepEqual(s.pitchers.map(p=>p.id),['p_woods','p_crich','p_larbus']);});
 test('add / edit / archive pitcher persists',()=>{const m=mem();const st=PC.makeStore(m);const p=st.addPitcher({name:'Nagy',num:'7',throws:'L'});
   let saved=JSON.parse(m.getItem(PC.KEY));assert.ok(saved.pitchers.find(x=>x.name==='Nagy'&&x.num==='7'&&x.throws==='L'));
   st.editPitcher(p.id,{num:'8',throws:'R'});st.archivePitcher(p.id);saved=JSON.parse(m.getItem(PC.KEY));const q=saved.pitchers.find(x=>x.id===p.id);assert.equal(q.num,'8');assert.equal(q.throws,'R');assert.equal(q.archived,true);
@@ -32,7 +32,7 @@ test('test mode does not persist and is cleared on exit',()=>{const m=mem();cons
 test('CSV round trip',()=>{const csv=PC.toCSV([{mode:'game',batter:'O"Neil, J',pitch_no:1}]);const r=PC.parseCSV(csv);assert.equal(r[0].batter,'O"Neil, J');});
 test('dropped 3rd: K for pitcher, no out, batter reaches, counts as pitch',()=>{const o=PC.applyPitch({b:1,s:2},'kd3');assert.equal(o.end,'K-D3');assert.equal(o.outs,0);assert.equal(o.s,3);assert.ok(PC.isStrike('kd3'));assert.equal(PC.pitchCount([{result:'kd3'}]),1);});
 test('FB IN stays mid inside edge: 6 RHB, 4 LHB',()=>{assert.deepEqual(PC.parseCall('FB IN','R').targets,[6]);assert.deepEqual(PC.parseCall('FBIN','L').targets,[4]);});
-test('Woods stays left-handed',()=>{assert.equal(PC.defaultState().pitchers.find(p=>p.name==='Woods').throws,'L');});
+test('Woods stays left-handed',()=>{assert.equal(PC.defaultState().pitchers.find(p=>p.id==='p_woods').throws,'L');});
 test('waste spots count as balls-zone and hit-the-spot',()=>{const c=PC.parseCall('FB A','R');const s=PC.summarize([{type:'FB',call:c.norm,targets:c.targets,loc:16,b:0,s:0},{type:'FB',call:'FB H+',targets:[15],loc:2,b:0,s:0}]);assert.equal(s.strikes,1);assert.equal(s.spotPct,50);});
 test('DC drop curve is its own type',()=>{const c=PC.parseCall('DC 8','R');assert.equal(c.type,'DC');assert.ok(PC.BASE_TYPES.some(t=>t.code==='DC'));const s=PC.summarize([{type:'DC',loc:8},{type:'DR',loc:8},{type:'CB',loc:7}]);assert.equal(s.byType.DC.n,1);assert.equal(s.byType.DR.n,1);assert.equal(s.byType.CB.n,1);});
 // ---------- sync ----------
@@ -109,3 +109,8 @@ test('whoami sets role; unknown code blocks sync',async()=>{const st=PC.makeStor
 test('rows never carry the secret code, only the team id',()=>{const st=roleStore('coach');st.real.sync.teamId='thunder-elite-13u';const{rows}=PC.buildRows(st.real);const all=Object.values(rows).flat();
   assert.ok(all.length>0);assert.ok(all.every(r=>r.team_id==='thunder-elite-13u'&&!('team_code' in r)));assert.ok(!JSON.stringify(all).includes(st.real.sync.teamCode));});
 test('no push until the team is identified by whoami',async()=>{const st=PC.makeStore(mem());st.real.sync.teamCode='TEST1-AAAAA-BBBBB-CCCCC-DDDDD';const calls=[];const r=await PC.makeSync(st,{url:'u',key:'k',fetch:async()=>{calls.push(1);return{ok:true}}}).push();assert.match(r.skipped,/not identified/);assert.equal(calls.length,0);});
+test('full names: old phones renamed in place (same ids, data kept), cloud pull applies names',()=>{const m=mem();const s0=PC.defaultState();s0.pitchers[0].name='Woods';s0.pitchers[1].name='Crichfield';s0.pitchers[2].name='Larbus';
+  s0.sessions.push({id:'s1',date:'d',pitches:[{id:PC.uuid(),pitcherId:'p_larbus',type:'FB',loc:5}]});m.setItem(PC.KEY,JSON.stringify(s0));
+  const st=PC.makeStore(m);assert.deepEqual(st.state.pitchers.map(p=>p.name),['Avery Woods','Jules Critchfield','Reese Larbus']);assert.equal(st.state.pitchers[0].num,'45');assert.equal(st.state.pitchers[0].throws,'L');
+  assert.equal(st.state.sessions[0].pitches[0].pitcherId,'p_larbus');
+  const st2=PC.makeStore(mem());st2.real.sync.queue.pitchers={};st2.real.pitchers[1].name='Crichfield';PC.mergeRemote(st2.real,{pitchers:[{id:'p_crich',name:'Jules Critchfield',num:null,throws:'R'}]});assert.equal(st2.real.pitchers[1].name,'Jules Critchfield');});

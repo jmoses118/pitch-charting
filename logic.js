@@ -108,7 +108,7 @@ const uuid=()=>{if(typeof crypto!=='undefined'&&crypto.randomUUID)return crypto.
 const isUUID=v=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v||'');
 const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);
 function defaultState(){return{v:1,roster:ROSTER.map(n=>({name:n,num:''})),
-  pitchers:[{id:'p_woods',name:'Woods',num:'45',throws:'L',archived:false},{id:'p_crich',name:'Crichfield',num:'',throws:'R',archived:false},{id:'p_larbus',name:'Larbus',num:'',throws:'R',archived:false}],
+  pitchers:[{id:'p_woods',name:'Avery Woods',num:'45',throws:'L',archived:false},{id:'p_crich',name:'Jules Critchfield',num:'',throws:'R',archived:false},{id:'p_larbus',name:'Reese Larbus',num:'',throws:'R',archived:false}],
   customTypes:[],games:[],sessions:[],activeGame:null,activeSession:null};}
 function makeStore(storage){
   let real=null,test=null;
@@ -138,7 +138,10 @@ function makeStore(storage){
     archivePitcher(id,on=true){const p=api.state.pitchers.find(x=>x.id===id);if(p){p.archived=!!on;api.markDirty('pitchers',id);api.save();}return p;},
     activePitchers(){return api.state.pitchers.filter(p=>!p.archived);},
   };return api;}
+const FULL_NAMES={p_woods:['Woods','Avery Woods'],p_crich:['Crichfield','Jules Critchfield'],p_larbus:['Larbus','Reese Larbus']};
 function ensureSync(st){
+  // one-time: full pitcher names (same ids, so access codes and history stay attached); only renames untouched defaults
+  if(!st.migNames1){(st.pitchers||[]).forEach(p=>{const f=FULL_NAMES[p.id];if(f&&p.name===f[0]){p.name=f[1];if(st.sync)st.sync.queue.pitchers[p.id]=(st.sync.queue.pitchers[p.id]||0)+1;}});st.migNames1=true;}
   // one-time: Woods has no 'ace' tag, is #45 and throws L (queued so the cloud stays consistent)
   if(!st.migWoods1){const w=(st.pitchers||[]).find(p=>p.id==='p_woods');if(w){delete w.note;if(!w.num)w.num='45';w.throws='L';if(st.sync)st.sync.queue.pitchers[w.id]=(st.sync.queue.pitchers[w.id]||0)+1;}st.migWoods1=true;}if(!st.sync)st.sync={queue:{pitchers:{},games:{},sessions:{},pitches:{}},tomb:{},last:null,lastError:null,teamCode:'',deviceId:'d_'+uid()};
   // first run with sync: give every pitch a uuid and queue everything once
