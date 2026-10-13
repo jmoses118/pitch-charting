@@ -68,3 +68,4 @@ body.onehand #types button{min-height:56px;font-size:18px}
 body.onehand #resBtns button,body.onehand #ipBtns button{min-height:62px;font-size:18px}
 #ipBtns button.sel{outline:3px solid #fff;background:var(--blue)}
 #restTbl input{width:80px}
+.lock{border:2px solid var(--acc)}.lock .lockMsg{font-weight:800;font-size:16px;margin-bottom:4px}

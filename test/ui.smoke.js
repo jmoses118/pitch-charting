@@ -12,6 +12,7 @@ await pg.click('[data-r="swinging"]');console.log('after K3 count',await pg.text
 {const h=await pg.isVisible('[data-r="kd3"]');console.log('K-D3 button hidden at 0-0:',!h);if(h)throw 'kd3 visible at 0-0';}await pg.click('#undo');{const v=await pg.isVisible('[data-r="kd3"]');console.log('K-D3 button shown at 2 strikes:',v);if(!v)throw 'kd3 hidden at 2 strikes';}await pg.click('[data-r="kd3"]');const o2=await pg.$$eval('#outs .on',x=>x.length);console.log('after K-D3 outs',o2,'count',await pg.textContent('#cnt'));if(o2!==0)throw 'kd3';await pg.click('#undo');console.log('after undo',await pg.textContent('#cnt'),await pg.textContent('#pc'));
 await pg.screenshot({path:'/workspace/pitch-charting-app/test/shot-game.png',fullPage:true});
 // bullpen with call
+await pg.click('#gPause'); // a game in progress locks the bullpen (modes are exclusive)
 await pg.click('nav [data-t="bullpen"]');await pg.check('#callOn');await pg.fill('#callTxt','chg 7');await tap(7);
 await pg.fill('#callTxt','FB A');console.log('desc',await pg.textContent('#callDesc'),await pg.isVisible('#callTxt'),await pg.inputValue('#callTxt'));await tap(16);console.log('afterA',await pg.evaluate(()=>{const s=__app.store.state;return [s.activeSession,s.sessions.map(x=>x.id+':'+x.pitches.length)]}),await pg.textContent('#bpSum'),await pg.textContent('#callDesc'));await pg.fill('#callTxt','H+');await tap(15);await pg.click('#types [data-c="DC"]');await tap(8);await tap(9);
 await pg.uncheck('#callOn');

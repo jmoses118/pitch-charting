@@ -4,7 +4,7 @@ Mobile-first, offline-first pitch charting for Thunder Elite 13U fastpitch (game
 Static web app (no build step) hosted on GitHub Pages: https://jmoses118.github.io/pitch-charting/
 Data lives in `localStorage` on each phone and optionally syncs to Supabase per team.
 
-Highlights: game + bullpen charting with Jim's wristband calls, miss severity / competitive % scoring ([docs/SCORING.md](docs/SCORING.md)), heat maps and reports, and a pitch-count reminder on pitcher select and in the game header — *Today: X game + Y bullpen · Weekend: X game + Y bullpen* — with optional coach-set soft limits per day / tournament weekend (Fri–Sun).
+Highlights: game + bullpen charting with Jim's wristband calls, miss severity / competitive % scoring ([docs/SCORING.md](docs/SCORING.md)), heat maps and reports, and a pitch-count reminder on pitcher select and in the game header — *Today: X game + Y bullpen · Weekend: X game + Y bullpen* — with optional coach-set soft limits per day / tournament weekend (Fri–Sun). A phone scores one thing at a time: a game in progress must be paused or ended before a bullpen, and vice versa.
 
 ## Setup
 - Serve the folder with any static server, e.g. `python3 -m http.server 8766`, and open http://localhost:8766/.

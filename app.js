@@ -158,10 +158,10 @@ function setHand(h){if(tab==='game'&&game()){game().cur.hand=h;dirty('games',gam
 // ---------- record building ----------
 function baseRec(){return{id:PC.uuid(),ts:Date.now(),pitcherId:curPitcherId(),hand:curHand(),type:D.type||(D.parsed&&D.parsed.type)||null,
   call:callOn&&D.parsed?D.parsed.norm:null,callRaw:callOn&&D.callTxt?D.callTxt:null,targets:callOn?(D.parsed&&D.parsed.targets.length?D.parsed.targets:(D.target?[D.target]:[])):[],loc:D.loc||null};}
-function logBullpen(targets){if(role()==='viewer')return;let s=session();if(!s||(role()==='player'&&s.pitcherId!==store.real.sync.pitcherId)||(role()==='pcoach'&&s.pitcherId!==curPitcherId()))s=newSession();const r=baseRec();r.b=0;r.s=0;if(targets)r.targets=targets;s.pitches.push(r);dirty('pitches',r.id);save();
+function logBullpen(targets){if(role()==='viewer')return;if(canGame()&&PC.gameInProgress(game()))return toast(PC.LOCK_MSG.game);let s=session();if(!s||(role()==='player'&&s.pitcherId!==store.real.sync.pitcherId)||(role()==='pcoach'&&s.pitcherId!==curPitcherId()))s=newSession();const r=baseRec();r.b=0;r.s=0;if(targets)r.targets=targets;s.pitches.push(r);dirty('pitches',r.id);save();
   const ok=PC.hitSpot(r);buzz(25);toast(`${r.type||'?'} ${locTxt(r.loc)}${r.targets.length?(ok?' ✓ hit spot':' ✗ missed'):''}`);resetDraft();render();}
 function newSession(){const s={id:'s_'+PC.uid(),date:new Date().toISOString().slice(0,10),started:Date.now(),pitches:[]};if(role()==='player')s.pitcherId=store.real.sync.pitcherId;if(role()==='pcoach')s.pitcherId=curPitcherId();S().sessions.push(s);S().activeSession=s.id;dirty('sessions',s.id);save();return s;}
-$('bpNew').onclick=()=>{newSession();resetDraft();render();toast('New bullpen session');};
+$('bpNew').onclick=()=>{if(canGame()&&PC.gameInProgress(game()))return toast(PC.LOCK_MSG.game);newSession();resetDraft();render();toast('New bullpen session');};
 // game result
 $('resBtns').addEventListener('click',e=>{const r=e.target.dataset.r;if(!r)return;if(r==='inplay'){D.ip=true;render();return;}recordGame(r);});
 $('ipBtns').addEventListener('click',e=>{const bb=e.target.closest('[data-bb]');if(bb){D.bb=D.bb===bb.dataset.bb?null:bb.dataset.bb;document.querySelectorAll('#ipBtns [data-bb]').forEach(x=>x.classList.toggle('sel',x.dataset.bb===D.bb));return;}const ip=(e.target.closest('[data-ip]')||{}).dataset?.ip;if(ip==null)return;if(!ip){D.ip=false;render();return;}recordGame('inplay',ip);});
@@ -187,7 +187,27 @@ $('innPlus').onclick=()=>{const c=game().cur;c.inning++;c.outs=0;c.b=0;c.s=0;dir
 $('batter').onchange=e=>{const c=game().cur;if(c.b||c.s){if(!confirm('Count is not 0-0. Switch batter anyway?')){render();return;}}c.slot=+e.target.value;c.b=0;c.s=0;c.abn++;c.hand=null;dirty('games',game().id);save();render();};
 $('bHand').onclick=()=>setHand(curHand()==='L'?'R':'L');
 $('pitcher').onchange=e=>{S().curPitcher=e.target.value;save();render();if(tab==='game'&&game())toast('Pitching change: '+pName(e.target.value));};
-$('gEnd').onclick=()=>{if(!confirm('End this game? It stays in Stats.'))return;game().ended=Date.now();game().status='final';dirty('games',game().id);S().activeGame=null;save();render();};
+// ---------- game / bullpen are mutually exclusive on this device (PC.modeLock) ----------
+const canGame=()=>ROLE_TABS[role()].includes('game');
+function endGame(){const g=game();if(!g||!confirm('End this game? It stays in Stats.'))return;g.ended=Date.now();g.status='final';dirty('games',g.id);S().activeGame=null;save();render();}
+function pauseGame(){const g=game();if(!g)return;S().activeGame=null;resetDraft();save();render();toast('Game paused – resume it from the Game tab');}
+function resumeGame(id){const s=session();if(canGame()&&PC.sessionOpen(s))return toast(PC.LOCK_MSG.bullpen);S().activeGame=id;resetDraft();save();render();toast('Game resumed');}
+function endBullpen(){const s=session();if(!s||!s.pitches.length)return toast('No pitches in this session yet');delete s.paused;openReport(s);S().activeSession=null;resetDraft();save();render();}
+function pauseBullpen(){const s=session();if(!s)return;if(s.pitches.length)s.paused=Date.now();S().activeSession=null;resetDraft();save();render();toast('Bullpen paused – resume it from the Bullpen tab');}
+function resumeBullpen(id){if(canGame()&&PC.gameInProgress(game()))return toast(PC.LOCK_MSG.game);const s=S().sessions.find(x=>x.id===id);if(!s)return;delete s.paused;S().activeSession=id;resetDraft();save();render();toast('Bullpen resumed');}
+$('gEnd').onclick=endGame;$('gPause').onclick=pauseGame;$('lkEndG').onclick=endGame;$('lkPauseG').onclick=pauseGame;$('lkGoG').onclick=()=>{tab='game';render();};
+$('lkEndBp').onclick=endBullpen;$('lkPauseBp').onclick=pauseBullpen;$('bpPause').onclick=pauseBullpen;
+$('bpResume').onclick=()=>{const x=PC.pausedSessions(S())[0];if(x)resumeBullpen(x.id);};
+$('pausedList').addEventListener('click',e=>{const b=e.target.closest('[data-rg]');if(b)resumeGame(b.dataset.rg);});
+function renderModeLock(){const s=S(),lk=PC.modeLock(s,tab,canGame());
+  $('lockBp').classList.toggle('hide',!(lk&&lk.by==='game'));$('lockGame').classList.toggle('hide',!(lk&&lk.by==='bullpen'));
+  if(lk&&lk.by==='game'){const g=lk.game;$('lockBp').querySelector('.lockMsg').textContent=PC.LOCK_MSG.game;$('lockBpSub').textContent=`${vsAt(g)} ${g.opponent||''} · inning ${g.cur.inning} · ${PC.pitchCount(g.pitches)} pitches`;}
+  if(lk&&lk.by==='bullpen'){const x=lk.session;$('lockGame').querySelector('.lockMsg').textContent=PC.LOCK_MSG.bullpen;$('lockGameSub').textContent=`${x.pitcherId?pName(x.pitcherId)+' · ':''}${x.pitches.length} pitches`;}
+  $('bpCard').classList.toggle('hide',!!(lk&&lk.by==='game'));
+  const pg=tab==='game'&&!game()&&!lk&&canGame()?PC.pausedGames(s):[];$('pausedCard').classList.toggle('hide',!pg.length);
+  $('pausedList').innerHTML=pg.map(x=>`<div class="prow"><button data-rg="${H(x.id)}" style="flex:1;text-align:left"><b>Resume</b> ${H((x.date||'').slice(5))} ${vsAt(x)} ${H(x.opponent)}<br><small class="mut">inning ${x.cur.inning} · ${PC.pitchCount(x.pitches)} pitches</small></button></div>`).join('');
+  const ps=tab==='bullpen'&&!session()&&!lk?PC.pausedSessions(s):[];$('bpResume').classList.toggle('hide',!ps.length);if(ps.length)$('bpResume').textContent=`▶ Resume paused bullpen (${ps[0].pitcherId?pName(ps[0].pitcherId)+', ':''}${ps[0].pitches.length} pitches)`;
+  return lk;}
 // new game form
 let draftLineup=[];function blankLineup(){draftLineup=Array.from({length:9},(_,i)=>({slot:i+1,name:'',num:'',hand:'R'}));}
 blankLineup();
@@ -200,7 +220,7 @@ const vsAt=g=>g.homeAway==='away'?'@':'vs';
 function pickScheduled(id){const g=S().games.find(x=>x.id===id);if(!g)return;schedId=id;$('gDate').value=g.date||'';$('gOpp').value=g.opponent||'';$('gEvent').value=g.event||'';$('gHA').value=g.homeAway||'tbd';
   if(g.lineup&&g.lineup.length)draftLineup=g.lineup.map(b=>Object.assign({},b));$('newGameLbl').textContent=`Start ${g.gameNo||''} ${vsAt(g)} ${g.opponent} – set lineup`;renderLineupForm();$('noGame').scrollIntoView({behavior:'smooth'});}
 $('schedList').addEventListener('click',e=>{const b=e.target.closest('[data-sg]');if(b)pickScheduled(b.dataset.sg);});
-$('gStart').onclick=()=>{const lineup=draftLineup.map((b,i)=>({slot:i+1,name:b.name.trim()||('Batter '+(i+1)),num:b.num.trim(),hand:b.hand}));
+$('gStart').onclick=()=>{if(canGame()&&PC.sessionOpen(session()))return toast(PC.LOCK_MSG.bullpen);const lineup=draftLineup.map((b,i)=>({slot:i+1,name:b.name.trim()||('Batter '+(i+1)),num:b.num.trim(),hand:b.hand}));
   const fields={date:$('gDate').value||new Date().toISOString().slice(0,10),opponent:$('gOpp').value.trim()||'Opponent',event:$('gEvent').value.trim(),homeAway:$('gHA').value,lineup,
     cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:0,hand:null},started:Date.now(),status:'active'};
   let g=schedId&&S().games.find(x=>x.id===schedId);
@@ -390,7 +410,7 @@ $('rShare').onclick=async()=>{if(!RPT||!RPT.P.length)return;const b=await report
   const f=new File([b],name,{type:'image/png'});try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:'Bullpen report'});return;}}catch(e){if(e&&e.name==='AbortError')return;}
   const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000);toast('Image saved');};
 $('rPrint').onclick=()=>window.print();$('rClose').onclick=()=>$('rDlg').close();
-$('bpEnd').onclick=()=>{const s=session();if(!s||!s.pitches.length)return toast('No pitches in this session yet');openReport(s);S().activeSession=null;resetDraft();save();render();};
+$('bpEnd').onclick=endBullpen;
 $('sReport').onclick=()=>{const x=S().sessions.find(q=>q.id===$('sScope').value);openReport(x);};
 // ---------- zone heat map ----------
 const HKEY='te_pitch_heat_v1';let HF={},HV='miss';try{const o=JSON.parse(storage&&storage.getItem(HKEY)||'{}');HF=o.f||{};HV=o.v==='actual'?'actual':'miss';}catch(e){}
@@ -483,11 +503,11 @@ function render(skipCallInput){const s=S();{const gg=game();const two=!!(gg&&gg.
   const g=game();
   $('modeTag').textContent=(store.isTest?'TEST · ':'')+(tab==='game'?(g?'GAME':'NO GAME'):tab==='bullpen'?'BULLPEN':tab.toUpperCase());
   ['game','bullpen','stats','setup'].forEach(t=>$('tab-'+t).classList.toggle('hide',t!==tab));
-  const showEntry=(tab==='game'&&g)||tab==='bullpen';$('entry').classList.toggle('hide',!showEntry);
+  const lk=renderModeLock();const showEntry=!lk&&((tab==='game'&&g)||tab==='bullpen');$('entry').classList.toggle('hide',!showEntry);
   $('gameHead').classList.toggle('hide',!(tab==='game'&&g));
-  $('noGame').classList.toggle('hide',!!g);$('inGame').classList.toggle('hide',!g);
+  $('noGame').classList.toggle('hide',!!g||!!lk);$('inGame').classList.toggle('hide',!g);
   const sch=s.games.filter(x=>PC.gameStatus(x)==='scheduled').sort((x,y)=>(x.date+x.gameNo).localeCompare(y.date+y.gameNo,undefined,{numeric:true}));
-  $('schedCard').classList.toggle('hide',!(tab==='game'&&!g&&sch.length));
+  $('schedCard').classList.toggle('hide',!(tab==='game'&&!g&&!lk&&sch.length));
   $('schedList').innerHTML=sch.map(x=>`<div class="prow"><button data-sg="${H(x.id)}" style="flex:1;text-align:left;${schedId===x.id?'border-color:var(--acc)':''}"><b>${H((x.date||'').slice(5))} ${H(x.time||'')}</b> ${vsAt(x)} ${H(x.opponent)}<br><small class="mut">${[x.gameNo,x.field,x.location].filter(Boolean).map(H).join(' · ')}</small></button>${x.link&&/^https:\/\//.test(x.link)?`<a href="${H(x.link)}" target="_blank" rel="noopener" style="color:var(--acc);padding:0 6px">GC↗</a>`:''}</div>`).join('');
   if(tab==='game'&&!g){renderLineupForm();if(!$('gDate').value)$('gDate').value=new Date().toISOString().slice(0,10);}
   const hand=curHand();$('hL').classList.toggle('sel',hand==='L');$('hR').classList.toggle('sel',hand==='R');$('hN').classList.toggle('sel',hand==='N');$('hN').classList.toggle('hide',tab==='game');

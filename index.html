@@ -19,6 +19,9 @@
 <main>
 <!-- GAME -->
 <section id="tab-game">
+ <div id="lockGame" class="card lock hide" role="status"><div class="lockMsg"></div><div class="mut" id="lockGameSub"></div>
+  <div class="row" style="margin-top:8px"><button id="lkPauseBp" style="flex:1">Pause bullpen</button><button id="lkEndBp" style="flex:1;background:var(--grn)">End bullpen</button></div></div>
+ <div id="pausedCard" class="card hide"><div class="lbl">Games in progress – tap to resume</div><div id="pausedList"></div></div>
  <div id="schedCard" class="card hide"><div class="lbl">Scheduled games – tap to chart</div><div id="schedList"></div></div>
  <div id="noGame" class="card">
   <div class="lbl" id="newGameLbl">New game</div>
@@ -31,7 +34,7 @@
   <div class="mut" style="margin-top:8px">Past games are in Stats.</div>
  </div>
  <div id="inGame" class="hide">
-  <div class="card"><div class="row sp"><div><div id="gTitle" style="font-weight:700"></div><div class="mut" id="gSub"></div></div><button id="gEnd">End game</button></div>
+  <div class="card"><div class="row sp"><div><div id="gTitle" style="font-weight:700"></div><div class="mut" id="gSub"></div></div><span class="row"><button id="gPause">Pause</button><button id="gEnd">End game</button></span></div>
    <div class="row" style="margin-top:6px"><select id="batter" aria-label="Batter"></select><button id="bHand" style="min-width:64px"></button></div>
    <div class="row" style="margin-top:6px"><button id="outMinus">Out −</button><button id="outPlus">Out +</button><button id="innPlus">Next inn</button><button id="ibb" title="Intentional walk, no pitches">IBB</button></div>
    <label class="row mut" style="margin-top:6px;gap:6px"><input type="checkbox" id="oneHand" style="width:22px;min-height:22px"> One-hand mode (big buttons, auto-advance call → location → result)</label>
@@ -40,7 +43,11 @@
 </section>
 <!-- BULLPEN -->
 <section id="tab-bullpen" class="hide">
- <div class="card"><div class="row sp"><div><b id="bpTitle">Bullpen</b><div class="mut" id="bpSum"></div></div><div class="row"><button id="bpEnd" style="background:var(--grn)">End session</button><button id="bpNew">New</button></div></div>
+ <div id="lockBp" class="card lock hide" role="status"><div class="lockMsg"></div><div class="mut" id="lockBpSub"></div>
+  <div class="row" style="margin-top:8px"><button id="lkPauseG" style="flex:1">Pause game</button><button id="lkEndG" style="flex:1;background:var(--red)">End game</button></div>
+  <button id="lkGoG" style="width:100%;margin-top:6px">Back to the game</button></div>
+ <div class="card" id="bpCard"><div class="row sp"><div><b id="bpTitle">Bullpen</b><div class="mut" id="bpSum"></div></div><div class="row"><button id="bpEnd" style="background:var(--grn)">End session</button><button id="bpPause">Pause</button><button id="bpNew">New</button></div></div>
+  <button id="bpResume" class="hide" style="width:100%;margin-top:8px"></button>
   <button id="bpTest" style="width:100%;margin-top:8px" aria-pressed="false"></button></div>
 </section>
 <!-- shared entry (game + bullpen) -->
@@ -159,5 +166,5 @@
  <div id="ddCap" style="font-size:15px;line-height:1.4;margin-top:6px"></div><div id="ddKey" class="mut" style="font-size:12px;margin-top:6px"></div>
  <button id="ddClose" style="width:100%;margin-top:10px">Close</button></dialog>
 <div id="toast"></div>
-<script src="config.js"></script><script src="js/core/grid.js"></script><script src="js/core/calls.js"></script><script src="js/core/game.js"></script><script src="js/core/scoring.js"></script><script src="js/core/csv.js"></script><script src="js/core/workload.js"></script><script src="js/core/sync.js"></script><script src="js/core/store.js"></script><script src="app.js"></script>
+<script src="config.js"></script><script src="js/core/grid.js"></script><script src="js/core/calls.js"></script><script src="js/core/game.js"></script><script src="js/core/scoring.js"></script><script src="js/core/csv.js"></script><script src="js/core/workload.js"></script><script src="js/core/sync.js"></script><script src="js/core/modes.js"></script><script src="js/core/store.js"></script><script src="app.js"></script>
 </body></html>
