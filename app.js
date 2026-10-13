@@ -35,12 +35,12 @@ function zoneSVG(svg,hand,o={}){let h='';
   for(let i=0;i<9;i++)h+=`<rect data-z="${i+1}" class="zs" x="${ZX0+(i%3)*CW}" y="${ZY0+((i/3)|0)*CHh}" width="${CW}" height="${CHh}" stroke="#0d1117" stroke-width=".8"/>`;
   h+='<path d="M20 24H80V96H20Z" fill="none" stroke="#e6edf3" stroke-width="1"/>';
   const lab=o.labels||{};
-  for(const q in QLBL)h+=`<text class="zl" x="${QLBL[q][0]}" y="${QLBL[q][1]-(lab[q]?3:0)}">${q}</text>${lab[q]?`<text class="zl" style="font-size:5px;fill:#f5c518" x="${QLBL[q][0]}" y="${QLBL[q][1]+4}">${lab[q]}</text>`:''}`;
-  for(let i=1;i<=9;i++){const[c,r]=center(i);h+=`<text class="zl" x="${c}" y="${r-(lab[i]?3:0)}">${i}</text>${lab[i]?`<text class="zl" style="font-size:5px;fill:#f5c518" x="${c}" y="${r+5}">${lab[i]}</text>`:''}`;}
+  for(const q in QLBL)h+=`<text class="zl" x="${QLBL[q][0]}" y="${QLBL[q][1]-(lab[q]?3:0)}">${q}</text>${lab[q]?`<text class="zl" style="font-size:5px;fill:#8fb0ff" x="${QLBL[q][0]}" y="${QLBL[q][1]+4}">${lab[q]}</text>`:''}`;
+  for(let i=1;i<=9;i++){const[c,r]=center(i);h+=`<text class="zl" x="${c}" y="${r-(lab[i]?3:0)}">${i}</text>${lab[i]?`<text class="zl" style="font-size:5px;fill:#8fb0ff" x="${c}" y="${r+5}">${lab[i]}</text>`:''}`;}
   // side labels by handedness (RHB stands on pitcher's right)
   const inRight=PC.insideCol(hand)===2;
   h+=`<text class="side" transform="translate(-8 60) rotate(-90)">${inRight?'AWAY':'IN'}</text><text class="side" transform="translate(108 60) rotate(90)">${inRight?'IN':'AWAY'}</text>`;
-  h+=`<text class="side" style="fill:#f5c518;font-size:5.5px" x="${inRight?88:12}" y="128">${hand==='L'?'LHB':'RHB'} ${inRight?'▶':'◀'}</text><text class="side" x="${inRight?12:88}" y="128" style="opacity:.5">${inRight?'LHB side':'RHB side'}</text>`;
+  h+=`<text class="side" style="fill:#5b8cff;font-size:5.5px" x="${inRight?88:12}" y="128">${hand==='L'?'LHB':'RHB'} ${inRight?'▶':'◀'}</text><text class="side" x="${inRight?12:88}" y="128" style="opacity:.5">${inRight?'LHB side':'RHB side'}</text>`;
   svg.innerHTML=h+(o.extra||'');}
 function drawZone(){const hand=curHand();let ex='';const tset=D.parsed&&D.parsed.targets.length?D.parsed.targets:(D.target?[D.target]:[]);
   const lab={};tset.forEach(z=>lab[z]='TARGET');
