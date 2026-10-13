@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0d1117"><title>Thunder Elite Pitch Chart</title>
+<link rel="stylesheet" href="style.css"><link rel="manifest" href="manifest.json"></head><body>
+<header>
+ <div id="testbar" class="testbar hide">TEST MODE – NOT SAVED · <u id="exitTest2">exit</u></div>
+ <div class="row sp" style="margin-bottom:6px"><span class="brand">⚡ THUNDER ELITE 13U</span><span id="modeTag" class="tag"></span></div>
+ <div class="row" style="margin-bottom:6px"><select id="pitcher" aria-label="Pitcher"></select><button id="addPQuick" aria-label="Add pitcher">+P</button></div>
+ <div id="gameHead" class="row sp">
+  <div class="count"><div><small>INN</small><span id="inn">1</span></div><div><small>COUNT</small><span id="cnt">0-0</span></div><div><small>OUTS</small><span class="dots" id="outs"></span></div><div><small>PITCHES</small><span id="pc">0</span></div></div>
+ </div>
+</header>
+<main>
+<!-- GAME -->
+<section id="tab-game">
+ <div id="noGame" class="card">
+  <div class="lbl">New game</div>
+  <div class="grid2"><input id="gDate" type="date"><select id="gHA"><option value="home">Home</option><option value="away">Away</option></select></div>
+  <div class="row" style="margin-top:6px"><input id="gOpp" placeholder="Opponent" style="flex:1"></div>
+  <div class="row" style="margin-top:6px"><input id="gEvent" placeholder="Tournament / event" style="flex:1"></div>
+  <div class="lbl" style="margin-top:8px">Opponent lineup (slot · name · # · bats) – editable later</div>
+  <div id="gLineup"></div>
+  <div class="row" style="margin-top:6px"><button id="gAddB" style="flex:1">+ Batter</button><button id="gStart" style="flex:2;background:var(--grn)">Start game</button></div>
+  <div class="mut" style="margin-top:8px">Past games are in Stats.</div>
+ </div>
+ <div id="inGame" class="hide">
+  <div class="card"><div class="row sp"><div id="gTitle" style="font-weight:700"></div><button id="gEnd">End game</button></div>
+   <div class="row" style="margin-top:6px"><select id="batter" aria-label="Batter"></select><button id="bHand" style="min-width:64px"></button></div>
+   <div class="row" style="margin-top:6px"><button id="outMinus">Out −</button><button id="outPlus">Out +</button><button id="innPlus">Next inn</button><button id="ibb" title="Intentional walk, no pitches">IBB</button></div>
+  </div>
+ </div>
+</section>
+<!-- BULLPEN -->
+<section id="tab-bullpen" class="hide">
+ <div class="card"><div class="row sp"><div><b id="bpTitle">Bullpen</b><div class="mut" id="bpSum"></div></div><button id="bpNew">New session</button></div></div>
+</section>
+<!-- shared entry (game + bullpen) -->
+<section id="entry" class="hide">
+ <div class="card">
+  <div class="row sp"><div class="lbl" style="margin:0">Call sheet</div><label class="row mut"><input type="checkbox" id="callOn" style="min-height:24px;width:24px"> log called pitch</label></div>
+  <div id="callBox" class="hide" style="margin-top:6px">
+   <div class="row"><input id="callTxt" placeholder="e.g. CHG 7, FB IN, FB A, H+" autocapitalize="characters" autocomplete="off" style="flex:1"><button id="callClr">✕</button></div>
+   <div class="grid4" style="margin-top:6px" id="callTypes"></div>
+   <div class="grid4" style="margin-top:6px" id="callSuf"></div>
+   <div class="grid2" id="callAlt" style="margin-top:6px"></div><div class="mut" id="callDesc" style="margin-top:6px"></div>
+  </div>
+ </div>
+ <div class="card">
+  <div class="lbl">Pitch thrown</div>
+  <div class="grid3 big" id="types"></div>
+ </div>
+ <div class="card">
+  <div class="phase" id="phase"></div>
+  <div class="row sp" id="batSide"><span class="mut">Batter</span><div class="row"><button id="hL">LHB</button><button id="hR">RHB</button></div></div>
+  <div class="zonewrap"><svg id="zone" viewBox="-14 -6 128 138"></svg></div>
+  <div class="lbl" style="text-align:center">Pitcher's view (looking in at the catcher)</div>
+  <div id="resBtns" class="grid2 big" style="margin-top:6px">
+   <button class="b-ball" data-r="ball">Ball</button><button class="b-cs" data-r="called">Called strike</button>
+   <button class="b-ss" data-r="swinging">Swinging strike</button><button class="b-foul" data-r="foul">Foul</button>
+   <button class="b-ip" data-r="inplay">In play…</button><button class="b-hbp" data-r="hbp">HBP</button><button class="b-ss" data-r="kd3" style="grid-column:span 2">K – reached (dropped 3rd)</button>
+  </div>
+  <div id="ipBtns" class="grid4 big hide" style="margin-top:6px">
+   <button data-ip="out">Out</button><button data-ip="1B">1B</button><button data-ip="2B">2B</button><button data-ip="3B">3B</button>
+   <button data-ip="HR">HR</button><button data-ip="E">Error</button><button data-ip="FC">FC</button><button data-ip="">Cancel</button>
+  </div>
+  <div id="bpBtns" class="grid2 big hide" style="margin-top:6px"><button id="bpLog" style="background:var(--grn)">Log pitch</button><button id="bpClear">Clear</button></div>
+  <div class="row" style="margin-top:8px"><button id="undo" style="flex:1">↶ Undo last pitch</button></div>
+ </div>
+ <div class="card"><div class="lbl" id="logTitle">Log</div><div class="log" id="log"></div></div>
+</section>
+<!-- STATS -->
+<section id="tab-stats" class="hide">
+ <div class="card"><div class="row"><select id="sScope"></select></div><div class="row" style="margin-top:6px"><select id="sPitcher"></select></div></div>
+ <div class="card"><div class="stats" id="sGrid"></div></div>
+ <div class="card"><div class="lbl">Per pitcher</div><table id="sPit"></table></div>
+ <div class="card"><div class="lbl">By pitch type</div><table id="sType"></table></div>
+ <div class="card"><div class="lbl">By location (pitcher's view)</div><svg id="sHeat" viewBox="-14 -6 128 138" style="width:100%;max-width:360px;display:block;margin:auto"></svg></div>
+ <div class="card"><div class="lbl">Called pitch vs result</div><table id="sCall"></table></div>
+ <div class="card"><div class="lbl">Results</div><table id="sRes"></table></div>
+ <div class="card"><button id="sCSV" style="width:100%">Export this selection as CSV</button></div>
+</section>
+<!-- SETUP -->
+<section id="tab-setup" class="hide">
+ <div class="card"><div class="lbl">Practice / test mode</div><button id="testBtn" style="width:100%"></button>
+  <div class="mut" style="margin-top:6px">Test mode works like normal but nothing is saved, nothing goes into history, stats or exports, and it's wiped when you exit.</div></div>
+ <div class="card"><div class="lbl">Pitchers</div><div id="pList"></div><button id="addP" style="width:100%;margin-top:6px">+ Add pitcher</button>
+  <details style="margin-top:8px"><summary class="mut">Archived</summary><div id="pArch"></div></details></div>
+ <div class="card"><div class="lbl">Team roster</div><div id="roster"></div><button id="addR" style="width:100%">+ Add player</button></div>
+ <div class="card"><div class="lbl">Custom pitch types</div><div id="cTypes" class="mut"></div><div class="row" style="margin-top:6px"><input id="ctCode" placeholder="Code (e.g. SL)" style="width:110px"><input id="ctName" placeholder="Name" style="flex:1"><button id="ctAdd">Add</button></div></div>
+ <div class="card"><div class="lbl">Data</div><div class="grid2">
+  <button id="expJSON">Export JSON backup</button><button id="impJSON">Import JSON</button>
+  <button id="expCSV">Export all CSV</button><button id="impCSV">Import CSV</button></div>
+  <input type="file" id="file" class="hide" accept=".json,.csv,text/csv,application/json">
+  <div class="mut" id="storeMsg" style="margin-top:6px"></div></div>
+</section>
+</main>
+<nav><button data-t="game" class="on">⚾ Game</button><button data-t="bullpen">🎯 Bullpen</button><button data-t="stats">📊 Stats</button><button data-t="setup">⚙️ Setup</button></nav>
+<dialog id="pDlg"><form method="dialog"><div class="lbl" id="pDlgT">Pitcher</div>
+ <input id="pdName" placeholder="Name" style="width:100%"><div class="row" style="margin-top:6px"><input id="pdNum" placeholder="#" inputmode="numeric" style="width:90px"><select id="pdThrows"><option value="R">Throws R</option><option value="L">Throws L</option></select></div>
+ <div class="row" style="margin-top:10px"><button value="cancel" style="flex:1">Cancel</button><button value="ok" id="pdOk" style="flex:1;background:var(--grn)">Save</button></div></form></dialog>
+<div id="toast"></div>
+<script src="logic.js"></script><script src="app.js"></script>
+</body></html>

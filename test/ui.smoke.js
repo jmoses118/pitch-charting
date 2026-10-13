@@ -1,0 +1,26 @@
+const {chromium}=require('playwright-core');
+(async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});const pg=await b.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,colorScheme:'dark'});
+const errs=[];pg.on('pageerror',e=>errs.push(e.message));
+await pg.goto('http://localhost:'+process.argv[2]+'/');
+await pg.fill('#gOpp','Lightning');await pg.click('#gStart');
+const tap=async z=>{await pg.click(`#zone [data-z="${z}"]`,{force:true});};
+await pg.click('#types [data-c="FB"]');await tap(3);await pg.click('[data-r="called"]');
+await pg.click('[data-r="foul"]');await pg.click('[data-r="foul"]');await pg.click('[data-r="foul"]');
+let cnt=await pg.textContent('#cnt'),pc=await pg.textContent('#pc');console.log('after K,F,F,F count',cnt,'pc',pc);
+if(cnt!=='0-2'||pc!=='4')throw 'count';
+await pg.click('[data-r="swinging"]');console.log('after K3 count',await pg.textContent('#cnt'),'outs',await pg.$$eval('#outs .on',x=>x.length));
+await pg.click('#undo');await pg.click('[data-r="kd3"]');const o2=await pg.$$eval('#outs .on',x=>x.length);console.log('after K-D3 outs',o2,'count',await pg.textContent('#cnt'));if(o2!==0)throw 'kd3';await pg.click('#undo');console.log('after undo',await pg.textContent('#cnt'),await pg.textContent('#pc'));
+await pg.screenshot({path:'/workspace/pitch-charting-app/test/shot-game.png',fullPage:true});
+// bullpen with call
+await pg.click('nav [data-t="bullpen"]');await pg.check('#callOn');await pg.fill('#callTxt','chg 7');await tap(7);
+console.log('bullpen sum:',await pg.textContent('#bpSum'));
+await pg.screenshot({path:'/workspace/pitch-charting-app/test/shot-bullpen.png',fullPage:true});
+// test mode
+const before=await pg.evaluate(()=>localStorage.getItem('te_pitchchart_v1'));
+await pg.click('nav [data-t="setup"]');await pg.click('#testBtn');await pg.click('nav [data-t="bullpen"]');
+await pg.click('#types [data-c="DR"]');await tap(8);await tap(9);
+const vis=await pg.isVisible('#testbar');const after=await pg.evaluate(()=>localStorage.getItem('te_pitchchart_v1'));
+console.log('testbar visible',vis,'storage unchanged',before===after);await pg.screenshot({path:'/workspace/pitch-charting-app/test/shot-test.png'});
+pg.on('dialog',d=>d.accept());await pg.click('nav [data-t="setup"]');await pg.click('#testBtn');
+console.log('test exited, testbar visible',await pg.isVisible('#testbar'));
+console.log('errors',errs);await b.close();if(errs.length||!vis||before!==after)process.exit(1);})().catch(e=>{console.error(e);process.exit(1)});
