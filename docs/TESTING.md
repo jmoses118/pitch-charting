@@ -6,7 +6,7 @@
 ## UI (Playwright, local)
 Needs `playwright-core` (in `test/node_modules`) and Chrome at `/usr/bin/google-chrome`. Serve the app: `python3 -m http.server 8766`.
 - `node test/ui.smoke.js 8766`
-- `node test/<name>.ui.js http://localhost:8766/` for `heat`, `report`, `xss`, `pitchchange`, `wayoff`, `round1`, `workload`, `roles`
+- `node test/<name>.ui.js http://localhost:8766/` for `heat`, `report`, `xss`, `pitchchange`, `wayoff`, `round1`, `workload`, `modes`, `roles`
 
 UI tests use a throwaway browser profile and block Supabase (`route(/supabase\.co/, r=>r.abort())`); demo data never syncs.
 

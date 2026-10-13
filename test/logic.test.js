@@ -328,3 +328,16 @@ test('team settings sync: coach only, round-trips alerts/limits/rest guide, neve
   const s2=PC.defaultState();s2.sync={queue:{team_settings:{}},tomb:{}};PC.mergeRemote(s2,{team_settings:[{id:'team',alerts:[70],day_limit:90,weekend_limit:null,show_rest:false,rest:[],updated_at:'2026-10-13'}]});
   assert.deepEqual(s2.settings.alerts,[70]);assert.deepEqual(s2.settings.limits,{day:90,weekend:null});assert.equal(s2.settings.showRest,false);assert.equal(s2.settings.rest.length,PC.DEFAULT_REST.length);
   const s3=PC.makeStore(mem());s3.real.sync.teamCode='X';s3.markAllDirty();assert.ok(!Object.keys(s3.real.sync.queue.team_settings||{}).length,'a new coach phone must not overwrite team settings with its defaults');});
+// ---------- game / bullpen mutually exclusive ----------
+test('modeLock: a game in progress blocks the bullpen; an open bullpen blocks starting a game',()=>{const st=PC.defaultState();
+  const g={id:'g1',started:1,status:'active',opponent:'Storm',cur:{inning:1},pitches:[]};st.games.push(g);st.activeGame='g1';
+  assert.equal(PC.modeLock(st,'bullpen',true).by,'game');assert.equal(PC.modeLock(st,'game',true),null);
+  assert.equal(PC.modeLock(st,'bullpen',false),null,'roles without game mode are never locked');
+  g.ended=2;g.status='final';assert.equal(PC.modeLock(st,'bullpen',true),null,'ended game does not block');
+  st.activeGame=null;const s={id:'s1',pitches:[]};st.sessions.push(s);st.activeSession='s1';assert.equal(PC.modeLock(st,'game',true),null,'empty session blocks nothing');
+  s.pitches.push({id:'x',type:'FB'});assert.equal(PC.modeLock(st,'game',true).by,'bullpen');assert.match(PC.LOCK_MSG.bullpen,/end or pause the bullpen/);
+  s.pitches[0].deleted=true;assert.equal(PC.modeLock(st,'game',true),null);});
+test('paused games and sessions are listed for resume',()=>{const st=PC.defaultState();
+  st.games.push({id:'a',started:1,status:'active',pitches:[]},{id:'b',started:2,ended:3,status:'final',pitches:[]},{id:'c',status:'scheduled',pitches:[]},{id:'d',started:5,status:'active',pitches:[]});st.activeGame='d';
+  assert.deepEqual(PC.pausedGames(st).map(g=>g.id),['a']);
+  st.sessions.push({id:'s1',paused:5,pitches:[{id:'p'}]},{id:'s2',paused:6,pitches:[]},{id:'s3',pitches:[{id:'q'}]});assert.deepEqual(PC.pausedSessions(st).map(s=>s.id),['s1']);});
