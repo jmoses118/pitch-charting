@@ -36,7 +36,7 @@ test('Woods stays left-handed',()=>{assert.equal(PC.defaultState().pitchers.find
 test('waste spots count as balls-zone and hit-the-spot',()=>{const c=PC.parseCall('FB A','R');const s=PC.summarize([{type:'FB',call:c.norm,targets:c.targets,loc:16,b:0,s:0},{type:'FB',call:'FB H+',targets:[15],loc:2,b:0,s:0}]);assert.equal(s.strikes,1);assert.equal(s.spotPct,50);});
 test('DC drop curve is its own type',()=>{const c=PC.parseCall('DC 8','R');assert.equal(c.type,'DC');assert.ok(PC.BASE_TYPES.some(t=>t.code==='DC'));const s=PC.summarize([{type:'DC',loc:8},{type:'DR',loc:8},{type:'CB',loc:7}]);assert.equal(s.byType.DC.n,1);assert.equal(s.byType.DR.n,1);assert.equal(s.byType.CB.n,1);});
 // ---------- sync ----------
-function fakeFetch(){const calls=[];const db={pitchers:{},games:{},sessions:{},pitches:{},call_sheets:{}};
+function fakeFetch(){const calls=[];const db={pitchers:{},games:{},sessions:{},pitches:{},call_sheets:{},notes:{}};
   const f=async(url,opt={})=>{const t=url.split('/rest/v1/')[1].split('?')[0];calls.push({t,method:opt.method||'GET',headers:opt.headers,body:opt.body?JSON.parse(opt.body):null});
     if(opt.method==='POST'){JSON.parse(opt.body).forEach(r=>db[t][r.id]=Object.assign(db[t][r.id]||{},r));return{ok:true,text:async()=>''};}
     const team=decodeURIComponent(url.match(/team_id=eq\.([^&]+)/)[1]);return{ok:true,json:async()=>Object.values(db[t]).filter(r=>r.team_id===team)};};
@@ -263,3 +263,31 @@ test('ring is competitive, way off is a miss, CH/drop low ring is good; raw stri
   const g=L.map((p,i)=>Object.assign({},p,{abn:i,inning:1,result:PC.isZone(p.loc)?'called':'ball'}));assert.equal(PC.summarize(g).strikePct,40);assert.ok(!PC.pitchMiss(Object.assign({},bp('CH',1,14),{abn:1,inning:1}),'R').good);
   const st=PC.defaultState();st.sync={queue:{pitchers:{},games:{},sessions:{},pitches:{},call_sheets:{}},tomb:{}};PC.mergeRemote(st,{pitches:[{id:PC.uuid(),mode:'bullpen',session_id:'s1',pitcher_id:'p_woods',loc:22,targets:[8],type:'FB',ts:1}],sessions:[{id:'s1',date:'d'}]});
   assert.equal(st.sessions.find(x=>x.id==='s1').pitches[0].loc,22,'way-off loc survives a pull');});
+test('round1: pitching-coach roleAllows + notes rows + bb column',()=>{const sy={role:'pcoach',pitcherIds:['p_a','p_b']};
+  assert.ok(PC.roleAllows(sy,'sessions',{pitcher_id:'p_a'}));assert.ok(!PC.roleAllows(sy,'sessions',{pitcher_id:'p_c'}));
+  assert.ok(PC.roleAllows(sy,'pitches',{mode:'bullpen',pitcher_id:'p_b'}));assert.ok(!PC.roleAllows(sy,'pitches',{mode:'game',pitcher_id:'p_b'}));assert.ok(!PC.roleAllows(sy,'pitches',{mode:'bullpen',pitcher_id:'p_c'}));
+  assert.ok(PC.roleAllows(sy,'notes',{pitcher_id:'p_a'}));assert.ok(!PC.roleAllows(sy,'notes',{pitcher_id:'p_c'}));
+  for(const t of ['pitchers','games','call_sheets'])assert.ok(!PC.roleAllows(sy,t,{id:'x'}),t);
+  assert.ok(!PC.roleAllows({role:'player',pitcherId:'p_a'},'notes',{pitcher_id:'p_a'}),'players never write notes');
+  const st=PC.defaultState();st.sync={role:'pcoach',pitcherIds:['p_woods'],teamId:'t',queue:{notes:{},pitches:{}},tomb:{}};st.notes.push({id:'n_s1_p_woods',pitcherId:'p_woods',sessionId:'s1',body:'Keep it low'},{id:'n_g1_p_crich',pitcherId:'p_crich',gameId:'g1',body:'x'});
+  st.sync.queue.notes={n_s1_p_woods:1,n_g1_p_crich:1};const b=PC.buildRows(st);assert.equal(b.rows.notes.length,1);assert.equal(b.rows.notes[0].body,'Keep it low');assert.equal(b.held,1);
+  const s2=PC.defaultState();s2.sync={queue:{pitchers:{},games:{},sessions:{},pitches:{},call_sheets:{},notes:{}},tomb:{}};PC.mergeRemote(s2,{notes:[{id:'n_s1_p_woods',pitcher_id:'p_woods',session_id:'s1',body:'Keep it low',author:'pcoach',updated_at:'2026-10-13'}]});
+  assert.equal(PC.findNote(s2,{sessionId:'s1',pitcherId:'p_woods'}).body,'Keep it low');assert.equal(PC.noteId({gameId:'g1',pitcherId:'p_a'}),'n_g1_p_a');
+  assert.equal(PC.pitchRow({id:'x',bb:'LD'},{mode:'game'}).bb,'LD');assert.equal(PC.pitchRow({id:'x',bb:'ZZ'},{mode:'game'}).bb,null);});
+test('round1: count stats, first-pitch strike, 0-2 outcomes',()=>{const c={inning:1,outs:0,slot:0,b:0,s:0,abn:0};const P=[];
+  const pt=(res,type,loc,ip)=>{const r={id:PC.uuid(),pitcherId:'p',type,loc,targets:[loc],result:res,ip:ip||null,b:c.b,s:c.s,abn:c.abn,inning:c.inning,slot:c.slot};const o=PC.applyPitch(c,res,ip);r.end=o.end;c.b=o.b;c.s=o.s;if(o.end){c.abn++;c.slot++;c.b=0;c.s=0;}P.push(r);};
+  pt('called','FB',3);pt('swinging','CH',7);pt('swinging','FB',2);// K from 0-2
+  pt('ball','FB',16);pt('called','FB',5);pt('inplay','CB',9,'1B');
+  pt('called','FB',1);pt('foul','FB',3);pt('ball','DR',18);pt('inplay','DR',8,'out');// 0-2 -> 1-2 -> out
+  const s=PC.countStats(P);assert.equal(s.by['0-0'].n,3);assert.equal(s.fps,2);assert.equal(s.fpsN,3);assert.equal(Math.round(s.fpsPct),67);
+  assert.equal(s.by['0-2'].n,2);assert.deepEqual(s.by['0-1'].types,{CH:1,FB:1});assert.equal(s.o2.n,2);assert.equal(s.o2.K,1);assert.equal(s.o2.out,1);assert.equal(s.o2.hit,0);
+  assert.equal(s.by['1-1'].n,1);assert.equal(s.by['1-1'].strikePct,100,'in play counts as a strike (GameChanger)');});
+test('round1: trends, rest days, alerts',()=>{const st=PC.defaultState();
+  st.games.push({id:'g1',date:'2026-10-01',opponent:'A',lineup:[],cur:{},pitches:Array.from({length:62},(_,i)=>({id:'a'+i,pitcherId:'p_woods',type:'FB',loc:i%5?3:12,targets:[3],result:i%3?'called':'ball',abn:i,inning:1,b:0,s:0,ts:1000+i}))});
+  st.sessions.push({id:'s1',date:'2026-10-05',pitcherId:'p_woods',pitches:Array.from({length:10},(_,i)=>({id:'b'+i,pitcherId:'p_woods',type:'FB',loc:i<8?3:5,targets:[3],ts:5000+i}))});
+  const t=PC.trendPoints(st,'p_woods','all');assert.equal(t.length,2);assert.equal(t[0].kind,'game');assert.equal(t[0].n,62);assert.equal(t[1].kind,'bullpen');assert.equal(t[1].goodPct,80);assert.equal(t[1].compPct,100);
+  assert.equal(PC.trendPoints(st,'p_woods','game').length,1);assert.equal(PC.trendPoints(st,'p_woods','bullpen').length,1);
+  assert.equal(PC.restDays(20),0);assert.equal(PC.restDays(21),1);assert.equal(PC.restDays(62),3);assert.equal(PC.restDays(90),4);assert.equal(PC.restDays(30,[{max:40,days:2},{max:9999,days:5}]),2);
+  const ri=PC.restInfo(st,'p_woods','2026-10-03');assert.equal(ri.n,62);assert.equal(ri.days,3);assert.equal(ri.ready,'2026-10-05');assert.equal(ri.ok,false);assert.equal(PC.restInfo(st,'p_woods','2026-10-05').ok,true);
+  assert.equal(PC.restInfo(st,'p_crich','2026-10-05'),null);
+  assert.deepEqual(PC.alertLevel(74),{lvl:-1,at:null,next:75});assert.equal(PC.alertLevel(75).lvl,0);assert.equal(PC.alertLevel(91).at,90);assert.equal(PC.alertLevel(50,[40,60]).at,40);});

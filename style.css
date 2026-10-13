@@ -58,3 +58,12 @@ svg text{pointer-events:none}
 
 #wayBtns button{font-size:12px;padding:6px 2px;min-height:36px;background:#2a1517;border:1px solid #6e2b2b}
 #wayBtns button.sel{background:var(--red);color:#fff}
+
+#flash{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%) scale(.9);background:rgba(35,134,54,.95);color:#fff;font:800 22px system-ui,sans-serif;padding:14px 22px;border-radius:16px;z-index:9999;pointer-events:none;opacity:0;transition:opacity .15s,transform .15s}
+#flash.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+#pcAlert.l0{background:#9e6a03;color:#fff}#pcAlert.l1{background:var(--red);color:#fff}
+#restMsg.ok{background:#12261a;color:#7ee787}#restMsg.no{background:#3b1416;color:#ffa198}
+body.onehand #types button{min-height:56px;font-size:18px}
+body.onehand #resBtns button,body.onehand #ipBtns button{min-height:62px;font-size:18px}
+#ipBtns button.sel{outline:3px solid #fff;background:var(--blue)}
+#restTbl input{width:80px}

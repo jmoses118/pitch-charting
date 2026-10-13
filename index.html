@@ -9,6 +9,8 @@
  <div id="testbar" class="testbar hide">TEST MODE – NOT SAVED · <u id="exitTest2">exit</u></div>
  <div class="row sp" style="margin-bottom:6px"><span class="brand"><img src="icons/te-wordmark.svg" alt="Thunder Elite" height="38" style="display:block"></span><span class="row" style="gap:6px"><span id="syncTag" class="tag"></span><span id="modeTag" class="tag"></span></span></div>
  <div class="row" style="margin-bottom:6px"><select id="pitcher" aria-label="Pitcher"></select><button id="addPQuick" aria-label="Add pitcher">+P</button></div>
+ <div id="restMsg" class="hide" role="status" style="font-size:13px;margin:-2px 0 6px;padding:6px 8px;border-radius:8px"></div>
+ <div id="pcAlert" class="hide" role="alert" style="font-weight:800;margin:0 0 6px;padding:8px;border-radius:8px;text-align:center"></div>
  <div id="gameHead" class="row sp">
   <div class="count"><div><small>INN</small><span id="inn">1</span></div><div><small>COUNT</small><span id="cnt">0-0</span></div><div><small>OUTS</small><span class="dots" id="outs"></span></div><div><small>PITCHES</small><span id="pc">0</span></div></div>
  </div>
@@ -31,6 +33,7 @@
   <div class="card"><div class="row sp"><div><div id="gTitle" style="font-weight:700"></div><div class="mut" id="gSub"></div></div><button id="gEnd">End game</button></div>
    <div class="row" style="margin-top:6px"><select id="batter" aria-label="Batter"></select><button id="bHand" style="min-width:64px"></button></div>
    <div class="row" style="margin-top:6px"><button id="outMinus">Out −</button><button id="outPlus">Out +</button><button id="innPlus">Next inn</button><button id="ibb" title="Intentional walk, no pitches">IBB</button></div>
+   <label class="row mut" style="margin-top:6px;gap:6px"><input type="checkbox" id="oneHand" style="width:22px;min-height:22px"> One-hand mode (big buttons, auto-advance call → location → result)</label>
   </div>
  </div>
 </section>
@@ -69,10 +72,11 @@
   <div class="mut" style="text-align:center;font-size:12px">Way off = nowhere near the plate (the ring around the box is still competitive)</div>
   <div id="resBtns" class="grid2 big" style="margin-top:6px">
    <button class="b-ball" data-r="ball">Ball</button><button class="b-cs" data-r="called">Called strike</button>
-   <button class="b-ss" data-r="swinging">Swinging strike</button><button class="b-foul" data-r="foul">Foul</button>
+   <button class="b-ss" data-r="swinging">Swing &amp; miss</button><button class="b-foul" data-r="foul">Foul</button>
    <button class="b-ip" data-r="inplay">In play…</button><button class="b-hbp" data-r="hbp">HBP</button><button class="b-ss" data-r="foultip">Foul tip</button><button class="b-ss" data-r="kd3">K – reached (D3)</button><button class="b-ss" data-r="kd3out">K – D3 thrown out</button>
   </div>
   <div id="ipBtns" class="grid4 big hide" style="margin-top:6px">
+   <div class="mut" style="grid-column:span 4;font-size:12px">Batted ball (optional), then the result</div><button data-bb="GB">GB<br><small>ground</small></button><button data-bb="LD">LD<br><small>liner</small></button><button data-bb="FB">FB<br><small>fly</small></button><button data-bb="PU">PU<br><small>pop-up</small></button>
    <button data-ip="out">Out</button><button data-ip="1B">1B</button><button data-ip="2B">2B</button><button data-ip="3B">3B</button>
    <button data-ip="HR">HR</button><button data-ip="E">Error</button><button data-ip="FC">FC</button><button data-ip="DP">DP</button><button data-ip="" style="grid-column:span 4">Cancel</button>
   </div>
@@ -92,6 +96,10 @@
   <div id="hLegend" style="margin-top:8px"></div><div class="mut" style="font-size:12px;margin-top:4px">Tap a colored box to see where those pitches went.</div></div>
  <div class="card" id="sTypesCard"><div class="lbl">Each pitch (aimed spots)</div><div id="sTypes"></div></div>
  <div class="card"><div class="stats" id="sGrid"></div></div>
+ <div id="sNote"></div>
+ <div class="card" id="sTrendCard"><div class="row sp"><div class="lbl" style="margin:0">📈 Season trends</div><select id="tMode" style="max-width:45%"><option value="all">Games + bullpen</option><option value="game">Games</option><option value="bullpen">Bullpen</option></select></div>
+  <div class="row wrap" id="tMetrics" style="gap:6px;margin-top:6px"></div><svg id="tChart" viewBox="0 0 320 170" style="width:100%;display:block;margin-top:6px"></svg><div class="mut" id="tNote" style="font-size:12px"></div></div>
+ <div class="card" id="sCountCard"><div class="lbl">🔢 By count (games)</div><div class="row wrap" id="cTop" style="gap:6px"></div><div style="overflow-x:auto"><table id="cTbl" style="font-size:12px"></table></div><div id="c02" class="mut" style="margin-top:6px"></div></div>
  <div class="card"><div class="lbl">Per pitcher</div><table id="sPit"></table></div>
  <div class="card"><div class="lbl">By pitch type</div><table id="sType"></table></div>
  <div class="card"><div class="lbl">By location (pitcher's view)</div><svg id="sHeat" viewBox="-14 -6 128 138" style="width:100%;max-width:360px;display:block;margin:auto"></svg></div>
@@ -103,6 +111,10 @@
 <section id="tab-setup" class="hide">
  <div class="card"><div class="lbl">Practice / test mode</div><button id="testBtn" style="width:100%"></button>
   <div class="mut" style="margin-top:6px">Test mode works like normal but nothing is saved, nothing goes into history, stats or exports, and it's wiped when you exit.</div></div>
+ <div class="card" id="alertCard"><div class="lbl">Pitch count alerts &amp; rest days</div>
+  <div class="row"><span class="mut" style="flex:1">Alert at (pitches)</span><input id="alTh" inputmode="numeric" style="width:110px" placeholder="75, 90"></div>
+  <div class="mut" style="font-size:12px;margin-top:8px">Rest days after an outing (youth guide – edit to your league rules)</div><table id="restTbl" style="font-size:13px;margin-top:4px"></table>
+  <div class="row" style="margin-top:6px"><button id="restAdd">+ Row</button><button id="restReset">Reset defaults</button></div></div>
  <div class="card" id="csCard"><div class="lbl">Wristband call sheets</div>
   <div class="row"><select id="csSel" style="flex:1"></select><button id="csNew">+ Sheet</button><button id="csDel" style="background:var(--red)">Delete</button></div>
   <div class="row" style="margin-top:6px"><input id="csName" placeholder="Sheet name" style="flex:1"><select id="csPitcher"></select></div>
@@ -114,7 +126,9 @@
   <div class="grid2" style="margin-top:6px"><button id="syncNow" style="background:var(--blue)">Sync now</button><button id="pullCloud">Restore from cloud</button></div>
   <div class="mut" id="syncMsg" style="margin-top:6px"></div><div id="roleMsg" class="tag hide" style="margin-top:6px;display:inline-block"></div></div>
  <div class="card hide" id="codesCard"><div class="lbl">Access codes (coach only)</div><div class="mut" style="margin-bottom:6px">Player code = bullpen only, their own data. View-only = read the whole team. Revoke anytime.</div><div id="codesList"></div>
-  <div class="row" style="margin-top:6px"><select id="ncPitcher"></select><button id="ncPlayer">New player code</button></div><button id="ncViewer" style="width:100%;margin-top:6px">New view-only code</button></div>
+  <div class="row" style="margin-top:6px"><select id="ncPitcher"></select><button id="ncPlayer">New player code</button></div><button id="ncViewer" style="width:100%;margin-top:6px">New view-only code</button>
+  <div class="lbl" style="margin-top:10px">Pitching coach</div><div class="mut" style="font-size:12px">Sees full data for the pitchers you pick, scores their bullpens and adds notes. No call sheets, setup, codes or other pitchers.</div>
+  <div id="ncPcList" class="row wrap" style="gap:8px;margin-top:6px"></div><div class="row" style="margin-top:6px"><input id="ncPcName" placeholder="Coach name (label)" style="flex:1"><button id="ncPcoach">New pitching-coach code</button></div></div>
  <div class="card" id="pCard"><div class="lbl">Pitchers</div><div id="pList"></div><button id="addP" style="width:100%;margin-top:6px">+ Add pitcher</button>
   <details style="margin-top:8px"><summary class="mut">Archived</summary><div id="pArch"></div></details></div>
  <div class="card" id="rosterCard"><div class="lbl">Team roster</div><div id="roster"></div><button id="addR" style="width:100%">+ Add player</button></div>
