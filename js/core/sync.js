@@ -3,10 +3,16 @@
 (function(root){
 'use strict';
 const PC=root.PC=root.PC||{};
-const {BB_TYPES}=PC;
+const {BB_TYPES,DEFAULT_ALERTS,DEFAULT_REST,DEFAULT_LIMITS,cleanLimit}=PC;
 // ---------- Cloud sync (Supabase REST, team code header checked by RLS) ----------
-const TABLES=['pitchers','games','sessions','pitches','call_sheets','notes'];
-const keyOf={pitchers:'team_id,id',games:'team_id,id',sessions:'team_id,id',pitches:'id',call_sheets:'team_id,id',notes:'team_id,id'};
+const TABLES=['pitchers','games','sessions','pitches','call_sheets','notes','team_settings'];
+const keyOf={pitchers:'team_id,id',games:'team_id,id',sessions:'team_id,id',pitches:'id',call_sheets:'team_id,id',notes:'team_id,id',team_settings:'team_id,id'};
+// coach-only team settings (alerts, soft limits, rest guide): one row per team, id 'team'. Shared by every coach phone.
+const TEAM_SETTINGS_ID='team';
+const settingsRow=st=>({id:TEAM_SETTINGS_ID,alerts:st.alerts||[],day_limit:(st.limits||{}).day||null,weekend_limit:(st.limits||{}).weekend||null,show_rest:!!st.showRest,rest:st.rest||[]});
+function rowSettings(r){const a=(Array.isArray(r.alerts)?r.alerts:[]).map(Number).filter(n=>Number.isInteger(n)&&n>0&&n<400).sort((x,y)=>x-y);
+  const rest=(Array.isArray(r.rest)?r.rest:[]).filter(x=>x&&Number.isFinite(+x.max)&&Number.isFinite(+x.days)).map(x=>({max:+x.max,days:+x.days}));
+  return{alerts:a.length?a:DEFAULT_ALERTS.slice(),rest:rest.length?rest:DEFAULT_REST.map(x=>Object.assign({},x)),limits:Object.assign({},DEFAULT_LIMITS,{day:cleanLimit(r.day_limit),weekend:cleanLimit(r.weekend_limit)}),showRest:!!r.show_rest};}
 function pitchRow(p,ctx){return{id:p.id,mode:ctx.mode,game_id:ctx.game_id||null,session_id:ctx.session_id||null,pitcher_id:p.pitcherId||null,ts:p.ts||null,hand:p.hand||null,type:p.type||null,call:p.call||null,call_raw:p.callRaw||null,
   targets:p.targets||[],loc:p.loc==null?null:p.loc,result:p.result||null,ip:p.ip||null,end_event:p.end||null,inning:p.inning==null?null:p.inning,outs_before:p.outsBefore==null?null:p.outsBefore,slot:p.slot==null?null:p.slot,
   batter:p.batter==null?null:p.batter,batter_num:p.batterNum==null?null:String(p.batterNum),b:p.b==null?null:p.b,s:p.s==null?null:p.s,abn:p.abn==null?null:p.abn,first_pitch:p.firstPitch==null?null:!!p.firstPitch,no_pitch:!!p.noPitch,prev_hand:p.prevHand||null,bb:BB_TYPES.includes(p.bb)?p.bb:null,deleted:!!p.deleted};}
@@ -25,6 +31,7 @@ function buildRows(st){let held=0;const q=st.sync.queue,team=st.sync.teamId,dev=
     else if(t==='games'){const g=st.games.find(x=>x.id===id);if(g)row={id:g.id,date:g.date,opponent:g.opponent,event:g.event||null,home_away:g.homeAway,lineup:g.lineup,cur:g.cur,started:g.started||null,ended:g.ended||null,imported:!!g.imported,status:gameStatus(g),link:g.link||null,notes:g.notes||null,game_time:g.time||null,field:g.field||null,game_no:g.gameNo||null,location:g.location||null};}
     else if(t==='call_sheets'){const x=(st.callSheets||[]).find(y=>y.id===id);if(x)row={id:x.id,name:x.name||null,pitcher_id:x.pitcherId||null,cols:x.cols||[],rows:x.rows||[],sort:(st.callSheets||[]).indexOf(x),deleted:!!x.deleted};}
     else if(t==='notes'){const x=(st.notes||[]).find(y=>y.id===id);if(x)row={id:x.id,pitcher_id:x.pitcherId,session_id:x.sessionId||null,game_id:x.gameId||null,body:String(x.body||'').slice(0,2000),deleted:!!x.deleted};}
+    else if(t==='team_settings'){if(id===TEAM_SETTINGS_ID&&st.settings)row=settingsRow(st.settings);}
     else if(t==='sessions'){const x=st.sessions.find(y=>y.id===id);if(x)row={id:x.id,date:x.date,started:x.started||null,imported:!!x.imported,pitcher_id:x.pitcherId||null};}
     else{const hit=idx[id];if(hit)row=pitchRow(hit[0],hit[1]);else if(st.sync.tomb[id]){const tb=st.sync.tomb[id];row=pitchRow(tb,{mode:tb.mode,game_id:tb.game_id,session_id:tb.session_id});row.deleted=true;}}
     if(row&&!roleAllows(st.sync,t,row)){held++;continue;} // never send what this code can't write, but KEEP it queued for a code that can
@@ -41,6 +48,7 @@ function mergeRemote(st,data){const q=st.sync.queue;let added=0,removed=0;
     const v={id:r.id,name:r.name||'Sheet',pitcherId:r.pitcher_id||null,cols:Array.isArray(r.cols)?r.cols.map(String):[],rows:Array.isArray(r.rows)?r.rows.map(a=>Array.isArray(a)?a.map(c=>String(c==null?'':c).slice(0,16)):[]):[],deleted:!!r.deleted,_u:r.updated_at||undefined};if(x)Object.assign(x,v);else st.callSheets.push(v);});
   (data.notes||[]).forEach(r=>{const qq=q.notes||{};if(qq[r.id])return;st.notes=st.notes||[];const x=st.notes.find(y=>y.id===r.id);if(!newerThan(x,r))return;
     const v={id:r.id,pitcherId:r.pitcher_id,sessionId:r.session_id||null,gameId:r.game_id||null,body:String(r.body||''),author:r.author||null,deleted:!!r.deleted,_u:r.updated_at||undefined};if(x)Object.assign(x,v);else st.notes.push(v);});
+  (data.team_settings||[]).forEach(r=>{if(r.id!==TEAM_SETTINGS_ID||(q.team_settings||{})[r.id])return;st.settings=st.settings||{};if(!newerThan(st.settings,r))return;Object.assign(st.settings,rowSettings(r),{_u:r.updated_at||undefined});});
   (data.sessions||[]).forEach(r=>{if(q.sessions[r.id]||r.deleted)return;{const x=st.sessions.find(y=>y.id===r.id);if(!x)st.sessions.push({id:r.id,date:r.date,started:r.started,imported:r.imported,pitcherId:r.pitcher_id||undefined,pitches:[]});else if(r.pitcher_id)x.pitcherId=r.pitcher_id;}});
   const where={};st.games.forEach(g=>g.pitches.forEach(p=>where[p.id]=g));st.sessions.forEach(x=>x.pitches.forEach(p=>where[p.id]=x));const touched=new Set();
   (data.pitches||[]).forEach(r=>{if(q.pitches[r.id])return;const c=where[r.id];
@@ -83,5 +91,5 @@ function makeSync(store,cfg){const f=cfg.fetch||(typeof fetch!=='undefined'?fetc
       const a=st0.sync.role==='viewer'?{sent:0}:await api.push();const pe=st0.sync.lastError;const b=await api.pull(); // always pull, even if the push failed
       if((a.error||a.rejected)&&!b.error){st0.sync.lastError=pe;store.save();}return Object.assign({},b,a);}};
   return api;}
-Object.assign(PC,{TABLES,keyOf,pitchRow,rowPitch,roleAllows,buildRows,gameStatus,newerThan,mergeRemote,makeSync});
+Object.assign(PC,{TABLES,keyOf,TEAM_SETTINGS_ID,settingsRow,rowSettings,pitchRow,rowPitch,roleAllows,buildRows,gameStatus,newerThan,mergeRemote,makeSync});
 })(typeof window!=='undefined'?window:globalThis);

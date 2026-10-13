@@ -120,22 +120,37 @@ $('csAddC').onclick=csEdit(sh=>{if(sh.cols.length<12){sh.cols.push(String(sh.col
 $('csDelC').onclick=csEdit(sh=>{if(sh.cols.length>1){sh.cols.pop();sh.rows.forEach(r=>r.length=sh.cols.length);}});
 $('oneHand').onchange=e=>{S().oneHand=e.target.checked;save();render();};
 // pitch-count banner (game) + rest-day reminder (pitcher select)
-function ensureSettings(){const s=S();s.settings=s.settings||{};if(!Array.isArray(s.settings.alerts))s.settings.alerts=PC.DEFAULT_ALERTS.slice();if(!Array.isArray(s.settings.rest))s.settings.rest=PC.DEFAULT_REST.map(x=>Object.assign({},x));return s.settings;}
-function renderAlerts(){ensureSettings();const cp=curPitcherId();const g=game();const R0=role();
-  const showA=tab==='game'&&g&&cp;const n=showA?PC.pitchCount(g.pitches,cp):0;const a=PC.alertLevel(n,S().settings.alerts);const el=$('pcAlert');
-  el.className=showA&&a.lvl>=0?'l'+Math.min(1,a.lvl):'hide';if(showA&&a.lvl>=0)el.textContent=`⚠️ ${pName(cp)}: ${n} pitches – past the ${a.at} alert${a.next?` (next at ${a.next})`:''}`;
-  const rm=$('restMsg');const ri=cp&&R0!=='player'&&R0!=='viewer'&&(tab==='game'||tab==='bullpen')?PC.restInfo(S(),cp,new Date().toISOString().slice(0,10),S().settings.rest):null;
+// team settings (alerts, soft limits, rest guide) are coach-only and sync to Supabase (team_settings) so every coach phone shares them
+function ensureSettings(){const s=S();s.settings=s.settings||{};const st=s.settings;if(!Array.isArray(st.alerts))st.alerts=PC.DEFAULT_ALERTS.slice();if(!Array.isArray(st.rest))st.rest=PC.DEFAULT_REST.map(x=>Object.assign({},x));st.limits=Object.assign({},PC.DEFAULT_LIMITS,st.limits);if(typeof st.showRest!=='boolean')st.showRest=false;return st;}
+const saveSettings=()=>{dirty('team_settings',PC.TEAM_SETTINGS_ID);save();render();};
+const today=()=>PC.localDate(Date.now());
+const wlSeen={}; // pitcher|day -> last limit level shown, so the over-limit buzz fires once when it is crossed
+function renderAlerts(){const set=ensureSettings();const cp=curPitcherId();const g=game();const R0=role();
+  const showA=tab==='game'&&g&&cp;const n=showA?PC.pitchCount(g.pitches,cp):0;const a=PC.alertLevel(n,set.alerts);const el=$('pcAlert');
+  // today / weekend workload line under the pitcher select (game + bullpen tabs)
+  const wl=$('wlMsg');const showW=cp&&(tab==='game'||tab==='bullpen');let wa=null;
+  if(showW){const w=PC.workload(S(),cp,today());wa=PC.workloadAlert(w,set.limits);wl.className='wl'+(wa.lvl>=0?' l'+wa.lvl:'');wl.textContent=PC.workloadText(w);
+    const k=cp+'|'+today(),prev=wlSeen[k];wlSeen[k]=wa.lvl;if(prev!=null&&wa.lvl===1&&prev<1&&R0!=='viewer'){buzz([220,90,220]);toast(`⚠️ ${pName(cp)} is at her ${wa.day.lvl===1?'daily':'weekend'} limit`);}}
+  else wl.className='hide';
+  const msgs=[];if(showA&&a.lvl>=0)msgs.push(`${n} pitches – past the ${a.at} alert${a.next?` (next at ${a.next})`:''}`);
+  if(wa&&wa.day.lvl>=0)msgs.push(`today ${wa.day.n}/${wa.day.limit}`);if(wa&&wa.weekend.lvl>=0)msgs.push(`weekend ${wa.weekend.n}/${wa.weekend.limit}`);
+  const lvl=Math.max(showA?Math.min(1,a.lvl):-1,wa?wa.lvl:-1);el.className=msgs.length?'l'+Math.max(0,lvl):'hide';if(msgs.length)el.textContent=`⚠️ ${pName(cp)}: ${msgs.join(' · ')}`;
+  const rm=$('restMsg');const ri=set.showRest&&cp&&R0!=='player'&&R0!=='viewer'&&(tab==='game'||tab==='bullpen')?PC.restInfo(S(),cp,new Date().toISOString().slice(0,10),set.rest):null;
   if(!ri||(tab==='game'&&g&&g.id===ri.gameId)){rm.className='hide';return;}
   const fd=d=>new Date(d+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'});
   rm.className=ri.ok?'ok':'no';rm.textContent=`${ri.ok?'✅':'⛔'} Last outing ${fd(ri.date)}${ri.opponent?' vs '+ri.opponent:''}: ${ri.n} pitches → ${ri.days} day${ri.days===1?'':'s'} rest. ${ri.ok?'Ready to pitch.':'Rest until '+fd(ri.ready)+'.'}`;}
-function renderAlertCard(){const show=role()==='coach';$('alertCard').classList.toggle('hide',!show);if(!show)return;const st=S().settings;
-  if(document.activeElement!==$('alTh'))$('alTh').value=st.alerts.join(', ');if($('restTbl').contains(document.activeElement))return;
+function renderAlertCard(){const show=role()==='coach';$('alertCard').classList.toggle('hide',!show);if(!show)return;const st=ensureSettings();
+  const setVal=(id,v)=>{if(document.activeElement!==$(id))$(id).value=v;};setVal('alTh',st.alerts.join(', '));setVal('limDay',st.limits.day||'');setVal('limWk',st.limits.weekend||'');
+  $('showRest').checked=st.showRest;$('restBox').classList.toggle('hide',!st.showRest);if(!st.showRest||$('restTbl').contains(document.activeElement))return;
   $('restTbl').innerHTML='<tr><th>Up to (pitches)</th><th>Rest days</th><th></th></tr>'+st.rest.map((r,i)=>`<tr><td><input data-ri="${i}" data-k="max" inputmode="numeric" value="${r.max>=9999?'':r.max}" placeholder="any"></td><td><input data-ri="${i}" data-k="days" inputmode="numeric" value="${r.days}"></td><td><button data-rdel="${i}">✕</button></td></tr>`).join('');}
-$('alTh').onchange=e=>{const v=e.target.value.split(/[ ,;]+/).map(Number).filter(n=>Number.isInteger(n)&&n>0&&n<400).sort((a,b)=>a-b);S().settings.alerts=v.length?v:PC.DEFAULT_ALERTS.slice();save();render();toast('Alerts at '+S().settings.alerts.join(', '));};
-$('restTbl').addEventListener('change',e=>{const i=e.target.dataset.ri;if(i==null)return;const r=S().settings.rest[+i];const v=e.target.value.trim();if(e.target.dataset.k==='max')r.max=v===''?9999:Math.max(0,parseInt(v)||0);else r.days=Math.max(0,Math.min(14,parseInt(v)||0));S().settings.rest.sort((a,b)=>a.max-b.max);save();$('restTbl').innerHTML='';render();});
-$('restTbl').addEventListener('click',e=>{const i=e.target.dataset.rdel;if(i==null)return;S().settings.rest.splice(+i,1);if(!S().settings.rest.length)S().settings.rest=PC.DEFAULT_REST.map(x=>Object.assign({},x));save();render();});
-$('restAdd').onclick=()=>{S().settings.rest.push({max:9999,days:4});save();render();};
-$('restReset').onclick=()=>{S().settings.rest=PC.DEFAULT_REST.map(x=>Object.assign({},x));S().settings.alerts=PC.DEFAULT_ALERTS.slice();save();render();toast('Defaults restored');};
+$('alTh').onchange=e=>{const v=e.target.value.split(/[ ,;]+/).map(Number).filter(n=>Number.isInteger(n)&&n>0&&n<400).sort((a,b)=>a-b);S().settings.alerts=v.length?v:PC.DEFAULT_ALERTS.slice();saveSettings();toast('Alerts at '+S().settings.alerts.join(', '));};
+$('restTbl').addEventListener('change',e=>{const i=e.target.dataset.ri;if(i==null)return;const r=S().settings.rest[+i];const v=e.target.value.trim();if(e.target.dataset.k==='max')r.max=v===''?9999:Math.max(0,parseInt(v)||0);else r.days=Math.max(0,Math.min(14,parseInt(v)||0));S().settings.rest.sort((a,b)=>a.max-b.max);$('restTbl').innerHTML='';saveSettings();});
+$('restTbl').addEventListener('click',e=>{const i=e.target.dataset.rdel;if(i==null)return;S().settings.rest.splice(+i,1);if(!S().settings.rest.length)S().settings.rest=PC.DEFAULT_REST.map(x=>Object.assign({},x));saveSettings();});
+$('restAdd').onclick=()=>{S().settings.rest.push({max:9999,days:4});saveSettings();};
+$('restReset').onclick=()=>{S().settings.rest=PC.DEFAULT_REST.map(x=>Object.assign({},x));S().settings.alerts=PC.DEFAULT_ALERTS.slice();S().settings.limits=Object.assign({},PC.DEFAULT_LIMITS);S().settings.showRest=false;saveSettings();toast('Defaults restored');};
+$('limDay').onchange=e=>{ensureSettings().limits.day=PC.cleanLimit(e.target.value);saveSettings();};
+$('limWk').onchange=e=>{ensureSettings().limits.weekend=PC.cleanLimit(e.target.value);saveSettings();};
+$('showRest').onchange=e=>{ensureSettings().showRest=e.target.checked;saveSettings();};
 $('callOn').onchange=e=>{callOn=e.target.checked;S().callOn=callOn;save();render();};
 $('types').addEventListener('click',e=>{const c=e.target.dataset.c;if(!c)return;D.type=D.type===c?null:c;render();if(tab==='game'&&D.type)advance('loc');});
 $('hL').onclick=()=>setHand('L');$('hR').onclick=()=>setHand('R');$('hN').onclick=()=>setHand('N');$('bpTest').onclick=()=>toggleTest();

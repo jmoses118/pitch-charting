@@ -63,6 +63,7 @@ svg text{pointer-events:none}
 #flash.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
 #pcAlert.l0{background:#9e6a03;color:#fff}#pcAlert.l1{background:var(--red);color:#fff}
 #restMsg.ok{background:#12261a;color:#7ee787}#restMsg.no{background:#3b1416;color:#ffa198}
+#wlMsg.wl{font-size:13px;font-weight:700;margin:-2px 0 6px;padding:6px 8px;border-radius:8px;background:#16202c;color:#c9d1d9}#wlMsg.l0{background:#3d2c05;color:#f2cc60}#wlMsg.l1{background:#3b1416;color:#ffa198}
 body.onehand #types button{min-height:56px;font-size:18px}
 body.onehand #resBtns button,body.onehand #ipBtns button{min-height:62px;font-size:18px}
 #ipBtns button.sel{outline:3px solid #fff;background:var(--blue)}

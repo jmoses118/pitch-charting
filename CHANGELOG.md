@@ -1,6 +1,15 @@
 # Changelog
 
-## Unreleased
+## v29 – pitch-count reminder
+### Added
+- Pitch-count reminder on pitcher select and in the game header: "Today: X game + Y bullpen · Weekend: X game + Y bullpen" (tournament weekend = Fri–Sun; Mon–Thu shows the last weekend). Bullpen/warm-up pitches are their own line.
+- Optional coach-set soft limits per day and per weekend (game + bullpen): amber from 85%, red + buzz + toast when reached.
+- Alert/limit settings sync to Supabase as coach-only `team_settings`, shared by every coach phone (migration `20261013233507_team_settings`).
+### Changed
+- Rest-day reminder and table are hidden by default (Setup → "Show rest-day guide").
+- New core module `js/core/workload.js` (alerts / rest helpers moved here from `store.js`).
+
+## v28 – refactor
 ### Changed (refactor, no behavior change)
 - Split `logic.js` into core modules under `js/core/` (grid, calls, game, scoring, csv, sync, store); `logic.js` is now the node entry point.
 - Single severity source: `missData` uses `pitchMiss`; shared `GOOD_MAX_SEV`/`isGoodSev` used by stats drill-down.

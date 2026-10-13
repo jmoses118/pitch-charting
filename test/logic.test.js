@@ -36,7 +36,7 @@ test('Woods stays left-handed',()=>{assert.equal(PC.defaultState().pitchers.find
 test('waste spots count as balls-zone and hit-the-spot',()=>{const c=PC.parseCall('FB A','R');const s=PC.summarize([{type:'FB',call:c.norm,targets:c.targets,loc:16,b:0,s:0},{type:'FB',call:'FB H+',targets:[15],loc:2,b:0,s:0}]);assert.equal(s.strikes,1);assert.equal(s.spotPct,50);});
 test('DC drop curve is its own type',()=>{const c=PC.parseCall('DC 8','R');assert.equal(c.type,'DC');assert.ok(PC.BASE_TYPES.some(t=>t.code==='DC'));const s=PC.summarize([{type:'DC',loc:8},{type:'DR',loc:8},{type:'CB',loc:7}]);assert.equal(s.byType.DC.n,1);assert.equal(s.byType.DR.n,1);assert.equal(s.byType.CB.n,1);});
 // ---------- sync ----------
-function fakeFetch(){const calls=[];const db={pitchers:{},games:{},sessions:{},pitches:{},call_sheets:{},notes:{}};
+function fakeFetch(){const calls=[];const db={pitchers:{},games:{},sessions:{},pitches:{},call_sheets:{},notes:{},team_settings:{}};
   const f=async(url,opt={})=>{const t=url.split('/rest/v1/')[1].split('?')[0];calls.push({t,method:opt.method||'GET',headers:opt.headers,body:opt.body?JSON.parse(opt.body):null});
     if(opt.method==='POST'){JSON.parse(opt.body).forEach(r=>db[t][r.id]=Object.assign(db[t][r.id]||{},r));return{ok:true,text:async()=>''};}
     const team=decodeURIComponent(url.match(/team_id=eq\.([^&]+)/)[1]);return{ok:true,json:async()=>Object.values(db[t]).filter(r=>r.team_id===team)};};
@@ -291,3 +291,40 @@ test('round1: trends, rest days, alerts',()=>{const st=PC.defaultState();
   const ri=PC.restInfo(st,'p_woods','2026-10-03');assert.equal(ri.n,62);assert.equal(ri.days,3);assert.equal(ri.ready,'2026-10-05');assert.equal(ri.ok,false);assert.equal(PC.restInfo(st,'p_woods','2026-10-05').ok,true);
   assert.equal(PC.restInfo(st,'p_crich','2026-10-05'),null);
   assert.deepEqual(PC.alertLevel(74),{lvl:-1,at:null,next:75});assert.equal(PC.alertLevel(75).lvl,0);assert.equal(PC.alertLevel(91).at,90);assert.equal(PC.alertLevel(50,[40,60]).at,40);});
+// ---------- workload: today / tournament weekend pitch counts, soft limits, team settings sync ----------
+test('weekendRange: Fri-Sun is the tournament weekend; Mon-Thu looks back at the last one',()=>{
+  assert.deepEqual(PC.weekendRange('2026-10-16'),{from:'2026-10-16',to:'2026-10-18',current:true}); // Fri
+  assert.deepEqual(PC.weekendRange('2026-10-18'),{from:'2026-10-16',to:'2026-10-18',current:true}); // Sun
+  assert.deepEqual(PC.weekendRange('2026-10-13'),{from:'2026-10-09',to:'2026-10-11',current:false}); // Tue
+  assert.deepEqual(PC.weekendRange('2026-10-15'),{from:'2026-10-09',to:'2026-10-11',current:false});}); // Thu
+test('workload counts game and bullpen pitches separately for today and the weekend',()=>{
+  const at=(d,h)=>new Date(d+'T'+String(h).padStart(2,'0')+':00:00').getTime();
+  const gp=(pid,ts,x)=>Object.assign({id:PC.uuid(),pitcherId:pid,ts,type:'FB',result:'ball'},x||{});
+  const st=PC.defaultState();
+  st.games.push({id:'g1',date:'2026-10-16',pitches:[gp('p_a',at('2026-10-16',9)),gp('p_a',at('2026-10-16',9)),gp('p_b',at('2026-10-16',9)),gp('p_a',at('2026-10-16',9),{noPitch:true}),gp('p_a',at('2026-10-16',9),{deleted:true})]});
+  st.games.push({id:'g2',date:'2026-10-17',pitches:[gp('p_a',at('2026-10-17',10)),gp('p_a',at('2026-10-17',14)),gp('p_a',at('2026-10-17',15))]});
+  st.games.push({id:'g0',date:'2026-10-11',pitches:[gp('p_a',at('2026-10-11',10))]}); // previous weekend
+  st.sessions.push({id:'s1',date:'2026-10-17',pitches:[gp('p_a',at('2026-10-17',8)),gp('p_a',at('2026-10-17',8))]});
+  st.sessions.push({id:'s2',date:'2026-10-17',pitcherId:'p_a',pitches:[{id:PC.uuid(),ts:at('2026-10-17',13),type:'CH'}]}); // pitcher on the session only
+  const w=PC.workload(st,'p_a','2026-10-17');
+  assert.deepEqual(w.today,{game:3,bullpen:3});assert.deepEqual(w.weekend,{game:5,bullpen:3});
+  assert.equal(PC.workloadText(w),'Today: 3 game + 3 bullpen · Weekend: 5 game + 3 bullpen');
+  const tue=PC.workload(st,'p_a','2026-10-20');assert.deepEqual(tue.today,{game:0,bullpen:0});assert.deepEqual(tue.weekend,{game:5,bullpen:3});
+  assert.match(PC.workloadText(tue),/Last weekend: 5 game \+ 3 bullpen$/);
+  assert.deepEqual(PC.workload(st,'p_a','2026-10-11').today,{game:1,bullpen:0});});
+test('soft day/weekend limits: off by default, warn near, alert at/over; weekend limit only during the weekend',()=>{
+  const w=(tg,tb,wg,wb,cur)=>({today:{game:tg,bullpen:tb},weekend:{game:wg,bullpen:wb},wk:{current:cur!==false}});
+  assert.equal(PC.workloadAlert(w(100,50,300,100),PC.DEFAULT_LIMITS).lvl,-1);
+  assert.equal(PC.workloadAlert(w(50,20,70,20),{day:80}).lvl,0); // 70 >= 68
+  const a=PC.workloadAlert(w(70,10,90,10),{day:80,weekend:150});assert.equal(a.lvl,1);assert.equal(a.day.lvl,1);assert.equal(a.day.n,80);assert.equal(a.weekend.lvl,-1);
+  assert.equal(PC.workloadAlert(w(0,0,160,0),{weekend:150}).lvl,1);assert.equal(PC.workloadAlert(w(0,0,160,0,false),{weekend:150}).lvl,-1);
+  assert.equal(PC.cleanLimit('90'),90);assert.equal(PC.cleanLimit(''),null);assert.equal(PC.cleanLimit('-3'),null);});
+test('defaults: rest guide is off, limits off; old saved state gets them',()=>{const d=PC.defaultState();assert.equal(d.settings.showRest,false);assert.deepEqual(d.settings.limits,{day:null,weekend:null});
+  const m=mem();const s0=PC.defaultState();delete s0.settings.limits;delete s0.settings.showRest;m.setItem(PC.KEY,JSON.stringify(s0));const st=PC.makeStore(m);assert.equal(st.state.settings.showRest,false);assert.deepEqual(st.state.settings.limits,{day:null,weekend:null});});
+test('team settings sync: coach only, round-trips alerts/limits/rest guide, never pushed by markAllDirty',async()=>{const{st,ff,sy}=setup();
+  Object.assign(st.state.settings,{alerts:[60,80],limits:{day:85,weekend:200},showRest:true});st.markDirty('team_settings','team');await sy.push();
+  const row=ff.db.team_settings.team;assert.deepEqual(row.alerts,[60,80]);assert.equal(row.day_limit,85);assert.equal(row.weekend_limit,200);assert.equal(row.show_rest,true);
+  for(const role of ['player','pcoach','viewer'])assert.ok(!PC.roleAllows({role,pitcherIds:['p_a'],pitcherId:'p_a'},'team_settings',row),role);
+  const s2=PC.defaultState();s2.sync={queue:{team_settings:{}},tomb:{}};PC.mergeRemote(s2,{team_settings:[{id:'team',alerts:[70],day_limit:90,weekend_limit:null,show_rest:false,rest:[],updated_at:'2026-10-13'}]});
+  assert.deepEqual(s2.settings.alerts,[70]);assert.deepEqual(s2.settings.limits,{day:90,weekend:null});assert.equal(s2.settings.showRest,false);assert.equal(s2.settings.rest.length,PC.DEFAULT_REST.length);
+  const s3=PC.makeStore(mem());s3.real.sync.teamCode='X';s3.markAllDirty();assert.ok(!Object.keys(s3.real.sync.queue.team_settings||{}).length,'a new coach phone must not overwrite team settings with its defaults');});
