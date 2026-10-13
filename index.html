@@ -42,6 +42,12 @@
 <!-- shared entry (game + bullpen) -->
 <section id="entry" class="hide">
  <div class="card">
+  <div id="wbCard" class="hide" style="margin-bottom:10px">
+   <div class="row sp"><div class="lbl" style="margin:0">📋 Wristband</div><select id="wbSheet" style="max-width:55%"></select></div>
+   <div class="row" style="margin-top:6px"><input id="wbRef" placeholder="Row-col, e.g. 3-05" inputmode="numeric" autocomplete="off" style="flex:1"><button id="wbGo">Call</button></div>
+   <div class="wbWrap"><table class="wbTbl" id="wbTbl"></table></div>
+   <div class="mut" id="wbMsg" style="margin-top:4px">Tap a box (or type row-col) to call it, then tap where it landed and the result.</div>
+  </div>
   <div class="row sp"><div class="lbl" style="margin:0">Call sheet</div><label class="row mut"><input type="checkbox" id="callOn" style="min-height:24px;width:24px"> log called pitch</label></div>
   <div id="callBox" class="hide" style="margin-top:6px">
    <div class="row"><input id="callTxt" placeholder="e.g. CHG 7, FB IN, FB A, H+" autocapitalize="characters" autocomplete="off" style="flex:1"><button id="callClr">✕</button></div>
@@ -95,6 +101,12 @@
 <section id="tab-setup" class="hide">
  <div class="card"><div class="lbl">Practice / test mode</div><button id="testBtn" style="width:100%"></button>
   <div class="mut" style="margin-top:6px">Test mode works like normal but nothing is saved, nothing goes into history, stats or exports, and it's wiped when you exit.</div></div>
+ <div class="card" id="csCard"><div class="lbl">Wristband call sheets</div>
+  <div class="row"><select id="csSel" style="flex:1"></select><button id="csNew">+ Sheet</button><button id="csDel" style="background:var(--red)">Delete</button></div>
+  <div class="row" style="margin-top:6px"><input id="csName" placeholder="Sheet name" style="flex:1"><select id="csPitcher"></select></div>
+  <div class="wbWrap" style="margin-top:6px"><table class="wbTbl wbEdit" id="csTbl"></table></div>
+  <div class="grid4" style="margin-top:6px"><button id="csAddR">+ Row</button><button id="csDelR">− Row</button><button id="csAddC">+ Col</button><button id="csDelC">− Col</button></div>
+  <div class="mut" style="margin-top:6px">Type codes like Fb 3, SRWI, CHG 7, Fb A, H+. Coach only; players never see call sheets.</div></div>
  <div class="card"><div class="lbl">Cloud sync</div>
   <div class="row"><input id="teamCode" placeholder="Team code (same on every phone)" autocapitalize="characters" autocomplete="off" style="flex:1"><button id="teamSave">Save</button></div>
   <div class="grid2" style="margin-top:6px"><button id="syncNow" style="background:var(--blue)">Sync now</button><button id="pullCloud">Restore from cloud</button></div>

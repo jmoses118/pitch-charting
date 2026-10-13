@@ -36,7 +36,7 @@ test('Woods stays left-handed',()=>{assert.equal(PC.defaultState().pitchers.find
 test('waste spots count as balls-zone and hit-the-spot',()=>{const c=PC.parseCall('FB A','R');const s=PC.summarize([{type:'FB',call:c.norm,targets:c.targets,loc:16,b:0,s:0},{type:'FB',call:'FB H+',targets:[15],loc:2,b:0,s:0}]);assert.equal(s.strikes,1);assert.equal(s.spotPct,50);});
 test('DC drop curve is its own type',()=>{const c=PC.parseCall('DC 8','R');assert.equal(c.type,'DC');assert.ok(PC.BASE_TYPES.some(t=>t.code==='DC'));const s=PC.summarize([{type:'DC',loc:8},{type:'DR',loc:8},{type:'CB',loc:7}]);assert.equal(s.byType.DC.n,1);assert.equal(s.byType.DR.n,1);assert.equal(s.byType.CB.n,1);});
 // ---------- sync ----------
-function fakeFetch(){const calls=[];const db={pitchers:{},games:{},sessions:{},pitches:{}};
+function fakeFetch(){const calls=[];const db={pitchers:{},games:{},sessions:{},pitches:{},call_sheets:{}};
   const f=async(url,opt={})=>{const t=url.split('/rest/v1/')[1].split('?')[0];calls.push({t,method:opt.method||'GET',headers:opt.headers,body:opt.body?JSON.parse(opt.body):null});
     if(opt.method==='POST'){JSON.parse(opt.body).forEach(r=>db[t][r.id]=Object.assign(db[t][r.id]||{},r));return{ok:true,text:async()=>''};}
     const team=decodeURIComponent(url.match(/team_id=eq\.([^&]+)/)[1]);return{ok:true,json:async()=>Object.values(db[t]).filter(r=>r.team_id===team)};};
@@ -201,3 +201,14 @@ test('per-type sections: own stats, best/work-on, 1-2 feedback lines; landing ma
   const r=PC.sessionReport(P,{p:'R'});assert.deepEqual(Object.keys(r.types),['FB','CB','CH']);for(const k in r.types){const x=r.types[k];assert.ok(x.feedback.length>=1&&x.feedback.length<=2);assert.equal(x.stats.n,r.byType[k].n);}
   assert.equal(r.types.FB.stats.good,6);assert.ok(r.types.FB.best);assert.equal(r.types.CH.stats.mm,1);assert.ok(r.types.CH.feedback.some(x=>/souvenir|knees/.test(x)));
   const d=PC.missData(P.filter(p=>p.type==='FB').map(p=>({p})),{});assert.deepEqual(Object.keys(d.cells[3].land).map(Number).sort(),[2,3]);assert.equal(d.cells[3].land[3].n,2);});
+test('wristband: every cell of Wristband 1 maps, CALL_SUFFIX table drives suffixes',()=>{const s=PC.defaultCallSheet();assert.equal(s.name,'Wristband 1');assert.equal(s.rows.length,7);assert.deepEqual(s.cols,['01','02','03','04','05','06','07','08']);
+  s.rows.flat().forEach(c=>['R','L'].forEach(h=>['R','L'].forEach(t=>assert.ok(PC.parseCall(c,h,t),c))));
+  const t=(c,h,th)=>PC.parseCall(c,h,th||'R');
+  assert.deepEqual(t('Fb O','R').targets,[4]);assert.deepEqual(t('Fb O','L').targets,[6]);assert.deepEqual(t('Fb A','R').targets,[16]);assert.deepEqual(t('Fb A','L').targets,[17]);
+  assert.deepEqual(t('Fb H').targets,[2]);assert.deepEqual(t('Fb H+').targets,[15]);assert.deepEqual(t('Fb L').targets,[8]);assert.equal(t('SRWI','R').type,'SC');assert.deepEqual(t('SRWI','R').targets,[6]);assert.deepEqual(t('SRWO','R').targets,[4]);
+  assert.equal(t('DB').type,'DR');assert.deepEqual(t('Fb').targets,[]);assert.deepEqual(t('CRV','R','R').targets,[7]);assert.deepEqual(t('CRV','R','L').targets,[9]);
+  assert.equal(PC.BASE_TYPES.find(x=>x.code==='SC').name,'Screwball');});
+test('wristband: R-C cell refs',()=>{const s=PC.defaultCallSheet();assert.equal(PC.parseCellRef('3-05',s).text,'Fb In');assert.equal(PC.parseCellRef('7 8',s).text,'FB In');assert.equal(PC.parseCellRef('12',s).text,'SRWI');assert.equal(PC.parseCellRef('8-01',s),null);assert.equal(PC.parseCellRef('1-09',s),null);assert.equal(PC.parseCellRef('x',s),null);});
+test('call sheets sync for coach only and round-trip',async()=>{const{st,ff,sy}=setup();const cs=st.state.callSheets[0];cs.rows[0][0]='CH 9';st.markDirty('call_sheets',cs.id);await sy.push();assert.equal(ff.db.call_sheets.cs_wristband1.rows[0][0],'CH 9');
+  const st2=PC.makeStore(mem());Object.assign(st2.real.sync,{teamCode:'TEAMCODE-TEST-0000000000',role:'coach',teamId:'team-x'});st2.real.callSheets=[];await PC.makeSync(st2,{url:'u',key:'k',fetch:ff.f}).pull();assert.equal(st2.state.callSheets[0].rows[0][0],'CH 9');
+  const{rows,held}=PC.buildRows(Object.assign(PC.defaultState(),{callSheets:[PC.defaultCallSheet()],sync:{role:'player',teamId:'t',pitcherId:'p_woods',queue:{call_sheets:{cs_wristband1:1}}}}));assert.equal((rows.call_sheets||[]).length,0,'players never push call sheets');});

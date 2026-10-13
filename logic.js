@@ -29,12 +29,25 @@ function locInfoRaw(z,hand){hand=hand==='L'?'L':'R';
   if(z===16||z===17){const h=(z===16?0:2)===insideCol(hand)?'in':'away';return{z,strikeZone:false,vert:'middle',horiz:h,label:`center ${h} (ball)`};}
   return null;}
 // ---------- Pitch types & call codes ----------
-const BASE_TYPES=[{code:'FB',name:'Fastball'},{code:'CH',name:'Change-up'},{code:'CB',name:'Curveball'},{code:'DR',name:'Drop'},{code:'DC',name:'Drop curve'},{code:'RS',name:'Rise'},{code:'SC',name:'Screw'}];
-const ALIAS={FB:'FB',FAST:'FB',FASTBALL:'FB',CH:'CH',CHG:'CH',CHANGE:'CH',CU:'CB',CB:'CB',CRV:'CB',CURVE:'CB',DR:'DR',DB:'DR',DROP:'DR',DC:'DC',DROPCURVE:'DC',RS:'RS',RISE:'RS',SC:'SC',SRW:'SC',SCREW:'SC'};
+const BASE_TYPES=[{code:'FB',name:'Fastball'},{code:'CH',name:'Change-up'},{code:'CB',name:'Curveball'},{code:'DR',name:'Drop'},{code:'DC',name:'Drop curve'},{code:'RS',name:'Rise'},{code:'SC',name:'Screwball'}];
+const ALIAS={FB:'FB',FAST:'FB',FASTBALL:'FB',CH:'CH',CHG:'CH',CHANGE:'CH',CU:'CB',CB:'CB',CRV:'CB',CURVE:'CB',DR:'DR',DB:'DR',DROP:'DR',DC:'DC',DROPCURVE:'DC',RS:'RS',RISE:'RS',SC:'SC',SRW:'SC',SCREW:'SC',SCREWBALL:'SC'};
 function normType(t,custom){if(!t)return null;const u=String(t).toUpperCase().replace(/\s+/g,'');
   if(ALIAS[u])return ALIAS[u];
   for(const c of custom||[]){if(c.code.toUpperCase()===u||c.name.toUpperCase().replace(/\s+/g,'')===u)return c.code.toUpperCase();}
   return u||null;}
+// ---- Jim's call-code table (one place to change what a code means) ----
+// Pitch words (ALIAS above): FB/Fb=fastball, CH/CHG=change-up, CRV/CB=curve, SRW/SC=screwball, DB/DR=drop, DC=drop curve, RS=rise.
+// Suffixes (pitcher's view grid; in/away follow the batter side, no batter = RHB):
+//   number = that spot · IN/I = middle of the inside edge (6 vs RHB, 4 vs LHB) · O = away on the black (4 vs RHB, 6 vs LHB)
+//   A = away waste (16 vs RHB, 17 vs LHB) · H = up in zone (2) · H+ = high waste (15) · L = low in zone (8)
+//   e.g. SRWI = screwball in, SRWO = screwball away. No suffix: CB = glove side by pitcher hand (7/alt 4 RHP, 9/alt 6 LHP); others = no location.
+const CALL_SUFFIX={
+  IN:{at:(i,a)=>cz(i,1),desc:'inside to {B}'},
+  O:{at:(i,a)=>cz(a,1),desc:'away edge vs {B}'},
+  A:{at:(i,a)=>a===0?16:17,waste:true,desc:'center away waste vs {B}'},
+  H:{at:()=>2,desc:'up in zone'},
+  'H+':{at:()=>15,waste:true,desc:'center up waste'},
+  L:{at:()=>8,desc:'down in zone'}};
 // parseCall("CHG 7"|"FB IN"|"FB A"|"H+"|"CB"...,batterHand,pitcherThrows,customTypes)
 // returns {type, suffix, targets:[zones], waste:bool, desc, norm} or null
 function parseCall(code,hand,throws,custom){if(code==null)return null;const hand0=hand;hand=hand==='L'?'L':'R';throws=throws==='L'?'L':'R';
@@ -49,12 +62,7 @@ function parseCall(code,hand,throws,custom){if(code==null)return null;const hand
   const inC=insideCol(hand),awC=awayCol(hand);
   let targets=[],alts=[],waste=false,desc='';
   if(/^\d+$/.test(suf)){const z=+suf;if(!(isZone(z)||isOut(z)))return null;targets=[z];desc=locInfo(z,hand0,throws).label;}
-  else if(suf==='IN'||suf==='I'){targets=[cz(inC,1)];desc=`inside to ${hand}HB`;}
-  else if(suf==='O'){targets=[cz(awC,1)];desc=`away edge vs ${hand}HB`;}
-  else if(suf==='A'){waste=true;targets=[awC===0?16:17];desc=`center away waste vs ${hand}HB`;}
-  else if(suf==='H+'){waste=true;targets=[15];desc='center up waste';}
-  else if(suf==='H'){targets=[2];desc='up in zone';}
-  else if(suf==='L'){targets=[8];desc='down in zone';}
+  else if(CALL_SUFFIX[suf==='I'?'IN':suf]){const d=CALL_SUFFIX[suf==='I'?'IN':suf];const r=d.at(inC,awC);targets=[r];waste=!!d.waste;desc=d.desc.replace('{B}',hand+'HB');}
   else if(type==='CB'){targets=throws==='L'?[9]:[7];alts=throws==='L'?[6]:[4];desc=`glove side of ${throws}HP (alt ${alts[0]})`;} // RHP glove side = pitcher's left: 7 (alt 4); LHP: 9 (alt 6)
   else desc='no location';
   const norm=type+(suf?(/^\d+$/.test(suf)?suf:' '+(suf==='I'?'IN':suf)):'');
@@ -158,9 +166,17 @@ const ROSTER=['Crego','Nagy','Woods','Moses','Stuckey','Larbus','Jabour','Barret
 const uuid=()=>{if(typeof crypto!=='undefined'&&crypto.randomUUID)return crypto.randomUUID();const h=[...Array(32)].map(()=>(Math.random()*16|0).toString(16));h[12]='4';h[16]=(8+(Math.random()*4|0)).toString(16);const x=h.join('');return`${x.slice(0,8)}-${x.slice(8,12)}-${x.slice(12,16)}-${x.slice(16,20)}-${x.slice(20)}`;};
 const isUUID=v=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v||'');
 const uid=()=>Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4);
+// Jim's catcher wristband (rows 1-7 x columns 01-08), transcribed from his photo
+const WRISTBAND_1=[['Fb 3','SRWI','Fb 1','CRV','Fb A','SRWO','CH7','FB In'],['Fb A','Fb','CRV','Fb9','Fb O','FB In','Fb H','CHG'],['Fb O','SRW','CH9','CHG','Fb In','CHG 9','Fb 7','Fb O'],
+  ['Fb H','Fb O','SRWI','Fb A','Fb7','Fb3','CH9','SRW'],['CRV','Fb H+','SRW','DB','CHG 7','SRWO','CHG 7','Fb3'],['CHG 7','FB In','Fb H+','Fb 1','FB In','CRV','Fb O','DB'],['Fb In','Fb L','FB In','Fb H','Fb9','CHG','CRV','FB In']];
+const sheetCols=n=>Array.from({length:n},(_,i)=>String(i+1).padStart(2,'0'));
+function defaultCallSheet(){return{id:'cs_wristband1',name:'Wristband 1',pitcherId:null,cols:sheetCols(8),rows:WRISTBAND_1.map(r=>r.slice())};}
+// "3-05" / "3 5" / "35" -> {r:2,c:4} (0-based) or null
+function parseCellRef(s,sheet){const m=String(s||'').trim().match(/^(\d{1,2})\s*[-\s.,/]\s*(\d{1,2})$/)||String(s||'').trim().match(/^(\d)(\d{1,2})$/);if(!m)return null;
+  const r=+m[1]-1,c=+m[2]-1;if(!sheet||r<0||c<0||r>=sheet.rows.length||c>=(sheet.rows[r]||[]).length)return null;return{r,c,text:sheet.rows[r][c]};}
 function defaultState(){return{v:1,roster:ROSTER.map(n=>({name:n,num:''})),
   pitchers:[{id:'p_woods',name:'Avery Woods',num:'45',throws:'L',archived:false},{id:'p_crich',name:'Jules Critchfield',num:'',throws:'R',archived:false},{id:'p_larbus',name:'Reese Larbus',num:'',throws:'R',archived:false}],
-  customTypes:[],games:[],sessions:[],activeGame:null,activeSession:null};}
+  customTypes:[],callSheets:[defaultCallSheet()],activeSheet:'cs_wristband1',games:[],sessions:[],activeGame:null,activeSession:null};}
 function makeStore(storage){
   let real=null,test=null;
   try{const raw=storage&&storage.getItem(KEY);if(raw)real=JSON.parse(raw);}catch(e){}
@@ -171,10 +187,10 @@ function makeStore(storage){
     get state(){return test||real;},
     get isTest(){return !!test;},
     // sync queue: only the real state is ever queued; test mode is a no-op
-    markDirty(kind,id){if(test||id==null)return false;real.sync.queue[kind][id]=(real.sync.queue[kind][id]||0)+1;return true;},
+    markDirty(kind,id){if(test||id==null)return false;real.sync.queue[kind]=real.sync.queue[kind]||{};real.sync.queue[kind][id]=(real.sync.queue[kind][id]||0)+1;return true;},
     tombstone(p,ctx){if(test)return false;real.sync.tomb[p.id]=Object.assign({},p,ctx,{deleted:true});real.sync.queue.pitches[p.id]=(real.sync.queue.pitches[p.id]||0)+1;return true;},
     pendingCount(){if(test)return 0;const q=real.sync.queue;return Object.keys(q).reduce((a,k)=>a+Object.keys(q[k]).length,0);},
-    markAllDirty(){if(test)return;real.pitchers.forEach(p=>api.markDirty('pitchers',p.id));real.games.forEach(g=>{api.markDirty('games',g.id);g.pitches.forEach(p=>api.markDirty('pitches',p.id));});real.sessions.forEach(x=>{api.markDirty('sessions',x.id);x.pitches.forEach(p=>api.markDirty('pitches',p.id));});},
+    markAllDirty(){if(test)return;real.pitchers.forEach(p=>api.markDirty('pitchers',p.id));(real.callSheets||[]).forEach(c=>api.markDirty('call_sheets',c.id));real.games.forEach(g=>{api.markDirty('games',g.id);g.pitches.forEach(p=>api.markDirty('pitches',p.id));});real.sessions.forEach(x=>{api.markDirty('sessions',x.id);x.pitches.forEach(p=>api.markDirty('pitches',p.id));});},
     save(){if(test)return false;try{storage&&storage.setItem(KEY,JSON.stringify(real));return true;}catch(e){saveOk=false;return false;}},
     get saveOk(){return saveOk;},
     // Test mode: work on a throwaway copy (same roster/pitchers/types), nothing written to storage.
@@ -195,13 +211,16 @@ function ensureSync(st){
   if(!st.migNames1){(st.pitchers||[]).forEach(p=>{const f=FULL_NAMES[p.id];if(f&&p.name===f[0]){p.name=f[1];if(st.sync)st.sync.queue.pitchers[p.id]=(st.sync.queue.pitchers[p.id]||0)+1;}});st.migNames1=true;}
   // one-time: Woods has no 'ace' tag, is #45 and throws L (queued so the cloud stays consistent)
   if(!st.migWoods1){const w=(st.pitchers||[]).find(p=>p.id==='p_woods');if(w){delete w.note;if(!w.num)w.num='45';w.throws='L';if(st.sync)st.sync.queue.pitchers[w.id]=(st.sync.queue.pitchers[w.id]||0)+1;}st.migWoods1=true;}if(!st.sync)st.sync={queue:{pitchers:{},games:{},sessions:{},pitches:{}},tomb:{},last:null,lastError:null,teamCode:'',deviceId:'d_'+uid()};
+  TABLES.forEach(t=>{st.sync.queue[t]=st.sync.queue[t]||{};});
+  // one-time: preload Jim's wristband call sheet
+  if(!st.migSheets1){if(!Array.isArray(st.callSheets)||!st.callSheets.length){st.callSheets=[defaultCallSheet()];st.sync.queue.call_sheets['cs_wristband1']=1;}if(!st.activeSheet)st.activeSheet=st.callSheets[0].id;st.migSheets1=true;}
   // first run with sync: give every pitch a uuid and queue everything once
   if(!st.sync.migrated){const q=st.sync.queue;st.pitchers.forEach(p=>q.pitchers[p.id]=1);
     [].concat(st.games||[],st.sessions||[]).forEach(c=>{q[c.pitches&&c.lineup?'games':'sessions'][c.id]=1;c.pitches.forEach(p=>{if(!isUUID(p.id))p.id=uuid();q.pitches[p.id]=1;});});st.sync.migrated=true;}
   return st;}
 // ---------- Cloud sync (Supabase REST, team code header checked by RLS) ----------
-const TABLES=['pitchers','games','sessions','pitches'];
-const keyOf={pitchers:'team_id,id',games:'team_id,id',sessions:'team_id,id',pitches:'id'};
+const TABLES=['pitchers','games','sessions','pitches','call_sheets'];
+const keyOf={pitchers:'team_id,id',games:'team_id,id',sessions:'team_id,id',pitches:'id',call_sheets:'team_id,id'};
 function pitchRow(p,ctx){return{id:p.id,mode:ctx.mode,game_id:ctx.game_id||null,session_id:ctx.session_id||null,pitcher_id:p.pitcherId||null,ts:p.ts||null,hand:p.hand||null,type:p.type||null,call:p.call||null,call_raw:p.callRaw||null,
   targets:p.targets||[],loc:p.loc==null?null:p.loc,result:p.result||null,ip:p.ip||null,end_event:p.end||null,inning:p.inning==null?null:p.inning,outs_before:p.outsBefore==null?null:p.outsBefore,slot:p.slot==null?null:p.slot,
   batter:p.batter==null?null:p.batter,batter_num:p.batterNum==null?null:String(p.batterNum),b:p.b==null?null:p.b,s:p.s==null?null:p.s,abn:p.abn==null?null:p.abn,first_pitch:p.firstPitch==null?null:!!p.firstPitch,no_pitch:!!p.noPitch,prev_hand:p.prevHand||null,deleted:!!p.deleted};}
@@ -213,9 +232,10 @@ function roleAllows(sync,table,row){const role=sync.role;if(role==='coach')retur
   if(table==='sessions')return row.pitcher_id===sync.pitcherId;if(table==='pitches')return row.mode==='bullpen'&&row.pitcher_id===sync.pitcherId;return false;}
 function buildRows(st){let held=0;const q=st.sync.queue,team=st.sync.teamId,dev=st.sync.deviceId,out={},ver={};
   const idx={};st.games.forEach(g=>g.pitches.forEach(p=>idx[p.id]=[p,{mode:'game',game_id:g.id}]));st.sessions.forEach(x=>x.pitches.forEach(p=>idx[p.id]=[p,{mode:'bullpen',session_id:x.id}]));
-  for(const t of TABLES){out[t]=[];ver[t]={};for(const id in q[t]){ver[t][id]=q[t][id];let row=null;
+  for(const t of TABLES){q[t]=q[t]||{};out[t]=[];ver[t]={};for(const id in q[t]){ver[t][id]=q[t][id];let row=null;
     if(t==='pitchers'){const p=st.pitchers.find(x=>x.id===id);if(p)row={id:p.id,name:p.name,num:p.num||null,throws:p.throws,archived:!!p.archived,note:p.note||null};}
     else if(t==='games'){const g=st.games.find(x=>x.id===id);if(g)row={id:g.id,date:g.date,opponent:g.opponent,event:g.event||null,home_away:g.homeAway,lineup:g.lineup,cur:g.cur,started:g.started||null,ended:g.ended||null,imported:!!g.imported,status:gameStatus(g),link:g.link||null,notes:g.notes||null,game_time:g.time||null,field:g.field||null,game_no:g.gameNo||null,location:g.location||null};}
+    else if(t==='call_sheets'){const x=(st.callSheets||[]).find(y=>y.id===id);if(x)row={id:x.id,name:x.name||null,pitcher_id:x.pitcherId||null,cols:x.cols||[],rows:x.rows||[],sort:(st.callSheets||[]).indexOf(x),deleted:!!x.deleted};}
     else if(t==='sessions'){const x=st.sessions.find(y=>y.id===id);if(x)row={id:x.id,date:x.date,started:x.started||null,imported:!!x.imported,pitcher_id:x.pitcherId||null};}
     else{const hit=idx[id];if(hit)row=pitchRow(hit[0],hit[1]);else if(st.sync.tomb[id]){const tb=st.sync.tomb[id];row=pitchRow(tb,{mode:tb.mode,game_id:tb.game_id,session_id:tb.session_id});row.deleted=true;}}
     if(row&&!roleAllows(st.sync,t,row)){held++;continue;} // never send what this code can't write, but KEEP it queued for a code that can
@@ -228,6 +248,8 @@ function mergeRemote(st,data){const q=st.sync.queue;let added=0,removed=0;
   (data.pitchers||[]).forEach(r=>{if(q.pitchers[r.id]||r.deleted)return;const p=st.pitchers.find(x=>x.id===r.id);if(!newerThan(p,r))return;const v={id:r.id,name:r.name,num:r.num||'',throws:r.throws||'R',archived:!!r.archived,note:r.note||undefined,_u:r.updated_at||undefined};if(p)delete p._ph;if(p){Object.assign(p,v);if(!r.note)delete p.note;}else st.pitchers.push(v);});
   (data.games||[]).forEach(r=>{if(q.games[r.id]||r.deleted)return;let g=st.games.find(x=>x.id===r.id);if(!newerThan(g,r))return;const v={id:r.id,date:r.date,opponent:r.opponent,event:r.event||'',homeAway:r.home_away,lineup:r.lineup||[],cur:r.cur||{inning:1,outs:0,slot:0,b:0,s:0,abn:0},started:r.started,ended:r.ended,imported:r.imported,status:r.status||(r.ended?'final':'active'),link:r.link||'',notes:r.notes||'',time:r.game_time||'',field:r.field||'',gameNo:r.game_no||'',location:r.location||'',_u:r.updated_at||undefined};
     if(g){if(g.pitches.length&&v.status==='scheduled')v.status=g.status||'active';Object.assign(g,v);}else st.games.push(Object.assign(v,{pitches:[]}));});
+  (data.call_sheets||[]).forEach(r=>{const qq=q.call_sheets||{};if(qq[r.id])return;st.callSheets=st.callSheets||[];const x=st.callSheets.find(y=>y.id===r.id);if(!newerThan(x,r))return;
+    const v={id:r.id,name:r.name||'Sheet',pitcherId:r.pitcher_id||null,cols:Array.isArray(r.cols)?r.cols.map(String):[],rows:Array.isArray(r.rows)?r.rows.map(a=>Array.isArray(a)?a.map(c=>String(c==null?'':c).slice(0,16)):[]):[],deleted:!!r.deleted,_u:r.updated_at||undefined};if(x)Object.assign(x,v);else st.callSheets.push(v);});
   (data.sessions||[]).forEach(r=>{if(q.sessions[r.id]||r.deleted)return;{const x=st.sessions.find(y=>y.id===r.id);if(!x)st.sessions.push({id:r.id,date:r.date,started:r.started,imported:r.imported,pitcherId:r.pitcher_id||undefined,pitches:[]});else if(r.pitcher_id)x.pitcherId=r.pitcher_id;}});
   const where={};st.games.forEach(g=>g.pitches.forEach(p=>where[p.id]=g));st.sessions.forEach(x=>x.pitches.forEach(p=>where[p.id]=x));const touched=new Set();
   (data.pitches||[]).forEach(r=>{if(q.pitches[r.id])return;const c=where[r.id];
@@ -332,6 +354,6 @@ function typeFeedback(t,g,best,weak){const nm=TYPE_NAME[t]||t,out=[];
   else if(out.length<2&&weak)out.push(`Work on ${weak.label} (${weak.good} of ${weak.called} on target).`);
   if(!out.length)out.push(`${g.good} of ${g.called} on target – keep repping it.`);return out.slice(0,2);}
 
-const PC={chUp,CH_MIN_SEV,typeFeedback,gloveCol,pitchMiss,sessionReport,grpStats,TYPE_NAME,insideCol,awayCol,cz,isZone,isCorner,isOut,locInfo,BASE_TYPES,normType,parseCall,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,summarize,hitSpot,toCSV,parseCSV,CSV_COLS,KEY,ROSTER,defaultState,makeStore,uid,uuid,isUUID,pct,makeSync,buildRows,GRID_XY,missDist,missData,isMiddleMiss,MAX_MISS,missColor,MISS_SCALE,ALL_CELLS,heatItems,heatFilter,heatData,heatColor,VIRIDIS,HEAT_KEYS,roleAllows,bullpenStep,bullpenTap,gameStatus,mergeRemote,pitchRow,TABLES};
+const PC={CALL_SUFFIX,WRISTBAND_1,defaultCallSheet,parseCellRef,sheetCols,chUp,CH_MIN_SEV,typeFeedback,gloveCol,pitchMiss,sessionReport,grpStats,TYPE_NAME,insideCol,awayCol,cz,isZone,isCorner,isOut,locInfo,BASE_TYPES,normType,parseCall,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,summarize,hitSpot,toCSV,parseCSV,CSV_COLS,KEY,ROSTER,defaultState,makeStore,uid,uuid,isUUID,pct,makeSync,buildRows,GRID_XY,missDist,missData,isMiddleMiss,MAX_MISS,missColor,MISS_SCALE,ALL_CELLS,heatItems,heatFilter,heatData,heatColor,VIRIDIS,HEAT_KEYS,roleAllows,bullpenStep,bullpenTap,gameStatus,mergeRemote,pitchRow,TABLES};
 if(typeof module!=='undefined'&&module.exports)module.exports=PC;else root.PC=PC;
 })(typeof window!=='undefined'?window:globalThis);

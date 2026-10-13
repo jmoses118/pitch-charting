@@ -23,7 +23,7 @@ const ROLE_TABS={coach:['game','bullpen','stats','setup'],player:['bullpen','sta
 function curPitcherId(){const s=S();if(role()==='player'){const id=store.real.sync.pitcherId;if(id&&pById(id)){s.curPitcher=id;return id;}}if(!s.curPitcher||!pById(s.curPitcher)||pById(s.curPitcher).archived){const a=store.activePitchers()[0];s.curPitcher=a?a.id:null;}return s.curPitcher;}
 function curHand(){if(tab==='game'){const g=game();if(g){const b=g.lineup[g.cur.slot];return(g.cur.hand||(b&&b.hand)||'R');}}return bpHand;}
 function throwsOf(){const p=pById(curPitcherId());return p?p.throws:'R';}
-function resetDraft(){Object.assign(D,{type:null,callTxt:'',parsed:null,target:null,loc:null,ip:false});$('callTxt').value='';}
+function resetDraft(){D.cell=null;Object.assign(D,{type:null,callTxt:'',parsed:null,target:null,loc:null,ip:false});$('callTxt').value='';}
 // ---------- zone ----------
 const ZX0=20,ZY0=24,CW=20,CHh=24;
 const QUAD={11:'M0 0H40V24H20V48H0Z',12:'M60 0H100V48H80V24H60Z',13:'M0 72H20V96H40V120H0Z',14:'M100 72V120H60V96H80V72Z',15:'M40 0H60V24H40Z',16:'M0 48H20V72H0Z',17:'M80 48H100V72H80Z',18:'M40 96H60V120H40Z'};
@@ -70,6 +70,42 @@ $('callAlt').addEventListener('click',e=>{const z=e.target.dataset.alt;if(!z||!D
 $('callClr').onclick=()=>{setCall('');D.type=null;render();};
 $('callTypes').addEventListener('click',e=>{const c=e.target.dataset.c;if(!c)return;const suf=(D.parsed&&D.parsed.suffix)||'';setCall(c+(suf?(' '+suf):''));D.type=PC.normType(c,S().customTypes);render();});
 $('callSuf').addEventListener('click',e=>{const s=e.target.dataset.s;if(s==null)return;const t=(D.parsed&&D.parsed.type)||'FB';setCall(s==='H+'&&!D.parsed?'H+':(t+(s?' '+s:'')));});
+// ---- wristband call sheet (game, coach) ----
+const sheets=()=>(S().callSheets||[]).filter(x=>!x.deleted);
+function curSheet(){const l=sheets();const p=curPitcherId();return l.find(x=>x.id===S().activeSheet)||l.find(x=>p&&x.pitcherId===p)||l[0]||null;}
+function callCell(r,c){const sh=curSheet();if(!sh)return;const t=(sh.rows[r]||[])[c];if(t==null||!String(t).trim())return toast('Empty box');
+  if(!callOn){callOn=true;S().callOn=true;save();}D.type=null;setCall(String(t));D.cell={sheet:sh.id,r,c};if(D.parsed)D.type=D.parsed.type;else toast(`Can't read "${t}"`);
+  $('wbMsg').textContent=`${r+1}-${sh.cols[c]||c+1}: ${t}`+(D.parsed?(D.parsed.targets.length?` → zone ${D.parsed.targets.join('/')}`:' → no spot, tap target'):' (not understood)');render();}
+$('wbTbl').addEventListener('click',e=>{const b=e.target.closest('button[data-r]');if(b)callCell(+b.dataset.r,+b.dataset.c);});
+function wbRefGo(){const sh=curSheet();const x=PC.parseCellRef($('wbRef').value,sh);if(!x)return toast('Use row-col, e.g. 3-05');$('wbRef').value='';callCell(x.r,x.c);}
+$('wbGo').onclick=wbRefGo;$('wbRef').addEventListener('keydown',e=>{if(e.key==='Enter')wbRefGo();});
+$('wbSheet').onchange=e=>{S().activeSheet=e.target.value;D.cell=null;save();render();};
+function renderWristband(){const show=tab==='game'&&!!game()&&role()==='coach';$('wbCard').classList.toggle('hide',!show);if(!show)return;const sh=curSheet();
+  $('wbSheet').innerHTML=sheets().map(x=>`<option value="${H(x.id)}" ${sh&&x.id===sh.id?'selected':''}>${H(x.name)}</option>`).join('');if(!sh){$('wbTbl').innerHTML='';return;}
+  const h=curHand(),th=throwsOf(),ct=S().customTypes;
+  $('wbTbl').innerHTML=`<tr><th class="rh"></th>${sh.cols.map(c=>`<th>${H(c)}</th>`).join('')}</tr>`+sh.rows.map((row,r)=>`<tr class="${r%2?'b':''}"><th class="rh">${r+1}</th>${sh.cols.map((_,c)=>{const t=row[c]||'';const on=D.cell&&D.cell.sheet===sh.id&&D.cell.r===r&&D.cell.c===c;const bad=t.trim()&&!PC.parseCall(t,h,th,ct);
+    return `<td class="${on?'on':''} ${bad?'bad':''}"><button data-r="${r}" data-c="${c}">${H(t)}</button></td>`;}).join('')}</tr>`).join('');}
+// setup editor
+let csId=null;const csCur=()=>sheets().find(x=>x.id===csId)||sheets()[0]||null;
+function csDirty(sh){dirty('call_sheets',sh.id);save();}
+function renderCS(){const show=role()==='coach';$('csCard').classList.toggle('hide',!show);if(!show)return;const sh=csCur();
+  $('csSel').innerHTML=sheets().map(x=>`<option value="${H(x.id)}" ${sh&&x.id===sh.id?'selected':''}>${H(x.name)}</option>`).join('');
+  if(!sh){$('csTbl').innerHTML='';$('csName').value='';return;}csId=sh.id;if(document.activeElement!==$('csName'))$('csName').value=sh.name;
+  $('csPitcher').innerHTML='<option value="">Any pitcher</option>'+S().pitchers.map(p=>`<option value="${H(p.id)}" ${sh.pitcherId===p.id?'selected':''}>${H(p.name)}</option>`).join('');
+  if($('csTbl').contains(document.activeElement))return;
+  $('csTbl').innerHTML=`<tr><th class="rh"></th>${sh.cols.map((c,i)=>`<th><input data-col="${i}" value="${H(c)}" maxlength="4"></th>`).join('')}</tr>`+sh.rows.map((row,r)=>`<tr class="${r%2?'b':''}"><th class="rh">${r+1}</th>${sh.cols.map((_,c)=>`<td><input data-r="${r}" data-c="${c}" value="${H(row[c]||'')}" maxlength="16" autocapitalize="characters"></td>`).join('')}</tr>`).join('');}
+$('csTbl').addEventListener('change',e=>{const sh=csCur();const i=e.target;if(!sh)return;if(i.dataset.col!=null)sh.cols[+i.dataset.col]=i.value.trim().slice(0,4);else{sh.rows[+i.dataset.r][+i.dataset.c]=i.value.trim().slice(0,16);}
+  const ok=!i.value.trim()||i.dataset.col!=null||PC.parseCall(i.value,'R','R',S().customTypes);i.style.color=ok?'':'var(--red)';if(!ok)toast(`"${i.value}" isn't a code I know`);csDirty(sh);});
+$('csSel').onchange=e=>{csId=e.target.value;renderCS();};
+$('csName').onchange=e=>{const sh=csCur();if(!sh)return;sh.name=e.target.value.trim().slice(0,80)||'Sheet';csDirty(sh);render();};
+$('csPitcher').onchange=e=>{const sh=csCur();if(!sh)return;sh.pitcherId=e.target.value||null;csDirty(sh);};
+$('csNew').onclick=()=>{const n=sheets().length+1;const sh={id:'cs_'+Date.now().toString(36),name:'Wristband '+n,pitcherId:null,cols:PC.sheetCols(8),rows:Array.from({length:7},()=>Array(8).fill(''))};S().callSheets=S().callSheets||[];S().callSheets.push(sh);csId=sh.id;csDirty(sh);render();};
+$('csDel').onclick=()=>{const sh=csCur();if(!sh||!confirm(`Delete "${sh.name}"?`))return;sh.deleted=true;csId=null;if(S().activeSheet===sh.id)S().activeSheet=null;csDirty(sh);render();};
+const csEdit=f=>()=>{const sh=csCur();if(!sh)return;f(sh);$('csTbl').innerHTML='';csDirty(sh);render();};
+$('csAddR').onclick=csEdit(sh=>sh.rows.push(Array(sh.cols.length).fill('')));
+$('csDelR').onclick=csEdit(sh=>{if(sh.rows.length>1)sh.rows.pop();});
+$('csAddC').onclick=csEdit(sh=>{if(sh.cols.length<12){sh.cols.push(String(sh.cols.length+1).padStart(2,'0'));sh.rows.forEach(r=>r.push(''));}});
+$('csDelC').onclick=csEdit(sh=>{if(sh.cols.length>1){sh.cols.pop();sh.rows.forEach(r=>r.length=sh.cols.length);}});
 $('callOn').onchange=e=>{callOn=e.target.checked;S().callOn=callOn;save();render();};
 $('types').addEventListener('click',e=>{const c=e.target.dataset.c;if(!c)return;D.type=D.type===c?null:c;render();});
 $('hL').onclick=()=>setHand('L');$('hR').onclick=()=>setHand('R');$('hN').onclick=()=>setHand('N');$('bpTest').onclick=()=>toggleTest();
@@ -348,7 +384,7 @@ function bpPhase(){const st=PC.bullpenStep({type:D.type||(D.parsed&&D.parsed.typ
 // ---------- render ----------
 function render(skipCallInput){const s=S();{const gg=game();const two=!!(gg&&gg.cur&&gg.cur.s===2);document.querySelectorAll('#resBtns [data-r="kd3"],#resBtns [data-r="kd3out"]').forEach(kb=>{kb.classList.toggle('hide',!two);kb.disabled=!two;});}document.body.classList.toggle('test',store.isTest);$('testbar').classList.toggle('hide',!store.isTest);
   $('testBtn').textContent=store.isTest?'Exit test mode (discard)':'Start test mode';$('testBtn').style.background=store.isTest?'var(--red)':'';
-  callOn=!!s.callOn;$('callOn').checked=callOn;$('callBox').classList.toggle('hide',!callOn);
+  callOn=!!s.callOn;$('callOn').checked=callOn;$('callBox').classList.toggle('hide',!callOn);try{renderWristband();renderCS();}catch(e){console.error(e);}
   const R0=role(),tabs=ROLE_TABS[R0];if(!tabs.includes(tab))tab=tabs[0];
   document.querySelectorAll('nav button').forEach(b=>{b.classList.toggle('hide',!tabs.includes(b.dataset.t));b.classList.toggle('on',b.dataset.t===tab);});
   document.body.dataset.role=R0;$('addPQuick').classList.toggle('hide',R0!=='coach');$('pitcher').disabled=R0!=='coach';
