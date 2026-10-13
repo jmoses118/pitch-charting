@@ -111,12 +111,17 @@ const MAX_MISS=4;
 function isMiddleMiss(p){return p.loc===5&&p.targets&&p.targets.length>0&&!p.targets.includes(5);}
 function missDist(a,b){const p=GRID_XY[a],q=GRID_XY[b];if(!p||!q)return null;return Math.max(Math.abs(p[0]-q[0]),Math.abs(p[1]-q[1]));}
 // per intended cell: n pitches aimed there, average miss distance (to the nearest called spot), hits
-function missData(items,f){const q=heatFilter(items,f);const cells={};ALL_CELLS.forEach(z=>cells[z]={n:0,sum:0,hit:0,avg:null,mm:0});let total=0,mm=0;
+// Jim's change-up rule: a CH must finish at the knees. Landing in the top or middle row (or any spot above the bottom row)
+// is a miss for CH even if it's on/near the target; scored at least 2 squares. Bottom row (7-9) and below use normal rules.
+const CH_MIN_SEV=2;
+const chUp=p=>p&&p.type==='CH'&&GRID_XY[p.loc]!=null&&GRID_XY[p.loc][1]<=2;
+function missData(items,f){const q=heatFilter(items,f);const cells={};ALL_CELLS.forEach(z=>cells[z]={n:0,sum:0,hit:0,avg:null,mm:0});let total=0,mm=0,chu=0;
   q.forEach(({p})=>{const t=p.targets&&p.targets.length?p.targets:null;if(!t||p.loc==null||!GRID_XY[p.loc])return;const d=Math.min(...t.map(z=>missDist(p.loc,z)).filter(v=>v!=null));if(!isFinite(d))return;total++;
     // Jim's rule: landing middle-middle (5) when aimed anywhere else is a severe miss, scored at max severity (4) regardless of distance
-    const mmMiss=p.loc===5&&!t.includes(5);const sev=mmMiss?MAX_MISS:d;if(mmMiss)mm++;
-    t.forEach(z=>{const c=cells[z];if(!c)return;c.n++;c.sum+=sev;if(d===0)c.hit++;if(sev<=1)c.good=(c.good||0)+1;if(mmMiss)c.mm++;});});
-  ALL_CELLS.forEach(z=>{const c=cells[z];if(c.n)c.avg=Math.round(10*c.sum/c.n)/10;});return{cells,total,matched:q.length,mm};}
+    const mmMiss=p.loc===5&&!t.includes(5);const up=chUp(p);let sev=mmMiss?MAX_MISS:d;if(up)sev=Math.max(sev,CH_MIN_SEV);if(mmMiss)mm++;if(up)chu++;
+    t.forEach(z=>{const c=cells[z];if(!c)return;c.n++;c.sum+=sev;if(d===0&&!up)c.hit++;if(sev<=1)c.good=(c.good||0)+1;if(mmMiss)c.mm++;if(up)c.chUp=(c.chUp||0)+1;
+      const L=(c.land=c.land||{});const e=(L[p.loc]=L[p.loc]||{n:0,sev:0,mm:0,chUp:0});e.n++;e.sev=Math.max(e.sev,sev);if(mmMiss)e.mm++;if(up)e.chUp++;});});
+  ALL_CELLS.forEach(z=>{const c=cells[z];if(c.n)c.avg=Math.round(10*c.sum/c.n)/10;});return{cells,total,matched:q.length,mm,chUp:chu};}
 // Jim's scale: hit or 1 square = green (no ding); then darker red as the average miss grows, darkest at 4
 const MISS_SCALE=[{max:1,fill:'#2ea043',text:'#fff',label:'0–1 good'},{max:2,fill:'#f47067',text:'#000',label:'1–2'},{max:3,fill:'#c93c37',text:'#fff',label:'2–3'},{max:4,fill:'#7d1414',text:'#fff',label:'3–4'}];
 function missColor(avg){if(avg==null)return null;for(const s of MISS_SCALE)if(avg<=s.max)return s;return MISS_SCALE[MISS_SCALE.length-1];}
@@ -271,17 +276,17 @@ function makeSync(store,cfg){const f=cfg.fetch||(typeof fetch!=='undefined'?fetc
 // "Good" = sev <= 1 (on target or 1 square off).
 function pitchMiss(p,throws){throws=throws||p.throws;const t=p.targets&&p.targets.length?p.targets:null;if(!t||p.loc==null||!GRID_XY[p.loc])return null;let best=null,bt=null;
   t.forEach(z=>{const d=missDist(p.loc,z);if(d!=null&&(best==null||d<best)){best=d;bt=z;}});if(best==null)return null;
-  const mm=p.loc===5&&!t.includes(5);const sev=mm?MAX_MISS:best;const a=GRID_XY[p.loc],b=GRID_XY[bt];const dx=a[0]-b[0],dy=a[1]-b[1];
+  const mm=p.loc===5&&!t.includes(5);const up=chUp(p);let sev=mm?MAX_MISS:best;if(up)sev=Math.max(sev,CH_MIN_SEV);const a=GRID_XY[p.loc],b=GRID_XY[bt];const dx=a[0]-b[0],dy=a[1]-b[1];
   const hand=p.hand==='L'?'L':'R';// no batter -> RHB for in/away
   const toward3B=dx>0;// pitcher's view: +x = 3B side, where an RHB stands
   const noBat=p.hand!=='L'&&p.hand!=='R'&&(throws==='L'||throws==='R');
   const horiz=dx===0?null:noBat?((dx>0)===(gloveCol(throws)===2)?'glove side':'arm side'):((toward3B===(hand==='R'))?'in':'away');const vert=dy===0?null:(dy<0?'up':'down');
-  return{d:best,sev,mm,good:sev<=1,target:bt,vert,horiz};}
+  return{d:best,sev,mm,chUp:up,good:sev<=1,target:bt,vert,horiz};}
 function grpStats(list,thr){thr=thr||(()=>null);const c=list.map(p=>({p,m:pitchMiss(p,thr(p))})).filter(x=>x.m);const good=c.filter(x=>x.m.good).length;
   const strikes=list.filter(p=>isZone(p.loc)).length;
   return{n:list.length,strikes,strikePct:pct(strikes,list.length),called:c.length,good,goodPct:pct(good,c.length),
     avgMiss:c.length?Math.round(10*c.reduce((a,x)=>a+x.m.sev,0)/c.length)/10:null,mm:c.filter(x=>x.m.mm).length,
-    hits:c.filter(x=>x.m.d===0).length,
+    hits:c.filter(x=>x.m.d===0&&!x.m.chUp).length,chUp:c.filter(x=>x.m.chUp).length,
     up:c.filter(x=>x.m.d>0&&x.m.vert==='up').length,down:c.filter(x=>x.m.d>0&&x.m.vert==='down').length,
     in:c.filter(x=>x.m.d>0&&x.m.horiz==='in').length,away:c.filter(x=>x.m.d>0&&x.m.horiz==='away').length,
     'glove side':c.filter(x=>x.m.d>0&&x.m.horiz==='glove side').length,'arm side':c.filter(x=>x.m.d>0&&x.m.horiz==='arm side').length};}
@@ -303,6 +308,7 @@ function sessionReport(pitches,throws){const thr=typeof throws==='function'?thro
   Object.entries(byType).sort((a,b)=>b[1].called-a[1].called).forEach(([t,g])=>{if(g.called<3)return;const miss=g.called-g.hits;
     const dirs=['up','down','in','away','glove side','arm side'].map(d=>[d,g[d]]).sort((a,b)=>b[1]-a[1]);const [d,c]=dirs[0];
     if(c>=3&&c>=0.5*g.called){flagged.add(t);fb.push({w:1,t:`${nm(t)} missed ${d} ${c} of ${g.called} times – focus on ${FIX[d]}.`});}});
+  if(byType.CH&&byType.CH.chUp>=2){flagged.add('CH');fb.push({w:0.5,t:`Change-up up in the zone ${byType.CH.chUp} time${byType.CH.chUp===1?'':'s'} – keep it at the knees.`});}
   if(all.mm)fb.push({w:0,t:`${all.mm} souvenir${all.mm===1?'':'s'} 🎁 (right down the middle when you didn't aim there) – hitters send those out of the park. If you miss, miss off the plate.`});
   if(best&&best.avgMiss<=1&&best.called>=3&&!flagged.has(best.type))fb.push({w:2,t:`Great command on ${best.label} – ${best.good} of ${best.called} on target.`});
   if(trend&&trend.first.called>=3&&trend.second.called>=3){const a=trend.first.goodPct,b=trend.second.goodPct;
@@ -313,8 +319,19 @@ function sessionReport(pitches,throws){const thr=typeof throws==='function'?thro
   fb.sort((a,b)=>a.w-b.w);let lines=[...new Set(fb.map(x=>x.t))].slice(0,4);
   if(lines.length<2){if(!all.called)lines.push('Turn on the call sheet (or tap an intended spot) so you can see how often you hit your spot.');
     if(lines.length<2)lines.push(`${all.n} pitch${all.n===1?'':'es'} logged${all.goodPct!=null?` · ${Math.round(all.goodPct)}% on target`:''} – keep building.`);}
-  return Object.assign({},all,{byType,best,weakest,trend,feedback:lines.slice(0,4)});}
+  // one section per pitch type: its own numbers, best / work-on spot and 1-2 kid-friendly lines
+  const types={};Object.entries(byType).sort((a,b)=>b[1].n-a[1].n).forEach(([t,g])=>{const sp=rank.filter(s=>(s.type||'?')===t);const tb=sp.length?sp[0]:null;const tw=sp.length>1&&(sp[sp.length-1].avgMiss>tb.avgMiss||sp[sp.length-1].goodPct<tb.goodPct)?sp[sp.length-1]:null;
+    types[t]={stats:g,best:tb,weakest:tw,feedback:typeFeedback(t,g,tb,tw)};});
+  return Object.assign({},all,{byType,types,best,weakest,trend,feedback:lines.slice(0,4)});}
+function typeFeedback(t,g,best,weak){const nm=TYPE_NAME[t]||t,out=[];
+  if(!g.called)return[`${g.n} ${nm.toLowerCase()}${g.n===1?'':'s'} thrown – tap where you're aiming to see how close you get.`];
+  if(t==='CH'&&g.chUp)out.push(`Up in the zone ${g.chUp} time${g.chUp===1?'':'s'} – keep it at the knees.`);
+  if(g.mm)out.push(`${g.mm} souvenir${g.mm===1?'':'s'} 🎁 – if you miss, miss off the plate.`);
+  const dirs=['up','down','in','away','glove side','arm side'].map(d=>[d,g[d]]).sort((a,b)=>b[1]-a[1]);if(out.length<2&&dirs[0][1]>=2&&dirs[0][1]>=0.5*(g.called-g.hits)&&!(t==='CH'&&dirs[0][0]==='up'&&g.chUp))out.push(`Misses mostly ${dirs[0][0]} – focus on ${FIX[dirs[0][0]]}.`);
+  if(out.length<2&&g.goodPct>=75)out.push(`Great command – ${g.good} of ${g.called} on target${best?`, best at ${best.label}`:''}.`);
+  else if(out.length<2&&weak)out.push(`Work on ${weak.label} (${weak.good} of ${weak.called} on target).`);
+  if(!out.length)out.push(`${g.good} of ${g.called} on target – keep repping it.`);return out.slice(0,2);}
 
-const PC={gloveCol,pitchMiss,sessionReport,grpStats,TYPE_NAME,insideCol,awayCol,cz,isZone,isCorner,isOut,locInfo,BASE_TYPES,normType,parseCall,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,summarize,hitSpot,toCSV,parseCSV,CSV_COLS,KEY,ROSTER,defaultState,makeStore,uid,uuid,isUUID,pct,makeSync,buildRows,GRID_XY,missDist,missData,isMiddleMiss,MAX_MISS,missColor,MISS_SCALE,ALL_CELLS,heatItems,heatFilter,heatData,heatColor,VIRIDIS,HEAT_KEYS,roleAllows,bullpenStep,bullpenTap,gameStatus,mergeRemote,pitchRow,TABLES};
+const PC={chUp,CH_MIN_SEV,typeFeedback,gloveCol,pitchMiss,sessionReport,grpStats,TYPE_NAME,insideCol,awayCol,cz,isZone,isCorner,isOut,locInfo,BASE_TYPES,normType,parseCall,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,summarize,hitSpot,toCSV,parseCSV,CSV_COLS,KEY,ROSTER,defaultState,makeStore,uid,uuid,isUUID,pct,makeSync,buildRows,GRID_XY,missDist,missData,isMiddleMiss,MAX_MISS,missColor,MISS_SCALE,ALL_CELLS,heatItems,heatFilter,heatData,heatColor,VIRIDIS,HEAT_KEYS,roleAllows,bullpenStep,bullpenTap,gameStatus,mergeRemote,pitchRow,TABLES};
 if(typeof module!=='undefined'&&module.exports)module.exports=PC;else root.PC=PC;
 })(typeof window!=='undefined'?window:globalThis);

@@ -15,6 +15,7 @@ console.log('feedback:',await p.$$eval('#rBody .fb li',e=>e.map(x=>x.textContent
 console.log('heat cells colored:',await p.$$eval('#rMap [data-z]',e=>e.filter(x=>x.style.fill&&x.style.fill!=='rgb(22, 27, 34)').length));
 await p.$eval('#rDlg',e=>e.scrollTop=0);await p.waitForTimeout(400);await p.screenshot({path:SHOT});
 const [dl]=await Promise.all([p.waitForEvent('download',{timeout:8000}),p.click('#rShare')]);const fp=await dl.path();require('fs').copyFileSync(fp,'/tmp/rp-share.png');console.log('share image (download fallback):',dl.suggestedFilename(),require('fs').statSync(fp).size,'bytes');
+{const cell=await p.$('#rMap [data-z][role="button"]');await cell.click();console.log('drill-down open:',await p.isVisible('#ddDlg'),'|',await p.textContent('#ddCap'));await p.click('#ddClose');console.log('type sections:',await p.$$eval('#rTypes .tsec',e=>e.length));}
 await p.click('#rClose');console.log('session closed after end:',await p.evaluate(()=>__app.store.state.activeSession==null));
 // past session from Stats
 await p.click('nav [data-t="stats"]');const sid=await p.evaluate(()=>__app.store.state.sessions[0].id);await p.selectOption('#sScope',sid);console.log('stats report button:',await p.isVisible('#sReport'));await p.click('#sReport');console.log('stats report open:',await p.isVisible('#rDlg'));await p.click('#rClose');

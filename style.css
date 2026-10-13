@@ -42,3 +42,4 @@ dialog{background:var(--card);color:var(--tx);border:1px solid var(--line);borde
 #rBody h2{margin:0 0 2px;font-size:20px}#rBody .fb{margin:8px 0;padding:0 0 0 18px}#rBody .fb li{margin:5px 0;line-height:1.35}
 #rBody table{width:100%;border-collapse:collapse;font-size:13px}#rBody td,#rBody th{padding:4px;border-bottom:1px solid var(--line);text-align:left}
 @media print{body>*:not(#rDlg){display:none!important}#rDlg{position:static;max-height:none;width:100%;border:0;background:#fff;color:#000}#rDlg .noprint{display:none!important}#rBody .mut{color:#444}#rBody .stat{border:1px solid #999;background:#fff}#rBody .stat b{color:#000}}
+svg text{pointer-events:none}

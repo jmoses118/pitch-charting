@@ -134,16 +134,16 @@ test('miss heat map: per intended cell avg miss + colors (green <=1, darker red 
   assert.equal(PC.missData(PC.heatItems(st),{type:'CH'}).total,2);});
 test("middle-middle rule: landing in 5 when aimed elsewhere = max severity, counted as MM",()=>{const st=PC.defaultState();st.sessions.push({id:'s',date:'d',pitches:[
   {id:'1',pitcherId:'p_woods',type:'FB',targets:[2],loc:5,hand:'N'},{id:'2',pitcherId:'p_woods',type:'FB',targets:[2],loc:2,hand:'N'},{id:'3',pitcherId:'p_woods',type:'CH',targets:[5],loc:5,hand:'N'},{id:'4',pitcherId:'p_woods',type:'CH',targets:[9],loc:6,hand:'N'}]});
-  const d=PC.missData(PC.heatItems(st),{});assert.equal(d.mm,1);assert.equal(d.cells[2].mm,1);assert.equal(d.cells[2].avg,2);assert.equal(d.cells[5].avg,0);assert.equal(d.cells[5].mm,0);assert.equal(d.cells[9].avg,1);
+  const d=PC.missData(PC.heatItems(st),{});assert.equal(d.mm,1);assert.equal(d.cells[2].mm,1);assert.equal(d.cells[2].avg,2);assert.equal(d.cells[5].avg,2);assert.equal(d.cells[5].mm,0);assert.equal(d.cells[9].avg,2); // CH up in the zone = miss (change-up rule)
   assert.ok(PC.isMiddleMiss({loc:5,targets:[2]}));assert.ok(!PC.isMiddleMiss({loc:5,targets:[5]}));
   const only=PC.missData(PC.heatItems({pitchers:st.pitchers,games:[],sessions:[{id:'x',pitches:[{type:'FB',targets:[6],loc:5}]}]}),{});assert.equal(only.cells[6].avg,4);assert.equal(PC.missColor(only.cells[6].avg).fill,'#7d1414');});
 test("session report: good = on target/1 off, MM severe, feedback + best/weakest + trend",()=>{const P=[];const add=(type,t,l)=>P.push({type,targets:[t],loc:l,hand:'R'});
-  [[7,4],[7,1],[7,4],[7,7],[7,4],[7,4]].forEach(([t,l])=>add('CH',t,l));[[6,6],[6,6],[6,3],[6,6],[6,5]].forEach(([t,l])=>add('FB',t,l));
+  [[7,4],[7,1],[7,4],[7,7],[7,4],[7,4]].forEach(([t,l])=>add('DR',t,l));[[6,6],[6,6],[6,3],[6,6],[6,5]].forEach(([t,l])=>add('FB',t,l));
   const r=PC.sessionReport(P);assert.equal(r.n,11);assert.equal(r.mm,1);assert.equal(r.called,11);
-  // CH: 7->4 is 1 square (good), 7->1 is 2 (bad); FB 6->5 is MM (bad)
-  assert.equal(r.byType.CH.good,5);assert.equal(r.byType.FB.good,4);assert.equal(r.good,9);assert.equal(r.byType.FB.mm,1);
-  assert.equal(r.byType.CH.up,5);assert.ok(r.feedback.length>=2&&r.feedback.length<=4);assert.ok(r.feedback.some(t=>/souvenir/.test(t)));
-  assert.ok(r.feedback.some(t=>/Change-up missed up 5 of 6/.test(t)),r.feedback.join('|'));
+  // DR: 7->4 is 1 square (good), 7->1 is 2 (bad); FB 6->5 is MM (bad)
+  assert.equal(r.byType.DR.good,5);assert.equal(r.byType.FB.good,4);assert.equal(r.good,9);assert.equal(r.byType.FB.mm,1);
+  assert.equal(r.byType.DR.up,5);assert.ok(r.feedback.length>=2&&r.feedback.length<=4);assert.ok(r.feedback.some(t=>/souvenir/.test(t)));
+  assert.ok(r.feedback.some(t=>/Drop missed up 5 of 6/.test(t)),r.feedback.join('|'));
   assert.ok(r.best&&r.weakest&&r.best.avgMiss<=r.weakest.avgMiss);assert.ok(r.trend&&r.trend.first.n+r.trend.second.n===11);
   const m=PC.pitchMiss({targets:[6],loc:5,hand:'R'});assert.equal(m.sev,4);assert.equal(m.horiz,'away');
   assert.equal(PC.pitchMiss({targets:[6],loc:5,hand:'L'}).horiz,'in');assert.equal(PC.pitchMiss({type:'FB',targets:[],loc:5}),null);
@@ -189,3 +189,15 @@ test('game logic: no pitch after the at-bat ends; K-D3 thrown out; foul tip; dou
   const s=PC.summarize([{result:'kd3out',end:'K'},{result:'foultip',end:'K'},{result:'kd3',end:'K-D3'}]);assert.equal(s.k,3);assert.equal(s.strikes,3);});
 test('new pitcher requires a throwing hand',()=>{const st=PC.makeStore(mem());assert.throws(()=>st.addPitcher({name:'X'}));assert.throws(()=>st.addPitcher({name:'X',throws:''}));assert.equal(st.addPitcher({name:'X',throws:'L'}).throws,'L');});
 test('missData per-cell on-target count never exceeds pitches aimed there',()=>{const P=[[3,3],[3,2],[3,9],[3,5],[7,7]].map(([t,l])=>({p:{targets:[t],loc:l}}));const d=PC.missData(P,{});assert.equal(d.cells[3].n,4);assert.equal(d.cells[3].good,2);assert.equal(d.cells[7].good,1);for(const z in d.cells)assert.ok((d.cells[z].good||0)<=d.cells[z].n);});
+test('change-up rule: CH landing in top/middle row is a miss even on target; bottom row normal',()=>{
+  assert.equal(PC.pitchMiss({type:'CH',targets:[7],loc:4}).good,false);assert.equal(PC.pitchMiss({type:'CH',targets:[4],loc:4}).good,false);assert.equal(PC.pitchMiss({type:'CH',targets:[4],loc:4}).sev,2);
+  assert.equal(PC.pitchMiss({type:'CH',targets:[2],loc:15}).chUp,true);assert.equal(PC.pitchMiss({type:'CH',targets:[7],loc:8}).good,true);assert.equal(PC.pitchMiss({type:'CH',targets:[8],loc:18}).good,true);
+  assert.equal(PC.pitchMiss({type:'CH',targets:[7],loc:16}).good,false);assert.equal(PC.pitchMiss({type:'FB',targets:[7],loc:4}).good,true);assert.equal(PC.pitchMiss({type:'CH',targets:[6],loc:5}).sev,4);
+  const P=[[7,4],[7,1],[8,8],[8,5],[9,9],[9,6]].map(([t,l])=>({type:'CH',targets:[t],loc:l,hand:'R'}));const r=PC.sessionReport(P);assert.equal(r.byType.CH.chUp,4);assert.equal(r.byType.CH.good,2);
+  assert.ok(r.feedback.some(x=>/Change-up up in the zone 4 times – keep it at the knees/.test(x)),r.feedback.join('|'));assert.ok(r.types.CH.feedback.some(x=>/knees/.test(x)));
+  const d=PC.missData(P.map(p=>({p})),{});assert.equal(d.chUp,4);assert.equal(d.cells[7].good||0,0);assert.equal(d.cells[8].land[5].mm,1);assert.equal(d.cells[8].land[8].n,1);});
+test('per-type sections: own stats, best/work-on, 1-2 feedback lines; landing map per aimed cell',()=>{const P=[];const add=(type,t,l)=>P.push({type,targets:[t],loc:l,hand:'N',pitcherId:'p'});
+  [[3,3],[3,3],[3,2],[9,9],[9,9],[9,14]].forEach(([t,l])=>add('FB',t,l));[[7,7],[7,13],[7,8],[7,7]].forEach(([t,l])=>add('CB',t,l));[[8,8],[8,5],[8,2]].forEach(([t,l])=>add('CH',t,l));
+  const r=PC.sessionReport(P,{p:'R'});assert.deepEqual(Object.keys(r.types),['FB','CB','CH']);for(const k in r.types){const x=r.types[k];assert.ok(x.feedback.length>=1&&x.feedback.length<=2);assert.equal(x.stats.n,r.byType[k].n);}
+  assert.equal(r.types.FB.stats.good,6);assert.ok(r.types.FB.best);assert.equal(r.types.CH.stats.mm,1);assert.ok(r.types.CH.feedback.some(x=>/souvenir|knees/.test(x)));
+  const d=PC.missData(P.filter(p=>p.type==='FB').map(p=>({p})),{});assert.deepEqual(Object.keys(d.cells[3].land).map(Number).sort(),[2,3]);assert.equal(d.cells[3].land[3].n,2);});

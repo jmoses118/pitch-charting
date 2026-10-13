@@ -81,7 +81,8 @@
   <div id="hSummary" class="mut" style="margin:8px 0"></div>
   <svg id="hMap" viewBox="-14 -6 128 138" role="img" aria-labelledby="hSummary" style="width:100%;max-width:380px;display:block;margin:auto"></svg>
   <div id="hEmpty" class="mut hide" style="text-align:center;padding:24px 8px">No pitches match these filters.<br><button id="hfReset2" style="margin-top:8px">Reset filters</button></div>
-  <div id="hLegend" style="margin-top:8px"></div></div>
+  <div id="hLegend" style="margin-top:8px"></div><div class="mut" style="font-size:12px;margin-top:4px">Tap a colored box to see where those pitches went.</div></div>
+ <div class="card" id="sTypesCard"><div class="lbl">Each pitch (aimed spots)</div><div id="sTypes"></div></div>
  <div class="card"><div class="stats" id="sGrid"></div></div>
  <div class="card"><div class="lbl">Per pitcher</div><table id="sPit"></table></div>
  <div class="card"><div class="lbl">By pitch type</div><table id="sType"></table></div>
@@ -120,6 +121,10 @@
  <div class="row" style="margin-top:10px"><button value="reset" style="flex:1">Reset</button><button value="ok" style="flex:1;background:var(--blue)">Show</button></div></form></dialog>
 <dialog id="rDlg" aria-labelledby="rT" style="width:min(96vw,480px);max-height:92vh;padding:12px"><div id="rBody"></div>
  <div class="row noprint" style="margin-top:10px;position:sticky;bottom:0;background:var(--card);padding-top:6px"><button id="rShare" style="flex:1;background:var(--blue)">Share image</button><button id="rPrint" style="flex:1">PDF</button><button id="rClose" style="flex:1">Close</button></div></dialog>
+<dialog id="ddDlg" aria-labelledby="ddT" style="width:min(94vw,420px)"><div class="lbl" id="ddT">Where they went</div>
+ <svg id="ddMap" viewBox="-14 -6 128 138" role="img" aria-labelledby="ddCap" style="width:100%;max-width:340px;display:block;margin:auto"></svg>
+ <div id="ddCap" style="font-size:15px;line-height:1.4;margin-top:6px"></div><div id="ddKey" class="mut" style="font-size:12px;margin-top:6px"></div>
+ <button id="ddClose" style="width:100%;margin-top:10px">Close</button></dialog>
 <div id="toast"></div>
 <script src="config.js"></script><script src="logic.js"></script><script src="app.js"></script>
 </body></html>
