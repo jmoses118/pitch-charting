@@ -142,7 +142,7 @@ test("session report: good = on target/1 off, MM severe, feedback + best/weakest
   const r=PC.sessionReport(P);assert.equal(r.n,11);assert.equal(r.mm,1);assert.equal(r.called,11);
   // CH: 7->4 is 1 square (good), 7->1 is 2 (bad); FB 6->5 is MM (bad)
   assert.equal(r.byType.CH.good,5);assert.equal(r.byType.FB.good,4);assert.equal(r.good,9);assert.equal(r.byType.FB.mm,1);
-  assert.equal(r.byType.CH.up,5);assert.ok(r.feedback.length>=2&&r.feedback.length<=4);assert.ok(r.feedback.some(t=>/middle-middle/.test(t)));
+  assert.equal(r.byType.CH.up,5);assert.ok(r.feedback.length>=2&&r.feedback.length<=4);assert.ok(r.feedback.some(t=>/fat pitch/.test(t)));
   assert.ok(r.feedback.some(t=>/Change-up missed up 5 of 6/.test(t)),r.feedback.join('|'));
   assert.ok(r.best&&r.weakest&&r.best.avgMiss<=r.weakest.avgMiss);assert.ok(r.trend&&r.trend.first.n+r.trend.second.n===11);
   const m=PC.pitchMiss({targets:[6],loc:5,hand:'R'});assert.equal(m.sev,4);assert.equal(m.horiz,'away');
@@ -158,5 +158,5 @@ test("no batter: glove/arm side wording by pitcher hand; in/away kept with a bat
   assert.equal(PC.pitchMiss({targets:[5],loc:6,hand:'N'},'L').horiz,'glove side');assert.equal(PC.pitchMiss({targets:[5],loc:6,hand:'N'},'R').horiz,'arm side');assert.equal(PC.pitchMiss({targets:[5],loc:6,hand:'R'},'L').horiz,'in');
   const P=[];for(let i=0;i<6;i++)P.push({pitcherId:'p_woods',type:'CH',targets:[8],hand:'N',loc:i<4?9:8});P.push({pitcherId:'p_woods',type:'DC',targets:[9],hand:'N',loc:9},{pitcherId:'p_woods',type:'DC',targets:[9],hand:'N',loc:9});
   const r=PC.sessionReport(P,{p_woods:'L'});const txt=r.feedback.join(' | ')+' '+r.best.label+' '+(r.weakest&&r.weakest.label);
-  assert.ok(/Change-up missed glove side 4 of 6/.test(txt),txt);assert.ok(/glove side/.test(r.best.label),r.best.label);assert.ok(!/\b(in|away)\b/.test(txt),txt);
+  assert.ok(/Change-up missed glove side 4 of 6/.test(txt),txt);assert.ok(/glove side/.test(r.best.label),r.best.label);assert.ok(!/(missed|and) (in|away)\b/.test(txt),txt);
   const rb=PC.sessionReport(P.map(p=>Object.assign({},p,{hand:'R'})),{p_woods:'L'});assert.ok(rb.feedback.some(t=>/missed in 4 of 6/.test(t)),rb.feedback.join('|'));});

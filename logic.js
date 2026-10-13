@@ -199,7 +199,7 @@ function pitchRow(p,ctx){return{id:p.id,mode:ctx.mode,game_id:ctx.game_id||null,
 function rowPitch(r){const p={id:r.id,ts:+r.ts||0,pitcherId:r.pitcher_id,hand:r.hand,type:r.type,call:r.call,callRaw:r.call_raw,targets:r.targets||[],loc:r.loc,result:r.result,ip:r.ip,end:r.end_event};
   if(r.mode==='game')Object.assign(p,{inning:r.inning,outsBefore:r.outs_before,slot:r.slot,batter:r.batter,batterNum:r.batter_num,b:r.b,s:r.s,abn:r.abn,firstPitch:r.first_pitch,prevHand:r.prev_hand});else{p.b=0;p.s=0;}
   if(r.no_pitch)p.noPitch=true;return p;}
-// role rules (mirrors server RLS): coach = everything; player = own bullpen sessions/pitches only; viewer = read only
+// role rules (mirrors server RLS): coach = everything; player = writes own bullpen sessions/pitches only, reads own game+bullpen pitches and games she pitched in; viewer = read only
 function roleAllows(sync,table,row){const role=sync.role||'coach';if(role==='coach')return true;if(role==='viewer')return false;
   if(table==='sessions')return row.pitcher_id===sync.pitcherId;if(table==='pitches')return row.mode==='bullpen'&&row.pitcher_id===sync.pitcherId;return false;}
 function buildRows(st){const q=st.sync.queue,team=st.sync.teamId,dev=st.sync.deviceId,out={},ver={};
@@ -292,16 +292,16 @@ function sessionReport(pitches,throws){const thr=typeof throws==='function'?thro
   Object.entries(byType).sort((a,b)=>b[1].called-a[1].called).forEach(([t,g])=>{if(g.called<3)return;const miss=g.called-g.hits;
     const dirs=['up','down','in','away','glove side','arm side'].map(d=>[d,g[d]]).sort((a,b)=>b[1]-a[1]);const [d,c]=dirs[0];
     if(c>=3&&c>=0.5*g.called){flagged.add(t);fb.push({w:1,t:`${nm(t)} missed ${d} ${c} of ${g.called} times – focus on ${FIX[d]}.`});}});
-  if(all.mm)fb.push({w:0,t:`${all.mm} middle-middle mistake${all.mm===1?'':'s'} – those are the pitches that get hit. Miss off the plate, not over it.`});
-  if(best&&best.avgMiss<=1&&best.called>=3&&!flagged.has(best.type))fb.push({w:2,t:`Great command on ${best.label} (${best.good} of ${best.called} on target or 1 square off).`});
+  if(all.mm)fb.push({w:0,t:`${all.mm} fat pitch${all.mm===1?'':'es'} (right down the middle when you didn't aim there) – that's the pitch hitters crush. If you miss, miss off the plate.`});
+  if(best&&best.avgMiss<=1&&best.called>=3&&!flagged.has(best.type))fb.push({w:2,t:`Great command on ${best.label} – ${best.good} of ${best.called} on target.`});
   if(trend&&trend.first.called>=3&&trend.second.called>=3){const a=trend.first.goodPct,b=trend.second.goodPct;
-    if(b-a>=15)fb.push({w:3,t:`Got sharper as you went: good spots ${a}% → ${b}% in the second half.`});
-    else if(a-b>=15)fb.push({w:1.5,t:`Command faded late (${a}% → ${b}% good spots) – watch fatigue and mechanics at the end.`});}
-  if(all.n>=5&&all.strikePct!=null){if(all.strikePct<50)fb.push({w:2.5,t:`Only ${all.strikePct}% in the zone – win the strike zone first.`});else if(all.strikePct>=65)fb.push({w:4,t:`Strong zone rate: ${all.strikePct}% strikes.`});}
-  if(weakest&&weakest.avgMiss>=2)fb.push({w:2.2,t:`Weakest spot: ${weakest.label} (avg ${weakest.avgMiss} squares off) – rep it next pen.`});
+    if(b-a>=15)fb.push({w:3,t:`You got sharper as you went: ${Math.round(a)}% on target early, ${Math.round(b)}% late.`});
+    else if(a-b>=15)fb.push({w:1.5,t:`You lost your spots late (${Math.round(a)}% on target early, ${Math.round(b)}% late) – stay strong with your mechanics when you get tired.`});}
+  if(all.n>=5&&all.strikePct!=null){if(all.strikePct<50)fb.push({w:2.5,t:`Only ${Math.round(all.strikePct)}% strikes – work on getting ahead in the zone first.`});else if(all.strikePct>=65)fb.push({w:4,t:`Nice job throwing strikes: ${Math.round(all.strikePct)}% in the zone.`});}
+  if(weakest&&weakest.avgMiss>=2)fb.push({w:2.2,t:`Work on: ${weakest.label} (${weakest.good} of ${weakest.called} on target) – rep it next pen.`});
   fb.sort((a,b)=>a.w-b.w);let lines=[...new Set(fb.map(x=>x.t))].slice(0,4);
-  if(lines.length<2){if(!all.called)lines.push('Turn on the call sheet (or tap an intended spot) to get hit-the-spot feedback.');
-    if(lines.length<2)lines.push(`${all.n} pitch${all.n===1?'':'es'} logged${all.goodPct!=null?` · ${all.goodPct}% good spots`:''} – keep building.`);}
+  if(lines.length<2){if(!all.called)lines.push('Turn on the call sheet (or tap an intended spot) so you can see how often you hit your spot.');
+    if(lines.length<2)lines.push(`${all.n} pitch${all.n===1?'':'es'} logged${all.goodPct!=null?` · ${Math.round(all.goodPct)}% on target`:''} – keep building.`);}
   return Object.assign({},all,{byType,best,weakest,trend,feedback:lines.slice(0,4)});}
 
 const PC={gloveCol,pitchMiss,sessionReport,grpStats,TYPE_NAME,insideCol,awayCol,cz,isZone,isCorner,isOut,locInfo,BASE_TYPES,normType,parseCall,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,summarize,hitSpot,toCSV,parseCSV,CSV_COLS,KEY,ROSTER,defaultState,makeStore,uid,uuid,isUUID,pct,makeSync,buildRows,GRID_XY,missDist,missData,isMiddleMiss,MAX_MISS,missColor,MISS_SCALE,ALL_CELLS,heatItems,heatFilter,heatData,heatColor,VIRIDIS,HEAT_KEYS,roleAllows,bullpenStep,bullpenTap,gameStatus,mergeRemote,pitchRow,TABLES};

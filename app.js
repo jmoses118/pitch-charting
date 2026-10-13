@@ -180,8 +180,9 @@ function scopePitches(sc){const s=S();let out=[];
   if(sc.startsWith('g_'))out=(s.games.find(g=>g.id===sc)||{pitches:[]}).pitches;
   if(sc.startsWith('s_'))out=(s.sessions.find(g=>g.id===sc)||{pitches:[]}).pitches;return out;}
 const fmt=v=>v==null?'–':v+'%';
-function renderStats(){const s=S();const sel=$('sScope').value||(s.activeGame||'all');
-  const opts=[['all','Everything'],['games','All games'],['bullpen','All bullpen']].concat(s.games.slice().reverse().map(g=>[g.id,`${g.date} ${vsAt(g)} ${g.opponent}${PC.gameStatus(g)==='scheduled'?' (scheduled)':''}${g.event?' ('+g.event+')':''}`])).concat(s.sessions.slice().reverse().map(x=>[x.id,`Bullpen ${x.date} (${x.pitches.length})`]));
+function renderStats(){const s=S();const sel=$('sScope').value||(s.activeGame||'all');const me=role()==='player'?store.real.sync.pitcherId:null;
+  const GS=me?s.games.filter(g=>g.pitches.some(p=>p.pitcherId===me)):s.games,SS=me?s.sessions.filter(x=>x.pitcherId===me||x.pitches.some(p=>p.pitcherId===me)):s.sessions;
+  const opts=[['all','Everything'],['games','All games'],['bullpen','All bullpen']].concat(GS.slice().reverse().map(g=>[g.id,`${g.date} ${vsAt(g)} ${g.opponent}${PC.gameStatus(g)==='scheduled'?' (scheduled)':''}${g.event?' ('+g.event+')':''}`])).concat(SS.slice().reverse().map(x=>[x.id,`Bullpen ${x.date} (${me?x.pitches.filter(p=>p.pitcherId===me).length:x.pitches.length})`]));
   $('sScope').innerHTML=opts.map(([v,l])=>`<option value="${v}" ${v===sel?'selected':''}>${H(l)}</option>`).join('');
   const own=role()==='player'?store.real.sync.pitcherId:null;const pf=own||$('sPitcher').value;$('sPitcher').disabled=!!own;$('sPitcher').innerHTML=(own?'':'<option value="">All pitchers</option>')+s.pitchers.filter(p=>!own||p.id===own).map(p=>`<option value="${p.id}" ${p.id===pf?'selected':''}>${H(p.name)}${p.archived?' (archived)':''}</option>`).join('');
   const all=scopePitches($('sScope').value);const P=pf?all.filter(p=>p.pitcherId===pf):all;const sum=PC.summarize(P);
@@ -201,38 +202,42 @@ function renderStats(){const s=S();const sel=$('sScope').value||(s.activeGame||'
 let RPT=null;
 function reportFor(sess){const own=role()==='player'?store.real.sync.pitcherId:null;let P=sess.pitches.filter(p=>!p.deleted);if(own)P=P.filter(p=>p.pitcherId===own);
   const pids=[...new Set(P.map(p=>p.pitcherId).filter(Boolean))];const who=pids.length?pids.map(pName).join(', '):(sess.pitcherId?pName(sess.pitcherId):'Bullpen');
-  const items=P.map(p=>({p,src:'bullpen',sessionId:sess.id,side:'N'}));const thm={};S().pitchers.forEach(q=>thm[q.id]=q.throws);return{sess,P,who,r:PC.sessionReport(P,thm),miss:PC.missData(items,{}),test:!!store.isTest};}
-function paintMiss(svg,d){zoneSVG(svg,'R',{noNums:true,noSide:true});let ex='';PC.ALL_CELLS.forEach(z=>{const c=d.cells[z],el=svg.querySelector(`[data-z="${z}"]`);if(!el)return;const[cx,cy]=center(z);
+  const items=P.map(p=>({p,src:'bullpen',sessionId:sess.id,side:'N'}));const thm={};S().pitchers.forEach(q=>thm[q.id]=q.throws);return{sess,P,who,r:PC.sessionReport(P,thm),miss:(()=>{const d=PC.missData(items,{});P.forEach(p=>{const m=PC.pitchMiss(p,thm[p.pitcherId]);if(!m||!p.targets)return;p.targets.forEach(z=>{const c=d.cells[z];if(c&&m.good)c.good=(c.good||0)+1;});});return d;})(),test:!!store.isTest};}
+function paintMiss(svg,d,kid){if(kid)return paintKid(svg,d);zoneSVG(svg,'R',{noNums:true,noSide:true});let ex='';PC.ALL_CELLS.forEach(z=>{const c=d.cells[z],el=svg.querySelector(`[data-z="${z}"]`);if(!el)return;const[cx,cy]=center(z);
   const col=PC.missColor(c.avg);el.style.fill=col?col.fill:'#161b22';const tc=col?col.text:'#6e7681';const lbl=c.n?`Aimed at zone ${z}: ${c.n}, avg miss ${c.avg}${c.mm?`, ${c.mm} middle-middle mistakes`:''}`:`Zone ${z}: none aimed`;el.setAttribute('aria-label',lbl);el.innerHTML=`<title>${lbl}</title>`;
   if(c.n){ex+=`<text x="${cx}" y="${cy-2.5}" style="fill:${tc};font-size:6px;font-weight:800;text-anchor:middle;dominant-baseline:middle">${c.avg<=1?'✓':'✗'}${c.avg.toFixed(1)}</text><text x="${cx}" y="${cy+4}" style="fill:${tc};font-size:4px;font-weight:700;text-anchor:middle">n=${c.n}</text>`;if(c.mm)ex+=`<text x="${cx}" y="${cy+9}" style="fill:${tc};font-size:3.8px;font-weight:800;text-anchor:middle">⚠MM ${c.mm}</text>`;}});svg.insertAdjacentHTML('beforeend',ex);}
+const KID_LEGEND='<b style="color:#2ea043">Green</b> = you hit your spot or were 1 box off. The <b style="color:#f47067">redder</b> the box, the farther you missed. Each box shows how many were on target out of how many you aimed there. 🔥 = fat pitch: right down the middle when you didn\'t aim there – the biggest miss, because that\'s the pitch hitters crush.';
+function paintKid(svg,d){zoneSVG(svg,'R',{noNums:true,noSide:true});let ex='';PC.ALL_CELLS.forEach(z=>{const c=d.cells[z],el=svg.querySelector(`[data-z="${z}"]`);if(!el)return;const[cx,cy]=center(z);
+  const col=PC.missColor(c.avg);el.style.fill=col?col.fill:'#161b22';const tc=col?col.text:'#6e7681';const g=c.good||0;const lbl=c.n?`Aimed here ${c.n} time${c.n===1?'':'s'}, ${g} on target${c.mm?`, ${c.mm} fat pitch${c.mm===1?'':'es'}`:''}`:'Not aimed here';el.setAttribute('aria-label',lbl);el.innerHTML=`<title>${lbl}</title>`;
+  if(c.n){ex+=`<text x="${cx}" y="${cy-2}" style="fill:${tc};font-size:7px;font-weight:800;text-anchor:middle;dominant-baseline:middle">${g}/${c.n}</text><text x="${cx}" y="${cy+5}" style="fill:${tc};font-size:3.8px;font-weight:700;text-anchor:middle">on target</text>`;if(c.mm)ex+=`<text x="${cx}" y="${cy+10}" style="fill:${tc};font-size:4.2px;font-weight:800;text-anchor:middle">🔥${c.mm}</text>`;}});svg.insertAdjacentHTML('beforeend',ex);}
 function openReport(sess){if(!sess)return toast('No session');const R=reportFor(sess);RPT=R;const r=R.r;
   if(!R.P.length){$('rBody').innerHTML='<h2 id="rT">Bullpen report</h2><p class="mut">No pitches in this session'+(role()==='player'?' for you':'')+'.</p>';$('rDlg').showModal();return;}
-  const st=[['Pitches',r.n],['Strike %',fmt(r.strikePct)],['Hit spot',fmt(r.goodPct)],['Avg miss',r.avgMiss==null?'–':r.avgMiss+' sq'],['MM mistakes',r.mm],['Called',r.called]];
-  const sp=x=>x?`<b>${H(x.label)}</b> – ${x.good}/${x.called} good · avg ${x.avgMiss} sq`:'<span class="mut">need 2+ pitches at a spot</span>';
-  const tr=r.trend&&r.trend.first.called&&r.trend.second.called?`<div class="lbl" style="margin-top:10px">Trend</div><div>1st half: ${fmt(r.trend.first.goodPct)} good · ${fmt(r.trend.first.strikePct)} K · avg ${r.trend.first.avgMiss} sq<br>2nd half: ${fmt(r.trend.second.goodPct)} good · ${fmt(r.trend.second.strikePct)} K · avg ${r.trend.second.avgMiss} sq</div>`:'';
+  const rp=v=>v==null?'–':Math.round(v)+'%';const st=[['Pitches',r.n],['Strikes',rp(r.strikePct)],['On target',rp(r.goodPct)],['Fat pitches',r.mm],['Spots aimed',r.called],['Bullseyes',r.hits]];
+  const sp=x=>x?`<b>${H(x.label)}</b> – ${x.good} of ${x.called} on target`:'<span class="mut">throw 2+ pitches at a spot to see this</span>';
+  const tr=r.trend&&r.trend.first.called&&r.trend.second.called?`<div class="lbl" style="margin-top:10px">Early vs. late</div><div>First half: ${rp(r.trend.first.goodPct)} on target · ${rp(r.trend.first.strikePct)} strikes<br>Second half: ${rp(r.trend.second.goodPct)} on target · ${rp(r.trend.second.strikePct)} strikes</div>`:'';
   $('rBody').innerHTML=`${R.test?'<div class="tag" style="background:var(--red)">TEST – not saved</div>':''}<h2 id="rT">Bullpen report</h2><div class="mut">${H(R.who)} · ${H(sess.date||'')} </div>
   <div class="grid3" style="margin-top:8px">${st.map(([k,v])=>`<div class="stat"><b>${v}</b><span>${k}</span></div>`).join('')}</div>
   <div class="lbl" style="margin-top:10px">Feedback</div><ul class="fb">${r.feedback.map(t=>`<li>${H(t)}</li>`).join('')}</ul>
-  <div class="lbl">Miss heat map (by intended spot)</div><svg id="rMap" viewBox="-14 -6 128 138" style="width:100%;max-width:340px;display:block;margin:auto"></svg>
-  <div class="mut" style="font-size:12px">✓ = avg on target or 1 square off (good) · ✗ = avg miss · MM = landed middle-middle when aimed elsewhere (scored as a 4-square miss)</div>
-  <div class="lbl" style="margin-top:10px">Best / weakest</div><div>Best: ${sp(r.best)}</div><div>Weakest: ${sp(r.weakest)}</div>${tr}
-  <div class="lbl" style="margin-top:10px">By pitch type</div><table><tr><th>Type</th><th>#</th><th>K%</th><th>Spot</th><th>Avg</th><th>MM</th></tr>${Object.entries(r.byType).sort((a,b)=>b[1].n-a[1].n).map(([k,v])=>`<tr><td>${H(k)}</td><td>${v.n}</td><td>${fmt(v.strikePct)}</td><td>${fmt(v.goodPct)}</td><td>${v.avgMiss==null?'–':v.avgMiss}</td><td>${v.mm}</td></tr>`).join('')}</table>`;
-  if(R.miss.total)paintMiss($('rMap'),R.miss);else $('rMap').outerHTML='<div class="mut">No intended spots logged – tap a target before the actual location to get the heat map.</div>';
+  <div class="lbl">Where you aimed – how close you got</div><svg id="rMap" viewBox="-14 -6 128 138" style="width:100%;max-width:340px;display:block;margin:auto"></svg>
+  <div style="font-size:13px;line-height:1.4;margin-top:4px">${KID_LEGEND}</div>
+  <div class="lbl" style="margin-top:10px">Best spot / work on</div><div>⭐ Best: ${sp(r.best)}</div><div>🎯 Work on: ${sp(r.weakest)}</div>${tr}
+  <div class="lbl" style="margin-top:10px">By pitch</div><table><tr><th>Pitch</th><th>Thrown</th><th>Strikes</th><th>On target</th><th>Fat</th></tr>${Object.entries(r.byType).sort((a,b)=>b[1].n-a[1].n).map(([k,v])=>`<tr><td>${H(PC.TYPE_NAME[k]||k)}</td><td>${v.n}</td><td>${rp(v.strikePct)}</td><td>${v.called?`${v.good}/${v.called}`:'–'}</td><td>${v.mm}</td></tr>`).join('')}</table>`;
+  if(R.miss.total)paintMiss($('rMap'),R.miss,true);else $('rMap').outerHTML='<div class="mut">No intended spots logged – tap a target before the actual location to get the heat map.</div>';
   $('rDlg').showModal();}
 function reportPNG(R){const W=720,r=R.r,lines=[];const cv=document.createElement('canvas');const ctx=cv.getContext('2d');
   const wrap=(t,w,font)=>{ctx.font=font;const out=[];let cur='';t.split(' ').forEach(x=>{const n=cur?cur+' '+x:x;if(ctx.measureText(n).width>w){out.push(cur);cur=x;}else cur=n;});if(cur)out.push(cur);return out;};
   cv.width=W;cv.height=10;const fbl=r.feedback.map(t=>wrap('• '+t,W-60,'22px sans-serif'));const types=Object.entries(r.byType);
-  const H2=200+fbl.flat().length*30+40+5*90+30+60+types.length*30+(r.trend?70:0)+80;cv.width=W;cv.height=H2;
+  const H2=200+fbl.flat().length*30+40+5*90+30+140+70+types.length*30+(r.trend?70:0)+80;cv.width=W;cv.height=H2;
   ctx.fillStyle='#0d1117';ctx.fillRect(0,0,W,H2);let y=50;const tx=(t,x,yy,f,c)=>{ctx.font=f;ctx.fillStyle=c||'#e6edf3';ctx.fillText(t,x,yy);};
   tx('THUNDER ELITE · Bullpen report'+(R.test?' (TEST)':''),30,y,'bold 28px sans-serif','#4c7dff');y+=36;tx(`${R.who} · ${R.sess.date||''}`,30,y,'22px sans-serif','#9aa4b2');y+=46;
-  [['Pitches',r.n],['Strike',fmt(r.strikePct)],['Hit spot',fmt(r.goodPct)],['Avg miss',r.avgMiss==null?'–':r.avgMiss],['MM',r.mm]].forEach(([k,v],i)=>{const x=30+i*134;ctx.fillStyle='#161b22';ctx.fillRect(x,y-30,124,72);tx(String(v),x+10,y+4,'bold 28px sans-serif');tx(k,x+10,y+32,'16px sans-serif','#9aa4b2');});y+=80;
+  [['Pitches',r.n],['Strikes',r.strikePct==null?'–':Math.round(r.strikePct)+'%'],['On target',r.goodPct==null?'–':Math.round(r.goodPct)+'%'],['Fat pitches',r.mm],['Bullseyes',r.hits]].forEach(([k,v],i)=>{const x=30+i*134;ctx.fillStyle='#161b22';ctx.fillRect(x,y-30,124,72);tx(String(v),x+10,y+4,'bold 28px sans-serif');tx(k,x+10,y+32,'16px sans-serif','#9aa4b2');});y+=80;
   fbl.forEach(ls=>ls.forEach(l=>{tx(l,30,y,'22px sans-serif');y+=30;}));y+=20;
   const S=90,ox=(W-5*S)/2;PC.ALL_CELLS.forEach(z=>{const [gx,gy]=PC.GRID_XY[z];const c=R.miss.cells[z];const col=PC.missColor(c.avg);const x=ox+gx*S,yy=y+gy*S;
-    ctx.fillStyle=col?col.fill:'#161b22';ctx.fillRect(x+2,yy+2,S-4,S-4);ctx.textAlign='center';if(c.n){tx((c.avg<=1?'✓':'✗')+c.avg.toFixed(1),x+S/2,yy+40,'bold 24px sans-serif',col.text);tx('n='+c.n+(c.mm?' MM'+c.mm:''),x+S/2,yy+66,'15px sans-serif',col.text);}else tx(String(z),x+S/2,yy+52,'16px sans-serif','#555');ctx.textAlign='left';});
-  ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.strokeRect(ox+S,y+S,3*S,3*S);y+=5*S+30;tx('Pitcher\'s view · ✓ = on target or 1 square off · MM = middle-middle mistake',30,y,'16px sans-serif','#9aa4b2');y+=40;
-  tx('Best: '+(r.best?`${r.best.label} (${r.best.good}/${r.best.called})`:'–')+'   Weakest: '+(r.weakest?`${r.weakest.label} (avg ${r.weakest.avgMiss})`:'–'),30,y,'18px sans-serif');y+=36;
-  types.forEach(([k,v])=>{tx(`${k}: ${v.n} · ${fmt(v.strikePct)} K · ${fmt(v.goodPct)} spot · avg ${v.avgMiss==null?'–':v.avgMiss} · MM ${v.mm}`,30,y,'19px sans-serif');y+=30;});
-  if(r.trend){y+=10;tx(`Trend: 1st half ${fmt(r.trend.first.goodPct)} good → 2nd half ${fmt(r.trend.second.goodPct)}`,30,y,'19px sans-serif');}
+    ctx.fillStyle=col?col.fill:'#161b22';ctx.fillRect(x+2,yy+2,S-4,S-4);ctx.textAlign='center';if(c.n){tx(`${c.good||0}/${c.n}`,x+S/2,yy+40,'bold 26px sans-serif',col.text);tx('on target'+(c.mm?' 🔥'+c.mm:''),x+S/2,yy+66,'15px sans-serif',col.text);}else tx(String(z),x+S/2,yy+52,'16px sans-serif','#555');ctx.textAlign='left';});
+  ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.strokeRect(ox+S,y+S,3*S,3*S);y+=5*S+30;wrap(KID_LEGEND.replace(/<[^>]+>/g,''),W-60,'18px sans-serif').forEach(l=>{tx(l,30,y,'18px sans-serif','#c9d1d9');y+=26;});y+=14;
+  tx('⭐ Best: '+(r.best?`${r.best.label} (${r.best.good} of ${r.best.called} on target)`:'–'),30,y,'19px sans-serif');y+=30;tx('🎯 Work on: '+(r.weakest?`${r.weakest.label} (${r.weakest.good} of ${r.weakest.called} on target)`:'–'),30,y,'19px sans-serif');y+=38;
+  types.forEach(([k,v])=>{tx(`${PC.TYPE_NAME[k]||k}: ${v.n} thrown · ${v.strikePct==null?'–':Math.round(v.strikePct)+'%'} strikes · ${v.good}/${v.called} on target${v.mm?` · ${v.mm} fat`:''}`,30,y,'19px sans-serif');y+=30;});
+  if(r.trend){y+=10;tx(`Early vs. late: ${Math.round(r.trend.first.goodPct||0)}% on target → ${Math.round(r.trend.second.goodPct||0)}%`,30,y,'19px sans-serif');}
   return new Promise(res=>cv.toBlob(res,'image/png'));}
 $('rShare').onclick=async()=>{if(!RPT||!RPT.P.length)return;const b=await reportPNG(RPT);const name=`bullpen-${(RPT.who||'').replace(/#.*$/,'').trim().split(' ').pop()}-${RPT.sess.date||''}.png`.replace(/[^\w.-]/g,'_');
   const f=new File([b],name,{type:'image/png'});try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:'Bullpen report'});return;}}catch(e){if(e&&e.name==='AbortError')return;}
@@ -247,7 +252,7 @@ const SIDE_L={R:'RHB',L:'LHB',N:'No batter'},SRC_L={game:'Games',bullpen:'Bullpe
 function heatOptions(items){const s=S(),own=role()==='player'?store.real.sync.pitcherId:null;const uniq=a=>[...new Set(a.filter(Boolean))];
   return{type:uniq(items.map(i=>i.p.type)).sort().map(v=>[v,v]),pitcher:s.pitchers.filter(p=>!own||p.id===own).map(p=>[p.id,p.name]),throws:[['R','RHP'],['L','LHP']],
     batter:uniq(items.map(i=>i.batter)).sort().map(v=>[v,v]),side:[['R','RHB'],['L','LHB'],['N','No batter']],src:[['game','Games'],['bullpen','Bullpen']],
-    game:s.games.map(g=>[g.id,`${g.date||''} ${vsAt(g)} ${g.opponent}`]),session:s.sessions.map(x=>[x.id,`Bullpen ${x.date||''} (${x.pitches.length})`])};}
+    game:(own?s.games.filter(g=>g.pitches.some(p=>p.pitcherId===own)):s.games).map(g=>[g.id,`${g.date||''} ${vsAt(g)} ${g.opponent}`]),session:s.sessions.map(x=>[x.id,`Bullpen ${x.date||''} (${x.pitches.length})`])};}
 const HF_LBL={type:'Pitch',pitcher:'Pitcher',throws:'Pitcher hand',batter:'Batter',side:'Batter side',src:'Source',game:'Game',session:'Bullpen session'};
 function heatChipText(k,v,opts){const o=(opts[k]||[]).find(x=>x[0]===v);return `${HF_LBL[k]}: ${o?o[1]:v}`;}
 function renderHeat(){const items0=PC.heatItems(S());const own=role()==='player'?store.real.sync.pitcherId:null;const items=own?items0.filter(i=>i.p.pitcherId===own):items0;

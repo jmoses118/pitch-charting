@@ -25,12 +25,20 @@ const get=async(c,q)=>(await fetch(U+q,{headers:H(c)})).json();
   r=await post(pa,'games',[{team_id:'zztest',id:'g_hack',opponent:'x'}]);ok(!r.ok,'player: create game DENIED ('+r.status+')');
   r=await post(pa,'pitchers',[{team_id:'zztest',id:'p_new',name:'N',throws:'R'}]);ok(!r.ok,'player: add pitcher DENIED ('+r.status+')');
   r=await fetch(U+'pitches?id=eq.'+own.id,{method:'DELETE',headers:Object.assign(H(pa),{Prefer:'return=representation'})});ok(!r.ok||(await r.text())==='[]','player: hard delete DENIED ('+r.status+')');
+  // game data: coach charts game g_zt (ZA + ZB pitched) and g_zt2 (only ZB)
+  await post(COACH,'games',[{team_id:'zztest',id:'g_zt2',opponent:'T2',status:'final'}]);
+  r=await post(COACH,'pitches',[{team_id:'zztest',id:PC.uuid(),mode:'game',game_id:gid,pitcher_id:'p_za',type:'FB',loc:3,result:'called'},{team_id:'zztest',id:PC.uuid(),mode:'game',game_id:gid,pitcher_id:'p_zb',type:'CH',loc:7,result:'ball'},{team_id:'zztest',id:PC.uuid(),mode:'game',game_id:'g_zt2',pitcher_id:'p_zb',type:'FB',loc:5,result:'inplay'}]);ok(r.ok,'coach writes game pitches');
+  let gp=await get(pa,'pitches?select=pitcher_id,mode,game_id&mode=eq.game');ok(gp.length===1&&gp[0].pitcher_id==='p_za'&&gp[0].game_id===gid,'player reads own GAME pitches only ('+gp.length+')');
+  let gg=await get(pa,'games?select=id');ok(gg.length===1&&gg[0].id===gid,'player reads only games she pitched in ('+gg.map(x=>x.id)+')');
+  r=await post(pa,'games',[{team_id:'zztest',id:gid,opponent:'hacked'}]);ok(!r.ok,'player: update game DENIED ('+r.status+')');
+  r=await fetch(U+'games?id=eq.'+gid,{method:'PATCH',headers:Object.assign(H(pa),{Prefer:'return=representation'}),body:JSON.stringify({opponent:'hacked'})});ok(!r.ok||(await r.text())==='[]','player: patch game DENIED ('+r.status+')');
+  r=await fetch(U+'pitches?mode=eq.game&pitcher_id=eq.p_za',{method:'PATCH',headers:Object.assign(H(pa),{Prefer:'return=representation'}),body:JSON.stringify({loc:5})});ok(!r.ok||(await r.text())==='[]','player: edit own game pitch DENIED ('+r.status+')');
   // reads
   let leak=await get(vw,'pitches?select=*');ok(!JSON.stringify(leak).includes(COACH),'viewer never sees the coach code in data');
   let a=await get(pa,'pitches?select=pitcher_id');ok(a.length>0&&a.every(x=>x.pitcher_id==='p_za'),'player reads only own pitches ('+a.length+')');
-  a=await get(pa,'games?select=id');ok(a.length===0,'player cannot read games');a=await get(pa,'pitchers?select=id');ok(a.length===1&&a[0].id==='p_za','player sees only own pitcher row');
+  a=await get(pa,'pitchers?select=id');ok(a.length===1&&a[0].id==='p_za','player sees only own pitcher row');
   a=await get(pa,'sessions?select=id');ok(a.length===1&&a[0].id==='s_za','player sees only own session');
-  a=await get(vw,'pitches?select=pitcher_id');ok(a.length>=2,'viewer reads whole team ('+a.length+')');a=await get(vw,'games?select=id');ok(a.length===1,'viewer reads games');
+  a=await get(vw,'pitches?select=pitcher_id');ok(a.length>=2,'viewer reads whole team ('+a.length+')');a=await get(vw,'games?select=id');ok(a.length===2,'viewer reads all games');
   r=await post(vw,'pitches',[{team_id:'zztest',id:PC.uuid(),mode:'bullpen',pitcher_id:'p_za'}]);ok(!r.ok,'viewer write DENIED ('+r.status+')');
   ok((await rpc(COACH,'coach_revoke_code',{p_code:pa})).body==='true','coach revokes player code');
   ok((await rpc(pa,'whoami')).body==='null','revoked code no longer recognized');r=await post(pa,'pitches',[Object.assign({},own,{id:PC.uuid()})]);ok(!r.ok,'revoked code write DENIED ('+r.status+')');
