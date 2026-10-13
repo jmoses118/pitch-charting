@@ -315,11 +315,11 @@ const DD_NAME=z=>z===5?'right down the middle':(z<10?'box '+z:'outside spot '+z)
 function openDrill(z,c,title){const svg=$('ddMap');zoneSVG(svg,'R',{noNums:true,noSide:true});let ex='';const L=c.land||{};let near=0,far=0,mm=0,up=0;
   PC.ALL_CELLS.forEach(q=>{const el=svg.querySelector(`[data-z="${q}"]`);if(!el)return;const e=L[q];const[cx,cy]=center(q);
     if(q==z){el.style.stroke='#fff';el.style.strokeWidth='2.2';}
-    if(!e){el.style.fill='#161b22';return;}const good=e.sev<=1;if(e.mm)mm+=e.mm;if(e.chUp)up+=e.chUp;if(good)near+=e.n;else far+=e.n-(e.mm||0);
+    if(!e){el.style.fill='#161b22';return;}const good=PC.isGoodSev(e.sev);if(e.mm)mm+=e.mm;if(e.chUp)up+=e.chUp;if(good)near+=e.n;else far+=e.n-(e.mm||0);
     const col=good?PC.MISS_SCALE[0]:PC.missColor(e.sev);el.style.fill=col.fill;const lbl=`${e.n} landed ${DD_NAME(q)}${good?' (on target)':e.mm?' – souvenir':' (missed)'}`;el.setAttribute('aria-label',lbl);el.innerHTML=`<title>${lbl}</title>`;
     ex+=`<text x="${cx}" y="${cy-1}" style="fill:${col.text};font-size:8px;font-weight:800;text-anchor:middle;dominant-baseline:middle">${e.mm?'🎁':''}${e.n}</text>`;if(e.chUp)ex+=`<text x="${cx}" y="${cy+7}" style="fill:${col.text};font-size:3.6px;font-weight:700;text-anchor:middle">CH up</text>`;});
   const [tx,ty]=center(Number(z));ex+=`<text x="${tx}" y="${ty-9}" style="fill:#fff;font-size:3.6px;font-weight:800;text-anchor:middle">AIM</text>`;svg.insertAdjacentHTML('beforeend',ex);
-  const W=[21,22,23,24].filter(q=>L[q]).map(q=>`${L[q].n} ${PC.WAY[q]}`);const wn=[21,22,23,24].reduce((a,q)=>a+(L[q]?L[q].n:0),0);far-=0;
+  const W=[21,22,23,24].filter(q=>L[q]).map(q=>`${L[q].n} ${PC.WAY[q]}`);const wn=[21,22,23,24].reduce((a,q)=>a+(L[q]?L[q].n:0),0);
   $('ddT').textContent=(title?title+' – ':'')+'aimed at '+DD_NAME(Number(z));
   $('ddCap').innerHTML=`You aimed here <b>${c.n}</b> time${c.n===1?'':'s'}: <b style="color:#2ea043">${near} on target</b> (or 1 box off)${far?`, <b style="color:#f47067">${far} missed</b>`:''}${mm?`, <b>${mm} souvenir${mm===1?'':'s'} 🎁</b>`:''}.`+(up?` ${up} change-up${up===1?' was':'s were'} up in the zone.`:'')+(wn?` <b style="color:#f47067">🚫 ${wn} way off</b> (${W.join(', ')}) – not shown on the grid.`:'');
   $('ddKey').textContent='White box = where you aimed. Numbers = how many landed there. Green = on target or 1 box off, red = missed (darker = farther), 🎁 = souvenir, 🚫 way off = nowhere near the plate (listed above).';$('ddDlg').showModal();}
