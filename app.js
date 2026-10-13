@@ -195,7 +195,7 @@ function renderStats(){const s=S();const sel=$('sScope').value||(s.activeGame||'
   const mx=Math.max(1,...Object.values(sum.byLoc).map(v=>v.n));const lab={};for(const k in sum.byLoc)lab[k]=sum.byLoc[k].n+' · '+fmt(sum.byLoc[k].strikePct);
   zoneSVG($('sHeat'),'R',{labels:lab});for(const k in sum.byLoc){const e=$('sHeat').querySelector(`[data-z="${k}"]`);if(e){e.style.fill=`rgba(245,${Math.round(197-150*sum.byLoc[k].n/mx)},24,${.25+.6*sum.byLoc[k].n/mx})`;}}}
 // ---------- zone heat map ----------
-const HKEY='te_pitch_heat_v1';let HF={},HV='actual';try{const o=JSON.parse(storage&&storage.getItem(HKEY)||'{}');HF=o.f||{};HV=o.v||'actual';}catch(e){}
+const HKEY='te_pitch_heat_v1';let HF={},HV='miss';try{const o=JSON.parse(storage&&storage.getItem(HKEY)||'{}');HF=o.f||{};HV=o.v==='actual'?'actual':'miss';}catch(e){}
 const saveHF=()=>{try{storage&&storage.setItem(HKEY,JSON.stringify({f:HF,v:HV}));}catch(e){}};
 const SIDE_L={R:'RHB',L:'LHB',N:'No batter'},SRC_L={game:'Games',bullpen:'Bullpen'},TH_L={R:'RHP',L:'LHP'};
 function heatOptions(items){const s=S(),own=role()==='player'?store.real.sync.pitcherId:null;const uniq=a=>[...new Set(a.filter(Boolean))];
@@ -206,31 +206,34 @@ const HF_LBL={type:'Pitch',pitcher:'Pitcher',throws:'Pitcher hand',batter:'Batte
 function heatChipText(k,v,opts){const o=(opts[k]||[]).find(x=>x[0]===v);return `${HF_LBL[k]}: ${o?o[1]:v}`;}
 function renderHeat(){const items0=PC.heatItems(S());const own=role()==='player'?store.real.sync.pitcherId:null;const items=own?items0.filter(i=>i.p.pitcherId===own):items0;
   const opts=heatOptions(items);const f=Object.assign({},HF);if(own)f.pitcher=own;
-  const d=PC.heatData(items,f,HV);
-  $('hvA').classList.toggle('sel',HV==='actual');$('hvI').classList.toggle('sel',HV==='intended');$('hvA').setAttribute('aria-pressed',String(HV==='actual'));$('hvI').setAttribute('aria-pressed',String(HV==='intended'));
+  const miss=HV==='miss';const d=miss?PC.missData(items,f):PC.heatData(items,f,'actual');
+  $('hvA').classList.toggle('sel',!miss);$('hvI').classList.toggle('sel',miss);$('hvA').setAttribute('aria-pressed',String(!miss));$('hvI').setAttribute('aria-pressed',String(miss));
   const act=PC.HEAT_KEYS.filter(k=>HF[k]&&!(own&&k==='pitcher'));
   $('hfChips').innerHTML=(act.length?act.map(k=>`<button class="tag" data-hfx="${k}" aria-label="Remove filter ${H(heatChipText(k,HF[k],opts))}" style="min-height:34px;font-size:13px;background:#1d2a55;border:1px solid #2f4fb0">${H(heatChipText(k,HF[k],opts))} ✕</button>`).join(''):'<span class="mut">All pitches'+(own?' (yours)':'')+'</span>');
   $('hfReset').disabled=!act.length;
-  const what=HV==='actual'?'where pitches landed':'where pitches were aimed (with hit-the-spot %)';
-  $('hSummary').textContent=`${d.total} pitch${d.total===1?'':'es'} · ${what}`+(HV==='intended'&&d.matched>d.total?` · ${d.matched-d.total} had no intended spot`:'');
+  const what=miss?'each box = where pitches were aimed, colored by how far they missed':'where pitches landed';
+  $('hSummary').textContent=`${d.total} pitch${d.total===1?'':'es'} · ${what}`+(miss&&d.matched>d.total?` · ${d.matched-d.total} had no intended spot`:'');
   const empty=d.total===0;$('hEmpty').classList.toggle('hide',!empty);$('hMap').classList.toggle('hide',empty);$('hLegend').classList.toggle('hide',empty);if(empty)return;
   zoneSVG($('hMap'),'R',{noNums:true,noSide:true});let ex='';
-  PC.ALL_CELLS.forEach(z=>{const c=d.cells[z],col=PC.heatColor(c.n,d.max),el=$('hMap').querySelector(`[data-z="${z}"]`);if(!el)return;
-    el.style.fill=col?col.fill:'#161b22';const[cx,cy]=center(z);const tc=col?col.text:'#6e7681';
-    const lbl=`Zone ${z}: ${c.n} pitch${c.n===1?'':'es'}${HV==='intended'&&c.n?`, ${Math.round(100*c.hit/c.n)}% hit the spot`:''}`;
-    el.insertAdjacentHTML('beforeend','');el.innerHTML=`<title>${lbl}</title>`;el.setAttribute('aria-label',lbl);
-    ex+=`<text x="${cx}" y="${cy-1}" style="fill:${tc};font-size:7px;font-weight:800;text-anchor:middle;dominant-baseline:middle;pointer-events:none">${c.n||''}</text>`;
-    if(HV==='intended'&&c.n)ex+=`<text x="${cx}" y="${cy+6}" style="fill:${tc};font-size:4.2px;font-weight:700;text-anchor:middle;pointer-events:none">${Math.round(100*c.hit/c.n)}%</text>`;
+  PC.ALL_CELLS.forEach(z=>{const c=d.cells[z],el=$('hMap').querySelector(`[data-z="${z}"]`);if(!el)return;const[cx,cy]=center(z);
+    const col=miss?PC.missColor(c.avg):PC.heatColor(c.n,d.max);el.style.fill=col?col.fill:'#161b22';const tc=col?col.text:'#6e7681';
+    const lbl=miss?(c.n?`Aimed at zone ${z}: ${c.n} pitch${c.n===1?'':'es'}, average miss ${c.avg} square${c.avg===1?'':'s'}, ${c.hit} hit exactly`:`Zone ${z}: no pitches aimed here`):`Zone ${z}: ${c.n} pitch${c.n===1?'':'es'}`;
+    el.innerHTML=`<title>${lbl}</title>`;el.setAttribute('aria-label',lbl);
+    if(miss){if(c.n){ex+=`<text x="${cx}" y="${cy-2.5}" style="fill:${tc};font-size:6px;font-weight:800;text-anchor:middle;dominant-baseline:middle;pointer-events:none">${c.avg<=1?'✓':'✗'}${c.avg.toFixed(1)}</text>`;
+        ex+=`<text x="${cx}" y="${cy+5}" style="fill:${tc};font-size:4.2px;font-weight:700;text-anchor:middle;pointer-events:none">n=${c.n}</text>`;}}
+    else ex+=`<text x="${cx}" y="${cy-1}" style="fill:${tc};font-size:7px;font-weight:800;text-anchor:middle;dominant-baseline:middle;pointer-events:none">${c.n||''}</text>`;
     ex+=`<text x="${cx+(z<10?8:7)}" y="${cy-(z<10?9:8)}" style="fill:${tc};opacity:.65;font-size:3.6px;text-anchor:end;pointer-events:none">${z}</text>`;});
   $('hMap').insertAdjacentHTML('beforeend',ex);
-  $('hLegend').innerHTML=`<div class="row" style="gap:6px;font-size:12px" aria-label="Color scale from 1 to ${d.max} pitches"><span class="mut">1</span><div style="flex:1;height:12px;border-radius:6px;background:linear-gradient(90deg,${PC.VIRIDIS.join(',')})"></div><span class="mut">${d.max}</span></div><div class="mut" style="font-size:12px;margin-top:4px">Pitcher's view · number = pitches${HV==='intended'?' aimed there · % = hit the spot':''} · darker = fewer, yellow = most · 11–18 are outside the zone</div>`;}
+  $('hLegend').innerHTML=miss?`<div class="row wrap" style="gap:6px;font-size:12px" aria-label="Miss scale">${PC.MISS_SCALE.map(s=>`<span class="row" style="gap:4px"><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:${s.fill}"></span>${s.label}</span>`).join('')}<span class="mut">squares off</span></div>
+    <div class="mut" style="font-size:12px;margin-top:4px">Pitcher's view · each box = intended spot · ✓/✗ + number = average miss in squares (hit or 1 square = ✓ good) · n = pitches aimed there · squares are counted like a king's move, diagonals = 1, outside spots 11–18 count as the ring around the zone (max 4).</div>`
+   :`<div class="row" style="gap:6px;font-size:12px" aria-label="Color scale from 1 to ${d.max} pitches"><span class="mut">1</span><div style="flex:1;height:12px;border-radius:6px;background:linear-gradient(90deg,${PC.VIRIDIS.join(',')})"></div><span class="mut">${d.max}</span></div><div class="mut" style="font-size:12px;margin-top:4px">Pitcher's view · number = pitches that landed there · dark = fewer, yellow = most · 11–18 are outside the zone</div>`;}
 function openHF(){const items0=PC.heatItems(S());const own=role()==='player'?store.real.sync.pitcherId:null;const opts=heatOptions(own?items0.filter(i=>i.p.pitcherId===own):items0);
   $('hfForm').innerHTML=PC.HEAT_KEYS.filter(k=>!(own&&k==='pitcher')).map(k=>`<label class="mut" style="font-size:13px">${HF_LBL[k]}<select data-hk="${k}" style="width:100%;margin-top:2px"><option value="">Any</option>${(opts[k]||[]).map(([v,l])=>`<option value="${H(v)}" ${HF[k]===v?'selected':''}>${H(l)}</option>`).join('')}</select></label>`).join('');$('hfDlg').showModal();}
 $('hfOpen').onclick=openHF;
 $('hfDlg').addEventListener('close',()=>{const rv=$('hfDlg').returnValue;if(rv==='reset')HF={};else if(rv==='ok'){HF={};$('hfForm').querySelectorAll('select').forEach(s=>{if(s.value)HF[s.dataset.hk]=s.value;});}else return;saveHF();renderHeat();});
 $('hfChips').addEventListener('click',e=>{const k=e.target.dataset.hfx;if(k){delete HF[k];saveHF();renderHeat();}});
 $('hfReset').onclick=$('hfReset2').onclick=()=>{HF={};saveHF();renderHeat();};
-$('hvA').onclick=()=>{HV='actual';saveHF();renderHeat();};$('hvI').onclick=()=>{HV='intended';saveHF();renderHeat();};
+$('hvA').onclick=()=>{HV='actual';saveHF();renderHeat();};$('hvI').onclick=()=>{HV='miss';saveHF();renderHeat();};
 $('sScope').onchange=renderStats;$('sPitcher').onchange=renderStats;
 // ---------- cloud sync ----------
 const CFG=window.PC_CONFIG||{};const sync=CFG.url&&CFG.key?PC.makeSync(store,{url:CFG.url,key:CFG.key}):null;let syncT=null,syncing=false;
