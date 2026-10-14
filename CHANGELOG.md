@@ -1,5 +1,12 @@
 # Changelog
 
+## v32 – privacy for minors
+### Changed
+- Pitchers are shown as **first name + jersey number** (e.g. "Avery #45") everywhere in the UI: pitcher picker, banners, toasts, reports, stats, Setup and access-code labels.
+- The pitcher form asks for a first name only. Default pitchers are first names, and the default roster is empty (no surnames in the public repo).
+- One-time migration trims stored surnames on the default pitchers to first names and queues them for sync, so the cloud copy is scrubbed by the next coach sync. Data IDs are unchanged, so history and access codes stay attached.
+- Test fixtures, seeds and docs use first names only. No birthdays or other personal details are stored.
+
 ## v31 – UI v2
 ### Changed
 - Design pass for the iPhone PWA:
