@@ -19,7 +19,7 @@ for(const [W,H] of [[390,844],[375,667]]){const tag=`${W}x${H}`;
   await p.click('nav [data-t="bullpen"]');await wait();ok(/none/.test(await p.textContent('#batTog')),`${tag} bullpen defaults to no batter`);
   await p.click('#batTog');await wait(300);await segOK('#batDlg .seg3 button','bullpen batter sheet hides LHB/RHB',1);
   await p.click('#batDlg button[value=cancel]');await wait();
-  await p.click('#bpHands');await wait();await p.click('#batTog');await wait(300);await segOK('#batDlg .seg3 button','bullpen batter sheet',3);
+  await p.click('#bpHands');await p.evaluate(()=>scrollTo(0,0));await wait();await p.click('#batTog');await wait(300);await segOK('#batDlg .seg3 button','bullpen batter sheet',3);
   await p.click('#hR');await wait();ok(/RHB/.test(await p.textContent('#batTog'))&&await ev(()=>!document.getElementById('batDlg').open),`${tag} picking RHB applies and closes`);
   await p.click('#batTog');await p.click('#hN');await wait();
   await dismiss(()=>p.click('#batTog'),'#batDlg button[value=cancel]','batter sheet');
