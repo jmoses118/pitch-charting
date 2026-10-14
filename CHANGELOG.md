@@ -23,6 +23,17 @@
 - **Velocity** outside 20–110 shows "Velocity must be between 20 and 110. Not saved." Empty stays empty, with no message.
 - **Called box** when the call names more than one target is the target nearest where the pitch went. A tie keeps the earlier target. Before the location is tapped, the first target is shown.
 - **Redo** is saved on this phone (still the newest 10) and comes back after a reload. Logging a pitch clears it. It is not synced.
+### Design review (UI)
+- **Result colours.** Ball, Foul and HBP use `#0B0F17` text (white failed on those fills). Called strike, swinging strike and in play stay white.
+- **Foul is one tap.** The pitch is saved on Foul. Early / On time / Late then show for about 5 seconds and update that pitch. There is no skip button. A new pitch, or Undo of that pitch, clears the chips.
+- **Tap targets are at least 48px.** Coach In dirt / Over catcher is a row under the zone. Coach contact chips, the result sheet Cancel, velocity, short-phone way-off and dirt/backstop boxes, and the bullpen Undo / Redo / Pause / End and default-result buttons all meet that.
+- **Nothing needed sits below the fold.** The result sheet and the in-play sheet use 4 columns. Cancel, Undo and Redo are pinned to the bottom of the sheet.
+- **Contact** reads Ground, Liner, Fly, Pop up. The chips are an outline until one is picked. The stored values stay GB / LD / FB / PU.
+- **CSV** opens on today and the current pitcher. All pitchers is still there.
+- **Wild pitch, passed ball and velocity** sit under More on the result sheet.
+- The coach hint fits on one line. Portrait step labels (Pitch / Where / Result) have their own row.
+- The sync pill and Start game use white text on the green fill.
+- Cache: `te-pitch-v42`.
 
 ## v39 – Code Reviewer fixes
 ### Fixed

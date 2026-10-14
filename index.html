@@ -30,7 +30,7 @@
   <div class="row" style="margin-top:6px"><input id="gEvent" placeholder="Tournament / event" style="flex:1"></div>
   <div class="lbl" style="margin-top:8px">Opponent lineup (slot · name · # · bats) – editable later</div>
   <div id="gLineup"></div>
-  <div class="row" style="margin-top:6px"><button id="gAddB" style="flex:1">+ Batter</button><button id="gStart" style="flex:2;background:var(--grn)">Start game</button></div>
+  <div class="row" style="margin-top:6px"><button id="gAddB" style="flex:1">+ Batter</button><button id="gStart" class="success" style="flex:2">Start game</button></div>
   <div class="mut" style="margin-top:8px">Past games are in Stats.</div>
  </div>
  <div id="inGame" class="hide">
@@ -73,33 +73,30 @@
  <div id="bpPad" class="bpad hide" aria-label="Bullpen pad"><div class="lbl padlbl">Pitch (sticky – repeats last)</div><div id="padTypes"></div><div class="lbl padlbl">Way off</div><div id="padWay"></div><div id="padAct"></div>
   <div class="padact"><button id="pUndo">Undo</button><button id="pRedo">Redo</button><button id="pPause">Pause</button><button id="pEnd">End</button></div></div>
  <div id="resSheet" class="bsheet hide" role="dialog" aria-labelledby="resHead">
-  <div class="row sp bshead"><div id="resHead" class="lbl">Result</div><button id="resClose" class="mini" aria-label="Close result picker">✕</button></div>
-  <div id="pitchExtra" class="pextra">
-   <div class="seg" role="group" aria-label="Wild pitch or passed ball"><button type="button" data-flag="wp">Wild pitch</button><button type="button" data-flag="pb">Passed ball</button></div>
-   <label class="velolab">Velo <input id="velo" inputmode="decimal" placeholder="optional" aria-label="Velocity, optional"></label>
+  <div class="bshead"><div id="resHead" class="lbl">Result</div></div>
+  <div class="bsscroll">
+   <button type="button" id="moreTog" class="moretog" aria-expanded="false" aria-controls="pitchExtra">More</button>
+   <div id="pitchExtra" class="pextra hide">
+    <div class="seg" role="group" aria-label="Wild pitch or passed ball"><button type="button" data-flag="wp">Wild pitch</button><button type="button" data-flag="pb">Passed ball</button></div>
+    <label class="velolab">Velo <input id="velo" inputmode="decimal" placeholder="optional" aria-label="Velocity, optional"></label>
+   </div>
+   <div id="resBtns" class="resgrid">
+    <button class="b-ball" data-r="ball">Ball</button><button class="b-cs" data-r="called">Called strike</button>
+    <button class="b-ss" data-r="swinging">Swinging strike</button><button class="b-foul" data-r="foul">Foul</button>
+    <button class="b-ip" data-r="inplay">Ball in play</button><button class="b-hbp" data-r="hbp">HBP</button>
+    <button class="b-ss sub" data-r="foultip">Foul tip</button><button class="b-ss sub" data-r="kd3">K – reached (D3)</button><button class="b-ss sub" data-r="kd3out">K – D3 thrown out</button>
+   </div>
+   <div id="ipBtns" class="resgrid hide">
+    <button type="button" class="optchip" data-bb="GB">Ground</button><button type="button" class="optchip" data-bb="LD">Liner</button><button type="button" class="optchip" data-bb="FB">Fly</button><button type="button" class="optchip" data-bb="PU">Pop up</button>
+    <button type="button" data-ip="out">Out</button><button type="button" data-ip="1B">1B</button><button type="button" data-ip="2B">2B</button><button type="button" data-ip="3B">3B</button>
+    <button type="button" data-ip="HR">HR</button><button type="button" data-ip="E">Error</button><button type="button" data-ip="FC">FC</button><button type="button" data-ip="DP">DP</button>
+   </div>
   </div>
-  <div id="resBtns" class="resbig">
-   <button class="b-ball" data-r="ball">Ball</button><button class="b-cs" data-r="called">Called strike</button>
-   <button class="b-ss" data-r="swinging">Swinging strike</button><button class="b-foul" data-r="foul">Foul</button>
-   <button class="b-ip" data-r="inplay">Ball in play</button><button class="b-hbp" data-r="hbp">HBP</button>
-   <button class="b-ss sub" data-r="foultip">Foul tip</button><button class="b-ss sub" data-r="kd3">K – reached (D3)</button><button class="b-ss sub" data-r="kd3out">K – D3 thrown out</button>
-  </div>
-  <div id="foulBtns" class="resbig hide">
-   <p class="mut" style="grid-column:1 / -1;margin:0">Foul timing is optional.</p>
-   <button type="button" data-ft="early">Early</button><button type="button" data-ft="ontime">On time</button><button type="button" data-ft="late">Late</button>
-   <button type="button" data-ft="skip" class="b-foul">Foul</button><button type="button" data-ft="cancel" class="ghost" style="grid-column:1 / -1">Cancel</button>
-  </div>
-  <div id="ipBtns" class="resbig hide">
-   <p class="mut" style="grid-column:1 / -1;margin:0">Contact is optional. Then tap the play.</p>
-   <button type="button" data-bb="GB">GB</button><button type="button" data-bb="LD">LD</button><button type="button" data-bb="FB">FB</button><button type="button" data-bb="PU">PU</button>
-   <button type="button" data-ip="out">Out</button><button type="button" data-ip="1B">1B</button><button type="button" data-ip="2B">2B</button><button type="button" data-ip="3B">3B</button>
-   <button type="button" data-ip="HR">HR</button><button type="button" data-ip="E">Error</button><button type="button" data-ip="FC">FC</button><button type="button" data-ip="DP">DP</button>
-   <button type="button" data-ip="" class="ghost" style="grid-column:1 / -1">Cancel</button>
-  </div>
+  <div id="bsFoot" class="bsfoot"><button id="resClose" type="button">Cancel</button></div>
  </div>
  <div class="card">
   <div class="recentwrap first"><div class="lbl" id="recentTitle">Recent pitches</div><ol id="recent" class="recent" aria-live="polite"></ol></div>
-  <div class="row" style="margin-top:8px"><button id="undo" class="ghost" style="flex:1">Undo</button><button id="redo" class="ghost" style="flex:1" disabled>Redo</button></div>
+  <div class="row urhome" id="urHome" style="margin-top:8px"><button id="undo" class="ghost" style="flex:1">Undo</button><button id="redo" class="ghost" style="flex:1" disabled>Redo</button></div>
   <div class="mut hint">Pitcher's view (looking in at the catcher). Way off = nowhere near the plate; the ring around the box still counts as competitive.</div>
  </div>
  <div class="card">
@@ -201,11 +198,14 @@
    <div id="cSprayWrap" class="hide"><div class="cs-ip" id="cxIp"></div><svg id="cSpray" viewBox="0 0 200 92" role="img" aria-label="Spray field: tap where the ball went (optional)"><path class="sp-fair" d="M100 90 L8 30 Q100 -18 192 30 Z"/><path class="sp-inf" d="M100 90 L74 66 L100 44 L126 66 Z"/><circle id="cSprayDot" class="hide" r="5"/></svg></div>
   </div>
   <div id="cZone" class="czone" role="group" aria-label="Strike zone, pitcher's view"></div>
+  <div id="cSlot" class="cslot">
+   <div id="cAct" class="cact" role="group" aria-label="Actual location outside the zone"><button type="button" data-z="31">In dirt</button><button type="button" data-z="32" aria-label="Over catcher/backstop">Over catcher</button></div>
+   <div id="cContact" class="ccontact hide" role="group" aria-label="Contact type, optional"><button type="button" class="optchip" data-bb="GB">Ground</button><button type="button" class="optchip" data-bb="LD">Liner</button><button type="button" class="optchip" data-bb="FB">Fly</button><button type="button" class="optchip" data-bb="PU">Pop up</button></div>
+  </div>
   <div id="cSide" class="cside hide" role="alertdialog" aria-labelledby="cSideT"><div id="cSideT" class="cside-t">⚑ Side retired</div><div id="cSideSum" class="mut"></div>
    <button id="cSideUndo">↶ Undo last pitch</button><button id="cSidePause" class="success">❚❚ We're batting – pause</button><button id="cSideOk" class="ghost">Keep charting</button></div>
  </div>
  <div class="crcol">
-  <div id="cAct" class="cact" role="group" aria-label="Actual location outside the zone"><button type="button" data-z="31">In dirt</button><button type="button" data-z="32" aria-label="Over catcher/backstop">Over catcher</button></div>
   <div id="cRes" class="cres" role="group" aria-label="Result"></div>
  </div>
 </section>
@@ -248,6 +248,7 @@
  <svg id="ddMap" viewBox="-14 -6 128 138" role="img" aria-labelledby="ddCap" style="width:100%;max-width:340px;display:block;margin:auto"></svg>
  <div id="ddCap" style="font-size:15px;line-height:1.4;margin-top:6px"></div><div id="ddKey" class="mut" style="font-size:12px;margin-top:6px"></div>
  <button id="ddClose" style="width:100%;margin-top:10px">Close</button></dialog>
+<div id="foulChips" class="foulchips hide" role="group" aria-label="Foul timing, optional"><button type="button" data-ft="early">Early</button><button type="button" data-ft="ontime">On time</button><button type="button" data-ft="late">Late</button></div>
 <div id="toast"></div>
 <script src="config.js"></script><script src="js/core/grid.js"></script><script src="js/core/calls.js"></script><script src="js/core/game.js"></script><script src="js/core/scoring.js"></script><script src="js/core/csv.js"></script><script src="js/core/workload.js"></script><script src="js/core/sync.js"></script><script src="js/core/modes.js"></script><script src="js/core/store.js"></script><script src="js/ui/shared.js"></script><script src="js/ui/zonegfx.js"></script><script src="js/ui/game.js"></script><script src="js/ui/bullpen.js"></script><script src="js/ui/report.js"></script><script src="js/ui/stats.js"></script><script src="js/ui/setup.js"></script><script src="js/ui/coach.js"></script><script src="js/ui/main.js"></script>
 </body></html>

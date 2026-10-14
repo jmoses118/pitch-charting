@@ -48,16 +48,17 @@ function render(skipCallInput){const s=S();applyViewOnly(viewOnly());if(typeof r
   renderSteps(needTarget);
   const called=typeof calledLocNow==='function'?calledLocNow(D.loc):null;
   $('phase').innerHTML=needTarget?'Tap the <b>called target</b> on the grid':(tab==='bullpen'?bpPhase():`Tap where it <b>actually</b> went${called!=null?` · called ${called}`:''}${D.loc?` → <b>${D.type||''} ${locTxt(D.loc)}</b> (${PC.locInfo(D.loc,hand,throwsOf()).label})`:''}, then the result`);
-  $('resBtns').classList.toggle('hide',!!(D.ip||D.foul));$('ipBtns').classList.toggle('hide',!D.ip);$('foulBtns').classList.toggle('hide',!D.foul);
+  $('resBtns').classList.toggle('hide',!!D.ip);$('ipBtns').classList.toggle('hide',!D.ip);
   $('undo').textContent=D.loc?'Undo location':tab==='bullpen'&&(D.type||D.target||D.callTxt)?'Undo step':'Undo';
   $('redo').disabled=!redoStack.length;$('pRedo').disabled=!redoStack.length;
-  const sheet=tab==='game'&&!!(D.sheet||D.ip||D.foul);$('resSheet').classList.toggle('hide',!sheet);$('resTog').classList.toggle('hide',tab!=='game');
-  $('resHead').textContent=D.foul?'Foul timing':D.ip?'Ball in play':D.loc?`Result · ${D.type?D.type+' ':''}${locTxt(D.loc)}`:'Result';
+  const sheet=tab==='game'&&!!(D.sheet||D.ip);$('resSheet').classList.toggle('hide',!sheet);$('resTog').classList.toggle('hide',tab!=='game');
+  $('resHead').textContent=D.ip?'Ball in play':D.loc?`Result · ${D.type?D.type+' ':''}${locTxt(D.loc)}`:'Result';
+  if(typeof placeScoreDock==='function')placeScoreDock();
   document.querySelectorAll('#pitchExtra [data-flag]').forEach(b=>b.classList.toggle('sel',b.dataset.flag===D.wpPb));
   if(document.activeElement!==$('velo'))$('velo').value=D.velo==null?'':D.velo;
   document.querySelectorAll('#bpRes [data-bpr]').forEach(b=>b.classList.toggle('sel',b.dataset.bpr===(S().bpResult||'')));
   const wbOn=!$('wbCard').classList.contains('hide');$('wbTog').classList.toggle('hide',!wbOn);if(!wbOn)$('wbDet').open=false;
-  renderModes(lk,showEntry);drawZone();fitZone();
+  renderModes(lk,showEntry);drawZone();fitZone();if(typeof paintFoulChips==='function')paintFoulChips();
   // log
   const RL=RESULT_SHORT;
   const line=(p,i)=>`<div><span class="n">${i+1}</span><span style="flex:1">${tab==='game'?H(pName(p.pitcherId).split(' ')[0])+' vs '+H(p.batter)+': ':''}${p.call?'<b>['+H(p.call)+']</b> ':''}${H(p.type||'')}${p.loc?' <span class="tag">'+H(locTxt(p.loc))+'</span>':''}${p.targets&&p.targets.length&&p.loc?(PC.hitSpot(p)?' ✓':' ✗'):''}</span><span>${p.result?RL[p.result]+(p.ip?' '+p.ip:''):(PC.isZone(p.loc)?'K':'B')}${p.end?' · <b>'+p.end+'</b>':''}</span>${p.result?`<span class="tag">${p.b}-${p.s}</span>`:''}</div>`;

@@ -3,7 +3,7 @@ const {chromium}=require('playwright-core');const BASE=process.argv[2]||'http://
 (async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
 let net=0;await c.route(/supabase\.co/,r=>{net++;r.abort();});const p=await c.newPage();await p.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());
 const tap=async s=>{await p.$eval(s,e=>e.scrollIntoView({block:'center'}));await p.click(s,{force:true});await p.waitForTimeout(80);};
-const pitch=async(t,z,r)=>{await tap(`#types [data-c="${t}"]`);await tap(`#zone [data-z="${z}"]`);await tap(`#resBtns [data-r="${r}"]`);if(r==='foul')await tap('#foulBtns [data-ft="skip"]');};
+const pitch=async(t,z,r)=>{await tap(`#types [data-c="${t}"]`);await tap(`#zone [data-z="${z}"]`);await tap(`#resBtns [data-r="${r}"]`);};
 const st=()=>p.evaluate(()=>{const g=__app.store.state.games.find(x=>x.id==='g_t');return{cur:Object.assign({},g.cur),cp:__app.store.state.curPitcher,hdr:document.querySelector('header,#hdr')?.innerText||document.body.innerText.slice(0,200)};});
 await p.goto(BASE);
 await p.evaluate(()=>{const y=__app.store.real.sync;y.teamCode='TE-XXXXX-XXXXX-XXXXX-XXXXX';y.role='coach';y.teamId='t';__app.store.save();window.__q0=__app.store.pendingCount();window.__realBefore=JSON.stringify(__app.store.real.games.length)+JSON.stringify(__app.store.real.pitchers.length);__app.render();});

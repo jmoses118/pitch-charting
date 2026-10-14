@@ -35,7 +35,7 @@ for(const [W,H,MIN,ZMIN,RESW] of [[844,390,48,48,48],[667,375,44,34,46]]){const 
   await p.click('#cBand button[data-r="2"][data-c="4"]');await wait();
   ok(await ev(()=>{const st=document.getElementById('cStatus').getBoundingClientRect();let y=st.top;for(const e of document.querySelectorAll('#cStatus>:not(.hide):not(.cside)')){const r=e.getBoundingClientRect();if(r.height===0)continue;if(r.top<y-.5||r.bottom>st.bottom+.5)return false;y=r.bottom;}return true;}),`${tag}: status rows stack without overlap inside the box`);
   {const g1=await geo();ok(g1===g0,`${tag}: no layout shift after a band tap (zone/status ${g0} → ${g1})`);}
-  ok(await ev(()=>{const e=document.getElementById('cxHint');return e.getBoundingClientRect().height<=20&&getComputedStyle(e).whiteSpace==='nowrap'&&getComputedStyle(e).textOverflow==='ellipsis';}),`${tag}: status hint is one line`);
+  ok(await ev(()=>{const e=document.getElementById('cxHint');const cs=getComputedStyle(e);return e.getBoundingClientRect().height<=20&&cs.whiteSpace==='nowrap'&&e.scrollWidth<=e.clientWidth+1;}),`${tag}: status hint is one line and fully visible`);
   ok((await p.textContent('#cxCode')).replace(/\s+/g,' ').trim()==='3-05 Fb In'&&/aim 6/.test(await p.textContent('#cxAim')),`${tag}: spoken call big in the status box ("3-05 Fb In", aim 6 vs RHB)`);
   ok(await ev(()=>{const e=document.querySelector('#cBand td button.on');return !!e&&getComputedStyle(e).backgroundColor==='rgb(30, 63, 208)';}),`${tag}: selected cell is royal #1E3FD0`);
   ok(await ev(()=>!!document.querySelector('#cZone button.aim[data-z="6"]')),`${tag}: aim auto-mapped and outlined on the zone`);

@@ -18,7 +18,7 @@ for(const [r,c2,loc,res] of [[2,4,4,'ball'],[0,0,8,'called'],[1,2,7,'inplay']]){
 // AB2 – portrait one-screen entry, type only (no aim): 11 ball, 14 foul, 5 in play 1B
 await p.setViewportSize({width:390,height:844});await ev(()=>{localStorage.setItem('te_ui_portrait_ok','1');__app.render();});await w(300);
 const tapZ=async z=>{const xy=await p.$eval(`#zone [data-z="${z}"]`,e=>{const s=e.ownerSVGElement,pt=s.createSVGPoint(),bb=e.getBBox();const cx={11:[bb.x+4,bb.y+4],14:[bb.x+bb.width-4,bb.y+bb.height-4]}[e.dataset.z]||[bb.x+bb.width/2,bb.y+bb.height/2];pt.x=cx[0];pt.y=cx[1];const q=pt.matrixTransform(s.getScreenCTM());return[q.x,q.y];});await p.mouse.click(xy[0],xy[1]);};
-for(const [loc,res,ip] of [[11,'ball'],[14,'foul'],[5,'inplay','1B']]){await p.click('#types button:first-child');await tapZ(loc);await w();await p.click(`#resBtns [data-r="${res}"]`);await w();if(res==='foul'){await p.click('#foulBtns [data-ft="skip"]');await w();}if(ip){await p.click(`[data-ip="${ip}"]`);await w();}}
+for(const [loc,res,ip] of [[11,'ball'],[14,'foul'],[5,'inplay','1B']]){await p.click('#types button:first-child');await tapZ(loc);await w();await p.click(`#resBtns [data-r="${res}"]`);await w();if(ip){await p.click(`[data-ip="${ip}"]`);await w();}}
 const g=await G();const P=g.pitches.filter(x=>!x.noPitch);
 ok(JSON.stringify(P.map(x=>x.loc))==='[4,8,7,11,14,5]','6 pitches stored with the landed spots tapped '+JSON.stringify(P.map(x=>x.loc)));
 ok(JSON.stringify(P.map(x=>x.targets||[]))==='[[6],[3],[7],[],[],[]]','aims stored only for the band calls (landscape + portrait use the same fields) '+JSON.stringify(P.map(x=>x.targets)));

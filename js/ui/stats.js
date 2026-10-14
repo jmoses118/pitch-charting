@@ -41,7 +41,8 @@ function renderStats(){const s=S();const sel=$('sScope').value||(s.activeGame||'
   const GS=M?s.games.filter(g=>g.pitches.some(p=>vis(p.pitcherId))):s.games,SS=M?s.sessions.filter(x=>(x.pitcherId&&vis(x.pitcherId))||x.pitches.some(p=>vis(p.pitcherId))):s.sessions;
   const opts=[['all','Everything'],['games','All games'],['bullpen','All bullpen']].concat(GS.slice().reverse().map(g=>[g.id,`${g.date} ${vsAt(g)} ${g.opponent}${PC.gameStatus(g)==='scheduled'?' (scheduled)':''}${g.event?' ('+g.event+')':''}`])).concat(SS.slice().reverse().map(x=>[x.id,`Bullpen ${x.date} (${M?x.pitches.filter(p=>vis(p.pitcherId)).length:x.pitches.length})`]));
   $('sScope').innerHTML=opts.map(([v,l])=>`<option value="${H(v)}" ${v===sel?'selected':''}>${H(l)}</option>`).join('');
-  const own=role()==='player'?store.real.sync.pitcherId:null;const pf=own||$('sPitcher').value;$('sPitcher').disabled=!!own;$('sPitcher').innerHTML=(own?'':`<option value="">${M?'All my pitchers':'All pitchers'}</option>`)+s.pitchers.filter(p=>(!own||p.id===own)&&vis(p.id)).map(p=>`<option value="${H(p.id)}" ${p.id===pf?'selected':''}>${H(PC.pitcherLabel(p))}${p.archived?' (archived)':''}</option>`).join('');
+  const own=role()==='player'?store.real.sync.pitcherId:null;let pf=own||$('sPitcher').value;if(!own&&!$('sPitcher').dataset.picked&&!pf)pf=curPitcherId()||'';$('sPitcher').disabled=!!own;$('sPitcher').innerHTML=(own?'':`<option value="">${M?'All my pitchers':'All pitchers'}</option>`)+s.pitchers.filter(p=>(!own||p.id===own)&&vis(p.id)).map(p=>`<option value="${H(p.id)}" ${p.id===pf?'selected':''}>${H(PC.pitcherLabel(p))}${p.archived?' (archived)':''}</option>`).join('');
+  if(!$('csvDate').value)$('csvDate').value=today();
   const all=scopePitches($('sScope').value).filter(p=>vis(p.pitcherId));const P=pf?all.filter(p=>p.pitcherId===pf):all;const sum=PC.summarize(P,pf?{all,pid:pf}:null);
   const isGame=P.some(p=>p.result);
   $('sReport').classList.toggle('hide',!s.sessions.some(q=>q.id===$('sScope').value));
@@ -98,4 +99,4 @@ $('hfDlg').addEventListener('close',()=>{const rv=$('hfDlg').returnValue;if(rv==
 $('hfChips').addEventListener('click',e=>{const k=e.target.dataset.hfx;if(k){delete HF[k];saveHF();renderHeat();}});
 $('hfReset').onclick=$('hfReset2').onclick=()=>{HF={};saveHF();renderHeat();};
 $('hvA').onclick=()=>{HV='actual';saveHF();renderHeat();};$('hvI').onclick=()=>{HV='miss';saveHF();renderHeat();};
-$('sScope').onchange=renderStats;$('sPitcher').onchange=renderStats;
+$('sScope').onchange=renderStats;$('sPitcher').onchange=()=>{$('sPitcher').dataset.picked='1';renderStats();};

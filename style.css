@@ -114,11 +114,12 @@ svg text{pointer-events:none}
 #wayBtns{margin-top:var(--s2)}
 #wayBtns button{font-size:var(--fs-sm);padding:0 2px;min-height:44px;background:var(--c-way);border-color:var(--c-way-line);color:var(--c-danger-text)}
 #wayBtns button.sel{background:var(--c-danger)!important;border-color:var(--c-danger)!important;color:#fff}
-#resBtns{margin-top:var(--s3)}
-#resBtns button{color:#fff;border-color:transparent}
-/* results: Okabe-Ito colorblind-safe hues, same in Field and Night, always labeled */
-.b-ball{background:var(--c-r-ball);color:var(--c-ink);border-color:#1c1c1c}.b-cs,.b-ss{background:var(--c-r-strike);color:#fff;border-color:#5a2400}.b-foul{background:var(--c-r-foul);color:var(--c-ink);border-color:#1c1c1c}.b-ip{background:var(--c-r-inplay);color:#fff;border-color:#003a2d}.b-hbp{background:var(--c-r-hbp);color:var(--c-ink);border-color:#1c1c1c}
-#ipBtns{margin-top:var(--s3)}#ipBtns button.sel{outline:3px solid #fff;background:var(--c-royal)}
+#resBtns{margin-top:0}
+#resBtns button{border-color:transparent}
+/* results: Okabe-Ito colorblind-safe hues, same in Field and Night, always labeled.
+   Ball, Foul and HBP use #0B0F17 (their fills fail with white). Strike and in-play stay white. */
+.b-ball{background:var(--c-r-ball);color:#0B0F17;border-color:#1c1c1c}.b-cs,.b-ss{background:var(--c-r-strike);color:#fff;border-color:#5a2400}.b-foul{background:var(--c-r-foul);color:#0B0F17;border-color:#1c1c1c}.b-ip{background:var(--c-r-inplay);color:#fff;border-color:#003a2d}.b-hbp{background:var(--c-r-hbp);color:#0B0F17;border-color:#1c1c1c}
+#ipBtns button.sel,#ipBtns button.on{outline:none;background:var(--c-royal-tint);color:var(--c-text);border-color:var(--c-royal)}
 #ipBtns small{font-weight:500;color:var(--c-text-2)}
 body.onehand #types button{min-height:60px;font-size:var(--fs-xl)}
 body.onehand #resBtns button,body.onehand #ipBtns button{min-height:64px;font-size:var(--fs-lg)}
@@ -216,9 +217,9 @@ body.entrymode .count small{font-size:10px;display:inline;margin-right:4px}
 .chips::-webkit-scrollbar{display:none}
 .chips button{flex:0 0 auto;min-height:44px;min-width:52px;padding:0 var(--s3);border-radius:var(--r-pill);font-weight:800;font-size:var(--fs-md);letter-spacing:.02em}
 .chips button.sel{background:var(--c-royal);border-color:var(--c-royal-text);color:#fff}
-.stepline{display:flex;align-items:center;gap:var(--s2);margin-top:var(--s2);min-height:48px}
-.stepline .steps{flex:1;margin:0}
-.stepline .steps li{padding-top:3px;border-top-width:2px;font-size:10px}
+.stepline{display:flex;flex-wrap:wrap;align-items:center;gap:4px var(--s2);margin-top:var(--s1)}
+.stepline .steps{flex:1 0 100%;margin:0}
+.stepline .steps li{padding-top:2px;border-top-width:2px;font-size:11px;letter-spacing:0;white-space:nowrap;overflow:visible;text-overflow:clip}
 button.mini{min-height:32px;padding:0 var(--s3);font-size:var(--fs-xs);font-weight:700;border-radius:var(--r-pill)}
 button.mini[aria-expanded="true"]{background:var(--c-royal);color:#fff}
 .entrybar .phase{padding:2px 0 0;margin:0;background:none;font-size:var(--fs-xs);color:var(--c-text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -227,7 +228,7 @@ button.zchip{position:absolute;z-index:2;min-height:32px;padding:0 var(--s2);bor
 .seg3{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:var(--s2)}.seg3 button{min-height:var(--tap-lg);font-weight:700}.seg3 button.sel{background:var(--c-royal);border-color:var(--c-royal-text);color:#fff}
 body.entrymode #toast{bottom:auto;top:calc(env(safe-area-inset-top) + 4px)}
 .way4{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s1);margin:var(--s1) 0 var(--s3)}
-body.entrymode #wayBtns button{min-height:40px;font-size:var(--fs-xs);font-weight:700}
+body.entrymode #wayBtns button{min-height:48px;font-size:var(--fs-xs);font-weight:700}
 .bsheet{position:fixed;left:0;right:0;bottom:0;z-index:8;background:var(--c-surface);border-top:1px solid var(--c-line-strong);border-radius:var(--r-lg) var(--r-lg) 0 0;box-shadow:var(--shadow-2);padding:var(--s2) var(--s3) calc(var(--s3) + env(safe-area-inset-bottom));animation:sheetUp .2s var(--ease)}
 .bsheet::before{content:"";display:block;width:40px;height:4px;border-radius:4px;background:var(--c-line-strong);margin:0 auto var(--s2)}
 .bshead{margin-bottom:var(--s2)}.bshead .lbl{margin:0}
@@ -236,12 +237,12 @@ body.wbopen #wbCard{position:fixed;left:0;right:0;bottom:0;z-index:8;margin:0!im
 .recentwrap.first{margin-top:0;padding-top:0;border-top:0}
 body #types.chips button{min-height:44px;height:44px;font-size:var(--fs-md)}
 body.onehand #types.chips button{min-height:48px;height:48px;font-size:var(--fs-lg)}
-.stepline .steps li{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stepline .steps li{white-space:nowrap;overflow:visible;text-overflow:clip}
 body.entrymode .count{gap:var(--s1)}
 body.entrymode .count>div{display:flex;align-items:baseline;justify-content:center;gap:4px;white-space:nowrap;min-height:28px;align-items:center;font-size:var(--fs-sm)}
 body.entrymode .count small{margin:0;font-size:9px}
 body.entrymode .count .dots span{width:9px;height:9px}
-@media (max-height:720px){body.entrymode .entrybar .phase{display:none}body.entrymode .stepline{margin-top:var(--s1)}body.entrymode button.mini{min-height:28px}body.entrymode #wayBtns button{min-height:34px}body.entrymode #types.chips button{min-height:42px;height:42px}body.entrymode .pickrow select,body.entrymode .pickrow button.icon{min-height:36px}body.entrymode .count>div{min-height:24px}}
+@media (max-height:720px){body.entrymode .entrybar .phase{display:none}body.entrymode .stepline{margin-top:2px}body.entrymode button.mini{min-height:28px}body.entrymode #wayBtns button,body.entrymode #actBtns button{min-height:48px;height:auto}body.entrymode #types.chips button{min-height:42px;height:42px}body.entrymode .pickrow select,body.entrymode .pickrow button.icon{min-height:36px}body.entrymode .count>div{min-height:24px}}
 /* v36: the pitcher name never truncates – the picker sizes to its content and the counts wrap instead */
 .pickrow select{flex:1 0 auto}
 body:not(.entrymode) #wlMini{display:none}
@@ -277,17 +278,17 @@ html[data-theme="night"] .coach,html:not([data-theme]) .coach{--c-band-hdr:#1D26
 html[data-theme="night"] #cBand td button.on{background:#3A5CF0}
 .coach.dim .cband{opacity:.45}
 .cmid{position:relative;display:flex;flex-direction:column;gap:8px;width:var(--mid,216px)}
-.cstatus{background:#1C1C1C;color:#fff;border-left:5px solid var(--c-royal);border-radius:12px;padding:6px 6px 6px 8px;height:var(--sth,136px);flex:0 0 auto;display:flex;flex-direction:column;gap:2px;overflow:hidden}
+.cstatus{background:#1C1C1C;color:#fff;border-left:5px solid var(--c-royal);border-radius:12px;padding:1px 4px 1px 6px;height:var(--sth,100px);flex:0 0 auto;display:flex;flex-direction:column;gap:1px;overflow:hidden}
 html[data-theme="night"] .cstatus{background:#0D121B;border:1px solid #34445E;border-left:5px solid #3A5CF0}
-.cs-top{display:flex;align-items:center;gap:3px;font-size:calc(var(--z,48px)*.29);white-space:nowrap}.cs-top b{flex:0 0 auto}
-.cchip{border:1.5px solid #C3CAD6;border-radius:8px;padding:0 4px;font-size:calc(var(--z,48px)*.25);white-space:nowrap;font-weight:700;line-height:18px}
-.cs-count{margin-left:auto;font-size:22px;font-weight:900}
+.cs-top{display:flex;align-items:center;gap:3px;font-size:12px;line-height:16px;white-space:nowrap}.cs-top b{flex:0 0 auto}
+.cchip{border:1.5px solid #C3CAD6;border-radius:8px;padding:0 4px;font-size:12px;white-space:nowrap;font-weight:700;line-height:16px}
+.cs-count{margin-left:auto;font-size:16px;font-weight:900;line-height:1}
 .cs-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:auto}.cs-hl{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}.cs-hl .cs-net{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cstatus>*{flex-shrink:0}
 .cmenu{min-height:44px;min-width:44px;padding:0 8px;border:1.5px solid #C3CAD6!important;border-radius:8px;background:none;color:#fff;font-size:12px;font-weight:800;line-height:1;white-space:nowrap}
-.cs-bat{font-size:12.5px;color:#C3CAD6;white-space:nowrap;overflow:hidden}.cs-bat b{color:#fff}.cs-bat .ic{filter:grayscale(1)}
-.cs-call{font-size:calc(var(--z,48px)*.5);font-weight:900;line-height:1.1;white-space:nowrap;display:flex;align-items:baseline;gap:6px;letter-spacing:-.01em}
+.cs-bat{font-size:12px;line-height:1.1;color:#C3CAD6;white-space:nowrap;overflow:hidden}.cs-bat b{color:#fff}.cs-bat .ic{filter:grayscale(1)}
+.cs-call{font-size:18px;font-weight:900;line-height:1;white-space:nowrap;display:flex;align-items:baseline;gap:6px;letter-spacing:-.01em}
 .cs-aim{font-size:14px;color:#9DB2FF;font-weight:800}.cs-none{color:#7D8AA0;font-size:18px}
-.cs-hint{font-size:13px;color:#EEF2F8;display:block;height:1.4em;line-height:1.4em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cs-hint .cs-n{margin-right:6px;vertical-align:1px}
+.cs-hint{font-size:11px;color:#EEF2F8;display:block;height:1.4em;line-height:1.4em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cs-hint .cs-n{margin-right:4px;vertical-align:1px}
 .cs-n{display:inline-grid;place-items:center;min-width:18px;height:18px;border-radius:5px;background:#9DB2FF;color:#0B0F17;font-size:11px;font-weight:900}
 .cs-hint.msg{font-weight:800}.cs-hint.msg.ok{color:#7EE2A0}.cs-hint.msg.warn{color:#FFD27A;font-size:12px}
 .cs-net{font-size:11px;color:#A9B4C6}
@@ -296,7 +297,6 @@ html[data-theme="night"] .cstatus{background:#0D121B;border:1px solid #34445E;bo
 #cSprayWrap.hide{display:none}
 #cSpray{width:100%;height:56px;flex:0 0 56px;display:block;cursor:crosshair}.sp-fair{fill:#DCEFE6}.sp-inf{fill:#F6DDB0}#cSprayDot{fill:#1C1C1C;stroke:#fff;stroke-width:2}
 .coach.compact .cs-ip{font-size:10px;line-height:1.1}
-.coach.compact .cxbb button{height:22px}
 .coach.compact #cSpray{height:48px;flex-basis:48px}
 .czone{display:grid;grid-template-columns:calc(var(--z)*2/3) var(--z) var(--z) var(--z) calc(var(--z)*2/3);grid-template-rows:calc(var(--z)*2/3) var(--z) var(--z) var(--z) calc(var(--z)*2/3);gap:2px}
 .czone button{min-height:0;padding:0;border:0;border-radius:4px;font-weight:800;font-size:15px;color:var(--c-zone-text);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
@@ -324,18 +324,20 @@ html[data-theme="night"] .czone .act::after{background:#EEF2F8;box-shadow:0 0 0 
 .bpad{position:fixed;left:0;right:0;bottom:calc(69px + env(safe-area-inset-bottom));z-index:5;background:var(--c-bg);border-top:1px solid var(--c-line);padding:6px var(--s3) 6px}
 .padlbl{margin:0 0 3px;font-size:11px}
 .bpad #types.chips{padding-bottom:4px}.bpad #wayBtns{margin:0}
-.padact{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}.padact button{min-height:44px;font-weight:800}
+.padact{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}.padact button{min-height:48px;font-weight:800}
 body.padmode main{padding-bottom:calc(var(--pad-h,0px) + 12px)}
-@media (max-height:720px){.padlbl{display:none}.padact button{min-height:36px}#bpPad{display:grid;grid-template-columns:1.6fr .9fr;column-gap:4px;align-items:stretch}#padTypes,.padact{grid-column:1 / -1}#padWay{grid-column:1}#padAct{grid-column:2}body.padmode #wayBtns button,body.padmode #actBtns button{min-height:36px}}
+@media (max-height:720px){.padlbl{display:none}.padact button{min-height:48px}#bpPad{display:grid;grid-template-columns:1.6fr .9fr;column-gap:4px;align-items:stretch}#padTypes,.padact{grid-column:1 / -1}#padWay{grid-column:1}#padAct{grid-column:2}body.padmode #wayBtns button,body.padmode #actBtns button{min-height:48px;height:auto}}
 
 /* v37 review fixes */
 #cSideOk{color:#fff;background:transparent;border:2px solid #C3CAD6}
 .dlgfoot{position:sticky;bottom:0;background:var(--c-surface,var(--c-bg));padding:10px 0 2px;margin-top:6px;z-index:1}
 @media (orientation:landscape) and (max-height:500px){#cMenuDlg .cmenu-g{grid-template-columns:repeat(3,1fr);gap:6px}#cMenuDlg .cmenu-g button{min-height:48px;padding:0 6px}#cMenuDlg{max-height:calc(100vh - 16px);width:min(820px,96vw);max-width:96vw}}
-.coach.compact .cres{grid-template-columns:46px 46px}.coach.compact .cs-bat{font-size:12px}
+.coach.compact .cres{grid-template-columns:46px 46px}.coach.compact .cs-bat{font-size:11px}
+.coach.compact .cs-top{font-size:11px}.coach.compact .cs-count{font-size:14px}.coach.compact .cchip{font-size:10px;line-height:14px;padding:0 3px}
+.coach.compact .cs-hint{font-size:10px}
 .coach.compact .cmenu{width:44px;padding:0;font-size:20px}
 #wayBtns button{min-height:48px}body.padmode .bpad #wayBtns button,body.padmode #wayBtns button{min-height:48px}
-@media (max-height:720px){body.padmode .bpad{padding-top:4px;padding-bottom:4px}body.padmode #wayBtns button,body.padmode #actBtns button{min-height:36px;height:40px;font-size:10px;line-height:1.05;white-space:nowrap;overflow:hidden}}
+@media (max-height:720px){body.padmode .bpad{padding-top:4px;padding-bottom:4px}body.padmode #wayBtns button,body.padmode #actBtns button{min-height:48px;height:auto;font-size:11px;line-height:1.05}}
 .bpad #types.chips{flex-wrap:nowrap;overflow-x:auto}.bpad #types.chips button{flex:1 0 auto;min-width:44px;padding-left:6px;padding-right:6px}
 body.padmode #flash{top:56px;font-size:16px;padding:8px 16px;transform:translate(-50%,0) scale(.92)}body.padmode #flash.on{transform:translate(-50%,0) scale(1)}
 body.padmode #locRow{display:none}
@@ -388,33 +390,45 @@ body.viewonly #cRes .cro{flex:0 0 auto}
 .locrow{display:grid;grid-template-columns:2fr 1fr;gap:4px;align-items:stretch}
 .locrow .way4{margin:0}
 .act2{display:grid;grid-template-columns:1fr 1fr;gap:4px}
-.act2 button,.cact button{min-height:44px;font-size:11px;font-weight:800;line-height:1.1;padding:2px 4px;background:var(--c-way);border-color:var(--c-way-line);color:var(--c-danger-text)}
+.act2 button,.cact button{min-height:48px;font-size:11px;font-weight:800;line-height:1.1;padding:2px 4px;background:var(--c-way);border-color:var(--c-way-line);color:var(--c-danger-text)}
 .act2 button.sel,.cact button.sel{background:var(--c-danger);border-color:var(--c-danger);color:#fff}
-body.entrymode #actBtns button{min-height:40px}
-@media (max-height:720px){body.entrymode #actBtns button{min-height:34px;height:36px;white-space:nowrap}body.entrymode:not(.padmode) #locRow{position:fixed;left:0;right:0;bottom:calc(69px + env(safe-area-inset-bottom));z-index:4;margin:0;padding:4px 12px 4px;background:var(--c-bg)}}
-body.padmode #actBtns button{min-height:48px}
-@media (max-height:720px){body.padmode .bpad #wayBtns button,body.padmode #bpPad #actBtns button{min-height:36px;height:40px;font-size:10px;line-height:1.05;white-space:nowrap;overflow:hidden}}
+body.entrymode #actBtns button{min-height:48px;height:auto;white-space:normal}
+@media (max-height:720px){body.entrymode:not(.padmode) #locRow{position:fixed;left:0;right:0;bottom:calc(69px + env(safe-area-inset-bottom));z-index:4;margin:0;padding:4px 12px 4px;background:var(--c-bg)}}
+body.padmode #actBtns button{min-height:48px;height:auto}
 .cact{display:grid;grid-template-columns:1fr 1fr;gap:4px}
 .crcol{display:flex;flex-direction:column;gap:4px;align-self:stretch;height:100%;min-height:0}
-.crcol>.cact{height:36px}.crcol>.cact button{min-height:0;height:36px;font-size:10px;padding:0 2px}
 .crcol>.cres{flex:1 1 auto;height:auto;min-height:0;gap:4px}
-.coach.compact .cmid>.cact button{min-height:40px;height:auto;font-size:11px}
 .coach.compact .crcol{display:contents}
-.resbig{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.resbig button{min-height:64px;font-size:18px;font-weight:800;line-height:1.1}
-.resbig button.sub{min-height:48px;font-size:14px}
-.resbig .mut{font-size:13px}
-.bsheet{max-height:78vh;overflow:auto}
-.pextra{display:flex;gap:8px;align-items:center;margin-bottom:8px}
-.pextra .seg{flex:1}
-.pextra .seg button,.xDlg .seg button,#bpRes button{min-height:44px;font-weight:700}
-.velolab{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700}
-.velolab input{width:88px;min-height:44px}
+.resgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.resgrid button{min-height:48px;font-size:14px;font-weight:800;line-height:1.1;padding:2px 3px;white-space:normal}
+#resBtns button[data-r]:not(.sub){min-height:64px}
+.bsheet{display:flex;flex-direction:column;overflow:hidden;max-height:min(78vh,100dvh)}
+.pextra{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 8px}
+.pextra .seg{flex:1 1 180px}
+.pextra .seg button,.xDlg .seg button,#bpRes button{min-height:48px;font-weight:700}
+.velolab{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;min-height:48px}
+.velolab input,#xVelo{width:96px;min-height:48px}
 .startg{flex:1;text-align:left}
 .startg small{font-weight:600;opacity:.9}
 .gclink{color:var(--c-royal-text);padding:0 8px;min-height:48px;display:flex;align-items:center;font-weight:800}
 #bpRes{margin:4px 0 8px}
-.cxbb{display:flex;gap:4px;margin-top:2px}
-.cxbb button{flex:1;min-height:0;height:26px;font-size:12px;font-weight:800;padding:0}
-.cxbb button.on{background:var(--c-royal);color:#fff;border-color:var(--c-royal)}
-#ipBtns [data-bb].sel,#foulBtns [data-ft].sel{outline:2px solid var(--c-royal-hi)}
+/* v42: 4-column sheet, pinned footer, 48px dirt row, outline contact, foul chips */
+.bsscroll{overflow:auto;flex:1 1 auto;min-height:0}
+.bsfoot{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:6px;flex:0 0 auto;padding-top:8px}
+.bsfoot button{min-height:48px;font-weight:800}
+.moretog{width:100%;min-height:48px;margin:0 0 6px;font-weight:800}
+.optchip{background:transparent;color:var(--c-text);border:2px solid var(--c-line-strong);font-weight:700}
+.optchip.sel,.optchip.on{background:var(--c-royal-tint);color:var(--c-text);border-color:var(--c-royal)}
+.cslot{height:48px;flex:0 0 48px;min-height:48px}
+.cslot .cact,.cslot .ccontact{height:48px;min-height:48px}
+.ccontact{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.cslot button{min-height:48px;height:48px;padding:0 2px}
+.ccontact button{font-size:11px;line-height:1.05;white-space:normal;font-weight:800}
+.coach.compact .ccontact button{font-size:9px;letter-spacing:-.03em}
+.foulchips{position:fixed;z-index:9;left:8px;right:8px;top:calc(var(--hdr-h,56px) + 4px);display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:6px;background:var(--c-surface);border:2px solid var(--c-line-strong);border-radius:12px;box-shadow:var(--shadow-2)}
+.foulchips button{min-height:48px;font-weight:800}
+.foulchips button.on{background:var(--c-royal-tint);border-color:var(--c-royal);color:var(--c-text)}
+body.coachmode .foulchips{top:4px;right:auto;box-shadow:var(--shadow-2)}
+body.onehand #resBtns button,body.onehand #ipBtns button{font-size:16px}
+body.viewonly #foulChips,body.viewonly #cSlot{display:none!important}
+#urHome button{min-height:48px}

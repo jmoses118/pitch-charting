@@ -6,7 +6,7 @@ await pg.fill('#gOpp','Lightning');await pg.click('#gStart');
 // result picker is a bottom sheet (v34): open it with the Result button when no location was tapped
 const openRes=async()=>{if(await pg.isHidden('#resSheet'))await pg.click('#resTog');};
 const tap=async z=>{const s=`#zone [data-z="${z}"]`;await pg.$eval(s,e=>e.scrollIntoView({block:"center"}));await pg.click(s,{force:true});};
-const foul=async()=>{await openRes();await pg.click('[data-r=\"foul\"]');await pg.click('[data-ft=\"skip\"]');};
+const foul=async()=>{await openRes();await pg.click('[data-r=\"foul\"]');};
 await pg.click('#types [data-c="FB"]');await tap(3);await openRes();await pg.click('[data-r=\"called\"]');
 await foul();await foul();await foul();
 let cnt=await pg.textContent('#cnt'),pc=await pg.textContent('#pc');console.log('after K,F,F,F count',cnt,'pc',pc);

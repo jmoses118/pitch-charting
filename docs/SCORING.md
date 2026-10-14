@@ -42,7 +42,7 @@ A change-up is **never aimed in the upper zone**. The only valid change-up targe
 Pitches landing in zone (1–9) or ring (11–18) ÷ all pitches. Way off, in dirt and over the catcher are not competitive.
 
 ## Foul timing, wild pitch, velocity (v40)
-Optional. `foulTime` is `early`, `ontime` or `late` (or unset). `wpPb` is `wp` or `pb`. `velo` is 20–110, one decimal. A number outside that range is dropped and a short message says it was not saved (empty stays empty, with no message). A bullpen pitch can also carry `result` `ball` or `called` when the phone's default result is set; otherwise bullpen strike % still uses the zone.
+Optional. A foul is saved on the Foul tap with `foulTime` unset. Early / On time / Late can set `foulTime` to `early`, `ontime` or `late` on that pitch afterwards. `wpPb` is `wp` or `pb`. `velo` is 20–110, one decimal. A number outside that range is dropped and a short message says it was not saved (empty stays empty, with no message). A bullpen pitch can also carry `result` `ball` or `called` when the phone's default result is set; otherwise bullpen strike % still uses the zone.
 
 ## Strike %
 Game strike % follows GameChanger (balls vs called/swinging/foul/in play etc.); location does not change it.

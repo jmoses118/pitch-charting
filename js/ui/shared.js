@@ -84,7 +84,7 @@ function tapLoc(z){if(scoreGuard())return;const way=PC.isWay(z);
   // Called aim (change-up limited) is separate from where it actually went (anywhere, including dirt and backstop).
   const aiming=!D.shook&&callOn&&D.parsed&&!D.parsed.targets.length&&!D.target;
   if(aiming){if(way||PC.isActualOnly(z))return toast(PC.isActualOnly(z)?PC.ACTUAL_ONLY_MSG:'Tap the called target box first');if(!PC.canAim(D.type,z))return toast(PC.CH_AIM_MSG);D.target=z;}
-  else{D.loc=z;D.sheet=true;D.foul=false;}
+  else{if(typeof clearFoulChips==='function')clearFoulChips();D.loc=z;D.sheet=true;D.foul=false;}
   render();if(tab==='game'&&D.loc)advance('result');}
 $('zone').addEventListener('click',e=>{const svg=$('zone');const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const p=pt.matrixTransform(svg.getScreenCTM().inverse());
   const z=zoneOf(p.x,p.y);if(z)tapLoc(z);});
@@ -169,9 +169,9 @@ async function doSync(manual,pull){if(!sync)return;if(store.isTest){if(manual)to
   if(typeof navigator!=='undefined'&&navigator.onLine===false){if(manual)toast('Offline – will sync later');renderSync();return;}
   syncing=true;renderSync();const r=pull?await sync.pull():await sync.sync();syncing=false;
   if(manual)toast(r.error?'Sync failed: '+r.error.slice(0,80):(pull?`Restored: ${r.added||0} new pitches`:`Synced${r.added?' · '+r.added+' new from cloud':''}`));render();}
-function renderSync(){const e=$('syncTag');if(!e)return;const mini=document.body.classList.contains('entrymode');if(store.isTest){e.textContent=mini?'☁ off':'☁ off (test)';e.title='Sync off (test mode)';e.style.background='#5c1515';return;}
+function renderSync(){const e=$('syncTag');if(!e)return;const mini=document.body.classList.contains('entrymode');if(store.isTest){e.textContent=mini?'☁ off':'☁ off (test)';e.title='Sync off (test mode)';e.style.background='#5c1515';e.style.color='#fff';return;}
   const st=store.real.sync,n=store.pendingCount();const t=st.last?new Date(st.last).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'never';
-  const full=!sync||!st.teamCode?'☁ not set up':syncing?'☁ syncing…':st.lastError?`☁ error · ${n} pending`:`☁ ${t} · ${n} pending`;e.title=full;e.textContent=!mini?full:!sync||!st.teamCode?'☁ off':syncing?'☁ …':st.lastError?`☁ ! ${n}`:n?`☁ ${n}`:'☁ ✓';e.style.background=st.lastError?'#5c1515':n?'#5c4813':'#1d4a2a';
+  const full=!sync||!st.teamCode?'☁ not set up':syncing?'☁ syncing…':st.lastError?`☁ error · ${n} pending`:`☁ ${t} · ${n} pending`;e.title=full;e.textContent=!mini?full:!sync||!st.teamCode?'☁ off':syncing?'☁ …':st.lastError?`☁ ! ${n}`:n?`☁ ${n}`:'☁ ✓';e.style.background=st.lastError?'#5c1515':n?'#5c4813':'#1d4a2a';e.style.color='#fff';
   if($('syncMsg'))$('syncMsg').textContent=`Last synced: ${t}. Pending: ${n}.${st.lastError?' Last error: '+st.lastError:''} Device ${st.deviceId}. Test mode never syncs.`;if(typeof renderRejBtn==='function')renderRejBtn();}
 $('teamSave').onclick=()=>{if(store.isTest)return toast('Exit test mode first');const v=$('teamCode').value.trim().toUpperCase();if(v.length<20)return toast('Team code looks too short');const changed=store.real.sync.teamCode!==v;
   // never lose unsent work: a verified code with pending edits can't be swapped until they're sent (a rejected/typo code can always be corrected)
