@@ -16,7 +16,7 @@ function render(skipCallInput){const s=S();{const gg=game();const two=!!(gg&&gg.
   ['pCard','rosterCard','impJSON','impCSV'].forEach(id=>$(id).classList.toggle('hide',R0!=='coach'));
   $('roleMsg').textContent=R0==='coach'?'':R0==='player'?`Player code: log your bullpens and view your own games (${store.real.sync.pitcherName||"your"} data only).`:R0==='pcoach'?`Pitching-coach code: view and score bullpens for your pitchers (${(mine()||[]).map(pName).join(', ')||'none yet – tap Sync now'}); add notes for their reports.`:R0==='unknown'?'Code not recognized – check it for typos. Nothing is sent until it is fixed; your unsent data stays on this phone.':'View-only code: you can look, not change.';$('roleMsg').classList.toggle('hide',R0==='coach');
   const cp=curPitcherId();
-  $('pitcher').innerHTML=store.activePitchers().filter(p=>(R0!=='player'||p.id===cp)&&vis(p.id)).map(p=>`<option value="${H(p.id)}" ${p.id===cp?'selected':''}>${H(PC.pitcherLabel(p))} (${H(p.throws)})</option>`).join('')||'<option>Add a pitcher</option>';
+  $('pitcher').innerHTML=store.activePitchers().filter(p=>(R0!=='player'||p.id===cp)&&vis(p.id)).map(p=>`<option value="${H(p.id)}" ${p.id===cp?'selected':''}>${H(PC.pitcherLabel(p))}</option>`).join('')||'<option>Add a pitcher</option>';
   const g=game();
   $('modeTag').textContent=(store.isTest?'TEST · ':'')+(tab==='game'?(g?'GAME':'NO GAME'):tab==='bullpen'?'BULLPEN':tab.toUpperCase());
   ['game','bullpen','stats','setup'].forEach(t=>$('tab-'+t).classList.toggle('hide',t!==tab));
@@ -27,7 +27,7 @@ function render(skipCallInput){const s=S();{const gg=game();const two=!!(gg&&gg.
   $('schedCard').classList.toggle('hide',!(tab==='game'&&!g&&!lk&&sch.length));
   $('schedList').innerHTML=sch.map(x=>`<div class="prow"><button data-sg="${H(x.id)}" style="flex:1;text-align:left;${schedId===x.id?'border-color:var(--acc)':''}"><b>${H((x.date||'').slice(5))} ${H(x.time||'')}</b> ${vsAt(x)} ${H(x.opponent)}<br><small class="mut">${[x.gameNo,x.field,x.location].filter(Boolean).map(H).join(' · ')}</small></button>${x.link&&/^https:\/\//.test(x.link)?`<a href="${H(x.link)}" target="_blank" rel="noopener" style="color:var(--acc);padding:0 6px">GC↗</a>`:''}</div>`).join('');
   if(tab==='game'&&!g){renderLineupForm();if(!$('gDate').value)$('gDate').value=new Date().toISOString().slice(0,10);}
-  const hand=curHand();$('hL').classList.toggle('sel',hand==='L');$('hR').classList.toggle('sel',hand==='R');$('hN').classList.toggle('sel',hand==='N');$('hN').classList.toggle('hide',tab==='game');
+  const hand=curHand();$('batTog').textContent=(hand==='N'?'Batter: none':hand==='L'?'Batter: LHB':'Batter: RHB')+' ▾';$('batTog').setAttribute('aria-label','Batter: '+(hand==='N'?'none':hand==='L'?'left-handed':'right-handed')+' – change');$('hL').classList.toggle('sel',hand==='L');$('hR').classList.toggle('sel',hand==='R');$('hN').classList.toggle('sel',hand==='N');$('hN').classList.toggle('hide',tab==='game');
   $('bpTest').textContent=store.isTest?'🧪 Test mode ON – tap to exit (discard)':'🧪 Start test mode (not saved)';$('bpTest').style.background=store.isTest?'var(--red)':'';$('bpTest').setAttribute('aria-pressed',String(store.isTest));
   if(g){const c=g.cur;$('inn').textContent=c.inning;$('cnt').textContent=c.b+'-'+c.s;$('outs').innerHTML=[0,1,2].map(i=>`<span class="${i<c.outs?'on':''}"></span>`).join('');
     $('pc').textContent=PC.pitchCount(g.pitches,cp);

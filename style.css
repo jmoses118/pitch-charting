@@ -220,10 +220,9 @@ button.mini{min-height:32px;padding:0 var(--s3);font-size:var(--fs-xs);font-weig
 button.mini[aria-expanded="true"]{background:var(--c-royal);color:#fff}
 .entrybar .phase{padding:2px 0 0;margin:0;background:none;font-size:var(--fs-xs);color:var(--c-text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 body.entrymode #zone{max-width:none}
-.zseg{position:absolute;display:flex;border:1px solid var(--c-line-strong);border-radius:var(--r-pill);overflow:hidden;background:var(--c-surface-2);z-index:2}
-.zseg button{flex:1;min-height:30px;padding:0 4px;border:0;border-radius:0;font-size:11px;font-weight:700;background:none}
-.zseg button+button{border-left:1px solid var(--c-line)}
-.zseg button.sel{background:var(--c-royal);color:#fff}
+button.zchip{position:absolute;z-index:2;min-height:32px;padding:0 var(--s2);border-radius:var(--r-pill);font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--c-surface-2);border-color:var(--c-line-strong)}
+.seg3{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:var(--s2)}.seg3 button{min-height:var(--tap-lg);font-weight:700}.seg3 button.sel{background:var(--c-royal);border-color:var(--c-royal-text);color:#fff}
+body.entrymode #toast{bottom:auto;top:calc(env(safe-area-inset-top) + 4px)}
 .way4{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s1);margin:var(--s1) 0 var(--s3)}
 body.entrymode #wayBtns button{min-height:40px;font-size:var(--fs-xs);font-weight:700}
 .bsheet{position:fixed;left:0;right:0;bottom:0;z-index:8;background:var(--c-surface);border-top:1px solid var(--c-line-strong);border-radius:var(--r-lg) var(--r-lg) 0 0;box-shadow:var(--shadow-2);padding:var(--s2) var(--s3) calc(var(--s3) + env(safe-area-inset-bottom));animation:sheetUp .2s var(--ease)}
