@@ -1,5 +1,15 @@
 # Changelog
 
+## v38 – Game, heat map and report always agree (Jim's test-mode bug)
+### Fixed
+- **"Count stuck at 0-0" after 6 pitches.** The count was right (two at-bats had finished), but the zone kept showing the last batter's balls with no label. The zone now says "Last batter's 3 pitches · 1B · new at-bat starts 0-0" and fades those balls until the next pitch.
+- **Heat map Miss summary was confusing** ("3 pitches … 3 had no intended spot"). It now reads "3 of 6 pitches had an aimed spot … 3 pitches with no aim left out (see Landed)". Landed counts every pitch: "6 pitches · where they landed".
+- **"✓1.0" boxes** looked like a score or a hit. Boxes now say "On spot" or "1 off" / "2 off" (average boxes between the aim and the landing) and "1 aimed".
+- **Per-pitch report strike %** used where the ball landed, not the umpire's call, so it could disagree with the Game count and Stats. Game pitches now use the result (one shared `PC.strikeOf`); bullpen pitches, which have no result, still use the zone. Intentional walks are no longer counted as thrown.
+- Report labels: "On target 2 of 2 aimed" and "Each pitch type (all thrown · on target = aimed ones)".
+### Notes
+- The red frame on every screen in test mode is intentional (TEST MODE – NOT SAVED); it isn't an error.
+
 ## v37 – landscape coach screen (redesign)
 ### Added
 - **Landscape coach game screen** (844x390): the whole wristband grid (rows 1–7 × cols 01–08, cells 48px or larger, selected cell royal), the strike zone and a docked results column on one screen. The status box shows the spoken call big ("3-05 Fb In").

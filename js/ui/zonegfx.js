@@ -36,5 +36,9 @@ function recentFor(){if(tab==='game'){const g=game();if(!g)return{items:[],title
     if(!ab.length&&P.length){const last=P[P.length-1].abn;ab=P.filter(p=>p.abn===last);title='Last at-bat';}return{items:PC.recentPitches(ab),title};}
   const x=session();return{items:PC.recentPitches(x?x.pitches:[],RECENT_MAX),title:'Recent pitches'};}
 const RECENT_MAX=10;
+function lastAbText(items){const p=items[items.length-1].p,end=p.end||p.ip||'';const E={K:'strikeout','K-D3':'strikeout (reached)',BB:'walk',HBP:'hit by pitch',out:'out',DP:'double play',FC:"fielder's choice",E:'error'};
+  return `Last batter's ${items.length} pitch${items.length===1?'':'es'}${end?' · '+(E[end]||end):''} · new at-bat starts 0-0`;}
 const typeName=c=>{const t=allTypes().find(x=>x.code===c);return t?t.name:(c||'');};
-function renderRecent(){const r=recentFor();$('recentTitle').textContent=r.title||'Recent pitches';$('recent').innerHTML=recentRows(r.items,tab==='game',throwsOf());return r.items;}
+function renderRecent(){const r=recentFor();
+  // a finished at-bat stays on the zone until the next pitch: say so, so 0-0 next to old balls never looks like a stuck count
+  const last=tab==='game'&&r.title==='Last at-bat'&&r.items.length,n=$('zoneNote');if(n){n.classList.toggle('hide',!last);n.textContent=last?lastAbText(r.items):'';}$('zone').classList.toggle('lastab',!!last);$('recentTitle').textContent=r.title||'Recent pitches';$('recent').innerHTML=recentRows(r.items,tab==='game',throwsOf());return r.items;}
