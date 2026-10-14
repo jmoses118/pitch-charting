@@ -64,3 +64,19 @@ Rule: on a 390×844 phone (and 375×667 for an SE), everything needed to log a p
 Landscape only (`(orientation: landscape) and (max-height: 500px)`). The grid is `auto | --mid | 106px`: band table, then status + zone, then results. `sizeCoach()` sets `--k` (band cell) and `--z` (zone cell): 48px at 844x390 and about 40px at 667x375. Palettes are set with `html[data-theme=field|night]` (Auto switches by time). Result tokens use Okabe-Ito colours. Band setup maps cells that have no zone to a spot (or no spot) once per sheet. The bullpen pad (`#bpPad`, `body.padmode`) is fixed above the nav, and fitZone subtracts `--pad-h`.
 
 Review fixes (v37): `.cs-hint` is a fixed single line (ellipsis), `.cstatus` has a fixed height (`--sth`), and `sizeCoach()` caps the zone by height and counts the 1.5px grid lines. Under 700px width `.coach.compact` uses `--rh` 20, `--res` 98, band 44, a compact status and a ⋯ icon. Elements marked `data-ellipsis` may truncate on purpose (the layout audit skips them).
+
+## Sync problems dialog (v39)
+Setup → Cloud sync shows a red "⚠ Sync problems (N) – view" button only when the server refused changes. The bottom sheet lists each change in plain words: what (first name, pitch, where) and "Why: <sentence> · Oct 14, 8:56 AM" from `PC.syncWhy` (401 sign-in ran out, 403 not allowed, 409/duplicate already saved, other 4xx couldn't read). The raw server text is behind a closed "Details" toggle. Each row has a Keep / Retry / Discard segmented control (44px; Discard has red text and outline, and turns solid red when picked). After Apply, discards get a 6-second "N change(s) discarded · Undo" toast. "Retry all" sets every row to Retry. The Cancel / Apply footer is sticky, and nothing changes until Apply.
+
+Change-up aims: in ✎ Aim mode, boxes a change-up can't be aimed at become dashed outlines with no fill and #5B6472 numbers. A tap there shows a short yellow warning in the status strip ("Change-up: aim low", or "CH: aim low" under 700px). The bullpen toast keeps the full list. Band setup shows "Change-ups aim low: 4, 7, 8, 9, 13, 14 or 18." under change-up rows and flags an old high aim with a yellow left border.
+
+## Scoring lock (v39)
+- View-only phone, portrait: amber bar at the top of entry – "👁 Scoring on another phone · view only" + **Take over scoring** (≥44px). Scoring controls hidden; count, zone and recent pitches stay visible.
+- Coach landscape: the result column becomes "👁 Scoring on another phone / View only / **Take over scoring**".
+- ⋯ Game menu on a view-only phone: amber note "👁 Scoring on another phone · view only. Game changes are off here." + **Take over scoring** on top; game-changing items greyed (disabled); Band setup, Display and Mirror stay active.
+- Takeover popup: title "Take over scoring?", body "Another phone is scoring this. Only take over if that phone died or the coach handed it to you. That phone will switch to view only.", buttons Cancel (focused) and **Take over scoring**.
+
+## Shake-off (v39)
+- Portrait: "⤺ Shake-off" (≥44px, violet outline) right-aligned under the entry steps; enabled once a wristband call is made. Tapping shows a violet bar "⤺ Shook off CH7 → tap the pitch she threw" (then "→ threw FB") with **Cancel**.
+- Coach landscape: "⤺ Shake-off" button after Aim/Undo/Same. Tapping swaps the result column for the thrown-type picker (FB, CH, CB…) + "✕ Cancel"; the call line reads "⤺ CH7 → ?" then "⤺ CH7 → FB". After a type, results return and the button becomes "✕ Shake" (cancel).
+- Stats: a "Shake-offs · Name #: N" card (not hidden in More tables) with a Shook off / Followed call table (#, Str%, H, Hard, K, Ball) and a list "Called CH8 → threw FB 5 · 0-2 · after CH · Foul · 2B (LD)".

@@ -15,3 +15,21 @@ jobs:
         run: for f in logic.js sw.js js/core/*.js js/ui/*.js; do node --check "$f"; done
       - name: Unit tests
         run: node --test test/logic.test.js
+  ui:
+    # Playwright browser tests against a local static server (Supabase is blocked inside every test; test data only)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install playwright-core (uses the runner's Google Chrome)
+        run: npm install --no-save --no-package-lock playwright-core@1.59.1 && test -x /usr/bin/google-chrome
+      - name: Serve the app
+        run: (python3 -m http.server 8766 >/tmp/http.log 2>&1 &) && for i in $(seq 1 20); do curl -sf http://localhost:8766/ >/dev/null && break; sleep 0.5; done
+      - name: Smoke test
+        run: node test/ui.smoke.js 8766
+      - name: XSS test
+        run: node test/xss.ui.js http://localhost:8766/
+      - name: Shake-off regression (button in both layouts) + scoring lock
+        run: node test/shake.ui.js http://localhost:8766/ && node test/lock.ui.js http://localhost:8766/

@@ -11,6 +11,9 @@ Highlights: game + bullpen charting with Jim's wristband calls, miss severity / 
 - `config.js` holds the Supabase URL and **publishable** key (safe for clients; RLS enforces access). Never put a secret/service key in the repo.
 - Install the app on a phone with "Add to Home Screen"; the service worker (`sw.js`) caches every file for offline use.
 
+## Sync problems
+If the server refuses a change, Setup → Cloud sync shows **⚠ Sync problems**. Open it to retry or discard each change; Cancel leaves everything as it was.
+
 ## Privacy (minors)
 The repo is public and the players are minors. The app shows pitchers as **first name + jersey number** only (`PC.pitcherLabel`). Never commit surnames, birthdays or other personal details in code, seeds, tests, docs or screenshots. Use test data in demos.
 
@@ -35,3 +38,9 @@ Coaches create codes in Setup → Access codes (`coach_create_code` RPC). Codes 
 - Each PR: clear description, tests run listed, docs/CHANGELOG updated, CI green before merge.
 - Merging to `main` deploys GitHub Pages automatically. Bump the cache name in `sw.js` whenever app files change so phones pick up the update.
 - Database changes: add a file to `supabase/migrations/` (timestamp_name.sql) matching what is applied to the Supabase project.
+
+### One scoring phone
+A live game or bullpen is scored only from the phone that started it. Other phones can watch it live (view only). If the scoring phone dies, tap **Take over scoring** and confirm.
+
+### Shake-offs
+If she shakes off your call, tap **⤺ Shake-off** (portrait or the landscape coach screen), pick the pitch she threw, then where and the result as usual. Stats shows a Shake-offs card per pitcher: how her shake-offs did vs pitches that followed the call, and each one with the count and the pitch before it.

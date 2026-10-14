@@ -59,7 +59,7 @@ function openReport(sess){if(!sess)return toast('No session');const R=reportFor(
   <div class="lbl" style="margin-top:10px">Feedback</div><ul class="fb">${r.feedback.map(t=>`<li>${H(t)}</li>`).join('')}</ul>${noteBox({sessionId:sess.id,pitcherId:sess.pitcherId||(R.P[0]&&R.P[0].pitcherId)},role()==='player')}
   <div class="lbl">Where you aimed – how close you got</div><svg id="rMap" viewBox="-14 -6 128 138" style="width:100%;max-width:340px;display:block;margin:auto"></svg>
   <div style="font-size:13px;line-height:1.4;margin-top:4px">👆 Tap a box to see where those pitches went. ${KID_LEGEND}</div>
-  <div class="lbl" style="margin-top:10px">Best spot / work on</div><div>⭐ Best: ${sp(r.best)}</div><div>🎯 Work on: ${sp(r.weakest)}</div>${tr}
+  <div class="lbl" style="margin-top:10px">Best spot / work on</div><div>⭐ Best: ${sp(r.best)}</div><div>🎯 Work on: ${sp(r.weakest)}</div>${tr}${shakeHTML(R.P)}
   <div class="lbl" style="margin-top:10px">By pitch</div><div id="rTypes">${typeSectionsHTML(r,'rT_')}</div><div class="lbl" style="margin-top:10px">All pitches</div><table><tr><th>Pitch</th><th>Thrown</th><th>Strikes</th><th>On target</th><th>🎁</th></tr>${Object.entries(r.byType).sort((a,b)=>b[1].n-a[1].n).map(([k,v])=>`<tr><td>${H(PC.TYPE_NAME[k]||k)}</td><td>${v.n}</td><td>${rp(v.strikePct)}</td><td>${v.called?`${v.good}/${v.called}`:'–'}</td><td>${v.mm}</td></tr>`).join('')}</table>`;
   paintTypeMaps($('rBody'),R.items,'rT_');if(R.miss.total){paintMiss($('rMap'),R.miss,true);hookDrill($('rMap'),R.miss);}else $('rMap').outerHTML='<div class="mut">No intended spots logged – tap a target before the actual location to get the heat map.</div>';
   openSheet($('rDlg'));}

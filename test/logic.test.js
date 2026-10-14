@@ -137,7 +137,6 @@ test('miss heat map: per intended cell avg miss + colors (green <=1, darker red 
 test("middle-middle rule: landing in 5 when aimed elsewhere = max severity, counted as MM",()=>{const st=PC.defaultState();st.sessions.push({id:'s',date:'d',pitches:[
   {id:'1',pitcherId:'p_woods',type:'FB',targets:[2],loc:5,hand:'N'},{id:'2',pitcherId:'p_woods',type:'FB',targets:[2],loc:2,hand:'N'},{id:'3',pitcherId:'p_woods',type:'CH',targets:[5],loc:5,hand:'N'},{id:'4',pitcherId:'p_woods',type:'CH',targets:[9],loc:6,hand:'N'}]});
   const d=PC.missData(PC.heatItems(st),{});assert.equal(d.mm,1);assert.equal(d.cells[2].mm,1);assert.equal(d.cells[2].avg,2);assert.equal(d.cells[5].avg,2);assert.equal(d.cells[5].mm,0);assert.equal(d.cells[9].avg,2); // CH up in the zone = miss (change-up rule)
-  assert.ok(PC.isMiddleMiss({loc:5,targets:[2]}));assert.ok(!PC.isMiddleMiss({loc:5,targets:[5]}));
   const only=PC.missData(PC.heatItems({pitchers:st.pitchers,games:[],sessions:[{id:'x',pitches:[{type:'FB',targets:[6],loc:5}]}]}),{});assert.equal(only.cells[6].avg,4);assert.equal(PC.missColor(only.cells[6].avg).fill,'#7d1414');});
 test("session report: good = on target/1 off, MM severe, feedback + best/weakest + trend",()=>{const P=[];const add=(type,t,l)=>P.push({type,targets:[t],loc:l,hand:'R'});
   [[7,4],[7,1],[7,4],[7,7],[7,4],[7,4]].forEach(([t,l])=>add('DR',t,l));[[6,6],[6,6],[6,3],[6,6],[6,5]].forEach(([t,l])=>add('FB',t,l));
@@ -382,3 +381,89 @@ test('report strikes follow the umpire result in games, the zone in the bullpen 
   const bp = [ { type: 'FB', loc: 5, targets: [5] }, { type: 'FB', loc: 11, targets: [5] } ];
   assert.equal(PC.sessionReport(bp, {}).types.FB.stats.strikes, 1); // bullpen: no result → zone decides
 });
+
+// ---------------- v39 (Code Reviewer fixes) ----------------
+const memStore=()=>{const m={};return{getItem:k=>m[k]??null,setItem:(k,v)=>m[k]=v,removeItem:k=>delete m[k]};};
+const coachStore=()=>{const st=PC.makeStore(memStore());const s=st.real;s.sync.teamCode='X';s.sync.teamId='t';s.sync.role='coach';return st;};
+const mockFetch=(rule,log)=>async(url,o)=>{o=o||{};if(/\/rpc\/whoami/.test(url))return rule.whoami?rule.whoami():{ok:true,text:async()=>JSON.stringify({role:'coach',team_id:'t'})};
+  if(o.method==='POST'){const rows=JSON.parse(o.body);const bad=rows.find(r=>rule.reject&&rule.reject(r));if(bad)return{ok:false,status:rule.status||403,text:async()=>'row-level security'};rows.forEach(r=>log.push(url.split('/').pop().split('?')[0]+':'+r.id));return{ok:true,text:async()=>''};}
+  log.push('GET '+decodeURIComponent(url));return{ok:true,json:async()=>(rule.pages?rule.pages(url):[])};};
+test('push: a 403 row is retried row by row; good rows and later tables still go, the reject is quarantined',async()=>{const st=coachStore(),s=st.real;
+  s.sessions.push({id:'s1',date:'2026-10-14',pitches:[{id:PC.uuid(),pitcherId:'p_woods',ts:1,type:'FB',loc:5},{id:'BAD',pitcherId:'p_woods',ts:2,type:'FB',loc:5}]});st.markAllDirty();const log=[];
+  const r=await PC.makeSync(st,{url:'u',key:'k',fetch:mockFetch({reject:r=>r.id==='BAD'},log)}).push();
+  assert.equal(r.rejected,1);assert.ok(log.some(x=>/^pitches:/.test(x)&&!/BAD/.test(x)));assert.ok(log.some(x=>/^sessions:/.test(x)));assert.ok(s.sync.rejected['pitches:BAD']);assert.equal(s.sync.rejected['pitches:BAD'].status,403);});
+test('push: every row 401 and whoami says the code is gone -> halt, nothing quarantined, all still queued',async()=>{const st=coachStore(),s=st.real;st.markAllDirty();const n0=st.pendingCount();
+  const r=await PC.makeSync(st,{url:'u',key:'k',fetch:mockFetch({reject:()=>true,status:401,whoami:()=>({ok:true,text:async()=>''})},[])}).push();
+  assert.ok(r.error&&/not recognized/.test(r.error));assert.equal(Object.keys(s.sync.rejected||{}).length,0);assert.equal(st.pendingCount(),n0);});
+test('push: every row 403 but whoami says the coach code is fine -> rows quarantined, other tables continue',async()=>{const st=coachStore(),s=st.real;st.markAllDirty();const log=[];
+  const r=await PC.makeSync(st,{url:'u',key:'k',fetch:mockFetch({reject:r=>r.throws!=null,status:403},log)}).push(); // only pitcher rows refused
+  assert.ok(!r.error);assert.ok(r.rejected>=1);assert.ok(log.some(x=>/^call_sheets:/.test(x)));});
+test('rejected rows: list, retry (re-queued) and discard',()=>{const st=coachStore(),s=st.real;PC.quarantine(s,'pitches','a',403,'rls');PC.quarantine(s,'games','g',400,'bad');
+  assert.equal(PC.rejectedList(s).length,2);assert.ok(PC.retryRejected(s,'pitches:a'));assert.ok(s.sync.queue.pitches.a);assert.ok(PC.discardRejected(s,'games:g'));assert.equal(PC.rejectedList(s).length,0);});
+test('pull: incremental since last updated_at (2-min overlap) with keyset paging, never offset',async()=>{const st=coachStore(),s=st.real;const log=[];
+  const big=Array.from({length:1000},(_,i)=>({id:'p'+String(i).padStart(4,'0'),updated_at:'2026-10-14T12:00:00.000Z',name:'A',throws:'R'}));
+  const pages=url=>/\/pitchers\?/.test(url)&&!/id\.gt/.test(url)?big:[];
+  const sy=PC.makeSync(st,{url:'u',key:'k',fetch:mockFetch({pages},log)});await sy.pull();
+  assert.ok(!log.some(x=>/offset=/.test(x)));assert.ok(log.some(x=>/pitchers\?.*or=\(updated_at\.gt\.2026-10-14T12:00:00\.000Z,and\(updated_at\.eq\.2026-10-14T12:00:00\.000Z,id\.gt\.p0999\)\)/.test(x)));
+  assert.equal(s.sync.seen.pitchers,'2026-10-14T12:00:00.000Z');log.length=0;await sy.pull();
+  assert.ok(log.some(x=>/pitchers\?.*updated_at=gte\.2026-10-14T11:58:00\.000Z/.test(x)),'second pull is incremental');});
+test('sessions: last writer wins by updated_at for every field',()=>{const st=coachStore(),s=st.real;s.sessions.push({id:'s1',date:'2026-10-13',pitcherId:'p_woods',pitches:[],_u:'2026-10-14T10:00:00Z'});
+  PC.mergeRemote(s,{sessions:[{id:'s1',date:'2026-10-14',pitcher_id:'p_crich',updated_at:'2026-10-14T11:00:00Z'}]});assert.equal(s.sessions[0].date,'2026-10-14');assert.equal(s.sessions[0].pitcherId,'p_crich');
+  PC.mergeRemote(s,{sessions:[{id:'s1',date:'2026-10-01',pitcher_id:'p_woods',updated_at:'2026-10-14T09:00:00Z'}]});assert.equal(s.sessions[0].date,'2026-10-14');});
+test('scoring lock: only the starting phone scores; others view; take over moves the lock',()=>{
+  assert.ok(PC.canScore(null,'A'));assert.ok(PC.canScore({},'A'),'legacy box with no owner stays open');
+  const g={id:'g',scorer:'A'};assert.ok(PC.canScore(g,'A'));assert.ok(!PC.canScore(g,'B'));assert.ok(PC.lockedBox(g,'B'));assert.ok(!PC.lockedBox(g,'A'));
+  assert.equal(PC.claimScoring(g,'B'),true);assert.equal(g.scorer,'B');assert.ok(PC.lockedBox(g,'A'));assert.equal(PC.claimScoring(g,'B'),false);assert.equal(PC.claimScoring(g,''),false);});
+test('scoring lock syncs: games carry cur.scorer (no schema change), the count is plain last-writer, no pn field',()=>{const st=coachStore(),s=st.real;
+  s.games.push({id:'g',date:'d',opponent:'o',homeAway:'home',lineup:[],pitches:[],cur:{inning:2,outs:1,slot:3,b:2,s:1,abn:7},scorer:'A'});s.sync.queue.games.g=1;
+  const row=PC.buildRows(s).rows.games[0];assert.equal(row.cur.scorer,'A');assert.equal(row.cur.pn,undefined);delete s.sync.queue.games.g;
+  PC.mergeRemote(s,{games:[{id:'g',date:'d',opponent:'o',home_away:'home',cur:{inning:3,outs:0,slot:0,b:0,s:0,abn:9,scorer:'B'},updated_at:'2026-10-14T12:00:00Z'}]});
+  assert.equal(s.games[0].scorer,'B','takeover on another phone arrives');assert.equal(s.games[0].cur.abn,9);});
+test('scoring lock for sessions: device_id until the scorer column migration is applied, then the scorer column',()=>{const st=coachStore(),s=st.real;
+  s.sessions.push({id:'s1',date:'2026-10-13',pitches:[],scorer:'A'});s.sync.queue.sessions.s1=1;
+  assert.equal('scorer' in PC.buildRows(s).rows.sessions[0],false,'column not sent while the migration is unapplied');
+  s.sync.scorerCol=true;assert.equal(PC.buildRows(s).rows.sessions[0].scorer,'A');delete s.sync.queue.sessions.s1;
+  PC.mergeRemote(s,{sessions:[{id:'s1',date:'2026-10-13',device_id:'C',updated_at:'2026-10-14T11:00:00Z'}]});assert.equal(s.sessions[0].scorer,'C');
+  PC.mergeRemote(s,{sessions:[{id:'s1',date:'2026-10-13',device_id:'C',scorer:'D',updated_at:'2026-10-14T12:00:00Z'}]});assert.equal(s.sessions[0].scorer,'D');});
+test('rowPitch keeps every valid spot (zone, ring, way off 21-24) and drops junk',()=>{const p=PC.rowPitch({id:'a',mode:'bullpen',targets:[3,11,21,24,10,19,25,0,'x'],loc:22});assert.deepEqual(p.targets,[3,11,21,24]);assert.equal(p.loc,22);assert.equal(PC.rowPitch({id:'b',mode:'bullpen',loc:19}).loc,null);});
+test("change-up targets: only 4, 7, 8, 9, 13, 14, 18; high CH calls (CH H+, CH H, CH 2) get no spot and are flagged",()=>{assert.deepEqual(PC.CH_TARGETS,[4,7,8,9,13,14,18]);assert.deepEqual(PC.aimOpts('CH'),[4,7,8,9,13,14,18]);assert.equal(PC.aimOpts('FB').length,17);
+  for(const c of ['CH H+','CH H','CH 2','CH15']){const p=PC.parseCall(c,'R','R');assert.equal(p.type,'CH');assert.deepEqual(p.targets,[]);assert.ok(p.chHigh,c);}
+  for(const [c,z] of [['CH7',7],['CHG 9',9],['CH L',8],['CH13',13]]){const p=PC.parseCall(c,'R','R');assert.deepEqual(p.targets,[z]);assert.ok(!p.chHigh);}
+  assert.equal(PC.bullpenTap({type:'CH'},2).action,'bad_target');assert.equal(PC.bullpenTap({type:'CH'},8).action,'target');assert.equal(PC.bullpenTap({type:'FB'},2).action,'target');
+  assert.ok(PC.pitchMiss({type:'CH',targets:[2],loc:2}).badAim);assert.ok(!PC.pitchMiss({type:'CH',targets:[8],loc:8}).badAim);
+  const sh={rows:[['CH H+']],aims:{'CH H+':2}};assert.equal(PC.bandAim(sh,PC.parseCall('CH H+','R','R')),null);sh.aims['CH H+']=8;assert.equal(PC.bandAim(sh,PC.parseCall('CH H+','R','R')),8);
+  assert.equal(PC.pitchMiss({type:'CH',targets:[8],loc:2}).chUp,true);}); // the CH-up miss rule still applies
+test('hitSpot uses pitchMiss: Stats Spot% and the report agree, a CH up never counts as a hit',()=>{assert.equal(PC.hitSpot({type:'CH',targets:[2],loc:2}),false);assert.equal(PC.hitSpot({type:'FB',targets:[11],loc:11}),true);assert.equal(PC.hitSpot({type:'FB',targets:[],loc:5}),false);
+  const P=[{type:'CH',targets:[2],loc:2},{type:'FB',targets:[4],loc:4},{type:'CH',targets:[8],loc:8}];assert.equal(PC.summarize(P).spot,PC.sessionReport(P).hits);});
+test('localDate: 9:30 PM ET stays on the same day (UTC would roll to tomorrow)',()=>{const old=process.env.TZ;process.env.TZ='America/New_York';try{const ts=Date.parse('2026-10-16T21:30:00-04:00');assert.equal(PC.localDate(ts),'2026-10-16');assert.notEqual(new Date(ts).toISOString().slice(0,10),'2026-10-16');}finally{process.env.TZ=old;}});
+test('no UI code builds a date from UTC (toISOString().slice(0,10))',()=>{const fs=require('fs'),path=require('path');const dir=path.join(__dirname,'..','js','ui');for(const f of fs.readdirSync(dir))assert.ok(!/toISOString\(\)\.slice\(0,\s*10\)/.test(fs.readFileSync(path.join(dir,f),'utf8')),f);});
+test('heatSummary (Miss / Landed) accounts for every pitch: no-aim and souvenir counts',()=>{const items=[{p:{type:'FB',targets:[2],loc:5}},{p:{type:'FB',targets:[4],loc:4}},{p:{type:'FB',targets:[],loc:6}},{p:{type:'FB',targets:[],loc:null}}];
+  const m=PC.missData(items,{});assert.equal(PC.heatSummary(m,true),"Showing 2 of 4 pitches (the ones with an aim). Box = where she aimed · color = how far off. 🎁 1 souvenir. 2 with no aim aren't shown – see Landed.");
+  const l=PC.heatData(items,{},'actual');assert.equal(PC.heatSummary(l,false),'3 pitches · where they landed · 1 pitch with no location left out');
+  assert.equal(PC.heatSummary(PC.missData([{p:{type:'FB',targets:[4],loc:4}}],{}),true),'Showing 1 of 1 pitch (the ones with an aim). Box = where she aimed · color = how far off.');});
+test('miss directions: one list, topDir, bestWeak',()=>{assert.deepEqual(PC.MISS_DIRS,['up','down','in','away','glove side','arm side']);assert.deepEqual(PC.topDir({up:1,away:3}),['away',3]);
+  const r=PC.bestWeak([{goodPct:90,avgMiss:.5},{goodPct:40,avgMiss:2}]);assert.equal(r.best.goodPct,90);assert.equal(r.weakest.goodPct,40);assert.equal(PC.bestWeak([{goodPct:90,avgMiss:.5}]).weakest,null);
+  assert.equal(PC.isMiddleMiss,undefined);});
+test('syncWhy: plain-words reason per status (raw text never needed)',()=>{assert.equal(PC.syncWhy({status:401,error:'JWT expired'}),'Your sign-in ran out. Tap Retry – it will send after you sign in again.');
+  assert.equal(PC.syncWhy({status:403,error:'new row violates row-level security'}),"This phone isn't allowed to save that. Ask your coach to check your team code.");
+  assert.equal(PC.syncWhy({status:409}),'This was already saved from another phone. Usually safe to Discard.');assert.equal(PC.syncWhy({status:400,error:'duplicate key value violates unique constraint "games_pkey"'}),PC.SYNC_WHY.dup);
+  for(const s of [400,404,422])assert.equal(PC.syncWhy({status:s,error:'x'}),"The server couldn't read this change. Try Retry; if it fails again, Discard.");});
+
+test('shake-off: summary per pitcher – shook vs followed, hard contact, K, prev pitch in the at-bat',()=>{
+  const P=[{id:'a',ts:1,abn:1,b:0,s:1,type:'CH',call:'CH8',loc:8,result:'foul'},
+    {id:'b',ts:2,abn:1,b:0,s:2,type:'FB',call:'CH8',shook:true,loc:5,result:'inplay',ip:'2B',bb:'LD'},
+    {id:'c',ts:3,abn:2,b:0,s:0,type:'FB',call:'FB3',loc:3,result:'called'},
+    {id:'d',ts:4,abn:2,b:0,s:1,type:'DR',call:'FB3',shook:true,loc:7,result:'swinging',end:'K'}];
+  const r=PC.shakeoffs(P);assert.equal(r.n,2);assert.equal(r.shook.hits,1);assert.equal(r.shook.hard,1);assert.equal(r.shook.k,1);assert.equal(r.followed.n,2);assert.equal(r.followed.hits,0);
+  assert.deepEqual(r.list[0],{id:'b',called:'CH8',thrown:'FB 5',count:'0-2',prev:'CH · Foul',outcome:'2B (LD)',inning:undefined,batter:''});
+  assert.equal(r.list[1].prev,'FB · Called strike');assert.match(r.list[1].outcome,/Swinging strike · K/);});
+test('shake-off scoring: hit spot uses her own aim only; unknown aim = no aim (never the coach call)',()=>{
+  assert.equal(PC.hitSpot({type:'FB',call:'CH8',shook:true,targets:[],loc:8}),false);assert.equal(PC.summarize([{type:'FB',call:'CH8',shook:true,targets:[],loc:8,result:'called'}]).spotN,0,'no aim = left out of hit-spot %');
+  assert.equal(PC.pitchMiss({type:'FB',call:'CH8',shook:true,targets:[],loc:8}),null);
+  assert.ok(PC.pitchMiss({type:'FB',call:'CH8',shook:true,targets:[5],loc:5}));});
+test('shake-off syncs on today\'s schema (call_raw tag) and via the shook column once enabled',()=>{const st=coachStore(),s=st.real;
+  s.sessions.push({id:'s1',date:'d',pitches:[]});s.games.push({id:'g',date:'d',opponent:'o',homeAway:'home',lineup:[],cur:{},pitches:[{id:'p1',ts:1,type:'FB',call:'CH8',callRaw:'CH 8',shook:true,targets:[],loc:5,result:'foul'}]});s.sync.queue.pitches.p1=1;
+  let row=PC.buildRows(s).rows.pitches[0];assert.equal(row.call_raw,PC.SHOOK_TAG+'CH 8');assert.equal('shook' in row,false);assert.equal(row.call,'CH8');
+  const back=PC.rowPitch(row);assert.equal(back.shook,true);assert.equal(back.callRaw,'CH 8');
+  s.sync.shakeCol=true;row=PC.buildRows(s).rows.pitches[0];assert.equal(row.shook,true);
+  assert.equal(PC.rowPitch({id:'x',call_raw:'FB 3',shook:false}).shook,undefined);});

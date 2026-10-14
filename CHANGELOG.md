@@ -1,5 +1,50 @@
 # Changelog
 
+## v39 – Code Reviewer fixes
+### Fixed
+- **Sync no longer stalls on one refused row.** A 401/403 is now retried row by row like other 4xx errors, so the good rows and every later table still sync. Sync stops only if the coach code itself is no longer valid.
+- **Dates after 8 PM ET** were stamped with tomorrow's date (UTC). New bullpen sessions, new games, rest info and backups now use the phone's local date.
+- **Hit spot** in Stats and the report now use one rule (a change-up up in the zone never counts as a hit).
+- **Two coach phones** no longer roll back each other's live count, and bullpen session edits from any phone are pulled (last writer wins).
+- Pulled pitches keep way-off targets (21–24).
+### Added
+- **Change-ups are aimed low only:** boxes 4, 7, 8, 9, 13, 14, 18. Other boxes are refused in the bullpen, the call sheet and the coach screen. A high change-up call (e.g. CH H+) gets no spot and goes to band setup.
+- **Setup → Sync problems:** see changes the server refused, then retry or discard each one (Cancel changes nothing).
+- **Faster sync:** pull downloads only what changed since the last sync, with keyset paging.
+- CI runs the browser smoke and XSS tests on every PR.
+### Shake-off (Jim)
+- New **⤺ Shake-off** button in the Game pitch flow (portrait) and on the landscape coach screen next to Aim/Undo/Same: records the coach's call as shaken off, then the pitch type she actually threw, where it went and the result, linked to the call. Cancel and Undo supported.
+- Stats gets a **Shake-offs** card per pitcher (also in the bullpen report when present): count, shook vs followed-call results (strike %, hits, hard contact, K, balls), and each shake-off with called vs thrown, count, previous pitch and outcome.
+- Scoring: a shake-off pitch is scored against her own aim; unknown = no aim (SCORING.md).
+- Sync works on today's schema (call_raw tag). Optional migration `20261014140000_shake_off.sql` (`pitches.shook`) – **not applied**.
+- Bullpen: not included (no wristband call in bullpen).
+- History check: "shake" never appeared in any commit or PR (#1–#12), so this is new, not a restore.
+
+### Scoring lock (Jim)
+- A live game or bullpen session can be scored only from the phone that started it; other phones see the live count and pitches read only, with a "Scoring on another phone" note.
+- **Take over scoring** (with confirm and Cancel) moves scoring to this phone when the scoring phone dies.
+- On a view-only phone the ⋯ Game menu and the game/bullpen cards disable everything that changes the game (pause, end, outs, next inning, intentional walk, dropped 3rd strike, undo) and show the "Scoring on another phone" note with Take over scoring; band setup, theme and mirror stay available. Also blocked in code.
+- Replaces the "phone that has seen more pitches wins" rule (`cur.pn` removed).
+- Migration `20261014120000_scoring_lock.sql` (`sessions.scorer`) – **applied 2026-10-14** to live project `qeqijbrokrkzpcacpjyw`; `scorerColumn:true` is set in `config.js` (`PC_CONFIG`). Games still use `cur.scorer`.
+
+### Design review fixes (UI Designer)
+- Sync problems rows say why in plain words: "Why: This phone isn't allowed to save that. Ask your coach to check your team code. · Oct 14, 8:56 AM" (sign-in ran out / not allowed / already saved from another phone / couldn't read). The raw server text is behind a Details toggle.
+- Discard looks destructive before it's picked (red text and outline). After Apply, a "1 change discarded · Undo" toast stays for about 6 seconds.
+- New sheet subtitle: "These changes didn't reach the cloud. They're safe on this phone. Pick Retry or Discard for each, then tap Apply."
+- Coach screen: the change-up warning is short so it never truncates ("Change-up: aim low"; "CH: aim low" on narrow phones), and ⋯ Game keeps its full label. The bullpen toast keeps the full box list.
+- Boxes a change-up can't aim at are dashed outlines with grey (#5B6472) numbers instead of faded out.
+- Band setup: change-up rows say "Change-ups aim low: 4, 7, 8, 9, 13, 14 or 18." An old high change-up aim is flagged on its row ("Was zone 2 – change-ups can't aim high. Pick a low box.") instead of being dropped silently.
+### Design review round 2 (UI Designer)
+- Coach shake hint no longer truncates: **"Which pitch?"** (landscape) / **"Threw?"** (667) while picking the type, then the normal step hint ("Tap where it went" / "Where?").
+- Portrait view-only banner sits under the INN/COUNT strip (sticky); copy **"👁 View only – another phone is scoring"**. Tapping the zone or band (incl. coach band) toasts that sentence.
+- Touch targets ≥48px: portrait Shake-off/Cancel, Take over, sync Keep/Retry/Discard, Details.
+- Contrast: coach "View only" `#4A5363`; unselected Discard `#B42323`.
+- Portrait zone no longer jumps on call: Shake-off lives in the Band/Result stepline; the shake bar is a fixed 48px slot.
+- Take over sheet: **Cancel** is the filled/primary button; Take over scoring is outline.
+- Sync row "Pitcher ?" → **"Pitcher (not on this phone)"**. Shake-offs table headers spelled out (Pitches · Strike % · Hits · Hard hit · K · Balls). Dropped the duplicate portrait shake toast.
+### Changed (code)
+- Heat map summary moved into scoring.js (`PC.heatSummary`), with tests. One miss-direction list and one best/weakest-spot helper. Removed the unused `isMiddleMiss` and a stray comment.
+
 ## v38 – Game, heat map and report always agree (Jim's test-mode bug)
 ### Fixed
 - **"Count stuck at 0-0" after 6 pitches.** The count was right (two at-bats had finished), but the zone kept showing the last batter's balls with no label. The zone now says "Last batter: 3 pitches · single · next batter starts 0-0" and fades those balls until the next pitch.

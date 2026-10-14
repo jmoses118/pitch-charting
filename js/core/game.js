@@ -27,12 +27,12 @@ function applyPitch(cnt,result,ip){let b=cnt.b,s=cnt.s,end=null,outs=0;
 const countsAsPitch=p=>!p.noPitch;
 const pitchCount=(pitches,pid)=>pitches.filter(p=>countsAsPitch(p)&&(pid==null||p.pitcherId===pid)).length;
 // ---------- Stats ----------
-const hitSpot=p=>p.loc!=null&&p.targets&&p.targets.length&&p.targets.includes(p.loc);
 // Bullpen per-pitch flow (same order as game mode): 1) pitch type 2) tap intended spot 3) tap actual spot -> log + reset.
 // A call-sheet code that already names a spot counts as step 2.
 function bullpenStep(d){if(!d.type)return'type';const it=(d.callTargets&&d.callTargets.length)?d.callTargets:(d.target?[d.target]:[]);return it.length?'actual':'target';}
 function bullpenTap(d,z){const st=bullpenStep(d);if(st==='type')return{action:'need_type',draft:d};
+  if(st==='target'&&!PC.targetOk(d.type,z))return{action:'bad_target',draft:d};
   if(st==='target')return{action:'target',draft:Object.assign({},d,{target:z})};
   const targets=(d.callTargets&&d.callTargets.length)?d.callTargets.slice():[d.target];return{action:'log',draft:Object.assign({},d,{loc:z}),targets};}
-Object.assign(PC,{BB_TYPES,BB_NAME,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,hitSpot,bullpenStep,bullpenTap});
+Object.assign(PC,{BB_TYPES,BB_NAME,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,bullpenStep,bullpenTap});
 })(typeof window!=='undefined'?window:globalThis);

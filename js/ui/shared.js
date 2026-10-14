@@ -39,7 +39,7 @@ const oneHand=()=>S().oneHand!==false;
 function advance(step){if(!oneHand())return;if(document.body.classList.contains('entrymode')){if(scrollY)scrollTo(0,0);return;} // one-screen entry: everything is already in view
   const el=step==='loc'?$('zone'):step==='result'?$('resBtns'):($('wbCard')&&!$('wbCard').classList.contains('hide')?$('wbCard'):$('types'));if(el&&el.scrollIntoView)setTimeout(()=>el.scrollIntoView({behavior:'auto',block:step==='result'?'end':'start'}),30);}
 function pcCheck(pid,before,after){ensureSettings();const th=S().settings.alerts;const a=PC.alertLevel(before,th),b=PC.alertLevel(after,th);if(b.lvl>a.lvl){buzz([220,90,220]);toast(`⚠️ ${pName(pid)} has thrown ${after} pitches (alert at ${b.at})`);}}
-function resetDraft(){D.cell=null;D.bb=null;D.sheet=false;D.aim=null;D.aimEdit=false;D.spray=null;Object.assign(D,{type:null,callTxt:'',parsed:null,target:null,loc:null,ip:false});$('callTxt').value='';}
+function resetDraft(){D.shook=null;D.cell=null;D.bb=null;D.sheet=false;D.aim=null;D.aimEdit=false;D.spray=null;Object.assign(D,{type:null,callTxt:'',parsed:null,target:null,loc:null,ip:false});$('callTxt').value='';}
 // ---------- zone ----------
 const ZX0=20,ZY0=24,CW=20,CHh=24;
 const QUAD={11:'M0 0H40V24H20V48H0Z',12:'M60 0H100V48H80V24H60Z',13:'M0 72H20V96H40V120H0Z',14:'M100 72V120H60V96H80V72Z',15:'M40 0H60V24H40Z',16:'M0 48H20V72H0Z',17:'M80 48H100V72H80Z',18:'M40 96H60V120H40Z'};
@@ -66,20 +66,21 @@ function zoneSVG(svg,hand,o={}){let h='';svg.setAttribute('viewBox',o.orient?ORI
   else h+=hand==='N'?`<text class="side" style="fill:#8b949e;font-size:5px" x="50" y="${ly}">${gl?`No batter · glove / arm side (${o.throws}HP)`:'No batter · in/away shown as RHB'}</text>`:`<text class="side" style="fill:#5b8cff;font-size:5.5px" x="${inRight?88:12}" y="${ly}">${hand==='L'?'LHB':'RHB'} ${inRight?'▶':'◀'}</text><text class="side" x="${inRight?12:88}" y="${ly}" style="opacity:.5">${inRight?'LHB side':'RHB side'}</text>`;
   }
   svg.innerHTML=h+(o.extra||'');}
-function drawZone(){const hand=curHand();let ex='';const tset=D.aim?[D.aim]:D.parsed&&D.parsed.targets.length?D.parsed.targets:(D.target?[D.target]:[]);
+function drawZone(){const hand=curHand();let ex='';const tset=D.shook?aimSet():D.aim?[D.aim]:D.parsed&&D.parsed.targets.length?D.parsed.targets:(D.target?[D.target]:[]);
   const lab={};tset.forEach(z=>lab[z]='TARGET');
   const items=renderRecent();zoneSVG($('zone'),hand,{labels:lab,throws:throwsOf(),orient:true,compact:true,extra:ballsSVG(items,throwsOf())});
   tset.forEach(z=>{const e=$('zone').querySelector(`[data-z="${z}"]`);e&&e.classList.add('zt');});
   if(D.loc){const e=$('zone').querySelector(`[data-z="${D.loc}"]`);e&&e.classList.add(tset.includes(D.loc)?'zta':'za');}
   document.querySelectorAll('#wayBtns [data-z]').forEach(b=>b.classList.toggle('sel',+b.dataset.z===D.loc));}
 const locTxt=z=>PC.isWay(z)?PC.WAY[z]:'@'+z;
-function tapLoc(z){const way=PC.isWay(z);
+function tapLoc(z){if(scoreGuard())return;const way=PC.isWay(z);
   if(tab==='bullpen'){if(!D.type&&D.parsed)D.type=D.parsed.type;
     const r=PC.bullpenTap({type:D.type,target:D.target,callTargets:callOn&&D.parsed?D.parsed.targets:[]},z);
     if(r.action==='need_type'){toast('Pick the pitch type first');return;}
+    if(r.action==='bad_target'){toast(PC.CH_AIM_MSG);return;}
     if(r.action==='target'){if(way)return toast('Way off can\'t be a target – tap a box to aim');D.target=z;render();return;}
     D.loc=z;logBullpen(r.targets);return;}
-  if(callOn&&D.parsed&&!D.parsed.targets.length&&!D.target){if(way)return toast('Tap the called target box first');D.target=z;}
+  if(callOn&&D.parsed&&!D.parsed.targets.length&&!D.target){if(way)return toast('Tap the called target box first');if(!PC.targetOk(D.type,z))return toast(PC.CH_AIM_MSG);D.target=z;}
   else{D.loc=z;D.sheet=true;}
   render();if(tab==='game'&&D.loc)advance('result');}
 $('zone').addEventListener('click',e=>{const svg=$('zone');const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const p=pt.matrixTransform(svg.getScreenCTM().inverse());
@@ -108,7 +109,7 @@ function renderAlerts(){const set=ensureSettings();const cp=curPitcherId();const
   const msgs=[];if(showA&&a.lvl>=0)msgs.push(`${n} pitches – past the ${a.at} alert${a.next?` (next at ${a.next})`:''}`);
   if(wa&&wa.day.lvl>=0)msgs.push(`today ${wa.day.n}/${wa.day.limit}`);if(wa&&wa.weekend.lvl>=0)msgs.push(`weekend ${wa.weekend.n}/${wa.weekend.limit}`);
   const lvl=Math.max(showA?Math.min(1,a.lvl):-1,wa?wa.lvl:-1);el.className=msgs.length?'l'+Math.max(0,lvl):'hide';if(msgs.length)el.textContent=`⚠️ ${pName(cp)}: ${msgs.join(' · ')}`;
-  const rm=$('restMsg');const ri=set.showRest&&cp&&R0!=='player'&&R0!=='viewer'&&(tab==='game'||tab==='bullpen')?PC.restInfo(S(),cp,new Date().toISOString().slice(0,10),set.rest):null;
+  const rm=$('restMsg');const ri=set.showRest&&cp&&R0!=='player'&&R0!=='viewer'&&(tab==='game'||tab==='bullpen')?PC.restInfo(S(),cp,today(),set.rest):null;
   if(!ri||(tab==='game'&&g&&g.id===ri.gameId)){rm.className='hide';return;}
   const fd=d=>new Date(d+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'});
   rm.className=ri.ok?'ok':'no';rm.textContent=`${ri.ok?'✅':'⛔'} Last outing ${fd(ri.date)}${ri.opponent?' vs '+ri.opponent:''}: ${ri.n} pitches → ${ri.days} day${ri.days===1?'':'s'} rest. ${ri.ok?'Ready to pitch.':'Rest until '+fd(ri.ready)+'.'}`;}
@@ -131,15 +132,30 @@ $('batTog').onclick=()=>openSheet($('batDlg'));$('bpTest').onclick=()=>toggleTes
 function setHand(h){if(tab==='game'&&game()){game().cur.hand=h;dirty('games',game().id);save();}else bpHand=h;if(D.callTxt)D.parsed=PC.parseCall(D.callTxt,h,throwsOf(),S().customTypes);render();}
 // ---------- record building ----------
 // the planned spot(s) for the pitch in progress: ✎ Aim / band-setup aim, else the call's own spot, else a tapped target
-function aimSet(){if(D.aim)return[D.aim];if(!callOn)return[];return D.parsed&&D.parsed.targets.length?D.parsed.targets:(D.target?[D.target]:[]);}
-function baseRec(){return{id:PC.uuid(),ts:Date.now(),pitcherId:curPitcherId(),hand:curHand(),type:D.type||(D.parsed&&D.parsed.type)||null,
-  call:callOn&&D.parsed?D.parsed.norm:null,callRaw:callOn&&D.callTxt?D.callTxt:null,targets:aimSet(),loc:D.loc||null};}
+function aimSet(){if(D.shook)return D.aim?[D.aim]:[]; // shake-off: only her own chosen aim, never the coach's
+  if(D.aim)return[D.aim];if(!callOn)return[];return D.parsed&&D.parsed.targets.length?D.parsed.targets:(D.target?[D.target]:[]);}
+function baseRec(){return{id:PC.uuid(),ts:Date.now(),pitcherId:curPitcherId(),hand:curHand(),type:D.shook?D.type||null:D.type||(D.parsed&&D.parsed.type)||null,
+  call:D.shook?D.shook.norm:callOn&&D.parsed?D.parsed.norm:null,callRaw:D.shook?D.shook.raw:callOn&&D.callTxt?D.callTxt:null,targets:aimSet(),loc:D.loc||null,...(D.shook?{shook:true}:{})};}
 // ---------- test mode ----------
 function toggleTest(){if(store.isTest){if(!confirm('Exit test mode? Everything from this test is discarded.'))return;store.exitTest();resetDraft();toast('Test data cleared');}
   else{store.enterTest();resetDraft();toast('TEST MODE – nothing is saved');}render();}
 $('testBtn').onclick=toggleTest;$('exitTest2').onclick=toggleTest;
 // ---------- cloud sync ----------
 const CFG=window.PC_CONFIG||{};const sync=CFG.url&&CFG.key?PC.makeSync(store,{url:CFG.url,key:CFG.key}):null;let syncT=null,syncing=false;
+// Scoring lock: the live game / bullpen session on screen is scored only from the phone that owns it (PC.canScore)
+store.real.sync.scorerCol=!!CFG.scorerColumn; store.real.sync.shakeCol=!!CFG.shakeColumn; // true only after *_shake_off.sql is applied // true only after supabase/migrations/*_scoring_lock.sql is applied
+const myDevice=()=>store.real.sync.deviceId;
+function liveBox(){if(tab==='game'){const g=game();return PC.gameInProgress(g)?g:null;}return tab==='bullpen'?session():null;}
+const viewOnly=()=>PC.lockedBox(liveBox(),myDevice());
+// controls that change the live game / session: disabled on a view-only phone (viewing items – band setup, theme, mirror – stay)
+const RO_EDIT_IDS=['cmOutM','cmOutP','cmEnd','cmInn','cmIbb','cmKd3','cmKd3o','cmPause','gEnd','gPause','lkEndG','lkPauseG','outPlus','outMinus','innPlus','ibb','bpEnd','bpPause','lkEndBp','lkPauseBp','pUndo','pPause','pEnd','undo'];
+function applyViewOnly(vo){document.body.classList.toggle('viewonly',vo);const m=$('cmRo');if(m)m.classList.toggle('hide',!vo);
+  for(const id of RO_EDIT_IDS){const e=$(id);if(!e)continue;if(vo){if(!e.disabled){e.disabled=true;e.dataset.rolock='1';}}else if(e.dataset.rolock){e.disabled=false;delete e.dataset.rolock;}}}
+function scoreGuard(){if(!viewOnly())return false;toast(PC.SCORING_ELSEWHERE);return true;}
+function openTakeover(){if(!liveBox())return;$('takeDlg').returnValue='';$('takeDlg').showModal();$('takeCancel').focus();}
+$('roTake').onclick=openTakeover;
+$('takeDlg').addEventListener('close',()=>{if($('takeDlg').returnValue!=='ok')return;const b=liveBox();if(!b||!PC.claimScoring(b,myDevice()))return;
+  dirty(tab==='game'?'games':'sessions',b.id);save();render();toast('You are scoring now');if(typeof doSync==='function')doSync();});
 function schedSync(){if(store.isTest||!sync)return;clearTimeout(syncT);syncT=setTimeout(()=>doSync(false),3000);}
 async function doSync(manual,pull){if(!sync)return;if(store.isTest){if(manual)toast('Test mode never syncs');return;}
   if(!store.real.sync.teamCode){if(manual)toast('Enter the team code first');renderSync();return;}
@@ -149,7 +165,7 @@ async function doSync(manual,pull){if(!sync)return;if(store.isTest){if(manual)to
 function renderSync(){const e=$('syncTag');if(!e)return;const mini=document.body.classList.contains('entrymode');if(store.isTest){e.textContent=mini?'☁ off':'☁ off (test)';e.title='Sync off (test mode)';e.style.background='#5c1515';return;}
   const st=store.real.sync,n=store.pendingCount();const t=st.last?new Date(st.last).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'never';
   const full=!sync||!st.teamCode?'☁ not set up':syncing?'☁ syncing…':st.lastError?`☁ error · ${n} pending`:`☁ ${t} · ${n} pending`;e.title=full;e.textContent=!mini?full:!sync||!st.teamCode?'☁ off':syncing?'☁ …':st.lastError?`☁ ! ${n}`:n?`☁ ${n}`:'☁ ✓';e.style.background=st.lastError?'#5c1515':n?'#5c4813':'#1d4a2a';
-  if($('syncMsg'))$('syncMsg').textContent=`Last synced: ${t}. Pending: ${n}.${st.lastError?' Last error: '+st.lastError:''} Device ${st.deviceId}. Test mode never syncs.`+(()=>{const rj=Object.values(st.rejected||{});return rj.length?` Rejected by server (${rj.length}): `+rj.slice(-5).map(x=>`${x.table} ${String(x.id).slice(0,8)} (${x.status})`).join(', '):'';})();}
+  if($('syncMsg'))$('syncMsg').textContent=`Last synced: ${t}. Pending: ${n}.${st.lastError?' Last error: '+st.lastError:''} Device ${st.deviceId}. Test mode never syncs.`;if(typeof renderRejBtn==='function')renderRejBtn();}
 $('teamSave').onclick=()=>{if(store.isTest)return toast('Exit test mode first');const v=$('teamCode').value.trim().toUpperCase();if(v.length<20)return toast('Team code looks too short');const changed=store.real.sync.teamCode!==v;
   // never lose unsent work: a verified code with pending edits can't be swapped until they're sent (a rejected/typo code can always be corrected)
   if(changed&&store.real.sync.teamCode&&(['coach','player','pcoach'].includes(store.real.sync.role))&&store.pendingCount()>0){toast(`${store.pendingCount()} unsent changes – tap Sync now first (or export a backup)`);$('teamCode').value=store.real.sync.teamCode;return;}store.real.sync.teamCode=v;if(changed){store.real.sync.role=undefined;store.real.sync.teamId=null;store.real.sync.pitcherId=null;}store.markAllDirty();store.save();
@@ -169,3 +185,21 @@ function fitZone(){const z=$('zone'),w=z.parentElement;if($('entry').classList.c
   z.style.height=h+'px';const m=z.getScreenCTM(),r=w.getBoundingClientRect();if(!m)return;const bs=$('batTog').style;
   bs.left=(-13*m.a+m.e-r.left)+'px';bs.top=(124*m.d+m.f-r.top)+'px';bs.width=(43*m.a)+'px';}
 addEventListener('resize',()=>fitZone());
+
+// ---------- shake-off (game): she shook off the coach's call and threw her own pitch ----------
+// D.shook keeps the coach's call (type + aim); she then picks the type thrown, and the pitch is scored against
+// her own aim (unknown = no aim). Cancel restores the call; after recording, Undo removes the pitch as usual.
+function shakeOff(){if(scoreGuard())return;if(tab!=='game'||!game()||D.shook)return;if(!D.parsed)return toast('Tap the wristband call first');
+  D.shook={norm:D.parsed.norm,raw:D.callTxt||D.parsed.norm,type:D.parsed.type,targets:aimSet(),prevType:D.type,prevAim:D.aim};D.type=null;D.aim=null;D.aimEdit=false;D.ip=false;buzz(15);if(typeof cMsg!=='undefined')cMsg=null;render();}
+function cancelShake(){if(!D.shook)return;D.type=D.shook.prevType;D.aim=D.shook.prevAim;D.shook=null;render();toast('Shake-off canceled');}
+function renderShake(){const g=tab==='game'&&!!game()&&role()==='coach'&&!viewOnly();
+  // Always keep Shake-off in the stepline during a coach game (disabled until a call) so the zone never jumps
+  $('shakeBtn').classList.toggle('hide',!g||!!D.shook);$('shakeBtn').disabled=!D.parsed||!!D.shook;
+  $('shakeBar').classList.toggle('hide',!g||!D.shook);document.querySelector('.entrybar').classList.toggle('shaking',!!(g&&D.shook));if(D.shook)$('shakeTxt').textContent=D.type?`↶ Shook off ${D.shook.norm} · ${D.type}`:`↶ Shook off ${D.shook.norm} · pick the pitch`;}
+$('shakeBtn').onclick=shakeOff;$('shakeCancel').onclick=cancelShake;
+// Shake-offs section (Stats + report): per pitcher, shake-off results vs pitches that followed the call, and each shake-off
+function shakeHTML(P){const ids=[...new Set(P.filter(p=>p.shook&&!p.deleted).map(p=>p.pitcherId))];if(!ids.length)return '';
+  const row=(k,x)=>`<tr><td>${k}</td><td>${x.n}</td><td>${fmt(x.strikePct)}</td><td>${x.hits}</td><td>${x.hard}</td><td>${x.k}</td><td>${x.balls}</td></tr>`;
+  return ids.map(id=>{const r=PC.shakeoffs(P.filter(p=>p.pitcherId===id));return `<div class="shk"><div class="lbl">Shake-offs · ${H(pName(id))}: ${r.n}</div>
+  <table class="shktbl"><tr><th></th><th>Pitches</th><th>Strike %</th><th>Hits</th><th>Hard hit</th><th>K</th><th>Balls</th></tr>${row('Shook off',r.shook)}${row('Followed call',r.followed)}</table>
+  <ol class="shklist">${r.list.map(x=>`<li><b>Called ${H(x.called)}</b> → threw <b>${H(x.thrown)}</b>${x.count?` · ${H(x.count)}`:''}${x.prev?` · after ${H(x.prev)}`:''} · <b>${H(x.outcome||'–')}</b></li>`).join('')}</ol></div>`;}).join('');}

@@ -41,3 +41,25 @@ UI action (js/ui) → `store.update()` mutates state → saved to `localStorage`
 
 ## js/ui/coach.js (v37)
 Loads after setup.js and before main.js. It holds the theme/mirror prefs, the landscape coach render (`renderModes`), the game menu, band setup (`openBandSetup`, which saves `sheet.aims`), the rotate prompt and the bullpen pad. Core helpers in calls.js: `cellCode`, `unmappedCells`, `bandAim`, `bandSetupDone`.
+
+## Sync (v39)
+- **Push:** a refused chunk (any 4xx, including 401/403 from row-level security) is retried row by row, so one bad row never blocks the good rows or later tables. Refused rows are quarantined in `sync.rejected` (`PC.quarantine`). Push halts, keeping everything queued, only when every row is refused for auth **and** `whoami` says the code is no longer valid (or its role changed).
+- **Sync problems:** Setup → Cloud sync → "⚠ Sync problems (N)" opens `#rejDlg` (setup.js). Each row can be kept, retried (`PC.retryRejected` re-queues it) or discarded (`PC.discardRejected`). Nothing changes until Apply; Cancel leaves everything as it was.
+- **Pull:** incremental. `sync.seen[table]` holds the newest `updated_at` merged. The next pull asks for `updated_at >= seen − 2 min` (overlap for slow commits; merging is idempotent) and pages by keyset `(updated_at, id)` (`PC.pullUrl`), never offset. `seen` resets when the team or role changes.
+- **Merging:** every table, including sessions, is last-writer-wins by `updated_at`. A live game's count (`games.cur`) is plain last-writer-wins: only one phone can score it (see Scoring lock).
+- **rowPitch** keeps every valid spot (`PC.validSpot`: 1–9, 11–18, 21–24) and drops anything else.
+- Dates are always local (`PC.localDate` via `today()` in shared.js); nothing builds a date from UTC.
+
+## Scoring lock (v39)
+A live game or bullpen session is scored from **one phone only** – the phone that started it. Viewing stays unlocked.
+- **Owner:** `box.scorer` = that phone's `sync.deviceId`, set in `gStart` / `newSession` (legacy boxes with no owner are claimed by the first phone that records a pitch).
+- **Core:** `PC.canScore(box,dev)`, `PC.lockedBox(box,dev)`, `PC.claimScoring(box,dev)` in `js/core/modes.js`; `PC.scorerOfRow` in `js/core/sync.js`.
+- **Storage:** games keep the owner in `games.cur.scorer` (existing jsonb, no schema change). Sessions use a new `sessions.scorer` column from `supabase/migrations/20261014120000_scoring_lock.sql`. **That migration is NOT applied to the live database.** Until it is, the app sends no `scorer` column and reads the session owner from the row's `device_id`. After applying it, set `scorerColumn:true` in `config.js` (`PC_CONFIG`).
+- **UI:** `viewOnly()` (shared.js) toggles `body.viewonly`: scoring controls are hidden (portrait chips/steps/way-off/pad/result sheet/undo; coach result column) and zone/band taps are inert. `scoreGuard()` also refuses `recordGame`, `callCell`, `tapLoc`, `undoLast` and `logBullpen`. A "Scoring on another phone" note offers **Take over scoring** → `#takeDlg` (Cancel / Take over scoring); confirming sets `scorer` to this phone, queues the row and syncs, and the old phone turns view only on its next pull.
+- `RO_EDIT_IDS` / `applyViewOnly()` (shared.js) disable every game-changing control (⋯ Game menu: outs, end, next inning, IBB, D3, pause; portrait Pause/End/outs/inning/IBB/undo; bullpen Pause/End/pad). `endGame`, `pauseGame`, `pauseBullpen`, `endBullpen` and the outs/inning/IBB handlers call `scoreGuard()`. The menu shows `#cmRo` (note + Take over scoring).
+- This replaces the v39-draft "phone that has seen more pitches wins" rule (`cur.pn` / `curNewer`), which is removed.
+
+## Shake-off (v39)
+- Draft state `D.shook` = the coach's call (`norm`, `raw`, type, aim) captured by `shakeOff()` (shared.js); `cancelShake()` restores it; `resetDraft` clears it. `baseRec` then writes `shook:true`, `call`/`callRaw` = coach call, `type` = thrown, `targets` = her own aim only (`aimSet` ignores the call while shaking off). `recordGame` refuses a shake-off until a thrown type is picked. Undo removes it like any pitch.
+- UI: portrait `#shakeBtn` (pitch flow) + `#shakeBar` (call, Cancel); coach `[data-cx=shake]` next to Aim/Undo/Same, then a thrown-type picker (`[data-ty]`) with ✕ Cancel. Stats `#sShakeCard` and the bullpen report use `shakeHTML()` → `PC.shakeoffs`.
+- Sync: the flag travels as a `⤺ ` prefix on `pitches.call_raw` (`PC.SHOOK_TAG`) so it works on today's schema. Migration `supabase/migrations/20261014140000_shake_off.sql` adds `pitches.shook` – **NOT applied to the live DB**; after applying it, set `shakeColumn:true` in `config.js` to also write the column.

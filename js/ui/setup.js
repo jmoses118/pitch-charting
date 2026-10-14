@@ -53,7 +53,7 @@ function rowsFor(scope){const s=S();if(s.isTest)return[];const rows=[];
   return rows;}
 function download(name,text,type){const blob=new Blob([text],{type});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);}
 const noTest=()=>{if(store.isTest){toast('Test mode: nothing to export');return true;}return false;};
-$('expJSON').onclick=()=>{if(noTest())return;download('thunder-pitch-backup-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify(S(),null,1),'application/json');};
+$('expJSON').onclick=()=>{if(noTest())return;download('thunder-pitch-backup-'+today()+'.json',JSON.stringify(S(),null,1),'application/json');};
 $('expCSV').onclick=()=>{if(noTest())return;download('thunder-pitches-all.csv',PC.toCSV(rowsFor('all')),'text/csv');};
 $('sCSV').onclick=()=>{if(noTest())return;const sc=$('sScope').value;let rows=rowsFor(sc);const pf=$('sPitcher').value;if(pf){const n=pById(pf).name;rows=rows.filter(r=>r.pitcher===n);}
   const g=S().games.find(x=>x.id===sc);download(g?`game-${g.date}-${g.opponent.replace(/\W+/g,'_')}.csv`:`pitches-${sc}.csv`,PC.toCSV(rows),'text/csv');};
@@ -82,3 +82,32 @@ $('codesCard').addEventListener('click',async e=>{const t=e.target;try{
   else if(t.id==='ncPcoach'){const ids=[...document.querySelectorAll('#ncPcList input:checked')].map(i=>i.value);if(!ids.length)return toast('Pick at least one pitcher');await doSync(false);const c=await sync.rpc('coach_create_code',{p_role:'pcoach',p_pitcher_ids:ids,p_label:$('ncPcName').value.trim()||'Pitching coach'});$('ncPcName').value='';prompt('Pitching-coach code (copy it):',c);}
   else if(t.id==='ncViewer'){const c=await sync.rpc('coach_create_code',{p_role:'viewer',p_label:'View-only'});prompt('View-only code (copy it):',c);}
   else return;renderCodes();}catch(err){alert('Failed: '+err.message);}});
+
+// ---------- Setup → Sync problems: rows the server refused (view, retry or discard; nothing changes until Apply) ----------
+const REJ_KIND={pitches:'Pitch',games:'Game',sessions:'Bullpen session',pitchers:'Pitcher',call_sheets:'Call sheet',notes:'Note',team_settings:'Team settings'};
+function rejWhat(r){const s=store.real;if(r.table==='pitches'){let hit=null;s.games.forEach(g=>g.pitches.forEach(p=>{if(p.id===r.id)hit={p,where:`${g.date||''} vs ${g.opponent||'?'}`};}));s.sessions.forEach(x=>x.pitches.forEach(p=>{if(p.id===r.id)hit={p,where:`bullpen ${x.date||''}`};}));
+    if(hit){const pit=s.pitchers.find(q=>q.id===hit.p.pitcherId);return `${pit?PC.pitcherLabel(pit):'Pitcher (not on this phone)'} · ${hit.p.type||'pitch'}${hit.p.loc?' → '+hit.p.loc:''} · ${hit.where}`;}return 'deleted pitch';}
+  if(r.table==='games'){const g=s.games.find(x=>x.id===r.id);return g?`${g.date||''} vs ${g.opponent||'?'}`:'';}
+  if(r.table==='sessions'){const x=s.sessions.find(y=>y.id===r.id);return x?`${x.date||''} · ${x.pitches.length} pitch${x.pitches.length===1?'':'es'}`:'';}
+  if(r.table==='pitchers'){return PC.pitcherLabel(s.pitchers.find(p=>p.id===r.id));}return '';}
+const rejWhen=t=>{const d=new Date(t);return d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+', '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});};
+// toast with an Undo button (about 6 s); used after discarding sync problems
+function undoToast(text,undo){let e=$('undoToast');if(!e){e=document.createElement('div');e.id='undoToast';e.setAttribute('role','status');document.body.appendChild(e);}
+  e.innerHTML=`<span>${H(text)}</span><button type="button">Undo</button>`;e.classList.add('on');clearTimeout(undoToast.t);const hide=()=>e.classList.remove('on');
+  e.querySelector('button').onclick=()=>{clearTimeout(undoToast.t);hide();undo();};undoToast.t=setTimeout(hide,6000);}
+function renderRejBtn(){const b=$('rejBtn');if(!b)return;const n=store.isTest?0:PC.rejectedList(store.real).length;b.classList.toggle('hide',!n);b.textContent=`⚠ Sync problems (${n}) – view`;}
+function openRejected(){const L=PC.rejectedList(store.real);
+  $('rejList').innerHTML=L.length?L.map(r=>`<div class="rejrow" data-key="${H(r.key)}"><div><b>${H(REJ_KIND[r.table]||r.table)}</b> <span class="mut">${H(rejWhat(r))}</span></div>
+    <div class="rejwhy">Why: ${H(PC.syncWhy(r))} · ${H(rejWhen(r.at))}</div>
+    <details class="rejdet"><summary>Details</summary><div class="mut rejerr">${H(String(r.status))}${r.error?' · '+H(r.error.slice(0,160)):''}</div></details>
+    <div class="seg rejseg" role="radiogroup" aria-label="What to do with this change">${[['keep','Keep'],['retry','Retry'],['discard','Discard']].map(([v,l])=>`<button type="button" role="radio" data-act="${v}" aria-checked="${v==='keep'}" class="${v==='keep'?'on':''}">${l}</button>`).join('')}</div></div>`).join('')
+    +`<button type="button" id="rejAllRetry" class="ghost" style="width:100%">Retry all</button>`:'<div class="mut">No sync problems.</div>';
+  openSheet($('rejDlg'));}
+$('rejBtn').onclick=openRejected;
+$('rejList').addEventListener('click',e=>{if(e.target.id==='rejAllRetry'){$('rejList').querySelectorAll('.rejrow').forEach(row=>setRejAct(row,'retry'));return;}const b=e.target.closest('[data-act]');if(b)setRejAct(b.closest('.rejrow'),b.dataset.act);});
+function setRejAct(row,act){row.dataset.act=act;row.querySelectorAll('[data-act]').forEach(x=>{const on=x.dataset.act===act;x.classList.toggle('on',on);x.setAttribute('aria-checked',on);});}
+$('rejDlg').addEventListener('close',()=>{if($('rejDlg').returnValue!=='ok')return;let re=0;const gone={};
+  $('rejList').querySelectorAll('.rejrow').forEach(row=>{const k=row.dataset.key,a=row.dataset.act;if(a==='retry'&&PC.retryRejected(store.real,k))re++;if(a==='discard'){const r=store.real.sync.rejected[k];if(PC.discardRejected(store.real,k))gone[k]=r;}});
+  const dc=Object.keys(gone).length;store.save();render();
+  if(dc)undoToast(`${dc} change${dc===1?'':'s'} discarded${re?` · ${re} to retry`:''}`,()=>{Object.assign(store.real.sync.rejected=store.real.sync.rejected||{},gone);store.save();render();toast('Discard undone');});else if(re)toast(`${re} to retry`);
+  if(re)doSync(true);});
