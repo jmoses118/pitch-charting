@@ -1,5 +1,17 @@
 # Changelog
 
+## v34 – one-screen pitch entry
+### Changed
+- In Bullpen and Game, the whole pitch entry (pitch → aim/location → landed/result) fits on one iPhone screen (390×844, and 375×667 for an SE) with no scrolling:
+  - **Slim header:** one line with the pitcher, workload counts ("Today 0 · Wknd 0") and a compact sync chip. The full workload text and sync time are in the tooltips.
+  - **Pitch types:** a single row of pill chips (abbreviations; scrolls sideways if there are many), sticky above the zone.
+  - **Steps:** a thin inline indicator with **Band** and **Result** buttons; the hint line is hidden on short screens.
+  - **Zone:** fills the remaining height. Boxes never go below 48px, and the softball markers and orientation cues are kept. The None/LHB/RHB batter control is a small segmented control in the zone's bottom-left corner, clear of every tap box.
+  - **Result picker:** a bottom sheet over the tab bar. It opens when a location is tapped, or with **Result** when no location is charted.
+  - **Wristband:** a toggle sheet, one tap away, that never pushes the zone down. Calling a box closes it.
+  - **Below the fold:** the recent-pitch list, session/game controls, call sheet and log.
+- `PC.workloadShort` (core); `fitZone()` sizes the zone (UI).
+
 ## v33 – Gameday-style zone graphics
 ### Added
 - Pitches are drawn as numbered softballs (yellow, red stitching). The ring shows the result: green on target/competitive, red miss, amber with a star for a souvenir. Used on the Game zone, the Bullpen zone and the heat-map drill-down.

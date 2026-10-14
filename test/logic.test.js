@@ -311,6 +311,7 @@ test('workload counts game and bullpen pitches separately for today and the week
   const w=PC.workload(st,'p_a','2026-10-17');
   assert.deepEqual(w.today,{game:3,bullpen:3});assert.deepEqual(w.weekend,{game:5,bullpen:3});
   assert.equal(PC.workloadText(w),'Today: 3 game + 3 bullpen · Weekend: 5 game + 3 bullpen');
+  assert.equal(PC.workloadShort(w),'Today 6 · Wknd 8'); // slim header form
   const tue=PC.workload(st,'p_a','2026-10-20');assert.deepEqual(tue.today,{game:0,bullpen:0});assert.deepEqual(tue.weekend,{game:5,bullpen:3});
   assert.match(PC.workloadText(tue),/Last weekend: 5 game \+ 3 bullpen$/);
   assert.deepEqual(PC.workload(st,'p_a','2026-10-11').today,{game:1,bullpen:0});});

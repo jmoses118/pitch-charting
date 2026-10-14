@@ -30,9 +30,10 @@ function throwsOf(){const p=pById(curPitcherId());return p?p.throws:'R';}
 const buzz=p=>{try{if(navigator.vibrate)navigator.vibrate(p);}catch(e){}};
 function confirmSave(t){buzz(35);let f=document.getElementById('flash');if(!f){f=document.createElement('div');f.id='flash';document.body.appendChild(f);}f.textContent='✓ '+t;f.classList.add('on');clearTimeout(f._t);f._t=setTimeout(()=>f.classList.remove('on'),700);}
 const oneHand=()=>S().oneHand!==false;
-function advance(step){if(!oneHand())return;const el=step==='loc'?$('zone'):step==='result'?$('resBtns'):($('wbCard')&&!$('wbCard').classList.contains('hide')?$('wbCard'):$('types'));if(el&&el.scrollIntoView)setTimeout(()=>el.scrollIntoView({behavior:'auto',block:step==='result'?'end':'start'}),30);}
+function advance(step){if(!oneHand())return;if(document.body.classList.contains('entrymode')){if(scrollY)scrollTo(0,0);return;} // one-screen entry: everything is already in view
+  const el=step==='loc'?$('zone'):step==='result'?$('resBtns'):($('wbCard')&&!$('wbCard').classList.contains('hide')?$('wbCard'):$('types'));if(el&&el.scrollIntoView)setTimeout(()=>el.scrollIntoView({behavior:'auto',block:step==='result'?'end':'start'}),30);}
 function pcCheck(pid,before,after){ensureSettings();const th=S().settings.alerts;const a=PC.alertLevel(before,th),b=PC.alertLevel(after,th);if(b.lvl>a.lvl){buzz([220,90,220]);toast(`⚠️ ${pName(pid)} has thrown ${after} pitches (alert at ${b.at})`);}}
-function resetDraft(){D.cell=null;D.bb=null;Object.assign(D,{type:null,callTxt:'',parsed:null,target:null,loc:null,ip:false});$('callTxt').value='';}
+function resetDraft(){D.cell=null;D.bb=null;D.sheet=false;Object.assign(D,{type:null,callTxt:'',parsed:null,target:null,loc:null,ip:false});$('callTxt').value='';}
 // ---------- zone ----------
 const ZX0=20,ZY0=24,CW=20,CHh=24;
 const QUAD={11:'M0 0H40V24H20V48H0Z',12:'M60 0H100V48H80V24H60Z',13:'M0 72H20V96H40V120H0Z',14:'M100 72V120H60V96H80V72Z',15:'M40 0H60V24H40Z',16:'M0 48H20V72H0Z',17:'M80 48H100V72H80Z',18:'M40 96H60V120H40Z'};
@@ -55,12 +56,13 @@ function zoneSVG(svg,hand,o={}){let h='';svg.setAttribute('viewBox',o.orient?ORI
   else{  const inRight=PC.insideCol(hand)===2;
   const gl=hand==='N'&&(o.throws==='L'||o.throws==='R');const gR=o.throws==='L';
   h+=gl?`<text class="side" transform="translate(-8 60) rotate(-90)">${gR?'ARM':'GLOVE'}</text><text class="side" transform="translate(108 60) rotate(90)">${gR?'GLOVE':'ARM'}</text>`:`<text class="side" transform="translate(-8 60) rotate(-90)">${inRight?'AWAY':'IN'}</text><text class="side" transform="translate(108 60) rotate(90)">${inRight?'IN':'AWAY'}</text>`;
-  h+=hand==='N'?`<text class="side" style="fill:#8b949e;font-size:5px" x="50" y="${ly}">${gl?`No batter · glove / arm side (${o.throws}HP)`:'No batter · in/away shown as RHB'}</text>`:`<text class="side" style="fill:#5b8cff;font-size:5.5px" x="${inRight?88:12}" y="${ly}">${hand==='L'?'LHB':'RHB'} ${inRight?'▶':'◀'}</text><text class="side" x="${inRight?12:88}" y="${ly}" style="opacity:.5">${inRight?'LHB side':'RHB side'}</text>`;
+  if(o.compact)h+=`<text class="side" style="fill:${hand==='N'?'#8b949e':'#5b8cff'};font-size:5px;text-anchor:end" x="112" y="${ly}">${hand==='N'?(gl?`No batter · ${o.throws}HP`:'No batter · as RHB'):`${hand==='L'?'LHB':'RHB'} ${inRight?'▶':'◀'}`}</text>`;
+  else h+=hand==='N'?`<text class="side" style="fill:#8b949e;font-size:5px" x="50" y="${ly}">${gl?`No batter · glove / arm side (${o.throws}HP)`:'No batter · in/away shown as RHB'}</text>`:`<text class="side" style="fill:#5b8cff;font-size:5.5px" x="${inRight?88:12}" y="${ly}">${hand==='L'?'LHB':'RHB'} ${inRight?'▶':'◀'}</text><text class="side" x="${inRight?12:88}" y="${ly}" style="opacity:.5">${inRight?'LHB side':'RHB side'}</text>`;
   }
   svg.innerHTML=h+(o.extra||'');}
 function drawZone(){const hand=curHand();let ex='';const tset=D.parsed&&D.parsed.targets.length?D.parsed.targets:(D.target?[D.target]:[]);
   const lab={};tset.forEach(z=>lab[z]='TARGET');
-  const items=renderRecent();zoneSVG($('zone'),hand,{labels:lab,throws:throwsOf(),orient:true,extra:ballsSVG(items,throwsOf())});
+  const items=renderRecent();zoneSVG($('zone'),hand,{labels:lab,throws:throwsOf(),orient:true,compact:true,extra:ballsSVG(items,throwsOf())});
   tset.forEach(z=>{const e=$('zone').querySelector(`[data-z="${z}"]`);e&&e.classList.add('zt');});
   if(D.loc){const e=$('zone').querySelector(`[data-z="${D.loc}"]`);e&&e.classList.add(tset.includes(D.loc)?'zta':'za');}
   document.querySelectorAll('#wayBtns [data-z]').forEach(b=>b.classList.toggle('sel',+b.dataset.z===D.loc));}
@@ -72,7 +74,7 @@ function tapLoc(z){const way=PC.isWay(z);
     if(r.action==='target'){if(way)return toast('Way off can\'t be a target – tap a box to aim');D.target=z;render();return;}
     D.loc=z;logBullpen(r.targets);return;}
   if(callOn&&D.parsed&&!D.parsed.targets.length&&!D.target){if(way)return toast('Tap the called target box first');D.target=z;}
-  else{D.loc=z;}
+  else{D.loc=z;D.sheet=true;}
   render();if(tab==='game'&&D.loc)advance('result');}
 $('zone').addEventListener('click',e=>{const svg=$('zone');const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const p=pt.matrixTransform(svg.getScreenCTM().inverse());
   const z=zoneOf(p.x,p.y);if(z)tapLoc(z);});
@@ -93,10 +95,10 @@ const wlSeen={}; // pitcher|day -> last limit level shown, so the over-limit buz
 function renderAlerts(){const set=ensureSettings();const cp=curPitcherId();const g=game();const R0=role();
   const showA=tab==='game'&&g&&cp;const n=showA?PC.pitchCount(g.pitches,cp):0;const a=PC.alertLevel(n,set.alerts);const el=$('pcAlert');
   // today / weekend workload line under the pitcher select (game + bullpen tabs)
-  const wl=$('wlMsg');const showW=cp&&(tab==='game'||tab==='bullpen');let wa=null;
-  if(showW){const w=PC.workload(S(),cp,today());wa=PC.workloadAlert(w,set.limits);wl.className='wl'+(wa.lvl>=0?' l'+wa.lvl:'');wl.textContent=PC.workloadText(w);
+  const wl=$('wlMsg'),wm=$('wlMini');const showW=cp&&(tab==='game'||tab==='bullpen');let wa=null;
+  if(showW){const w=PC.workload(S(),cp,today());wa=PC.workloadAlert(w,set.limits);wl.className='wl'+(wa.lvl>=0?' l'+wa.lvl:'');wl.textContent=PC.workloadText(w);wm.className='wlmini'+(wa.lvl>=0?' l'+wa.lvl:'');wm.textContent=PC.workloadShort(w);wm.title=wl.textContent;
     const k=cp+'|'+today(),prev=wlSeen[k];wlSeen[k]=wa.lvl;if(prev!=null&&wa.lvl===1&&prev<1&&R0!=='viewer'){buzz([220,90,220]);toast(`⚠️ ${pName(cp)} is at her ${wa.day.lvl===1?'daily':'weekend'} limit`);}}
-  else wl.className='hide';
+  else{wl.className='hide';wm.className='hide';}
   const msgs=[];if(showA&&a.lvl>=0)msgs.push(`${n} pitches – past the ${a.at} alert${a.next?` (next at ${a.next})`:''}`);
   if(wa&&wa.day.lvl>=0)msgs.push(`today ${wa.day.n}/${wa.day.limit}`);if(wa&&wa.weekend.lvl>=0)msgs.push(`weekend ${wa.weekend.n}/${wa.weekend.limit}`);
   const lvl=Math.max(showA?Math.min(1,a.lvl):-1,wa?wa.lvl:-1);el.className=msgs.length?'l'+Math.max(0,lvl):'hide';if(msgs.length)el.textContent=`⚠️ ${pName(cp)}: ${msgs.join(' · ')}`;
@@ -135,9 +137,9 @@ async function doSync(manual,pull){if(!sync)return;if(store.isTest){if(manual)to
   if(typeof navigator!=='undefined'&&navigator.onLine===false){if(manual)toast('Offline – will sync later');renderSync();return;}
   syncing=true;renderSync();const r=pull?await sync.pull():await sync.sync();syncing=false;
   if(manual)toast(r.error?'Sync failed: '+r.error.slice(0,80):(pull?`Restored: ${r.added||0} new pitches`:`Synced${r.added?' · '+r.added+' new from cloud':''}`));render();}
-function renderSync(){const e=$('syncTag');if(!e)return;if(store.isTest){e.textContent='☁ off (test)';e.style.background='#5c1515';return;}
+function renderSync(){const e=$('syncTag');if(!e)return;const mini=document.body.classList.contains('entrymode');if(store.isTest){e.textContent=mini?'☁ off':'☁ off (test)';e.title='Sync off (test mode)';e.style.background='#5c1515';return;}
   const st=store.real.sync,n=store.pendingCount();const t=st.last?new Date(st.last).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'never';
-  e.textContent=!sync||!st.teamCode?'☁ not set up':syncing?'☁ syncing…':st.lastError?`☁ error · ${n} pending`:`☁ ${t} · ${n} pending`;e.style.background=st.lastError?'#5c1515':n?'#5c4813':'#1d4a2a';
+  const full=!sync||!st.teamCode?'☁ not set up':syncing?'☁ syncing…':st.lastError?`☁ error · ${n} pending`:`☁ ${t} · ${n} pending`;e.title=full;e.textContent=!mini?full:!sync||!st.teamCode?'☁ off':syncing?'☁ …':st.lastError?`☁ ! ${n}`:n?`☁ ${n}`:'☁ ✓';e.style.background=st.lastError?'#5c1515':n?'#5c4813':'#1d4a2a';
   if($('syncMsg'))$('syncMsg').textContent=`Last synced: ${t}. Pending: ${n}.${st.lastError?' Last error: '+st.lastError:''} Device ${st.deviceId}. Test mode never syncs.`+(()=>{const rj=Object.values(st.rejected||{});return rj.length?` Rejected by server (${rj.length}): `+rj.slice(-5).map(x=>`${x.table} ${String(x.id).slice(0,8)} (${x.status})`).join(', '):'';})();}
 $('teamSave').onclick=()=>{if(store.isTest)return toast('Exit test mode first');const v=$('teamCode').value.trim().toUpperCase();if(v.length<20)return toast('Team code looks too short');const changed=store.real.sync.teamCode!==v;
   // never lose unsent work: a verified code with pending edits can't be swapped until they're sent (a rejected/typo code can always be corrected)
@@ -147,3 +149,13 @@ $('teamSave').onclick=()=>{if(store.isTest)return toast('Exit test mode first');
 $('syncNow').onclick=()=>doSync(true);
 $('pullCloud').onclick=()=>{if(confirm('Download this team\'s data from the cloud and merge it into this phone?'))doSync(true,true);};
 window.addEventListener('online',()=>doSync(false));document.addEventListener('visibilitychange',()=>{if(!document.hidden)doSync(false);});setInterval(()=>doSync(false),60000);
+// one-screen entry: the zone fills the height left between the sticky entry bar and the tab bar,
+// never shrinking a box below ZONE_MIN_BOX px; the batter toggle sits in the zone's bottom-left corner
+const ZONE_MIN_BOX=48;
+function fitZone(){const z=$('zone'),w=z.parentElement;if($('entry').classList.contains('hide')||!w.clientWidth)return;
+  document.documentElement.style.setProperty('--hdr-h',document.querySelector('header').offsetHeight+'px');
+  const vb=z.viewBox.baseVal,top=w.getBoundingClientRect().top+scrollY,nav=document.querySelector('nav').offsetHeight,way=$('wayBtns').offsetHeight+16;
+  const min=Math.ceil(ZONE_MIN_BOX*vb.height/CW)+1,h=Math.round(Math.max(min,Math.min(innerHeight-top-nav-way,w.clientWidth*vb.height/vb.width)));
+  z.style.height=h+'px';const m=z.getScreenCTM(),r=w.getBoundingClientRect();if(!m)return;const bs=$('batSide').style;
+  bs.left=(-13*m.a+m.e-r.left)+'px';bs.top=(124*m.d+m.f-r.top)+'px';bs.width=(43*m.a)+'px';}
+addEventListener('resize',()=>fitZone());

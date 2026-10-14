@@ -31,7 +31,7 @@ await p.waitForTimeout(150);ok(await p.getAttribute('#wlMsg','class')==='wl l1',
 ok(/Today: 40 game \+ 20 bullpen/.test(await wl()),'bullpen pitches counted on their own line');
 await p.evaluate(()=>{__app.render();});const v1=await p.evaluate(()=>window.__vib.length);await p.evaluate(()=>__app.render());ok(await p.evaluate(()=>window.__vib.length)===v1,'no repeat buzz on re-render');
 await p.click('nav [data-t="game"]');await p.evaluate(()=>{__app.store.real.activeGame='g_wl';__app.store.save();__app.render();});await p.waitForTimeout(200);
-ok(await p.isVisible('#wlMsg')&&await p.isVisible('#gameHead'),'workload line in the game header');ok(/today 60\/60/.test(await p.textContent('#pcAlert')),'game banner shows daily limit');
+ok(await p.isVisible('#wlMini')&&/^Today \d+ · Wknd \d+$/.test(await p.textContent('#wlMini'))&&await p.isVisible('#gameHead'),'workload counts in the slim game header');ok(/today 60\/60/.test(await p.textContent('#pcAlert')),'game banner shows daily limit');
 await p.evaluate(()=>scrollTo(0,0));await shot('game-header');
 await asRole('viewer');await p.click('nav [data-t="setup"]');await p.evaluate(()=>document.querySelectorAll('details').forEach(d=>d.open=true));await p.waitForTimeout(100);ok(!(await p.isVisible('#alertCard')),'only coaches edit limits');
 ok(errs.length===0,'no page errors '+errs.join(' | '));

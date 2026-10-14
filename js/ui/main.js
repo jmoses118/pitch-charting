@@ -20,7 +20,7 @@ function render(skipCallInput){const s=S();{const gg=game();const two=!!(gg&&gg.
   const g=game();
   $('modeTag').textContent=(store.isTest?'TEST · ':'')+(tab==='game'?(g?'GAME':'NO GAME'):tab==='bullpen'?'BULLPEN':tab.toUpperCase());
   ['game','bullpen','stats','setup'].forEach(t=>$('tab-'+t).classList.toggle('hide',t!==tab));
-  const lk=renderModeLock();const showEntry=!lk&&((tab==='game'&&g)||tab==='bullpen');$('entry').classList.toggle('hide',!showEntry);
+  const lk=renderModeLock();const showEntry=!lk&&((tab==='game'&&g)||tab==='bullpen');$('entry').classList.toggle('hide',!showEntry);document.body.classList.toggle('entrymode',showEntry);
   $('gameHead').classList.toggle('hide',!(tab==='game'&&g));
   $('noGame').classList.toggle('hide',!!g||!!lk);$('inGame').classList.toggle('hide',!g);
   const sch=s.games.filter(x=>PC.gameStatus(x)==='scheduled').sort((x,y)=>(x.date+x.gameNo).localeCompare(y.date+y.gameNo,undefined,{numeric:true}));
@@ -29,7 +29,6 @@ function render(skipCallInput){const s=S();{const gg=game();const two=!!(gg&&gg.
   if(tab==='game'&&!g){renderLineupForm();if(!$('gDate').value)$('gDate').value=new Date().toISOString().slice(0,10);}
   const hand=curHand();$('hL').classList.toggle('sel',hand==='L');$('hR').classList.toggle('sel',hand==='R');$('hN').classList.toggle('sel',hand==='N');$('hN').classList.toggle('hide',tab==='game');
   $('bpTest').textContent=store.isTest?'🧪 Test mode ON – tap to exit (discard)':'🧪 Start test mode (not saved)';$('bpTest').style.background=store.isTest?'var(--red)':'';$('bpTest').setAttribute('aria-pressed',String(store.isTest));
-  $('batSide').classList.toggle('hide',tab==='game');
   if(g){const c=g.cur;$('inn').textContent=c.inning;$('cnt').textContent=c.b+'-'+c.s;$('outs').innerHTML=[0,1,2].map(i=>`<span class="${i<c.outs?'on':''}"></span>`).join('');
     $('pc').textContent=PC.pitchCount(g.pitches,cp);
     $('gTitle').textContent=`${g.date} ${vsAt(g)} ${g.opponent}`;$('gSub').innerHTML=[g.gameNo,g.time,g.field,g.event,g.homeAway==='tbd'?'H/A TBD':''].filter(Boolean).map(H).join(' · ')+(g.link&&/^https:\/\//.test(g.link)?` · <a href="${H(g.link)}" target="_blank" rel="noopener" style="color:var(--acc);font-weight:700">GameChanger ↗</a>`:'');
@@ -37,7 +36,7 @@ function render(skipCallInput){const s=S();{const gg=game();const two=!!(gg&&gg.
     $('bHand').textContent='Bats '+hand;}
   // entry
   const types=allTypes();
-  $('types').innerHTML=types.map(t=>`<button data-c="${H(t.code)}" class="${D.type===t.code?'sel':''}">${H(t.code)}<br><small style="font-weight:400;font-size:11px">${H(t.name)}</small></button>`).join('');
+  $('types').innerHTML=types.map(t=>`<button data-c="${H(t.code)}" class="${D.type===t.code?'sel':''}" title="${H(t.name)}" aria-label="${H(t.name)}" aria-pressed="${D.type===t.code}">${H(t.code)}</button>`).join('');
   $('callTypes').innerHTML=types.map(t=>`<button data-c="${H(t.code)}" class="${D.parsed&&D.parsed.type===t.code?'sel':''}">${H(t.code)}</button>`).join('');
   $('callSuf').innerHTML=['IN','A','H+','O','H','L'].map(x=>`<button data-s="${x}" class="${D.parsed&&D.parsed.suffix===x?'sel':''}">${x==='A'?'A (waste)':x==='H+'?'H+ (waste)':x}</button>`).join('')+'<button data-s="">no loc</button>';
   if(!skipCallInput)$('callTxt').value=D.callTxt;
@@ -46,8 +45,11 @@ function render(skipCallInput){const s=S();{const gg=game();const two=!!(gg&&gg.
   const needTarget=callOn&&D.parsed&&!D.parsed.targets.length&&!D.target;
   renderSteps(needTarget);
   $('phase').innerHTML=needTarget?'Tap the <b>called target</b> on the grid':(tab==='bullpen'?bpPhase():`Optional: type + where it went${D.loc?` → <b>${D.type||''} @${D.loc}</b> (${PC.locInfo(D.loc,hand,throwsOf()).label})`:''}, then the result`);
-  $('resBtns').classList.toggle('hide',tab!=='game'||D.ip);$('ipBtns').classList.toggle('hide',tab!=='game'||!D.ip);$('undo').textContent=tab==='bullpen'&&(D.type||D.target||D.callTxt)?'↶ Back a step':'↶ Undo last pitch';
-  drawZone();
+  $('resBtns').classList.toggle('hide',!!D.ip);$('ipBtns').classList.toggle('hide',!D.ip);$('undo').textContent=tab==='bullpen'&&(D.type||D.target||D.callTxt)?'↶ Back a step':'↶ Undo last pitch';
+  const sheet=tab==='game'&&!!(D.sheet||D.ip);$('resSheet').classList.toggle('hide',!sheet);$('resTog').classList.toggle('hide',tab!=='game');
+  $('resHead').textContent=D.loc?`Result · ${D.type?D.type+' ':''}${locTxt(D.loc)}`:'Result';
+  const wbOn=!$('wbCard').classList.contains('hide');$('wbTog').classList.toggle('hide',!wbOn);if(!wbOn)$('wbDet').open=false;
+  drawZone();fitZone();
   // log
   const RL=RESULT_SHORT;
   const line=(p,i)=>`<div><span class="n">${i+1}</span><span style="flex:1">${tab==='game'?H(pName(p.pitcherId).split(' ')[0])+' vs '+H(p.batter)+': ':''}${p.call?'<b>['+H(p.call)+']</b> ':''}${H(p.type||'')}${p.loc?' <span class="tag">'+H(locTxt(p.loc))+'</span>':''}${p.targets&&p.targets.length&&p.loc?(PC.hitSpot(p)?' ✓':' ✗'):''}</span><span>${p.result?RL[p.result]+(p.ip?' '+p.ip:''):(PC.isZone(p.loc)?'K':'B')}${p.end?' · <b>'+p.end+'</b>':''}</span>${p.result?`<span class="tag">${p.b}-${p.s}</span>`:''}</div>`;
