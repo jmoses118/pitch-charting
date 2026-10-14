@@ -574,9 +574,24 @@ test('FLOW-3: wristband aim becomes the called box; an override replaces it',()=
   assert.deepEqual(fromBand.draft.called,[8]);
   assert.deepEqual(PC.scoreApply(fromBand.draft,{op:'called',z:14}).draft.called,[14]);
 });
-test('FLOW-1: screens do not keep a second step machine',()=>{const fs=require('fs'),path=require('path');const banned=/bullpenStep|bullpenTap|gameZoneAction|zoneDraft/;
-  for(const dir of ['js/core','js/ui'])for(const f of fs.readdirSync(path.join(__dirname,'..',dir))){if(!f.endsWith('.js'))continue;
-    assert.ok(!banned.test(fs.readFileSync(path.join(__dirname,'..',dir,f),'utf8')),f);}});
+test('FLOW-1: a second tap of the actual location clears it in the shared machine',()=>{
+  for(const mode of ['game','bullpen']){
+    const aimed=PC.scoreApply({mode},{op:'call',type:'FB',called:[6]});
+    const land=PC.scoreTap(aimed.draft,4);
+    assert.equal(land.op,'actual',mode);assert.equal(land.draft.actual,4,mode);
+    const again=PC.scoreTap(land.draft,4);
+    assert.equal(again.draft.actual,null,mode+' second tap clears');
+    assert.equal(again.step,'actual',mode);
+    const other=PC.scoreTap(land.draft,5);
+    assert.equal(other.draft.actual,5,mode+' a different cell replaces');
+  }
+  const fs=require('fs'),path=require('path');
+  for(const file of ['js/ui/coach.js','js/ui/shared.js']){
+    const src=fs.readFileSync(path.join(__dirname,'..',file),'utf8');
+    assert.ok(!/if\s*\(\s*D\.loc\s*===/.test(src),file+' must not keep its own actual-location toggle');
+    assert.ok(!/D\.loc\s*=\s*z\b/.test(src),file+' must not assign the tapped cell itself');
+  }
+});
 test('in dirt and over the catcher score as way off and still count as landed',()=>{
   const m=PC.pitchMiss({type:'FB',targets:[8],loc:31});assert.equal(m.sev,PC.MAX_MISS-1);assert.equal(PC.chUp({type:'CH',loc:32}),false);
   const items=[{p:{type:'FB',targets:[8],loc:31}},{p:{type:'FB',targets:[8],loc:5}}];

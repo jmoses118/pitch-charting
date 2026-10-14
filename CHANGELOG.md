@@ -1,5 +1,10 @@
 # Changelog
 
+## v57 – One draft, one actual-location toggle
+### Changed
+- **FLOW-1.** A second tap of the actual location clears it inside `scoreTap`. The coach screen no longer keeps its own toggle. The entry screen keeps one flow draft.
+- Cache: `te-pitch-v57`.
+
 ## v54 – Shared scoring machine is the only step list
 ### Changed
 - **FLOW-1.** Portrait Game, the landscape coach Game screen, and Bullpen already call `js/core/flow.js`. The old `bullpenStep`, `bullpenTap`, and `gameZoneAction` wrappers are gone, so no screen keeps a second step list.

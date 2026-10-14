@@ -33,7 +33,10 @@ function scoreApply(draft,ev){const d=clone(draft);ev=ev||{};const op=ev.op;
   if(op==='call'){d.type=ev.type||null;const raw=Array.isArray(ev.called)?ev.called:[];d.called=raw.map(z=>+z).filter(z=>validCalled(d.type,z));d.actual=null;d.result=null;d.ip=null;d.aimEdit=false;
     return{ok:!!d.type,op,draft:d,step:scoreStep(d),reason:d.type?null:'need_type'};}
   if(op==='called'){if(!d.type)return fail(op,d,'need_type');const z=+ev.z;if(!validCalled(d.type,z))return fail(op,d,'bad_target');d.called=[z];d.aimEdit=false;return{ok:true,op,draft:d,step:scoreStep(d),reason:null};}
-  if(op==='actual'){if(!d.type)return fail(op,d,'need_type');if(!d.called.length)return fail(op,d,'need_called');const z=+ev.z;if(!validActual(z))return fail(op,d,'bad_actual');d.actual=z;return{ok:true,op,draft:d,step:scoreStep(d),reason:null};}
+  if(op==='actual'){if(!d.type)return fail(op,d,'need_type');if(!d.called.length)return fail(op,d,'need_called');const z=+ev.z;if(!validActual(z))return fail(op,d,'bad_actual');
+    // FLOW-1: one toggle. A second tap of the same actual location clears it. A different cell replaces it.
+    if(d.actual===z){d.actual=null;d.result=null;d.ip=null;}else d.actual=z;
+    return{ok:true,op,draft:d,step:scoreStep(d),reason:null};}
   if(op==='result'){if(d.mode==='bullpen')return fail(op,d,'no_result');if(!d.type)return fail(op,d,'need_type');if(!d.called.length)return fail(op,d,'need_called');if(d.actual==null)return fail(op,d,'need_actual');if(GAME_RESULTS.indexOf(ev.result)<0)return fail(op,d,'bad_result');d.result=ev.result;d.ip=ev.result==='inplay'?(ev.ip||null):null;return{ok:true,op,draft:d,step:scoreStep(d),reason:null};}
   if(op==='shake'){if(!d.type)return fail(op,d,'need_type');d.shook={type:d.type,called:d.called.slice(),norm:ev.norm||null,raw:ev.raw||null};d.type=null;d.called=[];d.actual=null;d.result=null;d.ip=null;d.aimEdit=false;return{ok:true,op,draft:d,step:scoreStep(d),reason:null};}
   if(op==='velo'){d.velo=ev.velo==null?null:ev.velo;return{ok:true,op,draft:d,step:scoreStep(d),reason:null};}

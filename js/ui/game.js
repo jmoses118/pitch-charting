@@ -55,16 +55,16 @@ function recordGame(result,ip,noPitch){const g=game();if(!g||scoreGuard())return
 $('ibb').onclick=()=>{if(scoreGuard())return;if(confirm('Intentional walk (no pitches counted, per GC)?'))recordGame('ibb',null,true);};
 function undoLast(){if(scoreGuard())return;
   if(D.ip){D.ip=false;D.spray=null;render();return;}
-  if(D.loc){pushRedo({kind:'loc',loc:D.loc,sheet:!!D.sheet});D.loc=null;D.sheet=false;render();toast('Location cleared');return;}
-  if(tab!=='game'&&((D.called&&D.called.length)||D.target||D.callTxt)){pushRedo({kind:'aim',target:D.target,called:(D.called||[]).slice(),callTxt:D.callTxt,type:D.type,parsed:D.parsed});if((D.called&&D.called.length)||D.target)pushCalled([]);else resetDraft();render();return;}
+  if(D.draft&&D.draft.actual!=null){pushRedo({kind:'loc',loc:D.draft.actual,sheet:!!D.sheet});D.draft.actual=null;D.draft.result=null;mirrorDraft();D.sheet=false;render();toast('Location cleared');return;}
+  if(tab!=='game'&&((D.draft&&D.draft.called&&D.draft.called.length)||D.callTxt)){pushRedo({kind:'aim',called:aimSet(),callTxt:D.callTxt,type:D.type,parsed:D.parsed});if(D.draft&&D.draft.called&&D.draft.called.length){D.draft.called=[];mirrorDraft();}else resetDraft();render();return;}
   if(editUndo){const snap=editUndo;if(undoEditSnap(snap)){toast('Location restored');return;}}
   if(tab==='game'){const g=game();if(!g||!g.pitches.length)return toast('Nothing to undo');const after={inning:g.cur.inning,outs:g.cur.outs,slot:g.cur.slot,b:g.cur.b,s:g.cur.s,abn:g.cur.abn,hand:g.cur.hand};const r=g.pitches.pop();store.tombstone(r,{mode:'game',game_id:g.id});dirty('games',g.id);
     Object.assign(g.cur,{inning:r.inning,outs:r.outsBefore,slot:r.slot,b:r.b,s:r.s,abn:r.abn,hand:r.prevHand});if(r.id===foulWatch)clearFoulChips();pushRedo({kind:'pitch',mode:'game',box:g.id,pitch:r,after});}
   else{const s=session();if(!s||!s.pitches.length)return toast('Nothing to undo');const r=s.pitches.pop();store.tombstone(r,{mode:'bullpen',session_id:s.id});pushRedo({kind:'pitch',mode:'bullpen',box:s.id,pitch:r});}
   resetDraft();save();render();toast('Last pitch undone');}
 function redoLast(){if(scoreGuard())return;const t=PC.redoPop(redoStack);redoStack=t.stack;persistRedo();const a=t.item;if(!a)return toast('Nothing to redo');
-  if(a.kind==='loc'){D.loc=a.loc;if(a.sheet)D.sheet=true;render();return;}
-  if(a.kind==='aim'){D.callTxt=a.callTxt||'';D.type=a.type;D.parsed=a.parsed;pushCalled(a.called&&a.called.length?a.called:(a.target?[a.target]:[]));$('callTxt').value=D.callTxt;render();return;}
+  if(a.kind==='loc'){if(!D.draft)D.draft=blankDraft();D.draft.actual=a.loc;mirrorDraft();if(a.sheet)D.sheet=true;render();return;}
+  if(a.kind==='aim'){D.callTxt=a.callTxt||'';D.parsed=a.parsed;$('callTxt').value=D.callTxt;takeDraft(PC.scoreApply({mode:tab==='bullpen'?'bullpen':'game'},{op:'call',type:a.type,called:a.called&&a.called.length?a.called:(a.target?[a.target]:[])}));render();return;}
   const box=a.mode==='game'?S().games.find(g=>g.id===a.box):S().sessions.find(s=>s.id===a.box);if(!box)return toast('Nothing to redo');
   store.untomb(a.pitch.id);box.pitches.push(a.pitch);dirty('pitches',a.pitch.id);if(a.mode==='game'&&a.after){Object.assign(box.cur,a.after);dirty('games',box.id);}
   resetDraft();save();render();toast('Pitch restored');}
