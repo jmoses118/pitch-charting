@@ -22,7 +22,7 @@
  <div id="lockGame" class="card lock hide" role="status"><div class="lockMsg"></div><div class="mut" id="lockGameSub"></div>
   <div class="row" style="margin-top:8px"><button id="lkPauseBp" class="primary" style="flex:1">Pause bullpen</button><button id="lkEndBp" class="success" style="flex:1">End bullpen</button></div></div>
  <div id="pausedCard" class="card hide"><div class="lbl">Games in progress – tap to resume</div><div id="pausedList"></div></div>
- <div id="schedCard" class="card hide"><div class="lbl">Scheduled games – tap to chart</div><div id="schedList"></div></div>
+ <div id="schedCard" class="card hide"><div class="lbl">Scheduled games</div><div class="mut">One tap starts the game from the schedule.</div><div id="schedList"></div></div>
  <div id="noGame" class="card">
   <div class="lbl" id="newGameLbl">New game</div>
   <div class="grid2"><input id="gDate" type="date"><select id="gHA"><option value="home">Home</option><option value="away">Away</option><option value="tbd">Home/away TBD</option></select></div>
@@ -48,6 +48,9 @@
   <div class="row" style="margin-top:8px"><button id="lkPauseG" class="primary" style="flex:1">Pause game</button><button id="lkEndG" class="danger" style="flex:1">End game</button></div>
   <button id="lkGoG" class="ghost" style="width:100%;margin-top:8px">Back to the game</button></div>
  <div class="card" id="bpCard"><div class="titleblock"><div id="bpTitle" class="title">Bullpen</div><div class="mut" id="bpSum"></div></div>
+  <div class="lbl" style="margin-top:8px">Default result</div>
+  <div class="seg" id="bpRes" role="group" aria-label="Bullpen result default"><button type="button" data-bpr="" class="sel">Off</button><button type="button" data-bpr="ball">Ball</button><button type="button" data-bpr="called">Strike</button></div>
+  <div class="mut">Optional. New bullpen pitches use Ball or Strike until you change it. Batter side stays off until you open Batter.</div>
   <div class="row stack"><button id="bpEnd" class="success" style="flex:2">End session</button><button id="bpPause" class="ghost" style="flex:1">Pause</button><button id="bpNew" class="ghost" style="flex:1">New</button></div>
   <button id="bpResume" class="hide" style="width:100%;margin-top:8px"></button>
   <button id="bpTest" class="link" style="width:100%;margin-top:4px" aria-pressed="false"></button></div>
@@ -63,25 +66,40 @@
  </div>
  <div class="zonewrap"><div id="zoneNote" class="zonenote hide" role="status"></div><svg id="zone" viewBox="-14 -6 128 138"></svg>
   <button id="batTog" class="zchip" aria-haspopup="dialog" aria-controls="batDlg"></button></div>
+ <div id="locRow" class="locrow">
  <div id="wayBtns" class="way4"><button data-z="21">Way high</button><button data-z="22">Way low</button><button data-z="23">Way left</button><button data-z="24">Way right</button></div>
- <div id="bpPad" class="bpad hide" aria-label="Bullpen pad"><div class="lbl padlbl">Pitch (sticky – repeats last)</div><div id="padTypes"></div><div class="lbl padlbl">Way off</div><div id="padWay"></div>
-  <div class="padact"><button id="pUndo">↶ Undo</button><button id="pPause">❚❚ Pause</button><button id="pEnd">⚑ End</button></div></div>
+ <div id="actBtns" class="act2"><button data-z="31">In dirt</button><button data-z="32" aria-label="Over catcher/backstop">Over catcher</button></div>
+ </div>
+ <div id="bpPad" class="bpad hide" aria-label="Bullpen pad"><div class="lbl padlbl">Pitch (sticky – repeats last)</div><div id="padTypes"></div><div class="lbl padlbl">Way off</div><div id="padWay"></div><div id="padAct"></div>
+  <div class="padact"><button id="pUndo">Undo</button><button id="pRedo">Redo</button><button id="pPause">Pause</button><button id="pEnd">End</button></div></div>
  <div id="resSheet" class="bsheet hide" role="dialog" aria-labelledby="resHead">
   <div class="row sp bshead"><div id="resHead" class="lbl">Result</div><button id="resClose" class="mini" aria-label="Close result picker">✕</button></div>
-  <div id="resBtns" class="grid3">
-   <button class="b-ball" data-r="ball">Ball</button><button class="b-cs" data-r="called">Called strike</button>
-   <button class="b-ss" data-r="swinging">Swing &amp; miss</button><button class="b-foul" data-r="foul">Foul</button>
-   <button class="b-ip" data-r="inplay">In play…</button><button class="b-hbp" data-r="hbp">HBP</button><button class="b-ss" data-r="foultip">Foul tip</button><button class="b-ss" data-r="kd3">K – reached (D3)</button><button class="b-ss" data-r="kd3out">K – D3 thrown out</button>
+  <div id="pitchExtra" class="pextra">
+   <div class="seg" role="group" aria-label="Wild pitch or passed ball"><button type="button" data-flag="wp">Wild pitch</button><button type="button" data-flag="pb">Passed ball</button></div>
+   <label class="velolab">Velo <input id="velo" inputmode="decimal" placeholder="optional" aria-label="Velocity, optional"></label>
   </div>
-  <div id="ipBtns" class="grid4 hide">
-   <div class="mut" style="grid-column:span 4;font-size:12px">Batted ball (optional), then the result</div><button data-bb="GB">GB<br><small>ground</small></button><button data-bb="LD">LD<br><small>liner</small></button><button data-bb="FB">FB<br><small>fly</small></button><button data-bb="PU">PU<br><small>pop-up</small></button>
-   <button data-ip="out">Out</button><button data-ip="1B">1B</button><button data-ip="2B">2B</button><button data-ip="3B">3B</button>
-   <button data-ip="HR">HR</button><button data-ip="E">Error</button><button data-ip="FC">FC</button><button data-ip="DP">DP</button><button data-ip="" style="grid-column:span 4">Cancel</button>
+  <div id="resBtns" class="resbig">
+   <button class="b-ball" data-r="ball">Ball</button><button class="b-cs" data-r="called">Called strike</button>
+   <button class="b-ss" data-r="swinging">Swinging strike</button><button class="b-foul" data-r="foul">Foul</button>
+   <button class="b-ip" data-r="inplay">Ball in play</button><button class="b-hbp" data-r="hbp">HBP</button>
+   <button class="b-ss sub" data-r="foultip">Foul tip</button><button class="b-ss sub" data-r="kd3">K – reached (D3)</button><button class="b-ss sub" data-r="kd3out">K – D3 thrown out</button>
+  </div>
+  <div id="foulBtns" class="resbig hide">
+   <p class="mut" style="grid-column:1 / -1;margin:0">Foul timing is optional.</p>
+   <button type="button" data-ft="early">Early</button><button type="button" data-ft="ontime">On time</button><button type="button" data-ft="late">Late</button>
+   <button type="button" data-ft="skip" class="b-foul">Foul</button><button type="button" data-ft="cancel" class="ghost" style="grid-column:1 / -1">Cancel</button>
+  </div>
+  <div id="ipBtns" class="resbig hide">
+   <p class="mut" style="grid-column:1 / -1;margin:0">Contact is optional. Then tap the play.</p>
+   <button type="button" data-bb="GB">GB</button><button type="button" data-bb="LD">LD</button><button type="button" data-bb="FB">FB</button><button type="button" data-bb="PU">PU</button>
+   <button type="button" data-ip="out">Out</button><button type="button" data-ip="1B">1B</button><button type="button" data-ip="2B">2B</button><button type="button" data-ip="3B">3B</button>
+   <button type="button" data-ip="HR">HR</button><button type="button" data-ip="E">Error</button><button type="button" data-ip="FC">FC</button><button type="button" data-ip="DP">DP</button>
+   <button type="button" data-ip="" class="ghost" style="grid-column:1 / -1">Cancel</button>
   </div>
  </div>
  <div class="card">
   <div class="recentwrap first"><div class="lbl" id="recentTitle">Recent pitches</div><ol id="recent" class="recent" aria-live="polite"></ol></div>
-  <div class="row" style="margin-top:8px"><button id="undo" class="ghost" style="flex:1">↶ Undo last pitch</button></div>
+  <div class="row" style="margin-top:8px"><button id="undo" class="ghost" style="flex:1">Undo</button><button id="redo" class="ghost" style="flex:1" disabled>Redo</button></div>
   <div class="mut hint">Pitcher's view (looking in at the catcher). Way off = nowhere near the plate; the ring around the box still counts as competitive.</div>
  </div>
  <div class="card">
@@ -125,7 +143,9 @@
  <div class="sub"><div class="lbl">Called pitch vs result</div><table id="sCall"></table></div>
  <div class="sub"><div class="lbl">Results</div><table id="sRes"></table></div>
  </div></details>
- <div class="card"><button id="sCSV" style="width:100%">Export this selection as CSV</button></div>
+ <div class="card"><button id="sCSV" style="width:100%">Export this selection as CSV</button>
+  <div class="row" style="margin-top:8px"><input id="csvDate" type="date" aria-label="Export date" style="flex:1"><button id="csvPD" style="flex:1">This pitcher, this date</button></div>
+  <div class="mut">Uses the pitcher selected above and the date. First name only.</div></div>
 </section>
 <!-- SETUP -->
 <section id="tab-setup" class="hide">
@@ -184,14 +204,17 @@
   <div id="cSide" class="cside hide" role="alertdialog" aria-labelledby="cSideT"><div id="cSideT" class="cside-t">⚑ Side retired</div><div id="cSideSum" class="mut"></div>
    <button id="cSideUndo">↶ Undo last pitch</button><button id="cSidePause" class="success">❚❚ We're batting – pause</button><button id="cSideOk" class="ghost">Keep charting</button></div>
  </div>
- <div id="cRes" class="cres" role="group" aria-label="Result"></div>
+ <div class="crcol">
+  <div id="cAct" class="cact" role="group" aria-label="Actual location outside the zone"><button type="button" data-z="31">In dirt</button><button type="button" data-z="32" aria-label="Over catcher/backstop">Over catcher</button></div>
+  <div id="cRes" class="cres" role="group" aria-label="Result"></div>
+ </div>
 </section>
 <div id="rotate" class="rotate hide" role="dialog" aria-labelledby="rotT"><div class="rot-ic" aria-hidden="true">↻</div><div id="rotT" class="rot-t">Turn your phone sideways</div><div class="mut">Pitch calling shows the whole wristband, the zone and the results together in landscape.</div><button id="rotOk" class="ghost">Chart in portrait instead</button></div>
 <dialog id="cMenuDlg" class="sheet" aria-labelledby="cMenuT"><form method="dialog"><div class="lbl" id="cMenuT">Game</div>
  <div id="cmRo" class="robar cmro hide" role="status"><span>👁 Scoring on another phone · view only. Game changes are off here.</span><button type="button" id="cmTake">Take over scoring</button></div>
  <div class="cmenu-g"><button type="button" id="cmOutM">Out −</button><button type="button" id="cmOutP">Out +</button><button type="button" id="cmEnd" class="danger">End game</button><button type="button" id="cmInn">Next inning</button><button type="button" id="cmIbb">Intentional walk</button>
  <button type="button" id="cmKd3">K – reached (D3)</button><button type="button" id="cmKd3o">K – D3 thrown out</button><button type="button" id="cmBand">Band setup</button><button type="button" id="cmTheme"></button><button type="button" id="cmMirror"></button>
- <button type="button" id="cmPause">❚❚ Pause game</button></div>
+ <button type="button" id="cmPause">❚❚ Pause game</button><button type="button" id="cmXtra">Wild pitch / velo</button></div>
  <div class="dlgfoot"><button value="cancel" formnovalidate class="ghost" style="width:100%">Cancel</button></div></form></dialog>
 <dialog id="takeDlg" class="sheet" aria-labelledby="takeT"><form method="dialog"><div class="lbl" id="takeT">Take over scoring?</div>
  <p class="mut" id="takeTxt">Another phone is scoring this. Only take over if that phone died or the coach handed it to you. That phone will switch to view only.</p>
@@ -204,6 +227,11 @@
  <div id="bandSub" class="mut"></div><div id="bandList" class="bandlist"></div>
  <div class="row dlgfoot"><button value="cancel" formnovalidate class="ghost" style="flex:1">Cancel</button><button value="ok" class="success" style="flex:2">✓ Save band</button></div></form></dialog>
 <nav aria-label="Sections"><button data-t="game" class="on"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M7.6 5.2c1.6 2 2.4 4.3 2.4 6.8s-.8 4.8-2.4 6.8M16.4 5.2c-1.6 2-2.4 4.3-2.4 6.8s.8 4.8 2.4 6.8"/></svg><span>Game</span></button><button data-t="bullpen"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8"/></svg><span>Bullpen</span></button><button data-t="stats"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg><span>Stats</span></button><button data-t="setup"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span>Setup</span></button></nav>
+<dialog id="xDlg" class="sheet" aria-labelledby="xT"><form method="dialog"><div class="lbl" id="xT">This pitch</div>
+ <p class="mut">Optional. Cancel leaves wild pitch, passed ball and velocity as they were.</p>
+ <div class="seg" role="group" aria-label="Wild pitch or passed ball"><button type="button" id="xWp">Wild pitch</button><button type="button" id="xPb">Passed ball</button><button type="button" id="xClr">Neither</button></div>
+ <label class="velolab" style="margin-top:8px">Velo <input id="xVelo" inputmode="decimal" placeholder="optional" aria-label="Velocity, optional"></label>
+ <div class="row dlgfoot"><button value="cancel" formnovalidate class="ghost" style="flex:1">Cancel</button><button value="ok" class="primary" style="flex:1">Done</button></div></form></dialog>
 <dialog id="batDlg" class="sheet" aria-labelledby="batT"><form method="dialog"><div class="lbl" id="batT">Batter</div>
  <div class="mut" id="batSub" style="margin-bottom:8px">Sets which side is "in" and "away" and where the silhouette stands.</div>
  <div class="seg3" role="group" aria-label="Batter side"><button type="button" id="hN" title="No batter (in/away mapped as RHB)">No batter</button><button type="button" id="hL">LHB</button><button type="button" id="hR">RHB</button></div>

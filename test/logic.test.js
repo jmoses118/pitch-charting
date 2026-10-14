@@ -467,3 +467,52 @@ test('shake-off syncs on today\'s schema (call_raw tag) and via the shook column
   const back=PC.rowPitch(row);assert.equal(back.shook,true);assert.equal(back.callRaw,'CH 8');
   s.sync.shakeCol=true;row=PC.buildRows(s).rows.pitches[0];assert.equal(row.shook,true);
   assert.equal(PC.rowPitch({id:'x',call_raw:'FB 3',shook:false}).shook,undefined);});
+
+// ---------------- v40 (scoring chart) ----------------
+test('actual location: in dirt and over the catcher are logged, never aimed',()=>{
+  assert.equal(PC.locInfo(31,'R','R').label,'in dirt');assert.equal(PC.locInfo(32,'R','R').label,'over catcher/backstop');
+  assert.equal(PC.isCompetitive(31),false);assert.equal(PC.isCompetitive(32),false);assert.equal(PC.isActualOnly(31),true);
+  assert.equal(PC.canAim('CH',2),false);assert.equal(PC.canAim('CH',8),true);assert.equal(PC.canAim('FB',31),false);assert.equal(PC.canAim('CH',18),true);
+  assert.equal(PC.bullpenTap({type:'CH'},31).action,'not_aim');assert.equal(PC.bullpenTap({type:'FB'},32).action,'not_aim');
+  assert.equal(PC.bullpenTap({type:'CH'},21).action,'not_aim');
+  const aimed=PC.bullpenTap({type:'CH'},8);assert.equal(aimed.action,'target');
+  assert.equal(PC.bullpenTap(aimed.draft,1).action,'log');assert.equal(PC.bullpenTap(aimed.draft,31).action,'log');
+  assert.equal(PC.bullpenTap(aimed.draft,31).draft.loc,31);
+  assert.equal(PC.chUp?PC.chUp({type:'CH',loc:32}):false,false);
+});
+test('in dirt and over the catcher score as way off and still count as landed',()=>{
+  const m=PC.pitchMiss({type:'FB',targets:[8],loc:31});assert.equal(m.sev,PC.MAX_MISS-1);assert.equal(PC.chUp({type:'CH',loc:32}),false);
+  const items=[{p:{type:'FB',targets:[8],loc:31}},{p:{type:'FB',targets:[8],loc:5}}];
+  const l=PC.heatData(items,{},'actual');assert.equal(l.total,2);assert.equal(l.cells[5].n,1);assert.equal(l.cells[31],undefined);
+});
+test('redo stack keeps the newest 10 and a new item drops the oldest',()=>{
+  let s=[];for(let i=0;i<12;i++)s=PC.redoPush(s,{i});
+  assert.equal(s.length,10);assert.equal(s[0].i,2);assert.equal(s[9].i,11);assert.equal(PC.REDO_MAX,10);
+  const popped=PC.redoPop(s);assert.equal(popped.item.i,11);assert.equal(popped.stack.length,9);
+  assert.equal(PC.redoPop([]).item,null);
+});
+test('foul timing, wild pitch and velocity are cleaned; bullpen result defaults only to ball or called strike',()=>{
+  assert.equal(PC.cleanFoul('early'),'early');assert.equal(PC.cleanFoul('skip'),null);assert.equal(PC.cleanFoul('late'),'late');
+  assert.equal(PC.cleanFlag('wp'),'wp');assert.equal(PC.cleanFlag('pb'),'pb');assert.equal(PC.cleanFlag('ball'),null);
+  assert.equal(PC.cleanVelo('72.24'),72.2);assert.equal(PC.cleanVelo(19),null);assert.equal(PC.cleanVelo(''),null);assert.equal(PC.cleanVelo(110),110);
+  assert.equal(PC.bullpenResult('ball'),'ball');assert.equal(PC.bullpenResult('called'),'called');assert.equal(PC.bullpenResult(''),null);assert.equal(PC.bullpenResult('swinging'),null);
+});
+test('CSV export per pitcher per date, with called and actual location columns',()=>{
+  const rows=[{pitcher:'Avery',pitcher_num:'45',date:'2026-10-14',called_location:8,actual_location:31,mode:'game'},
+    {pitcher:'Avery',pitcher_num:'12',date:'2026-10-14',mode:'bullpen'},
+    {pitcher:'Jules',pitcher_num:'45',date:'2026-10-14',mode:'game'},
+    {pitcher:'Avery',pitcher_num:'45',date:'2026-10-13',mode:'game'}];
+  const hit=PC.filterPitcherDate(rows,{pitcher:'Avery',num:'45',date:'2026-10-14'});
+  assert.equal(hit.length,1);assert.equal(hit[0].actual_location,31);
+  assert.equal(PC.filterPitcherDate(rows,{}).length,4);
+  assert.ok(PC.toCSV(hit).includes('called_location'));assert.ok(PC.toCSV(hit).split('\n')[0].endsWith('velocity'));
+});
+test('chart columns stay off the wire until chartCol is set, then round-trip including in dirt',()=>{const st=coachStore(),s=st.real;
+  s.sessions.push({id:'s1',date:'d',pitches:[]});
+  s.games.push({id:'g',date:'d',opponent:'o',homeAway:'home',lineup:[],cur:{},pitches:[{id:'p1',ts:1,type:'CH',call:'CH8',targets:[8],loc:31,calledLoc:8,actualLoc:31,result:'foul',foulTime:'early',wpPb:'wp',velo:61.5,mode:'game'}]});
+  s.sync.queue.pitches.p1=1;
+  let row=PC.buildRows(s).rows.pitches[0];assert.equal('called_loc' in row,false);assert.equal('actual_loc' in row,false);assert.equal('foul_time' in row,false);assert.equal(row.loc,31);
+  s.sync.chartCol=true;row=PC.buildRows(s).rows.pitches[0];
+  assert.equal(row.called_loc,8);assert.equal(row.actual_loc,31);assert.equal(row.foul_time,'early');assert.equal(row.wp_pb,'wp');assert.equal(row.velo,61.5);
+  const back=PC.rowPitch(row);assert.equal(back.calledLoc,8);assert.equal(back.actualLoc,31);assert.equal(back.loc,31);assert.equal(back.foulTime,'early');assert.equal(back.wpPb,'wp');assert.equal(back.velo,61.5);
+});

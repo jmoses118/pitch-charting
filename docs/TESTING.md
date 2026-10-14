@@ -35,3 +35,7 @@ Replays Jim's Oct 14 test-mode sequence: 3 band-called pitches in landscape, the
 
 - `test/lock.ui.js` – scoring lock: view-only coach screen (667/844/932 landscape), portrait view-only bar and takeover popup (375x667/390x844/430x932), Cancel vs Take over, ⋯ Game menu items disabled + code-level refusal of end/pause/outs/inning/IBB, bullpen pause/end lock. Unit tests: "scoring lock …" in `test/logic.test.js`.
 - `test/shake.ui.js` – shake-off: **regression guard that the Shake-off button exists in both layouts**, coach flow (call → shake → thrown type → zone → result), Cancel, Undo, portrait flow (bar, Cancel, refuses until a type is picked), Stats Shake-offs section; 3 portrait + 3 landscape sizes. Unit tests: "shake-off …" in `test/logic.test.js`.
+
+## v40
+- `test/logic.test.js`: in dirt / over catcher are not aims and still log as the actual spot; change-up `canAim` stays low-only; redo cap 10; foul / wild-pitch / velocity cleaners; bullpen result default; CSV filter by pitcher and date; chart columns omitted unless `sync.chartCol`.
+- Foul no longer logs on the first tap. `ui.smoke.js`, `shake.ui.js`, `agree.ui.js` and `pitchchange.ui.js` finish a foul with `[data-ft=skip]`.

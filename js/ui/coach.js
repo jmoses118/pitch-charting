@@ -23,7 +23,7 @@ const RES_BTNS=[['ball','Ball','b-ball'],['called','Called K','b-cs'],['swinging
 const IP_BTNS=[['out','Out'],['1B','1B'],['2B','2B'],['3B','3B'],['HR','HR'],['E','E'],['FC','FC'],['DP','DP']];
 const inningTag=g=>(g.homeAway==='home'?'T':g.homeAway==='away'?'B':'Inn ')+g.cur.inning;
 function callCode(){const sh=curSheet();return D.cell&&sh&&D.cell.sheet===sh.id?PC.cellCode(sh,D.cell.r,D.cell.c):'';}
-function hintText(){const g=game(),cmp=$('coach').classList.contains('compact');if(sideCard)return '';if(D.aimEdit)return['✎','Tap the new aim'];if(D.ip)return['','Pick the outcome'];
+function hintText(){const g=game(),cmp=$('coach').classList.contains('compact');if(sideCard)return '';if(D.aimEdit)return['✎','Tap the new aim'];if(D.foul)return['','Foul timing optional'];if(D.ip)return['','Pick the outcome'];
   if(D.shook&&!D.type)return['',cmp?'Threw?':'Which pitch?']; // short: status already shows "⤺ CH7 → ?"
   if(!curSheet())return['1','Add a call sheet in Setup, or tap a result'];if(!D.parsed&&!D.shook)return['1','Tap a cell or a result'];
   if(!D.loc)return['2',cmp?'Where?':'Tap where it went'];return['3',cmp?'Result?':'Tap the result'];}
@@ -34,19 +34,22 @@ function sizeCoach(){const sh=curSheet(),cols=sh?Math.max(...sh.rows.map(r=>r.le
   // padding already holds the safe-area insets; count the (rows+1)/(cols+1) 1.5px grid lines so the band never runs into the home bar
   const LH=(rows+1)*LN,LW=(cols+1)*LN,mid=z=>Math.round(z*3+z*4/3+8);
   let k=Math.min(KMAX,Math.floor((Hh-HDR-LH)/rows)),z=48;
-  const STH=compact?128:136;z=Math.min(48,Math.floor((Hh-STH-8-8)/(13/3)));el.style.setProperty('--sth',STH+'px');
+  const STH=compact?128:136,ACT=compact?44:0;z=Math.min(48,Math.floor((Hh-STH-8-8-ACT-(ACT?8:0))/(13/3)));el.style.setProperty('--sth',STH+'px');
   if(compact)z=Math.min(z,Math.floor((W-RH-2*GAP-RES-cols*k-LW-8)/(13/3)));
   else if(RH+LW+cols*k+GAP+mid(z)+GAP+RES>W){const f=(W-RH-LW-2*GAP-RES-8)/(cols+13/3);k=Math.min(k,Math.floor(f));z=Math.min(z,Math.floor(f));}
   el.classList.toggle('compact',compact);$('cxMenu').textContent=compact?'⋯':'⋯ Game';
   el.style.setProperty('--k',k+'px');el.style.setProperty('--z',z+'px');el.style.setProperty('--mid',mid(z)+'px');el.style.setProperty('--rh',RH+'px');el.style.setProperty('--res',RES+'px');}
+function placeCoachAct(){const act=$('cAct'),compact=$('coach').classList.contains('compact');
+  if(compact){const z=$('cZone');if(act.previousElementSibling!==z)z.after(act);}
+  else{const col=document.querySelector('.crcol');if(act.parentNode!==col)col.insertBefore(act,$('cRes'));}}
 function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,hand=curHand(),cp=curPitcherId();
-  document.body.classList.toggle('mirror',PREF.get('mirror','0')==='1');sizeCoach();
+  document.body.classList.toggle('mirror',PREF.get('mirror','0')==='1');sizeCoach();placeCoachAct();
   // band
   $('cNoBand').classList.toggle('hide',!!sh);$('cBand').classList.toggle('hide',!sh);
   if(sh){const cols=sh.cols&&sh.cols.length?sh.cols:PC.sheetCols(Math.max(...sh.rows.map(r=>r.length)));
     $('cBand').innerHTML=`<thead><tr><th class="corner" aria-hidden="true"></th>${cols.map(x=>`<th scope="col">${H(x)}</th>`).join('')}</tr></thead><tbody>`+sh.rows.map((row,r)=>`<tr><th scope="row">${r+1}</th>${cols.map((_,ci)=>{const t=(row[ci]||'').trim();const on=D.cell&&D.cell.sheet===sh.id&&D.cell.r===r&&D.cell.c===ci;
       return `<td><button data-r="${r}" data-c="${ci}" class="${on?'on':''}" aria-pressed="${on}" aria-label="${H(PC.cellCode(sh,r,ci))} ${H(t||'empty')}" ${t?'':'disabled'}>${H(t)}</button></td>`;}).join('')}</tr>`).join('')+'</tbody>';}
-  $('coach').classList.toggle('dim',!!(D.aimEdit||D.ip));
+  $('coach').classList.toggle('dim',!!(D.aimEdit||D.ip||D.foul));
   // status
   const pit=S().pitchers.find(p=>p.id===cp);$('cxPitcher').textContent=pit?PC.pitcherLabel(pit):'Pick a pitcher';$('cxInn').textContent=inningTag(g);const cmp=$('coach').classList.contains('compact');$('cxOuts').textContent=cmp?'●'.repeat(c.outs)+'○'.repeat(Math.max(0,3-c.outs)):c.outs+(c.outs===1?' out':' outs');$('cxOuts').setAttribute('aria-label',c.outs+' out'+(c.outs===1?'':'s'));$('cxCount').textContent=c.b+'-'+c.s;
   const b=g.lineup[c.slot]||{};$('cxBat').innerHTML=cmp?`<b>${b.num?'#'+H(b.num):H(b.name||'Batter '+(c.slot+1))}</b> · ${hand==='L'?'LHB':'RHB'} · <span title="Pitches">⚾ ${PC.pitchCount(g.pitches,cp)}</span>`:`<span class="ic" aria-hidden="true">👤</span><b>${b.num?'#'+H(b.num)+' ':''}${H(b.name||'Batter '+(c.slot+1))}</b> · ${hand==='L'?'LHB':'RHB'} · <span title="Pitches">⚾ ${PC.pitchCount(g.pitches,cp)}</span>`;
@@ -55,15 +58,19 @@ function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,h
   renderHint();const n=store.pendingCount(),st=store.real.sync;$('cxNet').textContent=store.isTest?'Test mode – not saved':!navigator.onLine?`Offline – saved on phone${n?' · '+n+' to sync':''}`:(!st.teamCode?'Saved on phone':n?`Saved on phone · ${n} to sync`:'Saved · synced');
   // in play: spray field replaces the status details
   $('cSprayWrap').classList.toggle('hide',!D.ip);['cs-bat','cs-call','cs-hint','cs-foot'].forEach(k=>$('cStatus').querySelector('.'+k).classList.toggle('hide',!!D.ip));
-  if(D.ip){$('cxIp').textContent=`IN PLAY · ${code?code+' ':''}${D.callTxt||''}${aims.length?' → '+aims.join('/'):''}${D.loc?' · landed '+D.loc:''} · tap spray (optional, saved on this phone)`;const dot=$('cSprayDot');dot.classList.toggle('hide',!D.spray);if(D.spray){dot.setAttribute('cx',D.spray[0]*200);dot.setAttribute('cy',D.spray[1]*92);}}
+  if(D.ip){$('cxIp').innerHTML=`IN PLAY · ${H(code?code+' ':'')}${H(D.callTxt||'')}${aims.length?' → '+aims.join('/'):''}${D.loc?' · landed '+D.loc:''} · spray optional<div class="cxbb" role="group" aria-label="Contact type, optional">${['GB','LD','FB','PU'].map(k=>`<button type="button" data-bb="${k}" class="${D.bb===k?'on':''}">${k}</button>`).join('')}</div>`;const dot=$('cSprayDot');dot.classList.toggle('hide',!D.spray);if(D.spray){dot.setAttribute('cx',D.spray[0]*200);dot.setAttribute('cy',D.spray[1]*92);}}
   // zone
   const am=new Set(aims);$('cZone').innerHTML=Z5.map((row,r)=>row.map((z,ci)=>{const lab=z<10||Z5_LABEL.has(r+','+ci);const isA=lab&&am.has(z),isL=lab&&D.loc===z;
     return `<button data-z="${z}" class="${z<10?'zi':'zr'}${isA?' aim':''}${isA&&D.aimEdit?' editing':''}${D.aimEdit&&!PC.targetOk(D.type,z)?' noaim':''}${isL?' act':''}" ${lab?'':'aria-hidden="true" tabindex="-1"'} aria-label="${lab?'Zone '+z+(isA?', aim':'')+(isL?', landed':''):''}">${lab?`<span>${z}</span>${isA?'<small>AIM</small>':''}`:''}</button>`;}).join('')).join('');
   $('cZone').classList.toggle('editing',!!D.aimEdit);
   // results (or in-play outcomes)
-  const two=c.s===2;if(viewOnly())$('cRes').innerHTML=`<div class="cro" role="status"><b>👁 Scoring on another phone</b><span>View only</span><button data-cx="take">Take over scoring</button></div>`;else if(D.shook&&!D.type)$('cRes').innerHTML=allTypes().map(t=>`<button data-ty="${H(t.code)}" aria-label="She threw ${H(t.name)}">${H(t.code)}</button>`).join('')+`<button data-cx="unshake" class="shkx">✕ Cancel</button>`;else $('cRes').innerHTML=(D.ip?IP_BTNS.map(([v,l])=>`<button data-ip="${v}" class="${/^(out|1B|2B|3B|HR)$/.test(v)?'b-ip':''}">${l}</button>`).join('')+'<button data-cx="back">← Back</button>':
+  const two=c.s===2;const ur=`<button data-cx="undo" aria-label="Undo last pitch">↶<small>Undo</small></button><button data-cx="redo" aria-label="Redo" ${redoStack.length?'':'disabled'}>↷<small>Redo</small></button>`;
+  if(viewOnly())$('cRes').innerHTML=`<div class="cro" role="status"><b>👁 Scoring on another phone</b><span>View only</span><button data-cx="take">Take over scoring</button></div>`;else if(D.shook&&!D.type)$('cRes').innerHTML=allTypes().map(t=>`<button data-ty="${H(t.code)}" aria-label="She threw ${H(t.name)}">${H(t.code)}</button>`).join('')+`<button data-cx="unshake" class="shkx">✕ Cancel</button>`;
+  else if(D.foul)$('cRes').innerHTML=[['early','Early'],['ontime','On time'],['late','Late'],['skip','Foul']].map(([v,l])=>`<button data-ft="${v}">${l}</button>`).join('')+`<button data-ft="cancel">Cancel</button>`+ur;
+  else $('cRes').innerHTML=(D.ip?IP_BTNS.map(([v,l])=>`<button data-ip="${v}" class="${/^(out|1B|2B|3B|HR)$/.test(v)?'b-ip':''}">${l}</button>`).join('')+'<button data-cx="back">← Back</button>':
     RES_BTNS.map(([v,l,k])=>`<button data-r="${v}" class="${k}${D.parsed?'':' soft'}">${l}</button>`).join('')+`<button data-cx="aim" class="${D.aimEdit?'on':''}" aria-pressed="${!!D.aimEdit}" ${D.parsed?'':'disabled'}>✎ Aim</button>`)+
-    `<button data-cx="undo" aria-label="Undo last pitch">↶<small>Undo</small></button>`+(D.ip?'':`<button data-cx="same" aria-label="Same call as last pitch" ${lastCell?'':'disabled'}>⟳<small>Same</small></button>`+(D.shook?`<button data-cx="unshake" class="shkx" aria-label="Cancel shake-off">✕<small>Shake</small></button>`:`<button data-cx="shake" class="shk" aria-label="Shake-off: she shook off the call" ${D.parsed?'':'disabled'}>⤺<small>Shake-off</small></button>`));
+    ur+(D.ip||D.foul?'':`<button data-cx="same" aria-label="Same call as last pitch" ${lastCell?'':'disabled'}>⟳<small>Same</small></button>`+(D.shook?`<button data-cx="unshake" class="shkx" aria-label="Cancel shake-off">✕<small>Shake</small></button>`:`<button data-cx="shake" class="shk" aria-label="Shake-off: she shook off the call" ${D.parsed?'':'disabled'}>⤺<small>Shake-off</small></button>`));
+  document.querySelectorAll('#cAct [data-z]').forEach(b=>b.classList.toggle('sel',+b.dataset.z===D.loc));
   // side retired card
   const sc=sideCard&&sideCard.gameId===g.id?sideCard:null;$('cSide').classList.toggle('hide',!sc);
   if(sc){const ps=g.pitches.filter(p=>p.inning===sc.inning&&!p.noPitch);const q=PC.summarize(ps);const k=ps.filter(p=>p.end==='K'||p.end==='K-D3').length,hits=ps.filter(p=>/^(1B|2B|3B|HR)$/.test(p.ip||'')).length;
@@ -79,10 +86,13 @@ $('cZone').addEventListener('pointerdown',e=>{if(viewOnly())return;const b=zoneB
 $('cZone').addEventListener('click',e=>{if(viewOnly()){toast(PC.SCORING_ELSEWHERE);return;}const b=zoneBtn(e);if(!b)return;if(lpDone){lpDone=false;return;}const z=+b.dataset.z;sideCard=null;
   if(D.aimEdit){if(!PC.targetOk(D.type,z)){coachMsg($('coach').classList.contains('compact')?PC.CH_AIM_TINY:PC.CH_AIM_SHORT,'warn');return;}D.aim=z;D.aimEdit=false;render();return;}D.loc=D.loc===z?null:z;render();});
 $('cRes').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;sideCard=null;
-  if(b.dataset.r){if(b.dataset.r==='inplay'){D.ip=true;render();return;}recordGame(b.dataset.r);return;}
+  if(b.dataset.ft){if(b.dataset.ft==='cancel'){D.foul=false;D.foulTime=null;render();return;}D.foulTime=b.dataset.ft==='skip'?null:b.dataset.ft;recordGame('foul');return;}
+  if(b.dataset.r){if(b.dataset.r==='inplay'){D.ip=true;D.foul=false;render();return;}if(b.dataset.r==='foul'){D.foul=true;D.ip=false;D.foulTime=null;render();return;}recordGame(b.dataset.r);return;}
   if(b.dataset.ip){recordGame('inplay',b.dataset.ip);return;}
   if(b.dataset.ty){D.type=b.dataset.ty;render();return;}
-  const x=b.dataset.cx;if(x==='shake')return shakeOff();if(x==='unshake')return cancelShake();if(x==='take')return openTakeover();if(x==='back'){D.ip=false;D.spray=null;render();}else if(x==='aim'){D.aimEdit=!D.aimEdit;render();}else if(x==='undo')undoLast();else if(x==='same'&&lastCell)callCell(lastCell.r,lastCell.c);});
+  const x=b.dataset.cx;if(x==='shake')return shakeOff();if(x==='unshake')return cancelShake();if(x==='take')return openTakeover();if(x==='back'){D.ip=false;D.spray=null;render();}else if(x==='aim'){D.aimEdit=!D.aimEdit;render();}else if(x==='undo')undoLast();else if(x==='redo')redoLast();else if(x==='same'&&lastCell)callCell(lastCell.r,lastCell.c);});
+$('cAct').addEventListener('click',e=>{if(viewOnly()){toast(PC.SCORING_ELSEWHERE);return;}const b=e.target.closest('[data-z]');if(!b)return;sideCard=null;D.loc=+b.dataset.z;render();});
+$('cSprayWrap').addEventListener('click',e=>{const b=e.target.closest('[data-bb]');if(!b)return;D.bb=D.bb===b.dataset.bb?null:b.dataset.bb;render();});
 $('cSpray').addEventListener('click',e=>{const r=$('cSpray').getBoundingClientRect();D.spray=[+((e.clientX-r.left)/r.width).toFixed(3),+((e.clientY-r.top)/r.height).toFixed(3)];renderCoach();});
 $('cSideUndo').onclick=()=>{sideCard=null;undoLast();};$('cSidePause').onclick=()=>{sideCard=null;pauseGame();};$('cSideOk').onclick=()=>{sideCard=null;render();};
 // game menu (⋯): the rarely used controls live here, off the charting screen
@@ -90,6 +100,12 @@ $('cxMenu').onclick=()=>{applyViewOnly(viewOnly());openSheet($('cMenuDlg'));};
 const menuDo=f=>()=>{$('cMenuDlg').close('ok');f();};
 $('cmOutM').onclick=menuDo(()=>$('outMinus').click());$('cmOutP').onclick=menuDo(()=>$('outPlus').click());$('cmInn').onclick=menuDo(()=>$('innPlus').click());$('cmIbb').onclick=menuDo(()=>$('ibb').click());
 $('cmKd3').onclick=menuDo(()=>recordGame('kd3'));$('cmKd3o').onclick=menuDo(()=>recordGame('kd3out'));$('cmPause').onclick=menuDo(pauseGame);$('cmEnd').onclick=menuDo(endGame);
+let xFlag=null;
+$('cmXtra').onclick=()=>{const d=$('xDlg');d.returnValue='';xFlag=PC.cleanFlag(D.wpPb);$('xWp').classList.toggle('sel',xFlag==='wp');$('xPb').classList.toggle('sel',xFlag==='pb');$('xVelo').value=D.velo==null?'':D.velo;openSheet(d);};
+$('xWp').onclick=()=>{xFlag='wp';$('xWp').classList.add('sel');$('xPb').classList.remove('sel');};
+$('xPb').onclick=()=>{xFlag='pb';$('xPb').classList.add('sel');$('xWp').classList.remove('sel');};
+$('xClr').onclick=()=>{xFlag=null;$('xWp').classList.remove('sel');$('xPb').classList.remove('sel');};
+$('xDlg').addEventListener('close',()=>{if($('xDlg').returnValue!=='ok')return;D.wpPb=xFlag;D.velo=$('xVelo').value;render();});
 $('cmTake').onclick=menuDo(()=>openTakeover());$('cmBand').onclick=menuDo(()=>openBandSetup());
 $('cmTheme').onclick=()=>{const t=PREF.get('theme','field');PREF.set('theme',THEMES[(THEMES.indexOf(t)+1)%THEMES.length]);applyTheme();render();};
 $('cmMirror').onclick=()=>{PREF.set('mirror',PREF.get('mirror','0')==='1'?'0':'1');render();};
@@ -108,10 +124,10 @@ $('bandDlg').addEventListener('close',()=>{if($('bandDlg').returnValue!=='ok')re
 // ---------- portrait rotate prompt ----------
 $('rotOk').onclick=()=>{PREF.set('portrait_ok','1');render();};
 // ---------- bullpen bottom pad: pitch chips, way off, Undo / Pause / End within thumb reach ----------
-$('pUndo').onclick=()=>undoLast();$('pPause').onclick=()=>$('bpPause').click();$('pEnd').onclick=()=>$('bpEnd').click();
+$('pUndo').onclick=()=>undoLast();$('pRedo').onclick=()=>redoLast();$('pPause').onclick=()=>$('bpPause').click();$('pEnd').onclick=()=>$('bpEnd').click();
 function placeBullpenPad(on){const pad=$('bpPad');pad.classList.toggle('hide',!on);document.body.classList.toggle('padmode',on);
   const mv=(el,home)=>{if(el.parentNode!==home)home.appendChild(el);};
-  if(on){mv($('types'),$('padTypes'));mv($('wayBtns'),$('padWay'));}else{const eb=document.querySelector('.entrybar');if($('types').parentNode!==eb){const sb=$('shakeBar');if(sb&&sb.parentNode===eb)sb.after($('types'));else eb.prepend($('types'));}const z=document.querySelector('.zonewrap');if($('wayBtns').previousElementSibling!==z)z.after($('wayBtns'));}}
+  if(on){mv($('types'),$('padTypes'));mv($('wayBtns'),$('padWay'));mv($('actBtns'),$('padAct'));}else{const eb=document.querySelector('.entrybar');if($('types').parentNode!==eb){const sb=$('shakeBar');if(sb&&sb.parentNode===eb)sb.after($('types'));else eb.prepend($('types'));}const row=$('locRow');if($('wayBtns').parentNode!==row)row.appendChild($('wayBtns'));if($('actBtns').parentNode!==row)row.appendChild($('actBtns'));}}
 // called from render(): decides which charting screen shows
 function renderModes(lk,showEntry){const cg=coachGame(lk);const coach=cg&&LANDSCAPE.matches,gate=cg&&PORTRAIT.matches&&PREF.get('portrait_ok','0')!=='1';
   document.body.classList.toggle('coachmode',coach);$('coach').classList.toggle('hide',!coach);$('rotate').classList.toggle('hide',!gate);

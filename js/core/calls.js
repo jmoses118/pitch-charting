@@ -31,8 +31,11 @@ const CALL_SUFFIX={
 const CH_TARGETS=[4,7,8,9,13,14,18];
 const AIM_ALL=[1,2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18];
 const targetOk=(type,z)=>type!=='CH'||CH_TARGETS.includes(+z);
+// A called aim is a zone or ring box the pitch type is allowed to aim at. Way off, in dirt and over the catcher are actual locations only.
+const canAim=(type,z)=>{z=+z;return (PC.isZone(z)||PC.isOut(z))&&targetOk(type,z);};
 const aimOpts=type=>AIM_ALL.filter(z=>targetOk(type,z));
 const CH_AIM_MSG='Change-ups are aimed low: 4, 7, 8, 9 or 13, 14, 18';
+const ACTUAL_ONLY_MSG='In dirt and over the catcher are where it went, not an aim';
 // short forms for the coach status strip, where the faded boxes already show which ones are allowed
 const CH_AIM_SHORT='Change-up: aim low',CH_AIM_TINY='CH: aim low',CH_BAND_NOTE='Change-ups aim low: 4, 7, 8, 9, 13, 14 or 18.';
 function parseCall(code,hand,throws,custom){if(code==null)return null;const hand0=hand;hand=hand==='L'?'L':'R';throws=throws==='L'?'L':'R';
@@ -70,5 +73,5 @@ function unmappedCells(sheet,custom){const g={};((sheet&&sheet.rows)||[]).forEac
 // aim chosen in band setup for an unmapped call (sheet.aims[norm] = zone, 0 = "no spot"); null when none
 function bandAim(sheet,parsed){if(!parsed||parsed.targets.length||!sheet||!sheet.aims)return null;const v=+sheet.aims[parsed.norm];return v>0&&targetOk(parsed.type,v)?v:null;}
 const bandSetupDone=(sheet,custom)=>unmappedCells(sheet,custom).every(u=>!!sheet.aims&&u.norm in sheet.aims);
-Object.assign(PC,{CH_TARGETS,AIM_ALL,targetOk,aimOpts,CH_AIM_MSG,CH_AIM_SHORT,CH_AIM_TINY,CH_BAND_NOTE,BASE_TYPES,ALIAS,normType,CALL_SUFFIX,parseCall,WRISTBAND_1,sheetCols,defaultCallSheet,parseCellRef,cellCode,unmappedCells,bandAim,bandSetupDone});
+Object.assign(PC,{CH_TARGETS,AIM_ALL,targetOk,canAim,aimOpts,CH_AIM_MSG,ACTUAL_ONLY_MSG,CH_AIM_SHORT,CH_AIM_TINY,CH_BAND_NOTE,BASE_TYPES,ALIAS,normType,CALL_SUFFIX,parseCall,WRISTBAND_1,sheetCols,defaultCallSheet,parseCellRef,cellCode,unmappedCells,bandAim,bandSetupDone});
 })(typeof window!=='undefined'?window:globalThis);

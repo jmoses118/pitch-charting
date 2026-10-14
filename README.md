@@ -44,3 +44,6 @@ A live game or bullpen is scored only from the phone that started it. Other phon
 
 ### Shake-offs
 If she shakes off your call, tap **⤺ Shake-off** (portrait or the landscape coach screen), pick the pitch she threw, then where and the result as usual. Stats shows a Shake-offs card per pitcher: how her shake-offs did vs pitches that followed the call, and each one with the count and the pitch before it.
+
+### Scoring a game
+Scheduled games (from schedule sync) start with one tap. Then: call (wristband) → where it was aimed → where it went → a big result button. Foul can note early / on time / late. Ball in play can note contact, then the play. Undo steps back through the location tap and the last pitch; Redo (up to 10) puts them back until the next pitch is logged. In dirt and Over catcher are actual locations only. Stats can export one pitcher on one date as CSV.

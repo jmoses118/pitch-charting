@@ -26,6 +26,7 @@ function makeStore(storage){
     // sync queue: only the real state is ever queued; test mode is a no-op
     markDirty(kind,id){if(test||id==null)return false;real.sync.queue[kind]=real.sync.queue[kind]||{};real.sync.queue[kind][id]=(real.sync.queue[kind][id]||0)+1;return true;},
     tombstone(p,ctx){if(test)return false;real.sync.tomb[p.id]=Object.assign({},p,ctx,{deleted:true});real.sync.queue.pitches[p.id]=(real.sync.queue.pitches[p.id]||0)+1;return true;},
+    untomb(id){if(test||!real.sync.tomb||!real.sync.tomb[id])return false;delete real.sync.tomb[id];return true;},
     pendingCount(){if(test)return 0;const q=real.sync.queue;return Object.keys(q).reduce((a,k)=>a+Object.keys(q[k]).length,0);},
     markAllDirty(){if(test)return;real.pitchers.forEach(p=>api.markDirty('pitchers',p.id));(real.callSheets||[]).forEach(c=>api.markDirty('call_sheets',c.id));real.games.forEach(g=>{api.markDirty('games',g.id);g.pitches.forEach(p=>api.markDirty('pitches',p.id));});real.sessions.forEach(x=>{api.markDirty('sessions',x.id);x.pitches.forEach(p=>api.markDirty('pitches',p.id));});},
     save(){if(test)return false;try{storage&&storage.setItem(KEY,JSON.stringify(real));return true;}catch(e){saveOk=false;return false;}},

@@ -30,7 +30,7 @@ for(const [W,H] of [[844,390],[667,375],[932,430]]){const tag=`${W}x${H}`;const 
   {const exp=W<700?'Where?':'Tap where it went';const ht=(await p.textContent('#cxHint')).trim();ok(ht===exp||ht.endsWith(exp)||ht.includes(exp),`${tag} coach: after type, hint is normal step ("${exp}") got "${ht}"`);}
   await p.click('#cZone button[data-z="5"]');await w();
   if(SHOT)await p.screenshot({path:`${SHOT}coach-shake-threw-${tag}.png`});
-  await p.click('#cRes [data-r=foul]');await w(250);
+  await p.click('#cRes [data-r=foul]');await w(150);await p.click('#cRes [data-ft=skip]');await w(250);
   ok(JSON.stringify(await ev(last))===JSON.stringify({n:1,shook:true,call:'CH7',type:'FB',targets:[],loc:5,result:'foul'}),`${tag} coach: logs called CH7, shook, threw FB 5, foul – no aim ${JSON.stringify(await ev(last))}`);
   ok(await ev(()=>!!document.querySelector('#cRes [data-cx=shake]')),`${tag} coach: next pitch starts fresh`);
   await p.click('#cRes [data-cx=undo]');await w(250);ok(await ev(()=>__app.store.real.games[0].pitches.length===0),`${tag} coach: Undo removes the shake-off pitch`);

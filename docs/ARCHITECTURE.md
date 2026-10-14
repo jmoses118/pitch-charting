@@ -15,7 +15,7 @@
 ## Core modules (load order = dependency order)
 Each module is an IIFE that reads dependencies from the shared `PC` namespace (`const {…}=PC`) and registers its exports with `Object.assign(PC,{…})`. The browser loads them via `<script>` tags; node via `logic.js`.
 
-1. **grid.js** – single source of truth for the location grid: zone 1–9, ring 11–18, way-off 21–24, `GRID_XY` lattice, `MAX_MISS`, `missDist`, `locInfo`, `pct`.
+1. **grid.js** – single source of truth for the location grid: zone 1–9, ring 11–18, way-off 21–24, actual-only 31 (in dirt) and 32 (over catcher/backstop), `GRID_XY` lattice, `MAX_MISS`, `missDist`, `locInfo`, `pct`.
 2. **calls.js** – pitch types, call codes (Jim's wristband language), call-code parsing, wristband/call sheet defaults.
 3. **game.js** – count logic (GameChanger aligned), results, at-bat ends, batted-ball types, bullpen entry steps.
 4. **scoring.js** – all scoring rules: miss severity (`pitchMiss` is the only severity source), souvenir, CH-low, ring/way-off, competitive %, heat maps, reports, summaries, K credit, count stats, trends, alert levels. Report, heat map and stats all call these same functions.
@@ -47,7 +47,7 @@ Loads after setup.js and before main.js. It holds the theme/mirror prefs, the la
 - **Sync problems:** Setup → Cloud sync → "⚠ Sync problems (N)" opens `#rejDlg` (setup.js). Each row can be kept, retried (`PC.retryRejected` re-queues it) or discarded (`PC.discardRejected`). Nothing changes until Apply; Cancel leaves everything as it was.
 - **Pull:** incremental. `sync.seen[table]` holds the newest `updated_at` merged. The next pull asks for `updated_at >= seen − 2 min` (overlap for slow commits; merging is idempotent) and pages by keyset `(updated_at, id)` (`PC.pullUrl`), never offset. `seen` resets when the team or role changes.
 - **Merging:** every table, including sessions, is last-writer-wins by `updated_at`. A live game's count (`games.cur`) is plain last-writer-wins: only one phone can score it (see Scoring lock).
-- **rowPitch** keeps every valid spot (`PC.validSpot`: 1–9, 11–18, 21–24) and drops anything else.
+- **rowPitch** keeps every valid spot (1–9, 11–18, 21–24, 31 in dirt, 32 over catcher/backstop) and drops anything else.
 - Dates are always local (`PC.localDate` via `today()` in shared.js); nothing builds a date from UTC.
 
 ## Scoring lock (v39)
@@ -63,3 +63,11 @@ A live game or bullpen session is scored from **one phone only** – the phone t
 - Draft state `D.shook` = the coach's call (`norm`, `raw`, type, aim) captured by `shakeOff()` (shared.js); `cancelShake()` restores it; `resetDraft` clears it. `baseRec` then writes `shook:true`, `call`/`callRaw` = coach call, `type` = thrown, `targets` = her own aim only (`aimSet` ignores the call while shaking off). `recordGame` refuses a shake-off until a thrown type is picked. Undo removes it like any pitch.
 - UI: portrait `#shakeBtn` (pitch flow) + `#shakeBar` (call, Cancel); coach `[data-cx=shake]` next to Aim/Undo/Same, then a thrown-type picker (`[data-ty]`) with ✕ Cancel. Stats `#sShakeCard` and the bullpen report use `shakeHTML()` → `PC.shakeoffs`.
 - Sync: the flag travels as a `⤺ ` prefix on `pitches.call_raw` (`PC.SHOOK_TAG`) so it works on today's schema. Migration `supabase/migrations/20261014140000_shake_off.sql` adds `pitches.shook` – **NOT applied to the live DB**; after applying it, set `shakeColumn:true` in `config.js` to also write the column.
+
+## Scoring chart (v40)
+- Portrait flow: scheduled game → one tap (`startScheduled`) → call → location → big result. Foul opens a timing submenu (`D.foul`); ball in play opens contact (optional) then the play (`D.ip`). Cancel on either logs nothing.
+- `redoStack` (in-memory, `var` in `js/ui/game.js` so coach and bullpen can see it) holds up to `PC.REDO_MAX` (10) undone location taps and pitches. `clearRedo()` runs when a pitch is logged. Undo of a location tap does not tombstone a pitch.
+- Pitch fields `calledLoc`, `actualLoc`, `foulTime`, `wpPb`, `velo`, and `mode` (`game` / `bullpen`) live on the phone. `pitchRow` adds `called_loc`, `actual_loc`, `foul_time`, `wp_pb`, `velo` only when `sync.chartCol` is set (`config.js` `chartColumn`, default unset).
+- Migration `supabase/migrations/20261014180000_scoring_chart.sql` – **NOT applied**. Do not run it against the live project.
+- CSV columns are appended in `PC.CSV_COLS`. `PC.filterPitcherDate` keeps one pitcher (first name + number) on one date.
+- Bullpen default result is `S().bpResult` (`''` | `ball` | `called`), stamped only in `logBullpen` via `PC.bullpenResult`. Batter side stays on the existing Batter sheet (No batter / LHB / RHB).

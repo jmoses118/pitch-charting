@@ -199,7 +199,7 @@ dialog::backdrop{background:rgba(0,0,0,.7)}
 /* ---------- one-screen pitch entry (v34) ---------- */
 body.entrymode main{display:flex;flex-direction:column;padding-top:0}
 body.entrymode #entry{display:contents}
-body.entrymode .entrybar,body.entrymode .zonewrap,body.entrymode #wayBtns,body.entrymode #resSheet{order:-1}
+body.entrymode .entrybar,body.entrymode .zonewrap,body.entrymode #locRow,body.entrymode #wayBtns,body.entrymode #resSheet{order:-1}
 body.entrymode #wayBtns{margin:var(--s1) 0 var(--s3)}
 body.entrymode .topbar,body.entrymode #wlMsg{display:none}
 body.entrymode header{padding-top:calc(var(--s1) + env(safe-area-inset-top));padding-bottom:var(--s1)}
@@ -265,7 +265,7 @@ html[data-theme="night"]{--c-bg:#000000}
 body.coachmode{padding:0;overflow:hidden}body.coachmode header,body.coachmode main,body.coachmode nav,body.coachmode #toast,body.coachmode #flash{display:none!important}
 .coach{position:fixed;inset:0;z-index:7;display:grid;grid-template-columns:auto var(--mid,216px) var(--res,106px);gap:7px;justify-content:center;align-items:start;background:var(--c-bg);
   padding:4px max(6px,env(safe-area-inset-right)) max(4px,env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left))}
-body.mirror .coach .cband{order:3}body.mirror .coach .cres{order:1}
+body.mirror .coach .cband{order:3}body.mirror .coach .cres,body.mirror .coach .crcol{order:1}
 #cBand{border-collapse:collapse;table-layout:fixed}
 #cBand th{text-align:center;background:var(--c-band-hdr,#E9ECF2);color:var(--c-text);font-weight:800;border:1.5px solid var(--c-band-line,#1C1C1C);padding:0}
 #cBand thead th{height:24px;font-size:15px}#cBand tbody th{width:var(--rh,28px);font-size:17px}#cBand th.corner{width:var(--rh,28px)}
@@ -292,7 +292,12 @@ html[data-theme="night"] .cstatus{background:#0D121B;border:1px solid #34445E;bo
 .cs-hint.msg{font-weight:800}.cs-hint.msg.ok{color:#7EE2A0}.cs-hint.msg.warn{color:#FFD27A;font-size:12px}
 .cs-net{font-size:11px;color:#A9B4C6}
 .cs-ip{font-size:11.5px;font-weight:700;color:#EEF2F8;line-height:1.25}
-#cSpray{width:100%;height:auto;display:block;cursor:crosshair}.sp-fair{fill:#DCEFE6}.sp-inf{fill:#F6DDB0}#cSprayDot{fill:#1C1C1C;stroke:#fff;stroke-width:2}
+#cSprayWrap{display:flex;flex-direction:column;gap:2px;min-height:0;flex:1;overflow:hidden}
+#cSprayWrap.hide{display:none}
+#cSpray{width:100%;height:56px;flex:0 0 56px;display:block;cursor:crosshair}.sp-fair{fill:#DCEFE6}.sp-inf{fill:#F6DDB0}#cSprayDot{fill:#1C1C1C;stroke:#fff;stroke-width:2}
+.coach.compact .cs-ip{font-size:10px;line-height:1.1}
+.coach.compact .cxbb button{height:22px}
+.coach.compact #cSpray{height:48px;flex-basis:48px}
 .czone{display:grid;grid-template-columns:calc(var(--z)*2/3) var(--z) var(--z) var(--z) calc(var(--z)*2/3);grid-template-rows:calc(var(--z)*2/3) var(--z) var(--z) var(--z) calc(var(--z)*2/3);gap:2px}
 .czone button{min-height:0;padding:0;border:0;border-radius:4px;font-weight:800;font-size:15px;color:var(--c-zone-text);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
 .czone .zr{background:var(--c-zone-ring)}.czone .zi{background:var(--c-zone-in)}
@@ -319,9 +324,9 @@ html[data-theme="night"] .czone .act::after{background:#EEF2F8;box-shadow:0 0 0 
 .bpad{position:fixed;left:0;right:0;bottom:calc(69px + env(safe-area-inset-bottom));z-index:5;background:var(--c-bg);border-top:1px solid var(--c-line);padding:6px var(--s3) 6px}
 .padlbl{margin:0 0 3px;font-size:11px}
 .bpad #types.chips{padding-bottom:4px}.bpad #wayBtns{margin:0}
-.padact{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px}.padact button{min-height:44px;font-weight:800}
+.padact{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}.padact button{min-height:44px;font-weight:800}
 body.padmode main{padding-bottom:calc(var(--pad-h,0px) + 12px)}
-@media (max-height:720px){.padlbl{display:none}.padact button{min-height:40px}}
+@media (max-height:720px){.padlbl{display:none}.padact button{min-height:36px}#bpPad{display:grid;grid-template-columns:1.6fr .9fr;column-gap:4px;align-items:stretch}#padTypes,.padact{grid-column:1 / -1}#padWay{grid-column:1}#padAct{grid-column:2}body.padmode #wayBtns button,body.padmode #actBtns button{min-height:36px}}
 
 /* v37 review fixes */
 #cSideOk{color:#fff;background:transparent;border:2px solid #C3CAD6}
@@ -330,8 +335,10 @@ body.padmode main{padding-bottom:calc(var(--pad-h,0px) + 12px)}
 .coach.compact .cres{grid-template-columns:46px 46px}.coach.compact .cs-bat{font-size:12px}
 .coach.compact .cmenu{width:44px;padding:0;font-size:20px}
 #wayBtns button{min-height:48px}body.padmode .bpad #wayBtns button,body.padmode #wayBtns button{min-height:48px}
+@media (max-height:720px){body.padmode .bpad{padding-top:4px;padding-bottom:4px}body.padmode #wayBtns button,body.padmode #actBtns button{min-height:36px;height:40px;font-size:10px;line-height:1.05;white-space:nowrap;overflow:hidden}}
 .bpad #types.chips{flex-wrap:nowrap;overflow-x:auto}.bpad #types.chips button{flex:1 0 auto;min-width:44px;padding-left:6px;padding-right:6px}
 body.padmode #flash{top:56px;font-size:16px;padding:8px 16px;transform:translate(-50%,0) scale(.92)}body.padmode #flash.on{transform:translate(-50%,0) scale(1)}
+body.padmode #locRow{display:none}
 .thseg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}.thseg button{min-height:44px;font-weight:800}.thseg button.on{background:var(--c-royal);color:#fff;border-color:var(--c-royal)}
 .coach.compact .cres button{font-size:12px}
 
@@ -353,7 +360,7 @@ body.padmode #flash{top:56px;font-size:16px;padding:8px 16px;transform:translate
 body.viewonly .robar{display:flex}
 /* under the INN/COUNT strip in entry mode (sticky, above the zone) */
 body.entrymode #roBar{order:-2;position:sticky;top:var(--hdr-h,56px);z-index:5;margin:0 calc(-1 * var(--s3));padding:8px var(--s3);border-radius:0;border-left:0;border-right:0}
-body.viewonly #types,body.viewonly #steps,body.viewonly #wayBtns,body.viewonly #bpPad,body.viewonly #resTog,body.viewonly #resSheet,body.viewonly #undo,body.viewonly #wbTog,body.viewonly #batTog,body.viewonly #shakeBtn,body.viewonly #shakeBar{display:none!important}
+body.viewonly #types,body.viewonly #steps,body.viewonly #wayBtns,body.viewonly #actBtns,body.viewonly #cAct,body.viewonly #bpPad,body.viewonly #resTog,body.viewonly #resSheet,body.viewonly #undo,body.viewonly #redo,body.viewonly #wbTog,body.viewonly #batTog,body.viewonly #shakeBtn,body.viewonly #shakeBar{display:none!important}
 /* zone/band stay tappable so view-only taps can toast the reason (handlers no-op) */
 #cRes .cro{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;align-items:stretch;text-align:center;font-size:13px;padding:6px 2px}
 #cRes .cro span{color:#4A5363}
@@ -377,3 +384,37 @@ body.viewonly #cRes .cro{flex:0 0 auto}
 .rejdet summary{font-size:12px;color:var(--c-text-2,#5B6472);min-height:48px;display:flex;align-items:center;cursor:pointer}
 .rejseg button{font-weight:700}.rejseg button.on{background:var(--c-royal);color:#fff;border-color:var(--c-royal)}.rejseg button[data-act=discard].on{background:var(--c-danger);border-color:var(--c-danger)}
 .rejseg button[data-act=discard]:not(.on){color:#B42323;border-color:#B42323}
+/* v40 scoring screen: big results, called vs actual location, one-tap start */
+.locrow{display:grid;grid-template-columns:2fr 1fr;gap:4px;align-items:stretch}
+.locrow .way4{margin:0}
+.act2{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.act2 button,.cact button{min-height:44px;font-size:11px;font-weight:800;line-height:1.1;padding:2px 4px;background:var(--c-way);border-color:var(--c-way-line);color:var(--c-danger-text)}
+.act2 button.sel,.cact button.sel{background:var(--c-danger);border-color:var(--c-danger);color:#fff}
+body.entrymode #actBtns button{min-height:40px}
+@media (max-height:720px){body.entrymode #actBtns button{min-height:34px;height:36px;white-space:nowrap}body.entrymode:not(.padmode) #locRow{position:fixed;left:0;right:0;bottom:calc(69px + env(safe-area-inset-bottom));z-index:4;margin:0;padding:4px 12px 4px;background:var(--c-bg)}}
+body.padmode #actBtns button{min-height:48px}
+@media (max-height:720px){body.padmode .bpad #wayBtns button,body.padmode #bpPad #actBtns button{min-height:36px;height:40px;font-size:10px;line-height:1.05;white-space:nowrap;overflow:hidden}}
+.cact{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.crcol{display:flex;flex-direction:column;gap:4px;align-self:stretch;height:100%;min-height:0}
+.crcol>.cact{height:36px}.crcol>.cact button{min-height:0;height:36px;font-size:10px;padding:0 2px}
+.crcol>.cres{flex:1 1 auto;height:auto;min-height:0;gap:4px}
+.coach.compact .cmid>.cact button{min-height:40px;height:auto;font-size:11px}
+.coach.compact .crcol{display:contents}
+.resbig{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.resbig button{min-height:64px;font-size:18px;font-weight:800;line-height:1.1}
+.resbig button.sub{min-height:48px;font-size:14px}
+.resbig .mut{font-size:13px}
+.bsheet{max-height:78vh;overflow:auto}
+.pextra{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.pextra .seg{flex:1}
+.pextra .seg button,.xDlg .seg button,#bpRes button{min-height:44px;font-weight:700}
+.velolab{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700}
+.velolab input{width:88px;min-height:44px}
+.startg{flex:1;text-align:left}
+.startg small{font-weight:600;opacity:.9}
+.gclink{color:var(--c-royal-text);padding:0 8px;min-height:48px;display:flex;align-items:center;font-weight:800}
+#bpRes{margin:4px 0 8px}
+.cxbb{display:flex;gap:4px;margin-top:2px}
+.cxbb button{flex:1;min-height:0;height:26px;font-size:12px;font-weight:800;padding:0}
+.cxbb button.on{background:var(--c-royal);color:#fff;border-color:var(--c-royal)}
+#ipBtns [data-bb].sel,#foulBtns [data-ft].sel{outline:2px solid var(--c-royal-hi)}

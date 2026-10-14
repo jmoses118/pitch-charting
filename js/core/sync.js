@@ -4,7 +4,7 @@
 'use strict';
 const PC=root.PC=root.PC||{};
 const {BB_TYPES,DEFAULT_ALERTS,DEFAULT_REST,DEFAULT_LIMITS,cleanLimit,GRID_XY}=PC;
-// a valid spot on the grid: zone 1-9, ring 11-18, way off 21-24 (anything else from the cloud is dropped)
+// a valid spot on the grid: zone 1-9, ring 11-18, way off 21-24, in dirt 31, over catcher/backstop 32 (anything else from the cloud is dropped)
 const validSpot=z=>Number.isInteger(z)&&!!GRID_XY[z];
 // ---------- Cloud sync (Supabase REST, team code header checked by RLS) ----------
 const TABLES=['pitchers','games','sessions','pitches','call_sheets','notes','team_settings'];
@@ -18,13 +18,19 @@ function rowSettings(r){const a=(Array.isArray(r.alerts)?r.alerts:[]).map(Number
 // shake-off flag: travels as a "⤺ " prefix on call_raw (works on today's schema); also as the shook column once
 // supabase/migrations/*_shake_off.sql is applied and sync.shakeCol is on
 const SHOOK_TAG='⤺ ';
-function pitchRow(p,ctx){const row=pitchRow0(p,ctx);if(p.shook){row.call_raw=SHOOK_TAG+(p.callRaw||p.call||'');if(ctx.shakeCol)row.shook=true;}else if(ctx.shakeCol)row.shook=false;return row;}
+function pitchRow(p,ctx){const row=pitchRow0(p,ctx);if(p.shook){row.call_raw=SHOOK_TAG+(p.callRaw||p.call||'');if(ctx.shakeCol)row.shook=true;}else if(ctx.shakeCol)row.shook=false;
+  // New chart columns exist only after 20261014180000_scoring_chart.sql. Until chartColumn is set, they stay on the phone.
+  if(ctx.chartCol){row.called_loc=p.calledLoc==null?null:+p.calledLoc;row.actual_loc=p.actualLoc==null?(p.loc==null?null:+p.loc):+p.actualLoc;row.foul_time=p.foulTime||null;row.wp_pb=p.wpPb||null;row.velo=p.velo==null||p.velo===''?null:+p.velo;}
+  return row;}
 function pitchRow0(p,ctx){return{id:p.id,mode:ctx.mode,game_id:ctx.game_id||null,session_id:ctx.session_id||null,pitcher_id:p.pitcherId||null,ts:p.ts||null,hand:p.hand||null,type:p.type||null,call:p.call||null,call_raw:p.callRaw||null,
   targets:p.targets||[],loc:p.loc==null?null:p.loc,result:p.result||null,ip:p.ip||null,end_event:p.end||null,inning:p.inning==null?null:p.inning,outs_before:p.outsBefore==null?null:p.outsBefore,slot:p.slot==null?null:p.slot,
   batter:p.batter==null?null:p.batter,batter_num:p.batterNum==null?null:String(p.batterNum),b:p.b==null?null:p.b,s:p.s==null?null:p.s,abn:p.abn==null?null:p.abn,first_pitch:p.firstPitch==null?null:!!p.firstPitch,no_pitch:!!p.noPitch,prev_hand:p.prevHand||null,bb:BB_TYPES.includes(p.bb)?p.bb:null,deleted:!!p.deleted};}
 function rowPitch(r){const p={id:r.id,ts:+r.ts||0,pitcherId:r.pitcher_id,hand:r.hand,type:r.type,call:r.call,callRaw:r.call_raw,targets:(Array.isArray(r.targets)?r.targets:[]).map(Number).filter(validSpot),loc:r.loc!=null&&validSpot(+r.loc)?+r.loc:null,result:r.result,ip:r.ip,end:r.end_event};if(BB_TYPES.includes(r.bb))p.bb=r.bb;if(r.shook===true||(typeof r.call_raw==='string'&&r.call_raw.startsWith(SHOOK_TAG))){p.shook=true;p.callRaw=typeof r.call_raw==='string'&&r.call_raw.startsWith(SHOOK_TAG)?r.call_raw.slice(SHOOK_TAG.length)||null:r.call_raw;}
   if(r.mode==='game')Object.assign(p,{inning:r.inning,outsBefore:r.outs_before,slot:r.slot,batter:r.batter,batterNum:r.batter_num,b:r.b,s:r.s,abn:r.abn,firstPitch:r.first_pitch,prevHand:r.prev_hand});else{p.b=0;p.s=0;}
-  if(r.no_pitch)p.noPitch=true;return p;}
+  if(r.no_pitch)p.noPitch=true;p.mode=r.mode==='bullpen'?'bullpen':'game';
+  if(r.called_loc!=null&&validSpot(+r.called_loc))p.calledLoc=+r.called_loc;if(r.actual_loc!=null&&validSpot(+r.actual_loc))p.actualLoc=+r.actual_loc;else if(p.loc!=null)p.actualLoc=p.loc;
+  if(r.foul_time==='early'||r.foul_time==='ontime'||r.foul_time==='late')p.foulTime=r.foul_time;if(r.wp_pb==='wp'||r.wp_pb==='pb')p.wpPb=r.wp_pb;if(r.velo!=null&&r.velo!==''&&Number.isFinite(+r.velo))p.velo=+r.velo;
+  return p;}
 // role rules (mirrors server RLS): coach = everything; player = writes own bullpen sessions/pitches only, reads own game+bullpen pitches and games she pitched in; viewer = read only
 function roleAllows(sync,table,row){const role=sync.role;if(role==='coach')return true;
   if(role==='pcoach'){const ids=sync.pitcherIds||[];if(table==='sessions'||table==='notes')return ids.includes(row.pitcher_id);if(table==='pitches')return row.mode==='bullpen'&&ids.includes(row.pitcher_id);return false;}
@@ -39,7 +45,7 @@ function buildRows(st){let held=0;const q=st.sync.queue,team=st.sync.teamId,dev=
     else if(t==='notes'){const x=(st.notes||[]).find(y=>y.id===id);if(x)row={id:x.id,pitcher_id:x.pitcherId,session_id:x.sessionId||null,game_id:x.gameId||null,body:String(x.body||'').slice(0,2000),deleted:!!x.deleted};}
     else if(t==='team_settings'){if(id===TEAM_SETTINGS_ID&&st.settings)row=settingsRow(st.settings);}
     else if(t==='sessions'){const x=st.sessions.find(y=>y.id===id);if(x){row={id:x.id,date:x.date,started:x.started||null,imported:!!x.imported,pitcher_id:x.pitcherId||null};if(st.sync.scorerCol)row.scorer=x.scorer||null;}}
-    else{const hit=idx[id];if(hit)row=pitchRow(hit[0],Object.assign({},hit[1],{shakeCol:!!st.sync.shakeCol}));else if(st.sync.tomb[id]){const tb=st.sync.tomb[id];row=pitchRow(tb,{mode:tb.mode,game_id:tb.game_id,session_id:tb.session_id});row.deleted=true;}}
+    else{const hit=idx[id];if(hit)row=pitchRow(hit[0],Object.assign({},hit[1],{shakeCol:!!st.sync.shakeCol,chartCol:!!st.sync.chartCol}));else if(st.sync.tomb[id]){const tb=st.sync.tomb[id];row=pitchRow(tb,{mode:tb.mode,game_id:tb.game_id,session_id:tb.session_id,shakeCol:!!st.sync.shakeCol,chartCol:!!st.sync.chartCol});row.deleted=true;}}
     if(row&&!roleAllows(st.sync,t,row)){held++;continue;} // never send what this code can't write, but KEEP it queued for a code that can
     if(row){row.team_id=team;row.device_id=dev;out[t].push(row);}else delete q[t][id];}}
   return{rows:out,ver,held};}
