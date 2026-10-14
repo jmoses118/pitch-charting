@@ -1,5 +1,15 @@
 # Changelog
 
+## v35 – batter sheet, cancelable dialogs
+### Fixed
+- **Bullpen batter control clipped** (RHB missing on some phones): the corner segmented control is replaced by a small **Batter** chip in the zone corner. It opens a sheet with No batter / LHB / RHB (LHB / RHB in a game). Bullpen still defaults to no batter.
+- **Add pitcher (+) could not be canceled:** the required "Throws" field blocked Cancel.
+  - Every dialog (add/edit pitcher, batter, heat-map filters, drill-down, session report) now closes with Cancel, Escape or a tap on the backdrop, without saving.
+  - The heat-map filters sheet gets a Cancel button.
+  - The result and wristband sheets also close on Escape.
+- The pitcher picker no longer shows "(R)/(L)", so the name isn't clipped in the slim header.
+- While charting, toasts show at the top over the header instead of over the zone.
+
 ## v34 – one-screen pitch entry
 ### Changed
 - In Bullpen and Game, the whole pitch entry (pitch → aim/location → landed/result) fits on one iPhone screen (390×844, and 375×667 for an SE) with no scrolling:

@@ -25,8 +25,8 @@ $('csDelC').onclick=csEdit(sh=>{if(sh.cols.length>1){sh.cols.pop();sh.rows.forEa
 $('oneHand').onchange=e=>{S().oneHand=e.target.checked;save();render();};
 // ---------- pitchers ----------
 let pdEdit=null;
-function openPDlg(p){pdEdit=p?p.id:null;$('pDlgT').textContent=p?'Edit pitcher':'Add pitcher';$('pdName').value=p?p.name:'';$('pdNum').value=p?p.num:'';$('pdThrows').value=p?p.throws:'';$('pDlg').showModal();}
-$('pDlg').addEventListener('close',()=>{if($('pDlg').returnValue!=='ok')return;const o={name:$('pdName').value,num:$('pdNum').value,throws:$('pdThrows').value};if(o.throws!=='L'&&o.throws!=='R'){toast('Pick which hand she throws with');setTimeout(()=>{$('pDlg').showModal();},0);return;}
+function openPDlg(p){pdEdit=p?p.id:null;$('pDlgT').textContent=p?'Edit pitcher':'Add pitcher';$('pdName').value=p?p.name:'';$('pdNum').value=p?p.num:'';$('pdThrows').value=p?p.throws:'';openSheet($('pDlg'));}
+$('pDlg').addEventListener('close',()=>{if($('pDlg').returnValue!=='ok')return;const o={name:$('pdName').value,num:$('pdNum').value,throws:$('pdThrows').value};if(o.throws!=='L'&&o.throws!=='R'){toast('Pick which hand she throws with');setTimeout(()=>{openSheet($('pDlg'));},0);return;}
   if(!o.name.trim())return toast('Name required');
   if(pdEdit)store.editPitcher(pdEdit,o);else{const p=store.addPitcher(o);S().curPitcher=p.id;save();toast('Added '+PC.pitcherLabel(p)+(store.isTest?' (test only)':''));}
   if(D.callTxt)D.parsed=PC.parseCall(D.callTxt,curHand(),throwsOf(),S().customTypes);render();});

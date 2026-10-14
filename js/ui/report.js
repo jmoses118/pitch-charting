@@ -25,8 +25,8 @@ function openDrill(z,c,title){const svg=$('ddMap');zoneSVG(svg,'R',{noNums:true,
   const W=[21,22,23,24].filter(q=>L[q]).map(q=>`${L[q].n} ${PC.WAY[q]}`);const wn=[21,22,23,24].reduce((a,q)=>a+(L[q]?L[q].n:0),0);
   $('ddT').textContent=(title?title+' – ':'')+'aimed at '+DD_NAME(Number(z));
   $('ddCap').innerHTML=`You aimed here <b>${c.n}</b> time${c.n===1?'':'s'}: <b style="color:#2ea043">${near} on target</b> (or 1 box off)${far?`, <b style="color:#f47067">${far} missed</b>`:''}${mm?`, <b>${mm} souvenir${mm===1?'':'s'} 🎁</b>`:''}.`+(up?` ${up} change-up${up===1?' was':'s were'} up in the zone.`:'')+(wn?` <b style="color:#f47067">🚫 ${wn} way off</b> (${W.join(', ')}) – not shown on the grid.`:'');
-  $('ddKey').textContent='White box = where you aimed. Numbers = how many landed there. Green = on target or 1 box off, red = missed (darker = farther), 🎁 = souvenir, 🚫 way off = nowhere near the plate (listed above).';$('ddDlg').showModal();}
-$('ddClose').onclick=()=>$('ddDlg').close();$('ddDlg').addEventListener('click',e=>{if(e.target===$('ddDlg'))$('ddDlg').close();});
+  $('ddKey').textContent='White box = where you aimed. Numbers = how many landed there. Green = on target or 1 box off, red = missed (darker = farther), 🎁 = souvenir, 🚫 way off = nowhere near the plate (listed above).';openSheet($('ddDlg'));}
+$('ddClose').onclick=()=>$('ddDlg').close();
 function hookDrill(svg,d,title){svg.querySelectorAll('[data-z]').forEach(el=>{const z=el.dataset.z,c=d.cells[z];if(!c||!c.n)return;el.setAttribute('tabindex','0');el.setAttribute('role','button');el.style.cursor='pointer';
   const go=()=>openDrill(z,c,title);el.addEventListener('click',go);el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}});});}
 // ---------- per pitch type sections ----------
@@ -46,7 +46,7 @@ document.addEventListener('change',e=>{const t=e.target;if(!t.classList||!t.clas
   const s=S();s.notes=s.notes||[];let n=PC.findNote(s,o);const body=t.value.slice(0,2000);if(!n){n={id:PC.noteId(o),pitcherId:o.pitcherId,sessionId:o.sessionId||null,gameId:o.gameId||null,body};s.notes.push(n);}else n.body=body;
   dirty('notes',n.id);save();toast(store.isTest?'Note saved (test only)':'Note saved');});
 function openReport(sess){if(!sess)return toast('No session');const R=reportFor(sess);RPT=R;const r=R.r;
-  if(!R.P.length){$('rBody').innerHTML='<h2 id="rT">Bullpen report</h2><p class="mut">No pitches in this session'+(role()==='player'?' for you':'')+'.</p>';$('rDlg').showModal();return;}
+  if(!R.P.length){$('rBody').innerHTML='<h2 id="rT">Bullpen report</h2><p class="mut">No pitches in this session'+(role()==='player'?' for you':'')+'.</p>';openSheet($('rDlg'));return;}
   const rp=v=>v==null?'–':Math.round(v)+'%';const st=[['Pitches',r.n],['Strikes',rp(r.strikePct)],['On target',rp(r.goodPct)],['Souvenirs',r.mm],['Competitive',rp(r.compPct)],['Spots aimed',r.called],['Bullseyes',r.hits]].concat(r.wayOff?[['🚫 Way off',r.wayOff]]:[]).concat(r.waste&&r.waste.n?[['Off-plate spots on target',`${r.waste.good}/${r.waste.n}`]]:[]);
   const sp=x=>x?`<b>${H(x.label)}</b> – ${x.good} of ${x.called} on target`:'<span class="mut">throw 2+ pitches at a spot to see this</span>';
   const tr=r.trend&&r.trend.first.called&&r.trend.second.called?`<div class="lbl" style="margin-top:10px">Early vs. late</div><div>First half: ${rp(r.trend.first.goodPct)} on target · ${rp(r.trend.first.strikePct)} strikes<br>Second half: ${rp(r.trend.second.goodPct)} on target · ${rp(r.trend.second.strikePct)} strikes</div>`:'';
@@ -58,7 +58,7 @@ function openReport(sess){if(!sess)return toast('No session');const R=reportFor(
   <div class="lbl" style="margin-top:10px">Best spot / work on</div><div>⭐ Best: ${sp(r.best)}</div><div>🎯 Work on: ${sp(r.weakest)}</div>${tr}
   <div class="lbl" style="margin-top:10px">By pitch</div><div id="rTypes">${typeSectionsHTML(r,'rT_')}</div><div class="lbl" style="margin-top:10px">All pitches</div><table><tr><th>Pitch</th><th>Thrown</th><th>Strikes</th><th>On target</th><th>🎁</th></tr>${Object.entries(r.byType).sort((a,b)=>b[1].n-a[1].n).map(([k,v])=>`<tr><td>${H(PC.TYPE_NAME[k]||k)}</td><td>${v.n}</td><td>${rp(v.strikePct)}</td><td>${v.called?`${v.good}/${v.called}`:'–'}</td><td>${v.mm}</td></tr>`).join('')}</table>`;
   paintTypeMaps($('rBody'),R.items,'rT_');if(R.miss.total){paintMiss($('rMap'),R.miss,true);hookDrill($('rMap'),R.miss);}else $('rMap').outerHTML='<div class="mut">No intended spots logged – tap a target before the actual location to get the heat map.</div>';
-  $('rDlg').showModal();}
+  openSheet($('rDlg'));}
 function reportPNG(R){const W=720,r=R.r,lines=[];const cv=document.createElement('canvas');const ctx=cv.getContext('2d');
   const wrap=(t,w,font)=>{ctx.font=font;const out=[];let cur='';t.split(' ').forEach(x=>{const n=cur?cur+' '+x:x;if(ctx.measureText(n).width>w){out.push(cur);cur=x;}else cur=n;});if(cur)out.push(cur);return out;};
   cv.width=W;cv.height=10;const nt=PC.findNote(store.state,{sessionId:R.sess.id,pitcherId:R.sess.pitcherId||(R.P[0]&&R.P[0].pitcherId)});const fbl=r.feedback.map(t=>wrap('• '+t,W-60,'22px sans-serif')).concat(nt&&nt.body?[wrap('📝 Coach note: '+nt.body,W-60,'22px sans-serif')]:[]);const types=Object.entries(r.byType);

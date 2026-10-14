@@ -60,7 +60,7 @@
   <div class="phase" id="phase"></div>
  </div>
  <div class="zonewrap"><svg id="zone" viewBox="-14 -6 128 138"></svg>
-  <div id="batSide" class="zseg" role="group" aria-label="Batter"><button id="hN" title="No batter (in/away mapped as RHB)">None</button><button id="hL">LHB</button><button id="hR">RHB</button></div></div>
+  <button id="batTog" class="zchip" aria-haspopup="dialog" aria-controls="batDlg"></button></div>
  <div id="wayBtns" class="way4"><button data-z="21">Way high</button><button data-z="22">Way low</button><button data-z="23">Way left</button><button data-z="24">Way right</button></div>
  <div id="resSheet" class="bsheet hide" role="dialog" aria-labelledby="resHead">
   <div class="row sp bshead"><div id="resHead" class="lbl">Result</div><button id="resClose" class="mini" aria-label="Close result picker">✕</button></div>
@@ -160,12 +160,16 @@
 </section>
 </main>
 <nav aria-label="Sections"><button data-t="game" class="on"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M7.6 5.2c1.6 2 2.4 4.3 2.4 6.8s-.8 4.8-2.4 6.8M16.4 5.2c-1.6 2-2.4 4.3-2.4 6.8s.8 4.8 2.4 6.8"/></svg><span>Game</span></button><button data-t="bullpen"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8"/></svg><span>Bullpen</span></button><button data-t="stats"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg><span>Stats</span></button><button data-t="setup"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span>Setup</span></button></nav>
+<dialog id="batDlg" class="sheet" aria-labelledby="batT"><form method="dialog"><div class="lbl" id="batT">Batter</div>
+ <div class="mut" id="batSub" style="margin-bottom:8px">Sets which side is "in" and "away" and where the silhouette stands.</div>
+ <div class="seg3" role="group" aria-label="Batter side"><button type="button" id="hN" title="No batter (in/away mapped as RHB)">No batter</button><button type="button" id="hL">LHB</button><button type="button" id="hR">RHB</button></div>
+ <button value="cancel" formnovalidate class="ghost" style="width:100%;margin-top:10px">Cancel</button></form></dialog>
 <dialog id="pDlg" class="sheet"><form method="dialog"><div class="lbl" id="pDlgT">Pitcher</div>
  <input id="pdName" placeholder="First name" autocomplete="off" style="width:100%"><div class="mut" style="margin-top:4px">First name only – the app shows first name + jersey number.</div><div class="row" style="margin-top:6px"><input id="pdNum" placeholder="#" inputmode="numeric" style="width:90px"><select id="pdThrows" required><option value="">Throws…?</option><option value="R">Throws R</option><option value="L">Throws L</option></select></div>
- <div class="row" style="margin-top:10px"><button value="cancel" style="flex:1">Cancel</button><button value="ok" id="pdOk" class="primary" style="flex:1">Save</button></div></form></dialog>
+ <div class="row" style="margin-top:10px"><button value="cancel" formnovalidate style="flex:1">Cancel</button><button value="ok" id="pdOk" class="primary" style="flex:1">Save</button></div></form></dialog>
 <dialog id="hfDlg" class="sheet" aria-labelledby="hfT"><form method="dialog"><div class="lbl" id="hfT">Heat map filters</div>
  <div id="hfForm" style="display:grid;gap:6px"></div>
- <div class="row" style="margin-top:10px"><button value="reset" style="flex:1">Reset</button><button value="ok" class="primary" style="flex:1">Show</button></div></form></dialog>
+ <div class="row" style="margin-top:10px"><button value="cancel" formnovalidate class="ghost" style="flex:1">Cancel</button><button value="reset" style="flex:1">Reset</button><button value="ok" class="primary" style="flex:1">Show</button></div></form></dialog>
 <dialog id="rDlg" class="sheet" aria-labelledby="rT"><div id="rBody"></div>
  <div class="row noprint" style="margin-top:10px;position:sticky;bottom:0;background:var(--card);padding-top:6px"><button id="rShare" class="primary" style="flex:1">Share image</button><button id="rPrint" style="flex:1">PDF</button><button id="rClose" style="flex:1">Close</button></div></dialog>
 <dialog id="ddDlg" class="sheet" aria-labelledby="ddT"><div class="lbl" id="ddT">Where they went</div>

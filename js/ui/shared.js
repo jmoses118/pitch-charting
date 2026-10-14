@@ -11,6 +11,12 @@ const save=()=>{schedSync();if(!store.save()&&!store.isTest&&!store.saveOk)toast
 let tab='game';
 const D={type:null,callTxt:'',parsed:null,target:null,loc:null,ip:false}; // current pitch draft
 let callOn=false,bpHand='N'; // bullpen default: no batter (in/away calls map as RHB)
+// every dialog/sheet: Cancel, Escape and a tap on the backdrop close it without saving (returnValue 'cancel')
+function openSheet(d){d.returnValue='';d.showModal();}
+document.querySelectorAll('dialog').forEach(d=>{d.addEventListener('cancel',()=>{d.returnValue='cancel';});
+  d.addEventListener('click',e=>{if(e.target!==d||!e.clientX&&!e.clientY)return;const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close('cancel');});});
+// inline sheets (result, wristband) close on Escape too
+document.addEventListener('keydown',e=>{if(e.key!=='Escape'||document.querySelector('dialog[open]'))return;if($('wbDet').open)$('wbDet').open=false;else if(D.sheet||D.ip){D.sheet=false;D.ip=false;render();}});
 function toast(t){const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),1300);}
 // ---------- helpers ----------
 const allTypes=()=>PC.BASE_TYPES.concat(S().customTypes.map(c=>({code:c.code.toUpperCase(),name:c.name})));
@@ -120,7 +126,8 @@ $('limWk').onchange=e=>{ensureSettings().limits.weekend=PC.cleanLimit(e.target.v
 $('showRest').onchange=e=>{ensureSettings().showRest=e.target.checked;saveSettings();};
 $('callOn').onchange=e=>{callOn=e.target.checked;S().callOn=callOn;save();render();};
 $('types').addEventListener('click',e=>{const c=e.target.dataset.c;if(!c)return;D.type=D.type===c?null:c;render();if(tab==='game'&&D.type)advance('loc');});
-$('hL').onclick=()=>setHand('L');$('hR').onclick=()=>setHand('R');$('hN').onclick=()=>setHand('N');$('bpTest').onclick=()=>toggleTest();
+[['hL','L'],['hR','R'],['hN','N']].forEach(([id,h])=>$(id).onclick=()=>{$('batDlg').close('ok');setHand(h);});
+$('batTog').onclick=()=>openSheet($('batDlg'));$('bpTest').onclick=()=>toggleTest();
 function setHand(h){if(tab==='game'&&game()){game().cur.hand=h;dirty('games',game().id);save();}else bpHand=h;if(D.callTxt)D.parsed=PC.parseCall(D.callTxt,h,throwsOf(),S().customTypes);render();}
 // ---------- record building ----------
 function baseRec(){return{id:PC.uuid(),ts:Date.now(),pitcherId:curPitcherId(),hand:curHand(),type:D.type||(D.parsed&&D.parsed.type)||null,
@@ -156,6 +163,6 @@ function fitZone(){const z=$('zone'),w=z.parentElement;if($('entry').classList.c
   document.documentElement.style.setProperty('--hdr-h',document.querySelector('header').offsetHeight+'px');
   const vb=z.viewBox.baseVal,top=w.getBoundingClientRect().top+scrollY,nav=document.querySelector('nav').offsetHeight,way=$('wayBtns').offsetHeight+16;
   const min=Math.ceil(ZONE_MIN_BOX*vb.height/CW)+1,h=Math.round(Math.max(min,Math.min(innerHeight-top-nav-way,w.clientWidth*vb.height/vb.width)));
-  z.style.height=h+'px';const m=z.getScreenCTM(),r=w.getBoundingClientRect();if(!m)return;const bs=$('batSide').style;
+  z.style.height=h+'px';const m=z.getScreenCTM(),r=w.getBoundingClientRect();if(!m)return;const bs=$('batTog').style;
   bs.left=(-13*m.a+m.e-r.left)+'px';bs.top=(124*m.d+m.f-r.top)+'px';bs.width=(43*m.a)+'px';}
 addEventListener('resize',()=>fitZone());

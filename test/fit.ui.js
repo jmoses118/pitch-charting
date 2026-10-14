@@ -14,14 +14,14 @@ for(const [W,H] of [[390,844],[375,667]]){const tag=`${W}x${H}`;
     const box=await ev(()=>{const r=document.querySelector('#zone [data-z="5"]').getBoundingClientRect();return Math.min(r.width,r.height);});ok(box>=48,`${tag} ${mode}: zone box >= 48px (${box.toFixed(1)})`);
     ok(await ev(()=>{const t=document.getElementById('types');return t.getBoundingClientRect().height<60&&getComputedStyle(t).overflowX==='auto';}),`${tag} ${mode}: pitch types are one scrollable row`);
     ok(await inView('#wayBtns'),`${tag} ${mode}: way-off buttons above the tab bar`);
-    ok(await inView('#batSide'),`${tag} ${mode}: batter toggle in the zone corner`);
+    ok(await inView('#batTog'),`${tag} ${mode}: batter chip in the zone corner`);
     // the corner toggle never covers a zone box
-    ok(await ev(()=>{const s=document.getElementById('batSide').getBoundingClientRect();return [...document.querySelectorAll('#zone [data-z]')].every(e=>{const r=e.getBoundingClientRect();return r.right<=s.left+.5||r.left>=s.right-.5||r.bottom<=s.top+.5||r.top>=s.bottom-.5;});}),`${tag} ${mode}: corner toggle clear of the tap boxes`);};
+    ok(await ev(()=>{const s=document.getElementById('batTog').getBoundingClientRect();return [...document.querySelectorAll('#zone [data-z]')].every(e=>{const r=e.getBoundingClientRect();return r.right<=s.left+.5||r.left>=s.right-.5||r.bottom<=s.top+.5||r.top>=s.bottom-.5;});}),`${tag} ${mode}: batter chip clear of the tap boxes`);};
   await p.click('nav [data-t="bullpen"]');await p.waitForTimeout(150);await fits('bullpen');
   ok(/^Today \d+ · Wknd \d+$/.test(await p.textContent('#wlMini'))&&await ev(()=>getComputedStyle(document.querySelector('.topbar')).display==='none'),`${tag}: slim header with workload counts`);
   // tap through a bullpen pitch without scrolling
   const tap=async z=>{const r=await p.$eval(`#zone [data-z="${z}"]`,e=>{const r=e.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2};});await p.mouse.click(r.x,r.y);await p.waitForTimeout(100);};
-  await p.click('#hR');await p.click('#types [data-c="FB"]');await tap(3);await tap(2);
+  await p.click('#batTog');await p.click('#hR');await p.click('#types [data-c="FB"]');await tap(3);await tap(2);
   ok(await ev(()=>(__app.store.real.sessions.at(-1)||{pitches:[]}).pitches.length)===1&&await ev(()=>scrollY===0),`${tag}: bullpen pitch logged with no scrolling`);
   await ev(()=>{__app.store.real.sessions.at(-1).ended=Date.now();__app.store.real.activeSession=null;__app.store.save();});
   await ev(g=>{const S=__app.store.real;S.games.push(g);S.activeGame='g1';__app.store.save();__app.render();},GAME);

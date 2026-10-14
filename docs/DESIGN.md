@@ -42,5 +42,12 @@ Rule: on a 390×844 phone (and 375×667 for an SE), everything needed to log a p
 - **Slim header:** pitcher select, `.wlmini` workload counts (colored at the warn/limit levels) and the sync chip in compact form (`☁ ✓`, `☁ 3` pending, `☁ !` error). The brand row hides while charting.
 - **Pitch chips** (`.chips`): 44px pill buttons (48px in one-hand mode, 42px on short screens), abbreviations only with the full name as the label. The row scrolls sideways and has no visible scrollbar.
 - **Step line** (`.stepline`): a 2px three-segment progress line plus `button.mini` actions (Band, Result). The hint text is one ellipsized line and is hidden under 720px tall.
-- **Zone sizing** (`fitZone()`): height = viewport − zone top − tab bar − way row, clamped so a strike-zone box is ≥ `ZONE_MIN_BOX` (48px). The `.zseg` batter control is placed in viewBox space (−13…30, 124+), which is clear of every tap box.
+- **Zone sizing** (`fitZone()`): height = viewport − zone top − tab bar − way row, clamped so a strike-zone box is ≥ `ZONE_MIN_BOX` (48px). The `.zchip` **Batter** chip is placed in viewBox space (−13…30, 124+), which is clear of every tap box. It opens `#batDlg`, a sheet with a `.seg3` choice (No batter / LHB / RHB; no "No batter" in a game).
 - **Bottom sheets** (`.bsheet`, `body.wbopen #wbCard`): fixed to the bottom over the tab bar (z-index above `nav`), with a grab handle and a close button. The result sheet uses 56px buttons in 3 columns (64px in one-hand mode).
+
+## Dialogs and sheets (v35)
+- **Opening and dismissing:** open with `openSheet(dialog)`, which resets `returnValue`. Every `<dialog>` closes without saving on Cancel (`value="cancel" formnovalidate`, so required fields can't block it), on Escape and on a backdrop tap; all three set `returnValue='cancel'`. Save handlers act only on `returnValue==='ok'` (or `'reset'`).
+- **Inline sheets:** the result and wristband sheets close with their ✕/toggle and with Escape.
+- **Toasts:** while charting they sit at the top over the header, never over the zone.
+- **Pitcher picker:** shows first name + number only; handedness lives in Setup.
+- **Segmented controls:** every option must be fully visible in the viewport at 390×844 and 375×667. `test/sheets.ui.js` enforces this.
