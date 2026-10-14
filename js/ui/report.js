@@ -7,7 +7,7 @@ function reportFor(sess){const own=role()==='player'?store.real.sync.pitcherId:n
   const pids=[...new Set(P.map(p=>p.pitcherId).filter(Boolean))];const who=pids.length?pids.map(pName).join(', '):(sess.pitcherId?pName(sess.pitcherId):'Bullpen');
   const items=P.map(p=>({p,src:'bullpen',sessionId:sess.id,side:'N'}));const thm={};S().pitchers.forEach(q=>thm[q.id]=q.throws);return{sess,P,who,items,r:PC.sessionReport(P,thm),miss:PC.missData(items,{}),test:!!store.isTest};}
 // kid-clear miss text: average boxes between where she aimed and where it landed (0 = on spot; 1 box off still counts as on target)
-const missTxt=a=>a==null?'':a===0?'Hit spot':a<=1?'Close':Math.round(a)+' off';
+const missTxt=a=>a==null?'':a===0?'Hit spot':a<=1?'Close':Math.max(2,Math.round(a))+' off';
 const pitchN=n=>n+' pitch'+(n===1?'':'es');
 const MISS_LEGEND='Number = how many boxes she missed by. "Close" = 1 box off – still on target.';
 function paintMiss(svg,d,kid){if(kid)return paintKid(svg,d);zoneSVG(svg,'R',{noNums:true,noSide:true});let ex='';PC.ALL_CELLS.forEach(z=>{const c=d.cells[z],el=svg.querySelector(`[data-z="${z}"]`);if(!el)return;const[cx,cy]=center(z);

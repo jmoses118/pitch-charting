@@ -7,6 +7,7 @@
 - **"✓1.0" boxes** looked like a score or a hit. Boxes (heat map and bullpen report) now say "Hit spot", "Close" (1 box off, still on target) or "2 off" / "3 off" / "4 off" in whole boxes, plus "1 pitch" / "3 pitches". Legend: "Number = how many boxes she missed by. 'Close' = 1 box off – still on target."
 - **Per-pitch report strike %** used where the ball landed, not the umpire's call, so it could disagree with the Game count and Stats. Game pitches now use the result (one shared `PC.strikeOf`); bullpen pitches, which have no result, still use the zone. Intentional walks are no longer counted as thrown.
 - Report labels: "On target 2 of 2 aimed"; the card is titled "Each pitch type" with the note "Strikes count every pitch. On target counts only pitches with an aim."
+- Miss labels never say "1 off" (an average of 1.33 shows "2 off", since 1 box off is "Close"); the color-scale caption says "boxes off"; the player (kid) Miss view uses the same "Showing N of M pitches…" summary.
 ### Notes
 - The red frame on every screen in test mode is intentional (TEST MODE – NOT SAVED); it isn't an error.
 
