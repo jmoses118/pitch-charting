@@ -603,6 +603,28 @@ test('redo list persists on this phone, stays capped at 10, and is not synced',(
   st3.real.redo=[];st3.save();assert.deepEqual(PC.makeStore(storage).real.redo,[]);
   const built=PC.buildRows(st3.real);assert.equal(built.rows.redo,undefined);
 });
+test('chart fields: sync coerces velocity, CSV keeps the raw value, and actual falls back to loc',()=>{
+  const p={id:'p',calledLoc:8,loc:31,foulTime:'late',wpPb:'pb',velo:'64'};
+  const row=PC.pitchRow(p,{mode:'game',chartCol:true});
+  assert.equal(row.called_loc,8);assert.equal(row.actual_loc,31);assert.equal(row.foul_time,'late');assert.equal(row.wp_pb,'pb');
+  assert.equal(row.velo,64);assert.equal(typeof row.velo,'number');
+  const csv=PC.csvChart(p);
+  assert.equal(csv.called_location,8);assert.equal(csv.actual_location,31);assert.equal(csv.foul_time,'late');assert.equal(csv.wp_pb,'pb');
+  assert.equal(csv.velocity,'64');assert.equal(typeof csv.velocity,'string');
+  const blank=PC.pitchRow({id:'b',velo:''},{mode:'bullpen',chartCol:true});
+  assert.equal(blank.called_loc,null);assert.equal(blank.actual_loc,null);assert.equal(blank.foul_time,null);assert.equal(blank.wp_pb,null);assert.equal(blank.velo,null);
+  const blankCsv=PC.csvChart({velo:'',loc:5});
+  assert.equal(blankCsv.called_location,'');assert.equal(blankCsv.actual_location,5);assert.equal(blankCsv.foul_time,'');assert.equal(blankCsv.wp_pb,'');assert.equal(blankCsv.velocity,'');
+  const zero=PC.csvChart({velo:0,calledLoc:0,actualLoc:0});
+  assert.equal(zero.velocity,0);assert.equal(zero.called_location,0);assert.equal(zero.actual_location,0);
+  const zeroRow=PC.pitchRow({id:'z',velo:0,calledLoc:0,actualLoc:0},{mode:'game',chartCol:true});
+  assert.equal(zeroRow.velo,0);assert.equal(zeroRow.called_loc,0);assert.equal(zeroRow.actual_loc,0);
+  assert.equal(PC.csvChart({velo:'fast'}).velocity,'fast');
+  assert.ok(Number.isNaN(PC.pitchRow({id:'j',velo:'fast'},{mode:'game',chartCol:true}).velo));
+  assert.equal(PC.csvChart({calledLoc:11,actualLoc:14,loc:31}).actual_location,14);
+  assert.equal(PC.pitchRow({id:'q',calledLoc:11,actualLoc:14,loc:31},{mode:'game',chartCol:true}).actual_loc,14);
+  assert.equal('called_loc' in PC.pitchRow({id:'n',calledLoc:8},{mode:'game'}),false);
+});
 test('chart columns stay off the wire until chartCol is set, then round-trip including in dirt',()=>{const st=coachStore(),s=st.real;
   s.sessions.push({id:'s1',date:'d',pitches:[]});
   s.games.push({id:'g',date:'d',opponent:'o',homeAway:'home',lineup:[],cur:{},pitches:[{id:'p1',ts:1,type:'CH',call:'CH8',targets:[8],loc:31,calledLoc:8,actualLoc:31,result:'foul',foulTime:'early',wpPb:'wp',velo:61.5,mode:'game'}]});
