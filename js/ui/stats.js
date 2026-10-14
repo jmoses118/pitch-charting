@@ -41,7 +41,7 @@ function renderStats(){const s=S();const sel=$('sScope').value||(s.activeGame||'
   const GS=M?s.games.filter(g=>g.pitches.some(p=>vis(p.pitcherId))):s.games,SS=M?s.sessions.filter(x=>(x.pitcherId&&vis(x.pitcherId))||x.pitches.some(p=>vis(p.pitcherId))):s.sessions;
   const opts=[['all','Everything'],['games','All games'],['bullpen','All bullpen']].concat(GS.slice().reverse().map(g=>[g.id,`${g.date} ${vsAt(g)} ${g.opponent}${PC.gameStatus(g)==='scheduled'?' (scheduled)':''}${g.event?' ('+g.event+')':''}`])).concat(SS.slice().reverse().map(x=>[x.id,`Bullpen ${x.date} (${M?x.pitches.filter(p=>vis(p.pitcherId)).length:x.pitches.length})`]));
   $('sScope').innerHTML=opts.map(([v,l])=>`<option value="${H(v)}" ${v===sel?'selected':''}>${H(l)}</option>`).join('');
-  const own=role()==='player'?store.real.sync.pitcherId:null;const pf=own||$('sPitcher').value;$('sPitcher').disabled=!!own;$('sPitcher').innerHTML=(own?'':`<option value="">${M?'All my pitchers':'All pitchers'}</option>`)+s.pitchers.filter(p=>(!own||p.id===own)&&vis(p.id)).map(p=>`<option value="${H(p.id)}" ${p.id===pf?'selected':''}>${H(p.name)}${p.archived?' (archived)':''}</option>`).join('');
+  const own=role()==='player'?store.real.sync.pitcherId:null;const pf=own||$('sPitcher').value;$('sPitcher').disabled=!!own;$('sPitcher').innerHTML=(own?'':`<option value="">${M?'All my pitchers':'All pitchers'}</option>`)+s.pitchers.filter(p=>(!own||p.id===own)&&vis(p.id)).map(p=>`<option value="${H(p.id)}" ${p.id===pf?'selected':''}>${H(PC.pitcherLabel(p))}${p.archived?' (archived)':''}</option>`).join('');
   const all=scopePitches($('sScope').value).filter(p=>vis(p.pitcherId));const P=pf?all.filter(p=>p.pitcherId===pf):all;const sum=PC.summarize(P,pf?{all,pid:pf}:null);
   const isGame=P.some(p=>p.result);
   $('sReport').classList.toggle('hide',!s.sessions.some(q=>q.id===$('sScope').value));
@@ -62,7 +62,7 @@ const HKEY='te_pitch_heat_v1';let HF={},HV='miss';try{const o=JSON.parse(storage
 const saveHF=()=>{try{storage&&storage.setItem(HKEY,JSON.stringify({f:HF,v:HV}));}catch(e){}};
 const SIDE_L={R:'RHB',L:'LHB',N:'No batter'},SRC_L={game:'Games',bullpen:'Bullpen'},TH_L={R:'RHP',L:'LHP'};
 function heatOptions(items){items=items.filter(i=>vis(i.p.pitcherId));const s=S(),own=role()==='player'?store.real.sync.pitcherId:null;const uniq=a=>[...new Set(a.filter(Boolean))];
-  return{type:uniq(items.map(i=>i.p.type)).sort().map(v=>[v,v]),pitcher:s.pitchers.filter(p=>!own||p.id===own).map(p=>[p.id,p.name]),throws:[['R','RHP'],['L','LHP']],
+  return{type:uniq(items.map(i=>i.p.type)).sort().map(v=>[v,v]),pitcher:s.pitchers.filter(p=>!own||p.id===own).map(p=>[p.id,PC.pitcherLabel(p)]),throws:[['R','RHP'],['L','LHP']],
     batter:uniq(items.map(i=>i.batter)).sort().map(v=>[v,v]),side:[['R','RHB'],['L','LHB'],['N','No batter']],src:[['game','Games'],['bullpen','Bullpen']],
     game:(own?s.games.filter(g=>g.pitches.some(p=>p.pitcherId===own)):s.games).map(g=>[g.id,`${g.date||''} ${vsAt(g)} ${g.opponent}`]),session:s.sessions.map(x=>[x.id,`Bullpen ${x.date||''} (${x.pitches.length})`])};}
 const HF_LBL={type:'Pitch',pitcher:'Pitcher',throws:'Pitcher hand',batter:'Batter',side:'Batter side',src:'Source',game:'Game',session:'Bullpen session'};

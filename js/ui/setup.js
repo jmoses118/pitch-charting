@@ -7,7 +7,7 @@ function csDirty(sh){dirty('call_sheets',sh.id);save();}
 function renderCS(){const show=role()==='coach';$('csCard').classList.toggle('hide',!show);if(!show)return;const sh=csCur();
   $('csSel').innerHTML=sheets().map(x=>`<option value="${H(x.id)}" ${sh&&x.id===sh.id?'selected':''}>${H(x.name)}</option>`).join('');
   if(!sh){$('csTbl').innerHTML='';$('csName').value='';return;}csId=sh.id;if(document.activeElement!==$('csName'))$('csName').value=sh.name;
-  $('csPitcher').innerHTML='<option value="">Any pitcher</option>'+S().pitchers.map(p=>`<option value="${H(p.id)}" ${sh.pitcherId===p.id?'selected':''}>${H(p.name)}</option>`).join('');
+  $('csPitcher').innerHTML='<option value="">Any pitcher</option>'+S().pitchers.map(p=>`<option value="${H(p.id)}" ${sh.pitcherId===p.id?'selected':''}>${H(PC.pitcherLabel(p))}</option>`).join('');
   if($('csTbl').contains(document.activeElement))return;
   $('csTbl').innerHTML=`<tr><th class="rh"></th>${sh.cols.map((c,i)=>`<th><input data-col="${i}" value="${H(c)}" maxlength="4"></th>`).join('')}</tr>`+sh.rows.map((row,r)=>`<tr class="${r%2?'b':''}"><th class="rh">${r+1}</th>${sh.cols.map((_,c)=>`<td><input data-r="${r}" data-c="${c}" value="${H(row[c]||'')}" maxlength="16" autocapitalize="characters"></td>`).join('')}</tr>`).join('');}
 $('csTbl').addEventListener('change',e=>{const sh=csCur();const i=e.target;if(!sh)return;if(i.dataset.col!=null)sh.cols[+i.dataset.col]=i.value.trim().slice(0,4);else{sh.rows[+i.dataset.r][+i.dataset.c]=i.value.trim().slice(0,16);}
@@ -28,10 +28,10 @@ let pdEdit=null;
 function openPDlg(p){pdEdit=p?p.id:null;$('pDlgT').textContent=p?'Edit pitcher':'Add pitcher';$('pdName').value=p?p.name:'';$('pdNum').value=p?p.num:'';$('pdThrows').value=p?p.throws:'';$('pDlg').showModal();}
 $('pDlg').addEventListener('close',()=>{if($('pDlg').returnValue!=='ok')return;const o={name:$('pdName').value,num:$('pdNum').value,throws:$('pdThrows').value};if(o.throws!=='L'&&o.throws!=='R'){toast('Pick which hand she throws with');setTimeout(()=>{$('pDlg').showModal();},0);return;}
   if(!o.name.trim())return toast('Name required');
-  if(pdEdit)store.editPitcher(pdEdit,o);else{const p=store.addPitcher(o);S().curPitcher=p.id;save();toast('Added '+p.name+(store.isTest?' (test only)':''));}
+  if(pdEdit)store.editPitcher(pdEdit,o);else{const p=store.addPitcher(o);S().curPitcher=p.id;save();toast('Added '+PC.pitcherLabel(p)+(store.isTest?' (test only)':''));}
   if(D.callTxt)D.parsed=PC.parseCall(D.callTxt,curHand(),throwsOf(),S().customTypes);render();});
 $('addP').onclick=()=>{if(role()==='coach')openPDlg();};$('addPQuick').onclick=()=>{if(role()==='coach')openPDlg();};
-function renderPitchers(){const row=p=>`<div class="prow"><span style="flex:1"><b>${H(p.name)}</b>${p.num?' #'+H(p.num):''} <span class="tag">${H(p.throws)}HP</span>${p.note?' <span class="tag">'+H(p.note)+'</span>':''}</span><button data-e="${H(p.id)}">Edit</button><button data-a="${H(p.id)}">${p.archived?'Restore':'Archive'}</button></div>`;
+function renderPitchers(){const row=p=>`<div class="prow"><span style="flex:1"><b>${H(PC.pitcherLabel(p))}</b> <span class="tag">${H(p.throws)}HP</span>${p.note?' <span class="tag">'+H(p.note)+'</span>':''}</span><button data-e="${H(p.id)}">Edit</button><button data-a="${H(p.id)}">${p.archived?'Restore':'Archive'}</button></div>`;
   $('pList').innerHTML=S().pitchers.filter(p=>!p.archived).map(row).join('')||'<div class="mut">No active pitchers</div>';
   $('pArch').innerHTML=S().pitchers.filter(p=>p.archived).map(row).join('')||'<div class="mut">None</div>';}
 document.addEventListener('click',e=>{const t=e.target;if(t.dataset.e){openPDlg(pById(t.dataset.e));}else if(t.dataset.a){const p=pById(t.dataset.a);store.archivePitcher(p.id,!p.archived);render();}});
@@ -72,13 +72,13 @@ function importCSV(txt){const rows=PC.parseCSV(txt),s=S();let n=0;const pid=(nam
   store.markAllDirty();save();return n;}
 // coach: manage access codes
 async function renderCodes(){if(!sync||role()!=='coach'||store.isTest||!store.real.sync.teamCode){$('codesCard').classList.add('hide');return;}$('codesCard').classList.remove('hide');
-  $('ncPitcher').innerHTML=store.real.pitchers.filter(p=>!p.archived).map(p=>`<option value="${H(p.id)}">${H(p.name)}</option>`).join('');
-  $('ncPcList').innerHTML=store.real.pitchers.filter(p=>!p.archived).map(p=>`<label class="row" style="gap:4px"><input type="checkbox" value="${H(p.id)}" style="width:20px;min-height:20px">${H(p.name)}</label>`).join('');
+  $('ncPitcher').innerHTML=store.real.pitchers.filter(p=>!p.archived).map(p=>`<option value="${H(p.id)}">${H(PC.pitcherLabel(p))}</option>`).join('');
+  $('ncPcList').innerHTML=store.real.pitchers.filter(p=>!p.archived).map(p=>`<label class="row" style="gap:4px"><input type="checkbox" value="${H(p.id)}" style="width:20px;min-height:20px">${H(PC.pitcherLabel(p))}</label>`).join('');
   try{const L=await sync.rpc('coach_list_codes');$('codesList').innerHTML=L.map(c=>`<div class="prow"><span style="flex:1"><b>${H(c.label||c.pitcher_id||'')}</b> <span class="tag">${H(c.role==='pcoach'?'pitching coach':c.role)}</span>${c.role==='pcoach'?` <span class="mut">${H((c.pitcher_ids||[]).map(pName).join(', '))}</span>`:''}${c.revoked_at?' <span class="tag">revoked</span>':''}<br><small style="user-select:all;-webkit-user-select:all">${H(c.code)}</small></span>${c.revoked_at?'':`<button data-revoke="${H(c.code)}">Revoke</button>`}</div>`).join('')||'<div class="mut">No access codes yet</div>';}
   catch(e){$('codesList').innerHTML='<div class="mut">Go online to manage codes.</div>';}}
 $('codesCard').addEventListener('click',async e=>{const t=e.target;try{
   if(t.dataset.revoke){if(!confirm('Revoke this code? Anyone using it loses access right away.'))return;await sync.rpc('coach_revoke_code',{p_code:t.dataset.revoke});toast('Code revoked');}
-  else if(t.id==='ncPlayer'){const id=$('ncPitcher').value;const p=pById(id);await doSync(false);const c=await sync.rpc('coach_create_code',{p_role:'player',p_pitcher_id:id,p_label:p?p.name:id});toast('New code for '+(p?p.name:id));prompt('Player code (copy it):',c);}
+  else if(t.id==='ncPlayer'){const id=$('ncPitcher').value;const p=pById(id);await doSync(false);const c=await sync.rpc('coach_create_code',{p_role:'player',p_pitcher_id:id,p_label:p?PC.pitcherLabel(p):id});toast('New code for '+(p?p.name:id));prompt('Player code (copy it):',c);}
   else if(t.id==='ncPcoach'){const ids=[...document.querySelectorAll('#ncPcList input:checked')].map(i=>i.value);if(!ids.length)return toast('Pick at least one pitcher');await doSync(false);const c=await sync.rpc('coach_create_code',{p_role:'pcoach',p_pitcher_ids:ids,p_label:$('ncPcName').value.trim()||'Pitching coach'});$('ncPcName').value='';prompt('Pitching-coach code (copy it):',c);}
   else if(t.id==='ncViewer'){const c=await sync.rpc('coach_create_code',{p_role:'viewer',p_label:'View-only'});prompt('View-only code (copy it):',c);}
   else return;renderCodes();}catch(err){alert('Failed: '+err.message);}});

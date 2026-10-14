@@ -15,7 +15,7 @@ function toast(t){const e=$('toast');e.textContent=t;e.classList.add('on');clear
 // ---------- helpers ----------
 const allTypes=()=>PC.BASE_TYPES.concat(S().customTypes.map(c=>({code:c.code.toUpperCase(),name:c.name})));
 const pById=id=>S().pitchers.find(p=>p.id===id);
-const pName=id=>{const p=pById(id);return p?(p.name+(p.num?' #'+p.num:'')):'?';};
+const pName=id=>PC.pitcherLabel(pById(id)); // first name + jersey number only (privacy for minors)
 const game=()=>S().games.find(g=>g.id===S().activeGame)||null;
 const session=()=>S().sessions.find(s=>s.id===S().activeSession)||null;
 // no code = local coach mode; a code the server rejected = 'unknown' (look-only until fixed), never coach

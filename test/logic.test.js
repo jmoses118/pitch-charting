@@ -20,9 +20,9 @@ test('pitch count matches GC (all pitches incl. fouls, in play, HBP; IBB no pitc
   const s=PC.summarize(P.filter(p=>p.pitcherId==='A'));assert.equal(s.n,7);assert.equal(s.strikes,5);});
 test('in play results and HBP',()=>{assert.equal(PC.applyPitch({b:0,s:0},'inplay','2B').end,'2B');assert.equal(PC.applyPitch({b:0,s:0},'inplay','FC').outs,1);assert.equal(PC.applyPitch({b:3,s:2},'hbp').end,'HBP');});
 test('first-pitch strike %',()=>{const s=PC.summarize([{result:'called',b:0,s:0},{result:'ball',b:1,s:0},{result:'ball',b:0,s:0}]);assert.equal(s.fpsPct,50);});
-test('roster prefill',()=>{const s=PC.defaultState();assert.equal(s.roster.length,13);const w=s.pitchers.find(p=>p.id==='p_woods');assert.equal(w.throws,'L');assert.equal(w.num,'45');assert.equal(w.note,undefined);assert.deepEqual(s.pitchers.map(p=>p.name),['Avery Woods','Jules Critchfield','Reese Larbus']);assert.deepEqual(s.pitchers.map(p=>p.id),['p_woods','p_crich','p_larbus']);});
-test('add / edit / archive pitcher persists',()=>{const m=mem();const st=PC.makeStore(m);const p=st.addPitcher({name:'Nagy',num:'7',throws:'L'});
-  let saved=JSON.parse(m.getItem(PC.KEY));assert.ok(saved.pitchers.find(x=>x.name==='Nagy'&&x.num==='7'&&x.throws==='L'));
+test('defaults: no surnames (empty roster, first-name pitchers)',()=>{const s=PC.defaultState();assert.equal(s.roster.length,0);const w=s.pitchers.find(p=>p.id==='p_woods');assert.equal(w.throws,'L');assert.equal(w.num,'45');assert.equal(w.note,undefined);assert.deepEqual(s.pitchers.map(p=>p.name),['Avery','Jules','Reese']);assert.deepEqual(s.pitchers.map(p=>p.id),['p_woods','p_crich','p_larbus']);});
+test('add / edit / archive pitcher persists',()=>{const m=mem();const st=PC.makeStore(m);const p=st.addPitcher({name:'Kenzie',num:'7',throws:'L'});
+  let saved=JSON.parse(m.getItem(PC.KEY));assert.ok(saved.pitchers.find(x=>x.name==='Kenzie'&&x.num==='7'&&x.throws==='L'));
   st.editPitcher(p.id,{num:'8',throws:'R'});st.archivePitcher(p.id);saved=JSON.parse(m.getItem(PC.KEY));const q=saved.pitchers.find(x=>x.id===p.id);assert.equal(q.num,'8');assert.equal(q.throws,'R');assert.equal(q.archived,true);
   assert.ok(!PC.makeStore(m).activePitchers().some(x=>x.id===p.id));assert.throws(()=>st.addPitcher({name:' '}));});
 test('test mode does not persist and is cleared on exit',()=>{const m=mem();const st=PC.makeStore(m);st.state.games.push({id:'real',pitches:[]});st.save();const before=m.getItem(PC.KEY);
@@ -32,7 +32,7 @@ test('test mode does not persist and is cleared on exit',()=>{const m=mem();cons
 test('CSV round trip',()=>{const csv=PC.toCSV([{mode:'game',batter:'O"Neil, J',pitch_no:1}]);const r=PC.parseCSV(csv);assert.equal(r[0].batter,'O"Neil, J');});
 test('dropped 3rd: K for pitcher, no out, batter reaches, counts as pitch',()=>{const o=PC.applyPitch({b:1,s:2},'kd3');assert.equal(o.end,'K-D3');assert.equal(o.outs,0);assert.equal(o.s,3);assert.ok(PC.isStrike('kd3'));assert.equal(PC.pitchCount([{result:'kd3'}]),1);});
 test('FB IN stays mid inside edge: 6 RHB, 4 LHB',()=>{assert.deepEqual(PC.parseCall('FB IN','R').targets,[6]);assert.deepEqual(PC.parseCall('FBIN','L').targets,[4]);});
-test('Woods stays left-handed',()=>{assert.equal(PC.defaultState().pitchers.find(p=>p.id==='p_woods').throws,'L');});
+test('Avery stays left-handed',()=>{assert.equal(PC.defaultState().pitchers.find(p=>p.id==='p_woods').throws,'L');});
 test('waste spots count as balls-zone and hit-the-spot',()=>{const c=PC.parseCall('FB A','R');const s=PC.summarize([{type:'FB',call:c.norm,targets:c.targets,loc:16,b:0,s:0},{type:'FB',call:'FB H+',targets:[15],loc:2,b:0,s:0}]);assert.equal(s.strikes,1);assert.equal(s.spotPct,50);});
 test('DC drop curve is its own type',()=>{const c=PC.parseCall('DC 8','R');assert.equal(c.type,'DC');assert.ok(PC.BASE_TYPES.some(t=>t.code==='DC'));const s=PC.summarize([{type:'DC',loc:8},{type:'DR',loc:8},{type:'CB',loc:7}]);assert.equal(s.byType.DC.n,1);assert.equal(s.byType.DR.n,1);assert.equal(s.byType.CB.n,1);});
 // ---------- sync ----------
@@ -78,9 +78,9 @@ test('pending queue retries after a team-code typo is corrected',async()=>{const
   st.real.sync.teamCode='TEST1-AAAAA-BBBBB-CCCC-DDDDD';st.real.sync.teamId='team-x';st.real.sync.role='coach';let r=await sy.push();assert.ok(r.error);assert.equal(st.pendingCount(),3);r=await sy.push();assert.ok(r.error);assert.equal(st.pendingCount(),3,'still queued after repeated failures');
   // reload from storage (phone restarted) keeps the queue
   const st2=PC.makeStore(m);assert.equal(st2.pendingCount(),3);st2.real.sync.teamCode=GOOD;st2.real.sync.teamId='team-x';st2.real.sync.role='coach';const r2=await PC.makeSync(st2,{url:'u',key:'k',fetch:f}).push();assert.equal(r2.sent,3);assert.equal(st2.pendingCount(),0);assert.equal(sent.length,3);assert.equal(st2.real.sync.lastError,null);});
-test('Woods ace tag removed: old phones migrated, cloud pull clears note',async()=>{const m=mem();const s0=PC.defaultState();s0.pitchers[0].note='ace';s0.pitchers[0].num='';m.setItem(PC.KEY,JSON.stringify(s0));
+test('Avery ace tag removed: old phones migrated, cloud pull clears note',async()=>{const m=mem();const s0=PC.defaultState();s0.pitchers[0].note='ace';s0.pitchers[0].num='';m.setItem(PC.KEY,JSON.stringify(s0));
   const st=PC.makeStore(m);const w=st.state.pitchers.find(p=>p.id==='p_woods');assert.equal(w.note,undefined);assert.equal(w.num,'45');assert.equal(w.throws,'L');
-  w.note='ace';st.real.sync.queue.pitchers={};PC.mergeRemote(st.real,{pitchers:[{id:'p_woods',name:'Woods',num:'45',throws:'L',archived:false,note:null}]});assert.equal(w.note,undefined);
+  w.note='ace';st.real.sync.queue.pitchers={};PC.mergeRemote(st.real,{pitchers:[{id:'p_woods',name:'Avery',num:'45',throws:'L',archived:false,note:null}]});assert.equal(w.note,undefined);
   assert.ok(!JSON.stringify(PC.defaultState()).includes('ace'));});
 test('bullpen flow: type -> intended -> actual -> log, then reset',()=>{let d={type:null,target:null,callTargets:[]};
   assert.equal(PC.bullpenStep(d),'type');assert.equal(PC.bullpenTap(d,5).action,'need_type');
@@ -109,11 +109,13 @@ test('whoami sets role; unknown code blocks sync',async()=>{const st=PC.makeStor
 test('rows never carry the secret code, only the team id',()=>{const st=roleStore('coach');st.real.sync.teamId='thunder-elite-13u';const{rows}=PC.buildRows(st.real);const all=Object.values(rows).flat();
   assert.ok(all.length>0);assert.ok(all.every(r=>r.team_id==='thunder-elite-13u'&&!('team_code' in r)));assert.ok(!JSON.stringify(all).includes(st.real.sync.teamCode));});
 test('no push until the team is identified by whoami',async()=>{const st=PC.makeStore(mem());st.real.sync.teamCode='TEST1-AAAAA-BBBBB-CCCCC-DDDDD';const calls=[];const r=await PC.makeSync(st,{url:'u',key:'k',fetch:async()=>{calls.push(1);return{ok:true}}}).push();assert.match(r.skipped,/not identified/);assert.equal(calls.length,0);});
-test('full names: old phones renamed in place (same ids, data kept), cloud pull applies names',()=>{const m=mem();const s0=PC.defaultState();s0.pitchers[0].name='Woods';s0.pitchers[1].name='Crichfield';s0.pitchers[2].name='Larbus';
+test('privacy: stored surnames on default pitchers are trimmed to first name and queued for the cloud (same ids, data kept)',()=>{const m=mem();const s0=PC.defaultState();
+  s0.pitchers[0].name='Avery Testname';s0.pitchers[1].name='Testname';s0.pitchers[2].name='Reese Q';delete s0.migNames2;delete s0.migNames1;
   s0.sessions.push({id:'s1',date:'d',pitches:[{id:PC.uuid(),pitcherId:'p_larbus',type:'FB',loc:5}]});m.setItem(PC.KEY,JSON.stringify(s0));
-  const st=PC.makeStore(m);assert.deepEqual(st.state.pitchers.map(p=>p.name),['Avery Woods','Jules Critchfield','Reese Larbus']);assert.equal(st.state.pitchers[0].num,'45');assert.equal(st.state.pitchers[0].throws,'L');
-  assert.equal(st.state.sessions[0].pitches[0].pitcherId,'p_larbus');
-  const st2=PC.makeStore(mem());st2.real.sync.queue.pitchers={};st2.real.pitchers[1].name='Crichfield';PC.mergeRemote(st2.real,{pitchers:[{id:'p_crich',name:'Jules Critchfield',num:null,throws:'R'}]});assert.equal(st2.real.pitchers[1].name,'Jules Critchfield');});
+  const st=PC.makeStore(m);assert.deepEqual(st.state.pitchers.map(p=>p.name),['Avery','Jules','Reese']);assert.equal(st.state.sessions[0].pitches[0].pitcherId,'p_larbus');
+  assert.ok(st.real.sync.queue.pitchers.p_woods&&st.real.sync.queue.pitchers.p_crich,'renames are pushed so the cloud copy is scrubbed');
+  const s1=PC.defaultState();s1.migNames1=true;s1.pitchers[1].name='Jo';const m1=mem();m1.setItem(PC.KEY,JSON.stringify(s1));assert.equal(PC.makeStore(m1).state.pitchers[1].name,'Jo','a coach rename is kept');});
+test('pitcherLabel: first name + jersey number only',()=>{assert.equal(PC.pitcherLabel({name:'Avery Testname',num:'45'}),'Avery #45');assert.equal(PC.pitcherLabel({name:'  Reese ',num:''}),'Reese');assert.equal(PC.pitcherLabel(null),'?');});
 // ---------- heat map ----------
 function heatState(){const st=PC.defaultState();st.games.push({id:'g1',date:'2026-10-17',opponent:'X',homeAway:'tbd',lineup:[],cur:{},pitches:[
   {id:'a',pitcherId:'p_woods',type:'FB',loc:3,hand:'R',batter:'Smith',result:'called',targets:[]},{id:'b',pitcherId:'p_woods',type:'CH',loc:15,hand:'L',batter:'Jones',result:'ball',targets:[]},
@@ -149,7 +151,7 @@ test("session report: good = on target/1 off, MM severe, feedback + best/weakest
   assert.equal(PC.pitchMiss({targets:[6],loc:5,hand:'L'}).horiz,'in');assert.equal(PC.pitchMiss({type:'FB',targets:[],loc:5}),null);
   const e=PC.sessionReport([{type:'FB',targets:[],loc:5}]);assert.equal(e.goodPct,null);assert.equal(e.feedback.length,2);});
 test("no batter: glove/arm side wording by pitcher hand; in/away kept with a batter",()=>{
-  // RHP glove side = pitcher's left (col 0); LHP (Woods) glove side = pitcher's right (col 2)
+  // RHP glove side = pitcher's left (col 0); LHP (Avery) glove side = pitcher's right (col 2)
   assert.equal(PC.locInfo(7,'N','R').label,'down glove side');assert.equal(PC.locInfo(9,'N','R').label,'down arm side');
   assert.equal(PC.locInfo(9,'N','L').label,'down glove side');assert.equal(PC.locInfo(4,'N','L').label,'middle arm side');
   assert.equal(PC.locInfo(16,'N','L').label,'center arm side (ball)');assert.equal(PC.locInfo(12,'N','R').label,'up arm side (ball)');assert.equal(PC.locInfo(2,'N','L').label,'up and middle');
@@ -177,7 +179,7 @@ test('coach code coming back re-queues everything',async()=>{const st=PC.makeSto
 test('server-function calls no-op in test mode',async()=>{const st=PC.makeStore(mem());st.real.sync.teamCode='TE-AAAAA-BBBBB-CCCCC-DDDDD';st.enterTest();let called=0;const sy=PC.makeSync(st,{url:'u',key:'k',fetch:async()=>{called++;return{ok:true,text:async()=>'[]'};}});
   assert.equal(await sy.rpc('coach_list_codes'),null);assert.equal(called,0);});
 test('mergeRemote: older cloud rows never overwrite newer local copies; newer ones do',()=>{const st=PC.defaultState();PC.makeStore(mem());st.sync={queue:{pitchers:{},games:{},sessions:{},pitches:{}},tomb:{}};
-  PC.mergeRemote(st,{pitchers:[{id:'p_woods',name:'Avery Woods',throws:'L',updated_at:'2026-10-13T10:00:00Z'}]});PC.mergeRemote(st,{pitchers:[{id:'p_woods',name:'OLD',throws:'R',updated_at:'2026-10-12T10:00:00Z'}]});assert.equal(st.pitchers.find(p=>p.id==='p_woods').name,'Avery Woods');
+  PC.mergeRemote(st,{pitchers:[{id:'p_woods',name:'Avery',throws:'L',updated_at:'2026-10-13T10:00:00Z'}]});PC.mergeRemote(st,{pitchers:[{id:'p_woods',name:'OLD',throws:'R',updated_at:'2026-10-12T10:00:00Z'}]});assert.equal(st.pitchers.find(p=>p.id==='p_woods').name,'Avery');
   const id=PC.uuid();st.sessions.push({id:'s1',pitches:[]});PC.mergeRemote(st,{pitches:[{id,mode:'bullpen',session_id:'s1',loc:3,updated_at:'2026-10-13T10:00:00Z'}]});PC.mergeRemote(st,{pitches:[{id,mode:'bullpen',session_id:'s1',loc:9,updated_at:'2026-10-13T11:00:00Z'}]});assert.equal(st.sessions[0].pitches[0].loc,9);
   PC.mergeRemote(st,{pitches:[{id,mode:'bullpen',session_id:'s1',loc:1,updated_at:'2026-10-13T09:00:00Z'}]});assert.equal(st.sessions[0].pitches[0].loc,9);});
 test('cloud rows are sanitized (loc/targets must be grid numbers)',()=>{const st=PC.defaultState();st.sync={queue:{pitchers:{},games:{},sessions:{},pitches:{}},tomb:{}};st.sessions.push({id:'s1',pitches:[]});
@@ -219,9 +221,9 @@ test('mid-game pitching change: each pitch keeps its own pitcher; count/state un
   const snap=JSON.stringify(c);// switch mid at-bat (1-0): nothing in game state changes
   assert.equal(PC.pitchCount(g.pitches,'p_crich'),0);assert.equal(JSON.stringify(c),snap);
   ['called','swinging','swinging'].forEach(r=>throwP('p_crich',r,5));
-  assert.equal(PC.pitchCount(g.pitches,'p_woods'),4);throwP('p_woods','called',2);assert.equal(PC.pitchCount(g.pitches,'p_woods'),5,'back to Woods resumes at 5');
+  assert.equal(PC.pitchCount(g.pitches,'p_woods'),4);throwP('p_woods','called',2);assert.equal(PC.pitchCount(g.pitches,'p_woods'),5,'back to Avery resumes at 5');
   const W=PC.summarize(g.pitches.filter(p=>p.pitcherId==='p_woods')),C=PC.summarize(g.pitches.filter(p=>p.pitcherId==='p_crich'));
-  assert.equal(W.k,1);assert.equal(W.strikes,4);assert.equal(C.k,1,'K finished by Critchfield goes to Critchfield');assert.equal(C.n,3);
+  assert.equal(W.k,1);assert.equal(W.strikes,4);assert.equal(C.k,1,'K finished by Jules goes to Jules');assert.equal(C.n,3);
   g.pitches.forEach(p=>assert.equal(PC.pitchRow(p,{mode:'game',game_id:g.id}).pitcher_id,p.pitcherId));});
 
 test('official K rule: replaced with 2 strikes -> K to the original pitcher; pitches stay with thrower; walks unchanged',()=>{

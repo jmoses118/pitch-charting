@@ -9,9 +9,9 @@ const cap=async t=>p.evaluate(t=>{let d=document.getElementById('demoCap');if(!d
 const clean=()=>p.evaluate(()=>{const y=__app.store.real.sync;Object.keys(y.queue).forEach(k=>y.queue[k]={});y.tomb={};y.last=Date.now();y.lastError=null;__app.store.save();__app.render();});
 const shot=async(name,t)=>{await clean();await p.evaluate(()=>{const i=document.getElementById('teamCode');if(i)i.value='';document.querySelectorAll('#codesList small').forEach(s=>s.textContent='••••');});await cap(t);await p.waitForTimeout(250);await p.screenshot({path:OUT+String(++N).padStart(2,'0')+'-'+name+'.png'});await p.evaluate(()=>{const d=document.getElementById('demoCap');if(d)d.remove();});};
 const tap=async s=>{await p.$eval(s,e=>e.scrollIntoView({block:'center'}));await p.click(s,{force:true});await p.waitForTimeout(120);};
-const asRole=(r,ids)=>p.evaluate(([r,ids])=>{const y=__app.store.real.sync;y.teamCode='TE-XXXXX-XXXXX-XXXXX-XXXXX';y.teamId='t';y.role=r;y.pitcherIds=r==='pcoach'?ids:[];y.pitcherId=r==='player'?ids[0]:null;y.pitcherName=r==='player'?'Reese Larbus':null;__app.store.save();__app.render();},[r,ids]);
+const asRole=(r,ids)=>p.evaluate(([r,ids])=>{const y=__app.store.real.sync;y.teamCode='TE-XXXXX-XXXXX-XXXXX-XXXXX';y.teamId='t';y.role=r;y.pitcherIds=r==='pcoach'?ids:[];y.pitcherId=r==='player'?ids[0]:null;y.pitcherName=r==='player'?'Reese':null;__app.store.save();__app.render();},[r,ids]);
 await p.goto(BASE);
-// seed: Woods + Reese season (games + bullpens), Critchfield game
+// seed: Avery + Reese season (games + bullpens), Jules game
 await p.evaluate(()=>{const S=__app.store.real,PC=window.PC;let k=7;const rnd=()=>((k=k*16807%2147483647)/2147483647);const T=['FB','FB','CH','DC','CB'];const today=new Date();const day=n=>{const d=new Date(today);d.setDate(d.getDate()-n);return d.toISOString().slice(0,10);};
   const mkGame=(id,dAgo,opp,pid,n,skill)=>{const g={id,date:day(dAgo),opponent:opp,homeAway:'away',status:'final',ended:1,lineup:Array.from({length:9},(_,i)=>({slot:i+1,name:'B'+(i+1),num:String(i+1),hand:i%3?'R':'L'})),pitches:[],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:0}};const cur=g.cur;
     for(let i=0;i<n;i++){const type=T[Math.floor(rnd()*T.length)];const t=[1,3,7,9,4,6][Math.floor(rnd()*6)];const r0=rnd();const res=cur.s===2&&r0<.25?'swinging':r0<skill*.55?'called':r0<skill*.75?'foul':r0<skill*.85?'inplay':'ball';
@@ -27,7 +27,7 @@ await p.evaluate(()=>{const S=__app.store.real,PC=window.PC;let k=7;const rnd=()
 await asRole('coach');await p.click('nav [data-t="bullpen"]');await p.waitForTimeout(200);
 ok(!(await p.isVisible('#restMsg')),'rest guide hidden by default');ok(/^Today: \d+ game \+ \d+ bullpen · (Last weekend|Weekend): \d+ game \+ \d+ bullpen$/.test(await p.textContent('#wlMsg')),'workload line on pitcher select');
 await p.evaluate(()=>{__app.store.state.settings.showRest=true;__app.render();});await p.waitForTimeout(100);
-const rm=await p.textContent('#restMsg');ok(/62 pitches/.test(rm)&&/3 days rest/.test(rm)&&/Rest until/.test(rm),'rest reminder for Woods: '+rm);
+const rm=await p.textContent('#restMsg');ok(/62 pitches/.test(rm)&&/3 days rest/.test(rm)&&/Rest until/.test(rm),'rest reminder for Avery: '+rm);
 await p.evaluate(()=>scrollTo(0,0));await shot('rest-reminder','Pick a pitcher: last outing + rest days (youth guide, editable)');
 await p.selectOption('#pitcher','p_larbus');await p.waitForTimeout(150);ok(/Ready to pitch/.test(await p.textContent('#restMsg')),'Reese ready to pitch');await p.selectOption('#pitcher','p_woods');
 await p.click('nav [data-t="setup"]');await p.evaluate(()=>document.querySelectorAll('details').forEach(d=>d.open=true));await p.waitForTimeout(150);ok(await p.isVisible('#alertCard'),'coach sees alert settings');await p.fill('#alTh','70, 85');await p.dispatchEvent('#alTh','change');
