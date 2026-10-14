@@ -30,7 +30,7 @@ await p.evaluate(()=>{__app.store.state.settings.showRest=true;__app.render();})
 const rm=await p.textContent('#restMsg');ok(/62 pitches/.test(rm)&&/3 days rest/.test(rm)&&/Rest until/.test(rm),'rest reminder for Woods: '+rm);
 await p.evaluate(()=>scrollTo(0,0));await shot('rest-reminder','Pick a pitcher: last outing + rest days (youth guide, editable)');
 await p.selectOption('#pitcher','p_larbus');await p.waitForTimeout(150);ok(/Ready to pitch/.test(await p.textContent('#restMsg')),'Reese ready to pitch');await p.selectOption('#pitcher','p_woods');
-await p.click('nav [data-t="setup"]');await p.waitForTimeout(150);ok(await p.isVisible('#alertCard'),'coach sees alert settings');await p.fill('#alTh','70, 85');await p.dispatchEvent('#alTh','change');
+await p.click('nav [data-t="setup"]');await p.evaluate(()=>document.querySelectorAll('details').forEach(d=>d.open=true));await p.waitForTimeout(150);ok(await p.isVisible('#alertCard'),'coach sees alert settings');await p.fill('#alTh','70, 85');await p.dispatchEvent('#alTh','change');
 ok(await p.evaluate(()=>JSON.stringify(__app.store.state.settings.alerts))==='[70,85]','alert thresholds editable');await p.fill('#alTh','75, 90');await p.dispatchEvent('#alTh','change');
 await p.$eval('#alertCard',e=>e.scrollIntoView({block:'start'}));await p.evaluate(()=>scrollBy(0,-130));await shot('alert-settings','Setup: pitch-count alerts (75 / 90) and the rest-day table');
 // ---------- 2) one-hand game + 4) pitch count alert ----------
@@ -69,7 +69,7 @@ const scopes=await p.$$eval('#sScope option',e=>e.map(x=>x.value));ok(!scopes.in
 await p.selectOption('#sScope','g_last');await p.selectOption('#sPitcher','p_woods');await p.waitForTimeout(200);ok(await p.isVisible('#sNote textarea'),'game note box for pitching coach');
 await p.fill('#sNote textarea','Good tempo today. Finish the change-up down.');await p.dispatchEvent('#sNote textarea','change');
 await p.$eval('#sNote',e=>e.scrollIntoView({block:'start'}));await p.evaluate(()=>scrollBy(0,-160));await shot('pcoach-game-note','Pitching coach: notes for each pitcher, per game');
-await p.click('nav [data-t="setup"]');await p.waitForTimeout(150);ok(!(await p.isVisible('#codesCard'))&&!(await p.isVisible('#csCard'))&&!(await p.isVisible('#pCard'))&&!(await p.isVisible('#alertCard')),'pcoach: no codes / call sheets / pitchers / settings');
+await p.click('nav [data-t="setup"]');await p.evaluate(()=>document.querySelectorAll('details').forEach(d=>d.open=true));await p.waitForTimeout(150);ok(!(await p.isVisible('#codesCard'))&&!(await p.isVisible('#csCard'))&&!(await p.isVisible('#pCard'))&&!(await p.isVisible('#alertCard')),'pcoach: no codes / call sheets / pitchers / settings');
 ok(/Pitching-coach code/.test(await p.textContent('#roleMsg')),'pcoach role message');ok(await p.isHidden('#addPQuick'),'pcoach cannot add pitchers');
 // score a bullpen for Reese
 await p.click('nav [data-t="bullpen"]');await p.selectOption('#pitcher','p_larbus');await p.waitForTimeout(150);await p.click('#bpNew');
@@ -86,7 +86,7 @@ await p.$eval('#rDlg .card',e=>e.scrollIntoView({block:'center'}));await shot('p
 await p.selectOption('#sScope','all');await p.waitForTimeout(200);const tl=await p.textContent('#tMetrics');ok(/In the zone or close/.test(tl)&&/On target/.test(tl),'kid-friendly trend labels');ok(/Reese/.test(await p.textContent('#tNote')),'player trend for herself');
 await p.$eval('#sTrendCard',e=>e.scrollIntoView({block:'start'}));await p.evaluate(()=>scrollBy(0,-120));await shot('trends-player','Reese\'s own trends: getting sharper every week');
 // ---------- coach: create pitching-coach code UI ----------
-await asRole('coach');await p.click('nav [data-t="setup"]');await p.waitForTimeout(400);ok(await p.isVisible('#ncPcoach'),'coach sees New pitching-coach code');const boxes=await p.$$eval('#ncPcList input',e=>e.length);ok(boxes>=3,'pick pitchers ('+boxes+')');
+await asRole('coach');await p.click('nav [data-t="setup"]');await p.evaluate(()=>document.querySelectorAll('details').forEach(d=>d.open=true));await p.waitForTimeout(400);ok(await p.isVisible('#ncPcoach'),'coach sees New pitching-coach code');const boxes=await p.$$eval('#ncPcList input',e=>e.length);ok(boxes>=3,'pick pitchers ('+boxes+')');
 await p.check('#ncPcList input[value="p_woods"]');await p.check('#ncPcList input[value="p_larbus"]');await p.fill('#ncPcName','Coach Dana');await p.$eval('#codesCard',e=>e.scrollIntoView({block:'start'}));await p.evaluate(()=>scrollBy(0,-120));
 await shot('coach-create-pcoach-code','Setup → Access codes: pick pitchers, create a pitching-coach code');
 ok(errs.length===0,'no page errors '+errs.join('|'));console.log('supabase requests (all blocked):',net);console.log(fails?`${fails} FAILED`:'ALL PASS');await b.close();process.exit(fails?1:0);})().catch(e=>{console.error(e);process.exit(1)});

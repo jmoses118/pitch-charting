@@ -8,6 +8,8 @@ Needs `playwright-core` (in `test/node_modules`) and Chrome at `/usr/bin/google-
 - `node test/ui.smoke.js 8766`
 - `node test/<name>.ui.js http://localhost:8766/` for `heat`, `report`, `xss`, `pitchchange`, `wayoff`, `round1`, `workload`, `modes`, `roles`
 
+Setup sections are collapsible `<details>`; tests open them before filling inputs. `node test/demo.ui.js <url> <before|after>` writes 390×844 screenshots to `test/demo-ui-v2/`.
+
 UI tests use a throwaway browser profile and block Supabase (`route(/supabase\.co/, r=>r.abort())`); demo data never syncs.
 
 ## Live (Supabase, manual)
