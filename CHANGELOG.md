@@ -1,5 +1,9 @@
 # Changelog
 
+## Hardening – one CSV row
+### Changed
+- Game and bullpen CSV export go through `PC.csvRow`. The strike column is unchanged: a game pitch uses the umpire result, a bullpen pitch with no result uses the zone. Cache: `te-pitch-v49`.
+
 ## v48 – One scoring flow
 ### Changed
 - **One state machine** (`js/core/flow.js`) for portrait Game, the landscape coach screen, and Bullpen. Game steps are pitch type, called location, actual location, then the result. Bullpen stops after the actual location and saves. There is no ball/strike step in the pen.

@@ -545,6 +545,26 @@ test('foul timing, wild pitch and velocity are cleaned; bullpen result defaults 
   assert.equal(PC.cleanVelo('72.24'),72.2);assert.equal(PC.cleanVelo(19),null);assert.equal(PC.cleanVelo(''),null);assert.equal(PC.cleanVelo(110),110);
   assert.equal(PC.bullpenResult('ball'),'ball');assert.equal(PC.bullpenResult('called'),'called');assert.equal(PC.bullpenResult(''),null);assert.equal(PC.bullpenResult('swinging'),null);
 });
+test('csvRow locks the game and bullpen export, including the two strike rules',()=>{
+  const pm={name:'Avery',num:'45',throws:'R'};
+  const ts=Date.UTC(2026,9,14,18,0,0);
+  const game=PC.csvRow({ts,hand:'R',type:'FB',call:'FB 5',targets:[6],loc:4,calledLoc:6,actualLoc:4,result:'ball',inning:2,outsBefore:1,slot:0,batter:'Batter 1',batterNum:'1',b:1,s:0,velo:64},{mode:'game',gameId:'g1',date:'2026-10-14',opponent:'Storm',event:'',homeAway:'home',pitcher:pm,pitchNo:3,pitcherPitchNo:3});
+  assert.equal(game.mode,'game');assert.equal(game.game_id,'g1');assert.equal(game.session,'');assert.equal(game.strike,0);assert.equal(game.hit_spot,0);
+  assert.equal(game.called_location,6);assert.equal(game.actual_location,4);assert.equal(game.lineup_slot,1);assert.equal(game.result,'ball');assert.equal(game.velocity,64);
+  assert.equal(game.location_desc,PC.locInfo(4,'R','R').label);assert.equal(game.ts,new Date(ts).toISOString());assert.equal(game.call_target,'6');
+  const old=PC.csvRow({ts,type:'FB',targets:[8],loc:8,hand:'R',result:'called'},{mode:'game',gameId:'g',date:'d',pitcher:pm,pitchNo:1,pitcherPitchNo:1});
+  assert.equal(old.called_location,'');assert.equal(old.actual_location,8);assert.equal(old.strike,1);
+  const bare=PC.csvRow({ts,type:'FB',loc:5},{mode:'game',gameId:'g',date:'d',pitcher:pm,pitchNo:1,pitcherPitchNo:1});
+  assert.equal(bare.strike,0,'a game pitch with no result is not a strike, even in the zone');
+  const dirt=PC.csvRow({ts,type:'CH',targets:[31],loc:31,calledLoc:31,actualLoc:31,hand:'R'},{mode:'bullpen',sessionId:'s1',date:'2026-10-14',pitcher:pm,pitchNo:1});
+  assert.equal(dirt.mode,'bullpen');assert.equal(dirt.session,'s1');assert.equal(dirt.game_id,undefined);assert.equal(dirt.strike,0);assert.equal(dirt.hit_spot,1);assert.equal(dirt.result,'');
+  const zone=PC.csvRow({ts,type:'FB',targets:[5],loc:5,hand:'R'},{mode:'bullpen',sessionId:'s1',date:'d',pitcher:pm,pitchNo:2});
+  assert.equal(zone.strike,1,'a bullpen pitch with no result is a strike when it lands in the zone');
+  const ball=PC.csvRow({ts,type:'FB',loc:8,result:'ball',targets:[8]},{mode:'bullpen',sessionId:'s',date:'d',pitcher:pm,pitchNo:1});
+  assert.equal(ball.strike,0,'a bullpen result wins over the zone');
+  const ibb=PC.csvRow({ts,noPitch:true,slot:2,result:'ibb'},{mode:'game',gameId:'g',date:'d',pitcher:pm,pitchNo:'',pitcherPitchNo:''});
+  assert.equal(ibb.result,'ibb');assert.equal(ibb.strike,'');assert.equal(ibb.pitch_no,'');assert.equal(ibb.pitcher_pitch_no,'');
+});
 test('CSV export per pitcher per date, with called and actual location columns',()=>{
   const rows=[{pitcher:'Avery',pitcher_num:'45',date:'2026-10-14',called_location:8,actual_location:31,mode:'game'},
     {pitcher:'Avery',pitcher_num:'12',date:'2026-10-14',mode:'bullpen'},
