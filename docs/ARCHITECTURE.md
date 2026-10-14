@@ -8,7 +8,7 @@
 | `config.js` | `window.PC_CONFIG`: Supabase URL + publishable key |
 | `js/core/*.js` | Pure logic modules (no DOM), shared by browser and node tests |
 | `logic.js` | Node entry point: loads the core modules in order and exports `PC` |
-| `js/ui/*.js` | UI views (classic scripts sharing one global scope, loaded in order): `shared` (DOM helpers, store, roles, zone component, call entry, banners, sync), `game`, `bullpen`, `report` (shared report / drill-down / notes components), `stats`, `setup`, `main` (render loop, nav, startup) |
+| `js/ui/*.js` | UI views (classic scripts sharing one global scope, loaded in order): `shared` (DOM helpers, store, roles, zone component, call entry, banners, sync), `zonegfx` (softball markers, plate, batter silhouette, recent-pitch list), `game`, `bullpen`, `report` (shared report / drill-down / notes components), `stats`, `setup`, `main` (render loop, nav, startup) |
 | `sw.js` | Service worker: offline cache (`te-pitch-vNN`), network-first app files |
 | `supabase/migrations/` | SQL migrations, identical to what is applied in Supabase |
 

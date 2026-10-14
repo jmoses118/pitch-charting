@@ -75,6 +75,11 @@ function pitchMiss(p,throws){throws=throws||p.throws;const t=p.targets&&p.target
   const noBat=p.hand!=='L'&&p.hand!=='R'&&(throws==='L'||throws==='R');
   const horiz=dx===0?null:noBat?((dx>0)===(gloveCol(throws)===2)?'glove side':'arm side'):((toward3B===(hand==='R'))?'in':'away');const vert=dy===0?null:(dy<0?'up':'down');
   return{d:best,sev,mm,chUp:up,way,low:lowGood(p),waste:wasteAim(p),good:isGoodSev(sev),target:bt,vert,horiz};}
+// Gameday-style marker status for one pitch: 'souvenir' (middle-middle mistake), 'good' (hit spot, or competitive when nothing was aimed), 'miss'
+function pitchMark(p,throws){if(!p||p.loc==null)return null;const m=pitchMiss(p,throws);if(m)return m.mm?'souvenir':m.good?'good':'miss';return isCompetitive(p.loc)?'good':'miss';}
+const MARK_LABEL={good:'On target',miss:'Missed',souvenir:'Souvenir'};
+// last n pitches of the current at-bat (game) or session (bullpen), numbered in sequence (1 = first of the at-bat / session)
+function recentPitches(list,n){const all=(list||[]).filter(p=>!p.deleted&&!p.noPitch).map((p,i)=>({p,no:i+1}));return n?all.slice(-n):all;}
 function grpStats(list,thr){thr=thr||(()=>null);const c=list.map(p=>({p,m:pitchMiss(p,thr(p))})).filter(x=>x.m);const good=c.filter(x=>x.m.good).length;
   // strike % = strikes / pitches aimed in the zone (or with no spot); waste pitches are reported on their own
   // raw strike % (all pitches) stays visible; feedback uses competitive % = (strikes + ring balls) / all
@@ -146,5 +151,5 @@ function trendPoints(st,pid,mode){const out=[];const add=(kind,box,date)=>{const
     out.push({kind,id:box.id,date:date||'',ts:P[0].ts||0,n:P.length,compPct:g.compPct,goodPct:g.goodPct,strikePct:kind==='game'?summarize(P).strikePct:g.strikePct,mm:g.mm,label:kind==='game'?('vs '+(box.opponent||'?')):'Bullpen'});};
   if(mode!=='bullpen')(st.games||[]).forEach(g=>add('game',g,g.date));if(mode!=='game')(st.sessions||[]).forEach(s=>add('bullpen',s,s.date));
   return out.sort((a,b)=>(a.date||'').localeCompare(b.date||'')||a.ts-b.ts);}
-Object.assign(PC,{heatItems,HEAT_KEYS,heatFilter,heatData,CH_MIN_SEV,GOOD_MAX_SEV,isGoodSev,wasteAim,isBullpenPitch,WAY_SEV,LOW_RING,LOW_TYPES,lowGood,adjSev,chUp,missData,MISS_SCALE,missColor,VIRIDIS,heatColor,kCredit,summarize,pitchMiss,grpStats,TYPE_NAME,FIX,sessionReport,typeFeedback,COUNTS,countStats,trendPoints});
+Object.assign(PC,{pitchMark,MARK_LABEL,recentPitches,heatItems,HEAT_KEYS,heatFilter,heatData,CH_MIN_SEV,GOOD_MAX_SEV,isGoodSev,wasteAim,isBullpenPitch,WAY_SEV,LOW_RING,LOW_TYPES,lowGood,adjSev,chUp,missData,MISS_SCALE,missColor,VIRIDIS,heatColor,kCredit,summarize,pitchMiss,grpStats,TYPE_NAME,FIX,sessionReport,typeFeedback,COUNTS,countStats,trendPoints});
 })(typeof window!=='undefined'?window:globalThis);

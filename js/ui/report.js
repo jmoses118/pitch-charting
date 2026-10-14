@@ -15,12 +15,12 @@ function paintKid(svg,d){zoneSVG(svg,'R',{noNums:true,noSide:true});let ex='';PC
   if(c.n){ex+=`<text x="${cx}" y="${cy-2}" style="fill:${tc};font-size:7px;font-weight:800;text-anchor:middle;dominant-baseline:middle">${g}/${c.n}</text><text x="${cx}" y="${cy+5}" style="fill:${tc};font-size:3.8px;font-weight:700;text-anchor:middle">on target</text>`;if(c.mm)ex+=`<text x="${cx}" y="${cy+10}" style="fill:${tc};font-size:4.2px;font-weight:800;text-anchor:middle">🎁${c.mm}</text>`;}});svg.insertAdjacentHTML('beforeend',ex);}
 // ---------- tap-a-box drill-down ----------
 const DD_NAME=z=>z===5?'right down the middle':(z<10?'box '+z:'outside spot '+z);
-function openDrill(z,c,title){const svg=$('ddMap');zoneSVG(svg,'R',{noNums:true,noSide:true});let ex='';const L=c.land||{};let near=0,far=0,mm=0,up=0;
+function openDrill(z,c,title){const svg=$('ddMap');zoneSVG(svg,'R',{noNums:true,noSide:true,orient:true});let ex='';const L=c.land||{};let near=0,far=0,mm=0,up=0;
   PC.ALL_CELLS.forEach(q=>{const el=svg.querySelector(`[data-z="${q}"]`);if(!el)return;const e=L[q];const[cx,cy]=center(q);
     if(q==z){el.style.stroke='#fff';el.style.strokeWidth='2.2';}
     if(!e){el.style.fill='#161b22';return;}const good=PC.isGoodSev(e.sev);if(e.mm)mm+=e.mm;if(e.chUp)up+=e.chUp;if(good)near+=e.n;else far+=e.n-(e.mm||0);
     const col=good?PC.MISS_SCALE[0]:PC.missColor(e.sev);el.style.fill=col.fill;const lbl=`${e.n} landed ${DD_NAME(q)}${good?' (on target)':e.mm?' – souvenir':' (missed)'}`;el.setAttribute('aria-label',lbl);el.innerHTML=`<title>${lbl}</title>`;
-    ex+=`<text x="${cx}" y="${cy-1}" style="fill:${col.text};font-size:8px;font-weight:800;text-anchor:middle;dominant-baseline:middle">${e.mm?'🎁':''}${e.n}</text>`;if(e.chUp)ex+=`<text x="${cx}" y="${cy+7}" style="fill:${col.text};font-size:3.6px;font-weight:700;text-anchor:middle">CH up</text>`;});
+    const[bx,by]=markPos(q);ex+=ballSVG(bx,by,e.n,e.mm?'souvenir':good?'good':'miss',5.4);if(e.chUp)ex+=`<text x="${cx}" y="${cy+9}" style="fill:${col.text};font-size:3.6px;font-weight:700;text-anchor:middle">CH up</text>`;});
   const [tx,ty]=center(Number(z));ex+=`<text x="${tx}" y="${ty-9}" style="fill:#fff;font-size:3.6px;font-weight:800;text-anchor:middle">AIM</text>`;svg.insertAdjacentHTML('beforeend',ex);
   const W=[21,22,23,24].filter(q=>L[q]).map(q=>`${L[q].n} ${PC.WAY[q]}`);const wn=[21,22,23,24].reduce((a,q)=>a+(L[q]?L[q].n:0),0);
   $('ddT').textContent=(title?title+' – ':'')+'aimed at '+DD_NAME(Number(z));

@@ -21,3 +21,17 @@ The app is used on an iPhone, one-handed, in a dugout, often in direct sun. It i
 ## Screen rules
 - One primary task per screen. Secondary panels are collapsed: game options, Stats → "More tables", and Setup sections (only Test mode, Cloud sync and Pitchers open by default).
 - Feedback (toasts) appears near the thumb, above the nav, and never covers the zone.
+
+## Zone graphics (Gameday-inspired, `js/ui/zonegfx.js`)
+- **Pitch markers** are small softballs: an optic-yellow core (`--c-ball`) with red stitched seams (`--c-stitch`), numbered in sequence. The ring color shows the result (`PC.pitchMark`):
+  - `--c-mark-good`: on target (≤1 box off), or competitive when nothing was aimed.
+  - `--c-mark-miss`: missed.
+  - `--c-mark-souv` plus a star badge: souvenir (middle-middle when 5 wasn't the target).
+  - Several pitches in one box spread out in a fixed pattern.
+- **Orientation:**
+  - Home plate is drawn in perspective under the grid (flat edge toward the pitcher), with a dashed frame around the one-box-off ring and a white zone frame.
+  - A faint batter silhouette sits on her side when a batter is set: RHB on the pitcher's right, LHB mirrored.
+  - With no batter, glove/arm-side labels are shown instead.
+- **Taps are unaffected:** every graphic is `pointer-events:none`, so the 48px+ zone boxes take taps exactly as before. Everything is inline SVG and works offline.
+- **Recent-pitch list** under the zone shows the current at-bat (or the last one right after it ends) or the last 10 of the session, newest first, each with a badge, result, pitch type and aim → landed.
+- The **heat-map drill-down** uses the same softballs; the number is how many landed in that box.

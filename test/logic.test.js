@@ -343,3 +343,12 @@ test('paused games and sessions are listed for resume',()=>{const st=PC.defaultS
   st.games.push({id:'a',started:1,status:'active',pitches:[]},{id:'b',started:2,ended:3,status:'final',pitches:[]},{id:'c',status:'scheduled',pitches:[]},{id:'d',started:5,status:'active',pitches:[]});st.activeGame='d';
   assert.deepEqual(PC.pausedGames(st).map(g=>g.id),['a']);
   st.sessions.push({id:'s1',paused:5,pitches:[{id:'p'}]},{id:'s2',paused:6,pitches:[]},{id:'s3',pitches:[{id:'q'}]});assert.deepEqual(PC.pausedSessions(st).map(s=>s.id),['s1']);});
+// ---------- Gameday-style markers ----------
+test('pitchMark: good / miss / souvenir, and competitive when nothing was aimed',()=>{
+  assert.equal(PC.pitchMark({type:'FB',targets:[1],loc:1}),'good');assert.equal(PC.pitchMark({type:'FB',targets:[1],loc:2}),'good');
+  assert.equal(PC.pitchMark({type:'FB',targets:[1],loc:9}),'miss');assert.equal(PC.pitchMark({type:'FB',targets:[1],loc:5}),'souvenir');
+  assert.equal(PC.pitchMark({type:'FB',targets:[5],loc:5}),'good','aimed middle is not a souvenir');
+  assert.equal(PC.pitchMark({type:'FB',targets:[],loc:13}),'good');assert.equal(PC.pitchMark({type:'FB',targets:[],loc:22}),'miss');
+  assert.equal(PC.pitchMark({type:'FB',targets:[1],loc:null}),null);});
+test('recentPitches numbers the at-bat / session in sequence and keeps the last n',()=>{const L=[{id:1},{id:2,noPitch:true},{id:3},{id:4,deleted:true},{id:5}];
+  assert.deepEqual(PC.recentPitches(L).map(x=>[x.p.id,x.no]),[[1,1],[3,2],[5,3]]);assert.deepEqual(PC.recentPitches(L,2).map(x=>x.no),[2,3]);});
