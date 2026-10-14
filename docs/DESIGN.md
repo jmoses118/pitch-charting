@@ -51,3 +51,11 @@ Rule: on a 390×844 phone (and 375×667 for an SE), everything needed to log a p
 - **Toasts:** while charting they sit at the top over the header, never over the zone.
 - **Pitcher picker:** shows first name + number only; handedness lives in Setup.
 - **Segmented controls:** every option must be fully visible in the viewport at 390×844 and 375×667. `test/sheets.ui.js` enforces this.
+
+## Header and text-fit rules (v36)
+- **Header layout:**
+  - Logo row: brand · sync chip · mode tag.
+  - Pitcher row: the picker sizes to its content and never truncates; the add (+) button sits beside it.
+  - Not charting: the full workload sentence is on its own line.
+  - Charting: the logo row hides, the sync chip moves (compact) next to the picker, and the short "Today n · Wknd n" counts wrap rather than squeeze the name.
+- **No text may clip or ellipsize unintentionally** on any tab or state at 375×667, 390×844 and 430×932, and no controls may overlap. `test/layout.ui.js` enforces this; horizontal scrollers (pitch chips, wristband table) are the only exceptions.

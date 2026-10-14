@@ -1,5 +1,13 @@
 # Changelog
 
+## v36 – header that never truncates the pitcher
+### Fixed
+- **Pitcher name cut off** ("Avei") on the Game tab with no game, because it shared a row with the workload counts and the sync chip.
+  - The sync chip now sits on the logo row.
+  - The picker sizes to the name and has priority width; the short counts show only while charting and wrap if they're tight.
+  - The full workload sentence shows on its own line only when not charting, so the counts no longer appear twice.
+- **Clipped text:** disclosure summaries overflowed by 2px, and the "Location" step label was cut off on an SE. The step is now "Where".
+
 ## v35 – batter sheet, cancelable dialogs
 ### Fixed
 - **Bullpen batter control clipped** (RHB missing on some phones): the corner segmented control is replaced by a small **Batter** chip in the zone corner. It opens a sheet with No batter / LHB / RHB (LHB / RHB in a game). Bullpen still defaults to no batter.
