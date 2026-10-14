@@ -42,10 +42,11 @@ function zoneOf(x,y){if(x>=ZX0&&x<=80&&y>=ZY0&&y<=96){const c=Math.min(2,Math.fl
   if(x>=40&&x<=60)return y<60?15:18; if(y>=48&&y<=72)return x<50?16:17;
   return x<50?(y<60?11:13):(y<60?12:14);}
 const center=z=>z<10?[ZX0+((z-1)%3+.5)*CW,ZY0+(((z-1)/3|0)+.5)*CHh]:QLBL[z];
-function zoneSVG(svg,hand,o={}){let h='';
+function zoneSVG(svg,hand,o={}){let h='';svg.setAttribute('viewBox',o.orient?ORIENT_VIEWBOX:PLAIN_VIEWBOX);const ly=o.orient?ORIENT_LABEL_Y:128;
   for(const q in QUAD)h+=`<path data-z="${q}" class="zb" d="${QUAD[q]}" stroke="#0d1117" stroke-width=".8"/>`;
   for(let i=0;i<9;i++)h+=`<rect data-z="${i+1}" class="zs" x="${ZX0+(i%3)*CW}" y="${ZY0+((i/3)|0)*CHh}" width="${CW}" height="${CHh}" stroke="#0d1117" stroke-width=".8"/>`;
-  h+='<path d="M20 24H80V96H20Z" fill="none" stroke="#e6edf3" stroke-width="1"/>';
+  if(o.orient)h+=PLATE_SVG+(o.noSide?'':batterSVG(hand));
+  h+='<path class="zframe" d="M20 24H80V96H20Z" fill="none" stroke="#e6edf3" stroke-width="1"/>';
   const lab=o.labels||{};
   if(!o.noNums)for(const q in QLBL)h+=`<text class="zl" x="${QLBL[q][0]}" y="${QLBL[q][1]-(lab[q]?3:0)}">${q}</text>${lab[q]?`<text class="zl" style="font-size:5px;fill:#8fb0ff" x="${QLBL[q][0]}" y="${QLBL[q][1]+4}">${lab[q]}</text>`:''}`;
   if(!o.noNums)for(let i=1;i<=9;i++){const[c,r]=center(i);h+=`<text class="zl" x="${c}" y="${r-(lab[i]?3:0)}">${i}</text>${lab[i]?`<text class="zl" style="font-size:5px;fill:#8fb0ff" x="${c}" y="${r+5}">${lab[i]}</text>`:''}`;}
@@ -54,12 +55,12 @@ function zoneSVG(svg,hand,o={}){let h='';
   else{  const inRight=PC.insideCol(hand)===2;
   const gl=hand==='N'&&(o.throws==='L'||o.throws==='R');const gR=o.throws==='L';
   h+=gl?`<text class="side" transform="translate(-8 60) rotate(-90)">${gR?'ARM':'GLOVE'}</text><text class="side" transform="translate(108 60) rotate(90)">${gR?'GLOVE':'ARM'}</text>`:`<text class="side" transform="translate(-8 60) rotate(-90)">${inRight?'AWAY':'IN'}</text><text class="side" transform="translate(108 60) rotate(90)">${inRight?'IN':'AWAY'}</text>`;
-  h+=hand==='N'?`<text class="side" style="fill:#8b949e;font-size:5px" x="50" y="128">${gl?`No batter · glove/arm side (${o.throws}HP) · IN/A calls map as RHB`:'No batter · in/away shown as RHB'}</text>`:`<text class="side" style="fill:#5b8cff;font-size:5.5px" x="${inRight?88:12}" y="128">${hand==='L'?'LHB':'RHB'} ${inRight?'▶':'◀'}</text><text class="side" x="${inRight?12:88}" y="128" style="opacity:.5">${inRight?'LHB side':'RHB side'}</text>`;
+  h+=hand==='N'?`<text class="side" style="fill:#8b949e;font-size:5px" x="50" y="${ly}">${gl?`No batter · glove / arm side (${o.throws}HP)`:'No batter · in/away shown as RHB'}</text>`:`<text class="side" style="fill:#5b8cff;font-size:5.5px" x="${inRight?88:12}" y="${ly}">${hand==='L'?'LHB':'RHB'} ${inRight?'▶':'◀'}</text><text class="side" x="${inRight?12:88}" y="${ly}" style="opacity:.5">${inRight?'LHB side':'RHB side'}</text>`;
   }
   svg.innerHTML=h+(o.extra||'');}
 function drawZone(){const hand=curHand();let ex='';const tset=D.parsed&&D.parsed.targets.length?D.parsed.targets:(D.target?[D.target]:[]);
   const lab={};tset.forEach(z=>lab[z]='TARGET');
-  zoneSVG($('zone'),hand,{labels:lab,throws:throwsOf()});
+  const items=renderRecent();zoneSVG($('zone'),hand,{labels:lab,throws:throwsOf(),orient:true,extra:ballsSVG(items,throwsOf())});
   tset.forEach(z=>{const e=$('zone').querySelector(`[data-z="${z}"]`);e&&e.classList.add('zt');});
   if(D.loc){const e=$('zone').querySelector(`[data-z="${D.loc}"]`);e&&e.classList.add(tset.includes(D.loc)?'zta':'za');}
   document.querySelectorAll('#wayBtns [data-z]').forEach(b=>b.classList.toggle('sel',+b.dataset.z===D.loc));}

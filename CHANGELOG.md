@@ -1,5 +1,12 @@
 # Changelog
 
+## v33 – Gameday-style zone graphics
+### Added
+- Pitches are drawn as numbered softballs (yellow, red stitching). The ring shows the result: green on target/competitive, red miss, amber with a star for a souvenir. Used on the Game zone, the Bullpen zone and the heat-map drill-down.
+- Orientation cues: home plate in perspective, a one-box-off ring frame, a batter silhouette on the correct side (RHB/LHB), and glove/arm-side labels with no batter.
+- A recent-pitch list under the zone (current at-bat or session): number badge, result, pitch type, aim → landed.
+- `PC.pitchMark`, `PC.recentPitches` (core), and `js/ui/zonegfx.js` (UI). Tap behavior is unchanged.
+
 ## v32 – privacy for minors
 ### Changed
 - Pitchers are shown as **first name + jersey number** (e.g. "Avery #45") everywhere in the UI: pitcher picker, banners, toasts, reports, stats, Setup and access-code labels.

@@ -49,7 +49,7 @@ function render(skipCallInput){const s=S();{const gg=game();const two=!!(gg&&gg.
   $('resBtns').classList.toggle('hide',tab!=='game'||D.ip);$('ipBtns').classList.toggle('hide',tab!=='game'||!D.ip);$('undo').textContent=tab==='bullpen'&&(D.type||D.target||D.callTxt)?'↶ Back a step':'↶ Undo last pitch';
   drawZone();
   // log
-  const RL={ball:'Ball',called:'Called K',swinging:'Swing K',foul:'Foul',inplay:'In play',hbp:'HBP',ibb:'IBB',kd3:'K-reached',kd3out:'K (D3 out)',foultip:'Foul tip K'};
+  const RL=RESULT_SHORT;
   const line=(p,i)=>`<div><span class="n">${i+1}</span><span style="flex:1">${tab==='game'?H(pName(p.pitcherId).split(' ')[0])+' vs '+H(p.batter)+': ':''}${p.call?'<b>['+H(p.call)+']</b> ':''}${H(p.type||'')}${p.loc?' <span class="tag">'+H(locTxt(p.loc))+'</span>':''}${p.targets&&p.targets.length&&p.loc?(PC.hitSpot(p)?' ✓':' ✗'):''}</span><span>${p.result?RL[p.result]+(p.ip?' '+p.ip:''):(PC.isZone(p.loc)?'K':'B')}${p.end?' · <b>'+p.end+'</b>':''}</span>${p.result?`<span class="tag">${p.b}-${p.s}</span>`:''}</div>`;
   if(tab==='game'&&g){$('logTitle').textContent='Game log (newest first)';$('log').innerHTML=g.pitches.map(line).reverse().join('')||'<div class="mut">No pitches yet</div>';}
   if(tab==='bullpen'){const x=session();$('logTitle').textContent='Session log (newest first)';$('log').innerHTML=x?x.pitches.map(line).reverse().join(''):'<div class="mut">No pitches yet</div>';
