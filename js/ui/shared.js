@@ -17,7 +17,7 @@ document.querySelectorAll('dialog').forEach(d=>{d.addEventListener('cancel',()=>
   d.addEventListener('click',e=>{if(e.target!==d||!e.clientX&&!e.clientY)return;const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close('cancel');});});
 // inline sheets (result, wristband) close on Escape too
 document.addEventListener('keydown',e=>{if(e.key!=='Escape'||document.querySelector('dialog[open]'))return;if($('wbDet').open)$('wbDet').open=false;else if(D.sheet||D.ip||D.foul){D.sheet=false;D.ip=false;D.foul=false;render();}});
-function toast(t){if(document.body.classList.contains('coachmode')&&typeof coachMsg==='function')return coachMsg(t);const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),1300);}
+function toast(t,ms){if(document.body.classList.contains('coachmode')&&typeof coachMsg==='function')return coachMsg(t);const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),ms||1300);}
 // ---------- helpers ----------
 const allTypes=()=>PC.BASE_TYPES.concat(S().customTypes.map(c=>({code:c.code.toUpperCase(),name:c.name})));
 const pById=id=>S().pitchers.find(p=>p.id===id);
@@ -138,12 +138,14 @@ function setHand(h){if(tab==='game'&&game()){game().cur.hand=h;dirty('games',gam
 // the planned spot(s) for the pitch in progress: ✎ Aim / band-setup aim, else the call's own spot, else a tapped target
 function aimSet(){if(D.shook)return D.aim?[D.aim]:[]; // shake-off: only her own chosen aim, never the coach's
   if(D.aim)return[D.aim];if(!callOn)return[];return D.parsed&&D.parsed.targets.length?D.parsed.targets:(D.target?[D.target]:[]);}
-function calledLocNow(){if(D.shook){const t=D.shook.targets||[];return t.length?t[0]:null;}if(D.aim)return D.aim;if(D.target)return D.target;if(callOn&&D.parsed&&D.parsed.targets&&D.parsed.targets.length)return D.parsed.targets[0];return null;}
+function calledLocNow(loc){let t=[];if(D.shook)t=D.shook.targets||[];else if(D.aim)t=[D.aim];else if(D.target)t=[D.target];else if(callOn&&D.parsed&&D.parsed.targets&&D.parsed.targets.length)t=D.parsed.targets;return PC.nearestTarget(t,loc==null?null:loc);}
+// A typed velocity outside 20–110 is dropped, and the coach hears about it once. Empty stays empty with no message.
+function noteVelo(raw){if(raw==null||String(raw).trim()==='')return null;const v=PC.cleanVelo(raw);if(v==null)toast('Velocity must be between 20 and 110. Not saved.',2200);return v;}
 function baseRec(){const loc=D.loc||null;return{id:PC.uuid(),ts:Date.now(),pitcherId:curPitcherId(),hand:curHand(),type:D.shook?D.type||null:D.type||(D.parsed&&D.parsed.type)||null,
-  call:D.shook?D.shook.norm:callOn&&D.parsed?D.parsed.norm:null,callRaw:D.shook?D.shook.raw:callOn&&D.callTxt?D.callTxt:null,targets:aimSet(),loc,calledLoc:calledLocNow(),actualLoc:loc,wpPb:PC.cleanFlag(D.wpPb),velo:PC.cleanVelo(D.velo),...(D.shook?{shook:true}:{})};}
+  call:D.shook?D.shook.norm:callOn&&D.parsed?D.parsed.norm:null,callRaw:D.shook?D.shook.raw:callOn&&D.callTxt?D.callTxt:null,targets:aimSet(),loc,calledLoc:calledLocNow(loc),actualLoc:loc,calledType:D.shook?(D.shook.type||null):((D.parsed&&D.parsed.type)||D.type||null),wpPb:PC.cleanFlag(D.wpPb),velo:noteVelo(D.velo),...(D.shook?{shook:true}:{})};}
 // ---------- test mode ----------
-function toggleTest(){if(store.isTest){if(!confirm('Exit test mode? Everything from this test is discarded.'))return;store.exitTest();resetDraft();toast('Test data cleared');}
-  else{store.enterTest();resetDraft();toast('TEST MODE – nothing is saved');}render();}
+function toggleTest(){if(store.isTest){if(!confirm('Exit test mode? Everything from this test is discarded.'))return;store.exitTest();resetDraft();if(typeof loadRedo==='function')loadRedo();toast('Test data cleared');}
+  else{store.enterTest();resetDraft();redoStack=[];toast('TEST MODE – nothing is saved');}render();}
 $('testBtn').onclick=toggleTest;$('exitTest2').onclick=toggleTest;
 // ---------- cloud sync ----------
 const CFG=window.PC_CONFIG||{};const sync=CFG.url&&CFG.key?PC.makeSync(store,{url:CFG.url,key:CFG.key}):null;let syncT=null,syncing=false;

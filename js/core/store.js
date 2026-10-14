@@ -58,6 +58,8 @@ function ensureSync(st){
   // first run with sync: give every pitch a uuid and queue everything once
   if(!st.sync.migrated){const q=st.sync.queue;st.pitchers.forEach(p=>q.pitchers[p.id]=1);
     [].concat(st.games||[],st.sessions||[]).forEach(c=>{q[c.pitches&&c.lineup?'games':'sessions'][c.id]=1;c.pitches.forEach(p=>{if(!isUUID(p.id))p.id=uuid();q.pitches[p.id]=1;});});st.sync.migrated=true;}
+  // Redo lives on this phone only (newest 10). It is not a sync table.
+  st.redo=PC.redoState(st.redo);
   return st;}
 // ---------- notes (pitching coach / coach -> player's report) ----------
 const noteId=(o)=>o.sessionId?'n_'+o.sessionId+(o.pitcherId?'_'+o.pitcherId:''):'n_'+o.gameId+'_'+o.pitcherId;

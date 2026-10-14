@@ -46,7 +46,7 @@ function render(skipCallInput){const s=S();applyViewOnly(viewOnly());if(typeof r
   $('callDesc').textContent=D.callTxt?(D.parsed?`${D.parsed.norm} = ${types.find(t=>t.code===D.parsed.type)?.name||D.parsed.type}${D.parsed.targets.length?' → zone '+D.parsed.targets.join('/'):' → tap target on grid'}${D.target?' '+D.target:''} · ${D.parsed.desc}`:'Unrecognized code'):'Type a code or tap buttons. Digits = zone (pitcher\'s view).';
   const needTarget=callOn&&D.parsed&&!D.parsed.targets.length&&!D.target;
   renderSteps(needTarget);
-  const called=typeof calledLocNow==='function'?calledLocNow():null;
+  const called=typeof calledLocNow==='function'?calledLocNow(D.loc):null;
   $('phase').innerHTML=needTarget?'Tap the <b>called target</b> on the grid':(tab==='bullpen'?bpPhase():`Tap where it <b>actually</b> went${called!=null?` · called ${called}`:''}${D.loc?` → <b>${D.type||''} ${locTxt(D.loc)}</b> (${PC.locInfo(D.loc,hand,throwsOf()).label})`:''}, then the result`);
   $('resBtns').classList.toggle('hide',!!(D.ip||D.foul));$('ipBtns').classList.toggle('hide',!D.ip);$('foulBtns').classList.toggle('hide',!D.foul);
   $('undo').textContent=D.loc?'Undo location':tab==='bullpen'&&(D.type||D.target||D.callTxt)?'Undo step':'Undo';

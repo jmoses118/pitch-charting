@@ -105,7 +105,7 @@ $('cmXtra').onclick=()=>{const d=$('xDlg');d.returnValue='';xFlag=PC.cleanFlag(D
 $('xWp').onclick=()=>{xFlag='wp';$('xWp').classList.add('sel');$('xPb').classList.remove('sel');};
 $('xPb').onclick=()=>{xFlag='pb';$('xPb').classList.add('sel');$('xWp').classList.remove('sel');};
 $('xClr').onclick=()=>{xFlag=null;$('xWp').classList.remove('sel');$('xPb').classList.remove('sel');};
-$('xDlg').addEventListener('close',()=>{if($('xDlg').returnValue!=='ok')return;D.wpPb=xFlag;D.velo=$('xVelo').value;render();});
+$('xDlg').addEventListener('close',()=>{if($('xDlg').returnValue!=='ok')return;D.wpPb=xFlag;D.velo=noteVelo($('xVelo').value);render();});
 $('cmTake').onclick=menuDo(()=>openTakeover());$('cmBand').onclick=menuDo(()=>openBandSetup());
 $('cmTheme').onclick=()=>{const t=PREF.get('theme','field');PREF.set('theme',THEMES[(THEMES.indexOf(t)+1)%THEMES.length]);applyTheme();render();};
 $('cmMirror').onclick=()=>{PREF.set('mirror',PREF.get('mirror','0')==='1'?'0':'1');render();};

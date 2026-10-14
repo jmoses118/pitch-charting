@@ -45,6 +45,10 @@ const ALL_CELLS=[11,15,12,1,2,3,16,4,5,6,17,7,8,9,13,18,14];
 const GRID_XY={21:[2,-1],22:[2,5],23:[-1,2],24:[5,2],31:[2,6],32:[2,-2],11:[0,0],15:[2,0],12:[4,0],16:[0,2],17:[4,2],13:[0,4],18:[2,4],14:[4,4]};for(let z=1;z<=9;z++)GRID_XY[z]=[(z-1)%3+1,Math.floor((z-1)/3)+1];
 const MAX_MISS=4;
 function missDist(a,b){const p=GRID_XY[a],q=GRID_XY[b];if(!p||!q)return null;return Math.max(Math.abs(p[0]-q[0]),Math.abs(p[1]-q[1]));}
+// Called box when a call names several targets: the one closest to where the pitch went.
+// No actual location, or a single target, keeps the first target. A distance tie keeps the earlier target.
+function nearestTarget(targets,loc){const t=(Array.isArray(targets)?targets:[]).map(z=>+z).filter(z=>Number.isFinite(z)&&z>0);if(!t.length)return null;if(loc==null||t.length===1)return t[0];
+  let best=t[0],bd=missDist(t[0],loc);for(let i=1;i<t.length;i++){const d=missDist(t[i],loc);if(d==null)continue;if(bd==null||d<bd){best=t[i];bd=d;}}return best;}
 function pct(a,b){return b?Math.round(1000*a/b)/10:null;}
-Object.assign(PC,{insideCol,awayCol,cz,isZone,isCorner,isOut,WAY,isWay,ACTUAL_ONLY,isActualOnly,isCompetitive,gloveCol,locInfo,locInfoRaw,ALL_CELLS,GRID_XY,MAX_MISS,missDist,pct});
+Object.assign(PC,{insideCol,awayCol,cz,isZone,isCorner,isOut,WAY,isWay,ACTUAL_ONLY,isActualOnly,isCompetitive,gloveCol,locInfo,locInfoRaw,ALL_CELLS,GRID_XY,MAX_MISS,missDist,nearestTarget,pct});
 })(typeof window!=='undefined'?window:globalThis);

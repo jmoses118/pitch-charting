@@ -7,7 +7,7 @@
 - **Ball in play drill-down.** Contact (GB / LD / FB / PU) is optional; then the play (out, 1B–HR, error, FC, DP). Cancel logs nothing.
 - **Foul timing** (optional): Early, On time, Late, or Foul with no timing. Cancel logs nothing. Same submenu on the landscape coach screen.
 - **Undo and Redo.** Undo removes the location tap first, then the last pitch. Redo puts it back (newest 10). Logging a pitch clears Redo. Redo is on the portrait sheet, the bullpen pad, and the coach result column.
-- **Called location and actual location** are stored separately. `loc` stays the actual spot so miss scoring, hit spot and the heat map stay on one field. The called box is the aim (on a shake-off, the coach's called box, not her own aim).
+- **Called location and actual location** are stored separately. `loc` stays the actual spot so miss scoring, hit spot and the heat map stay on one field. The called box is the aim, or the nearest aim when the call names more than one (on a shake-off, the coach's called box, not her own aim).
 - **Actual location past the ring:** In dirt (31) and Over catcher/backstop (32), next to the way-off buttons in portrait and under the zone on the coach screen. They are never a called aim. A change-up called target is still only 4, 7, 8, 9, 13, 14, 18; the actual location may be any box, including those two.
 - **Per pitch:** pitch type called and thrown, count before, inning, outs, batter handedness, pitcher, game vs bullpen, result (ball / called strike / swinging strike / foul / in play / HBP), optional wild pitch or passed ball, optional velocity.
 - **Bullpen** still starts with no batter (LHB / RHB stay in the Batter sheet). An optional default result (Off / Ball / Strike) can stamp ball or called strike; Off is the default, so a pitch with no result still uses the zone.
@@ -17,7 +17,12 @@
 - Shake-off stays on the portrait screen and the landscape coach Game screen (called pitch vs thrown pitch + result).
 - Strike zone, wristband aim, and Thunder Elite colours are unchanged.
 ### Notes
-- Migration `supabase/migrations/20261014180000_scoring_chart.sql` adds `called_loc`, `actual_loc`, `foul_time`, `wp_pb`, `velo`. **Not applied** to the live project. `chartColumn` is unset in `config.js`, so those columns are not sent until a coach applies the file and turns the flag on. Cache: `te-pitch-v40`.
+- Migration `supabase/migrations/20261014180000_scoring_chart.sql` adds `called_loc`, `actual_loc`, `foul_time`, `wp_pb`, `velo`. **Not applied** to the live project. `chartColumn` is unset in `config.js`, so those columns are not sent until a coach applies the file and turns the flag on. Cache: `te-pitch-v41`.
+### Review
+- **CSV** appends `called_type` (the called pitch) and `shook` (`1` when she shook it off). Import reads both. An older file without those columns still imports. The download name uses her first name and jersey only, with safe characters (`PC.csvPitcherFile`).
+- **Velocity** outside 20–110 shows "Velocity must be between 20 and 110. Not saved." Empty stays empty, with no message.
+- **Called box** when the call names more than one target is the target nearest where the pitch went. A tie keeps the earlier target. Before the location is tapped, the first target is shown.
+- **Redo** is saved on this phone (still the newest 10) and comes back after a reload. Logging a pitch clears it. It is not synced.
 
 ## v39 – Code Reviewer fixes
 ### Fixed

@@ -38,4 +38,5 @@ Replays Jim's Oct 14 test-mode sequence: 3 band-called pitches in landscape, the
 
 ## v40
 - `test/logic.test.js`: in dirt / over catcher are not aims and still log as the actual spot; change-up `canAim` stays low-only; redo cap 10; foul / wild-pitch / velocity cleaners; bullpen result default; CSV filter by pitcher and date; chart columns omitted unless `sync.chartCol`.
+- Review round: `nearestTarget` (nearest called box, tie keeps the earlier one); CSV `called_type` and `shook` round-trip, including an old file with neither column; `csvPitcherFile` keeps the first name and drops the rest of the roster text; redo list saves, reloads, trims to 10, clears, and stays off `buildRows`.
 - Foul no longer logs on the first tap. `ui.smoke.js`, `shake.ui.js`, `agree.ui.js` and `pitchchange.ui.js` finish a foul with `[data-ft=skip]`.

@@ -40,10 +40,12 @@ const REDO_MAX=10;
 const FOUL_TIMES={early:'Early',ontime:'On time',late:'Late'};
 function redoPush(stack,item){const s=(Array.isArray(stack)?stack:[]).concat([item]);return s.length>REDO_MAX?s.slice(s.length-REDO_MAX):s;}
 function redoPop(stack){const s=(Array.isArray(stack)?stack:[]).slice();return{item:s.pop()||null,stack:s};}
+// Stored redo list: location, aim, or pitch items only, newest 10. Anything else is dropped.
+function redoState(raw){if(!Array.isArray(raw))return [];return raw.filter(x=>x&&typeof x==='object'&&(x.kind==='loc'||x.kind==='aim'||x.kind==='pitch')).slice(-REDO_MAX);}
 function cleanFoul(v){return Object.prototype.hasOwnProperty.call(FOUL_TIMES,v)?v:null;}
 function cleanFlag(v){return v==='wp'||v==='pb'?v:null;}
 function cleanVelo(v){if(v==null||v==='')return null;const n=+v;return Number.isFinite(n)&&n>=20&&n<=110?Math.round(n*10)/10:null;}
 // Bullpen may stamp a ball or a called strike when the phone's default is set. Anything else stays unset.
 function bullpenResult(def){return def==='ball'||def==='called'?def:null;}
-Object.assign(PC,{BB_TYPES,BB_NAME,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,bullpenStep,bullpenTap,REDO_MAX,FOUL_TIMES,redoPush,redoPop,cleanFoul,cleanFlag,cleanVelo,bullpenResult});
+Object.assign(PC,{BB_TYPES,BB_NAME,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,bullpenStep,bullpenTap,REDO_MAX,FOUL_TIMES,redoPush,redoPop,redoState,cleanFoul,cleanFlag,cleanVelo,bullpenResult});
 })(typeof window!=='undefined'?window:globalThis);

@@ -10,7 +10,7 @@ All rules live in `js/core/grid.js` and `js/core/scoring.js`; report, heat map a
 - `GRID_XY` places zone + ring on a 5×5 lattice; 31 sits one row below way-low and 32 one row above way-high. Miss distance = Chebyshev distance (squares) to the nearest target.
 
 ## Called location vs actual location (v40)
-- `calledLoc` is the box that was called (coach aim, else the typed target, else the first parsed target). On a shake-off it is the coach's called box, not her own aim.
+- `calledLoc` is the box that was called. One target stays that box. Several targets (a multi-target call, or a shake-off whose call named more than one box) use the target nearest the actual location (`PC.nearestTarget`, same Chebyshev distance as miss scoring). Before the actual location is known, the first target is shown. A distance tie keeps the earlier target. On a shake-off the set is the coach's called boxes, not her own aim.
 - `actualLoc` and `loc` are where it went. `loc` stays the field miss scoring, hit spot and heat maps already use, so those rules did not grow a second path.
 - A change-up **called** target is still only 4, 7, 8, 9, 13, 14, 18. The **actual** location may be any box, including a high box, in dirt, or over the catcher.
 
@@ -42,7 +42,7 @@ A change-up is **never aimed in the upper zone**. The only valid change-up targe
 Pitches landing in zone (1–9) or ring (11–18) ÷ all pitches. Way off, in dirt and over the catcher are not competitive.
 
 ## Foul timing, wild pitch, velocity (v40)
-Optional. `foulTime` is `early`, `ontime` or `late` (or unset). `wpPb` is `wp` or `pb`. `velo` is 20–110, one decimal. A bullpen pitch can also carry `result` `ball` or `called` when the phone's default result is set; otherwise bullpen strike % still uses the zone.
+Optional. `foulTime` is `early`, `ontime` or `late` (or unset). `wpPb` is `wp` or `pb`. `velo` is 20–110, one decimal. A number outside that range is dropped and a short message says it was not saved (empty stays empty, with no message). A bullpen pitch can also carry `result` `ball` or `called` when the phone's default result is set; otherwise bullpen strike % still uses the zone.
 
 ## Strike %
 Game strike % follows GameChanger (balls vs called/swinging/foul/in play etc.); location does not change it.
