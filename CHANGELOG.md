@@ -1,5 +1,9 @@
 # Changelog
 
+## Hardening – local outing date
+### Fixed
+- The rest guide dates an outing with `localDate` when the game has no date. A late evening on the phone no longer rolls to the next UTC day. A stored game date still wins. Cache: `te-pitch-v52`.
+
 ## v48 – One scoring flow
 ### Changed
 - **One state machine** (`js/core/flow.js`) for portrait Game, the landscape coach screen, and Bullpen. Game steps are pitch type, called location, actual location, then the result. Bullpen stops after the actual location and saves. There is no ball/strike step in the pen.

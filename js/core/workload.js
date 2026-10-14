@@ -9,7 +9,7 @@ const DEFAULT_ALERTS=[75,90];
 // sensible youth (12U-14U fastpitch) rest guide; coach can edit. up to `max` pitches in an outing -> `days` of rest
 const DEFAULT_REST=[{max:20,days:0},{max:35,days:1},{max:50,days:2},{max:65,days:3},{max:9999,days:4}];
 function restDays(n,table){const t=(table&&table.length?table:DEFAULT_REST).slice().sort((a,b)=>a.max-b.max);const r=t.find(x=>n<=x.max)||t[t.length-1];return r?r.days:0;}
-function lastOuting(st,pid){let best=null;(st.games||[]).forEach(g=>{const P=g.pitches.filter(p=>p.pitcherId===pid&&countsAsPitch(p)&&!p.deleted);if(!P.length)return;const ts=Math.max(...P.map(p=>p.ts||0));const date=g.date||new Date(ts).toISOString().slice(0,10);
+function lastOuting(st,pid){let best=null;(st.games||[]).forEach(g=>{const P=g.pitches.filter(p=>p.pitcherId===pid&&countsAsPitch(p)&&!p.deleted);if(!P.length)return;const ts=Math.max(...P.map(p=>p.ts||0));const date=g.date||localDate(ts);
     if(!best||date>best.date||(date===best.date&&ts>best.ts))best={gameId:g.id,date,ts,n:P.length,opponent:g.opponent};});return best;}
 function addDays(d,n){const x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);return x.toISOString().slice(0,10);}
 function restInfo(st,pid,today,table){const lo=lastOuting(st,pid);if(!lo)return null;const days=restDays(lo.n,table);const ready=addDays(lo.date,days+1);// days of full rest after the outing
