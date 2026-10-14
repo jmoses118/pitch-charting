@@ -528,6 +528,45 @@ test('scoring flow: game requires a result, bullpen saves on the actual spot',()
   const multi=PC.scoreCommit(PC.scoreApply(PC.scoreTap(PC.scoreApply({mode:'game'},{op:'call',type:'FB',called:[7,9]}).draft,8).draft,{op:'result',result:'ball'}).draft);
   assert.equal(multi.calledLoc,PC.nearestTarget([7,9],8));
 });
+// ---------------- v1 FLOW-1 .. FLOW-5 ----------------
+function walkFlow(mode,events){let d={mode};const steps=[];for(const ev of events){const r=PC.scoreApply(d,ev);assert.equal(r.ok,true,mode+' '+ev.op);d=r.draft;steps.push(r.step);}return{d,steps};}
+test('FLOW-1: the same flow transitions drive the game and bullpen screens',()=>{
+  const events=[{op:'call',type:'CH',called:[8]},{op:'actual',z:14}];
+  const game=walkFlow('game',events),pen=walkFlow('bullpen',events);
+  assert.deepEqual(PC.FLOW.game.slice(0,3),PC.FLOW.bullpen);
+  assert.equal(game.steps[0],pen.steps[0]);assert.equal(game.steps[0],'actual');
+  assert.equal(game.steps[1],'result');assert.equal(pen.steps[1],'done');
+  assert.deepEqual(game.d.called,pen.d.called);assert.equal(game.d.actual,pen.d.actual);
+  assert.deepEqual(game.d.called,[8]);assert.equal(game.d.actual,14);
+});
+test('FLOW-2, FLOW-4, FLOW-5: step order and save rejected without an actual location',()=>{
+  assert.equal(PC.scoreStep({mode:'game'}),'type');
+  const called=PC.scoreApply({mode:'game'},{op:'call',type:'FB',called:[]});
+  assert.equal(called.step,'called');assert.equal(PC.scoreCommit(called.draft),null);
+  const aim=PC.scoreApply(called.draft,{op:'called',z:5});
+  assert.equal(aim.step,'actual');assert.equal(PC.scoreCommit(aim.draft),null);
+  assert.equal(PC.scoreApply(aim.draft,{op:'result',result:'ball'}).reason,'need_actual');
+  const land=PC.scoreApply(aim.draft,{op:'actual',z:8});
+  assert.equal(land.step,'result');assert.equal(PC.scoreCommit(land.draft),null);
+  const saved=PC.scoreApply(land.draft,{op:'result',result:'ball'});
+  assert.equal(saved.step,'done');
+  const row=PC.scoreCommit(saved.draft);
+  assert.equal(row.loc,8);assert.equal(row.calledLoc,5);assert.equal(row.result,'ball');
+});
+test('FLOW-3: wristband aim becomes the called box; an override replaces it',()=>{
+  const parsed=PC.parseCall('FB 6','R','R');
+  const placed=PC.scoreApply({mode:'game'},{op:'call',type:parsed.type,called:parsed.targets});
+  assert.deepEqual(placed.draft.called,[6]);assert.equal(placed.step,'actual');
+  const over=PC.scoreApply(placed.draft,{op:'called',z:4});
+  assert.deepEqual(over.draft.called,[4]);
+  const bare=PC.parseCall('CHG','R','R');
+  assert.equal(bare.norm,'CH');assert.deepEqual(bare.targets,[]);
+  const aim=PC.bandAim({aims:{CH:8}},bare);
+  assert.equal(aim,8);
+  const fromBand=PC.scoreApply({mode:'game'},{op:'call',type:bare.type,called:[aim]});
+  assert.deepEqual(fromBand.draft.called,[8]);
+  assert.deepEqual(PC.scoreApply(fromBand.draft,{op:'called',z:14}).draft.called,[14]);
+});
 test('in dirt and over the catcher score as way off and still count as landed',()=>{
   const m=PC.pitchMiss({type:'FB',targets:[8],loc:31});assert.equal(m.sev,PC.MAX_MISS-1);assert.equal(PC.chUp({type:'CH',loc:32}),false);
   const items=[{p:{type:'FB',targets:[8],loc:31}},{p:{type:'FB',targets:[8],loc:5}}];

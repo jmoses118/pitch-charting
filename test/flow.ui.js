@@ -58,4 +58,31 @@ for(const [W,H] of [[375,667],[390,844],[430,932]]){const tag=`${W}x${H}`;
   ok(/Hit spot %/.test(grid)&&!/Strike %/.test(grid),'bullpen stats show hit-spot %, not strike % ('+grid+')');
   await p.screenshot({path:`${SHOT}/flow-bullpen-hit.png`});
   ok(!errs.length,'bullpen: no page errors '+errs.join('|'));await c.close();}
+// FLOW-1: portrait, landscape coach, and bullpen reach the same called box and actual spot.
+const spot=async p=>p.evaluate(()=>({called:(D.called||[]).slice(),actual:D.loc,step:PC.scoreStep(pullDraft())}));
+{const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());await c.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));
+  const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());
+  await p.goto(BASE);await p.evaluate(g=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';S.games=[g];S.activeGame='g1';S.sessions=[];__app.store.save();__app.render();},GAME);
+  await p.click('nav [data-t="game"]');await p.waitForTimeout(200);
+  await p.click('#types [data-c="CH"]');await tapZ(p,8);await tapZ(p,14);await p.waitForTimeout(200);
+  const portrait=await spot(p);
+  ok(portrait.called[0]===8&&portrait.actual===14&&portrait.step==='result','FLOW-1 portrait called 8 actual 14 before the result '+JSON.stringify(portrait));
+  ok(!errs.length,'FLOW-1 portrait: no page errors');await c.close();
+  const c2=await b.newContext({viewport:{width:844,height:390},isMobile:true,hasTouch:true});await c2.route(/supabase\.co/,r=>r.abort());
+  const p2=await c2.newPage();const errs2=[];p2.on('pageerror',e=>errs2.push(e.message));p2.on('dialog',d=>d.accept());
+  await p2.goto(BASE);await p2.evaluate(()=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';S.games=[{id:'g1',date:'2026-10-14',opponent:'Storm',homeAway:'home',status:'active',started:1,lineup:[{slot:1,name:'Batter 1',num:'1',hand:'R'}],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:1},pitches:[]}];S.activeGame='g1';__app.store.save();__app.render();});
+  await p2.waitForTimeout(300);await p2.click('#cBand button[data-r="1"][data-c="7"]');await p2.waitForTimeout(150);
+  await p2.click('#cZone button[data-z="8"]');await p2.waitForTimeout(150);await p2.click('#cZone button[data-z="14"]');await p2.waitForTimeout(150);
+  const coach=await spot(p2);
+  ok(coach.called[0]===8&&coach.actual===14&&coach.step==='result','FLOW-1 landscape called 8 actual 14 before the result '+JSON.stringify(coach));
+  ok(coach.called[0]===portrait.called[0]&&coach.actual===portrait.actual,'FLOW-1 landscape matches portrait');
+  ok(!errs2.length,'FLOW-1 landscape: no page errors');await c2.close();
+  const c3=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await c3.route(/supabase\.co/,r=>r.abort());await c3.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));
+  const p3=await c3.newPage();const errs3=[];p3.on('pageerror',e=>errs3.push(e.message));
+  await p3.goto(BASE);await p3.click('nav [data-t="bullpen"]');await p3.waitForTimeout(200);
+  await p3.click('#types [data-c="CH"]');await tapZ(p3,8);await tapZ(p3,14);await p3.waitForTimeout(200);
+  const pen=await p3.evaluate(()=>{const x=(__app.store.state.sessions.at(-1)||{pitches:[]}).pitches.at(-1);return x&&{called:x.targets,actual:x.loc,result:x.result};});
+  ok(pen&&pen.called[0]===8&&pen.actual===14&&pen.result==null,'FLOW-1 bullpen saved the same called box and actual spot '+JSON.stringify(pen));
+  ok(pen.called[0]===portrait.called[0]&&pen.actual===portrait.actual,'FLOW-1 bullpen matches portrait and landscape');
+  ok(!errs3.length,'FLOW-1 bullpen: no page errors');await c3.close();}
 await b.close();console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);})().catch(e=>{console.error(e);process.exit(1);});
