@@ -12,4 +12,4 @@ function bpLast(){const x=session();const ps=x?x.pitches.filter(p=>!p.deleted):[
 function bpPhase(){const l=bpLast();const st=PC.scoreStep(pullDraft());if(l&&st==='called'&&D.type)return l;const it=aimSet().join('/');
   return st==='type'?'<b>1.</b> Choose the pitch':st==='called'?`<b>2.</b> ${H(D.type||(D.parsed&&D.parsed.type)||'')} – tap the <b>intended</b> spot`:`<b>3.</b> ${H(D.type||(D.parsed&&D.parsed.type)||'')} → ${H(it)} – tap where it <b>actually</b> went`;}
 $('bpEnd').onclick=endBullpen;
-$('bpRes').addEventListener('click',e=>{const b=e.target.closest('[data-bpr]');if(!b)return;S().bpResult=b.dataset.bpr||'';save();render();});
+$('bpHands').addEventListener('change',e=>{const st=ensureSettings();st.showBatterHand=!!e.target.checked;if(!st.showBatterHand)bpHand='N';save();render();});

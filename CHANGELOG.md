@@ -1,5 +1,13 @@
 # Changelog
 
+## v58 – Bullpen has no result
+### Changed
+- **FLOW-6.** A bullpen pitch is type, called location, actual location, then save. There is no ball/strike result and no default stamp.
+- **FLOW-6a.** Opening the app deletes a saved `bpResult` and any result stored on a bullpen pitch, and queues those pitches. `supabase/migrations/20261014230000_bullpen_no_result.sql` clears the same rows in Supabase. That file is not applied to production from here.
+- **FLOW-7.** A bullpen pitch is a success when it hits its spot, including a bottom-row aim that lands in that box. Stats stay on hit-spot %. A change, drop, or drop curve that lands in 13, 14, or 18 is still a good pitch.
+- **FLOW-8.** A new bullpen session has no batter. LHB and RHB show only when “Show LHB / RHB” is on.
+- Cache: `te-pitch-v58`.
+
 ## v57 – One draft, one actual-location toggle
 ### Changed
 - **FLOW-1.** A second tap of the actual location clears it inside `scoreTap`. The coach screen no longer keeps its own toggle. The entry screen keeps one flow draft.

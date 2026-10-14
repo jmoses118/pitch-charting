@@ -31,7 +31,7 @@ const ROLE_TABS={pcoach:['bullpen','stats','setup'],coach:['game','bullpen','sta
 function mine(){const r=role(),y=store.real.sync;if(r==='player')return y.pitcherId?[y.pitcherId]:[];if(r==='pcoach')return y.pitcherIds||[];return null;}
 const vis=pid=>{const m=mine();return !m||m.includes(pid);};
 function curPitcherId(){const s=S();if(role()==='pcoach'){const m=mine();if(!m.includes(s.curPitcher))s.curPitcher=m.find(id=>pById(id))||m[0]||null;return s.curPitcher;}if(role()==='player'){const id=store.real.sync.pitcherId;if(id&&pById(id)){s.curPitcher=id;return id;}}if(!s.curPitcher||!pById(s.curPitcher)||pById(s.curPitcher).archived){const a=store.activePitchers()[0];s.curPitcher=a?a.id:null;}return s.curPitcher;}
-function curHand(){if(tab==='game'){const g=game();if(g){const b=g.lineup[g.cur.slot];return(g.cur.hand||(b&&b.hand)||'R');}}return bpHand;}
+function curHand(){if(tab==='game'){const g=game();if(g){const b=g.lineup[g.cur.slot];return(g.cur.hand||(b&&b.hand)||'R');}}return PC.sessionHand(S().settings,bpHand);}
 function throwsOf(){const p=pById(curPitcherId());return p?p.throws:'R';}
 const buzz=p=>{try{if(navigator.vibrate)navigator.vibrate(p);}catch(e){}};
 function confirmSave(t){buzz(35);if(document.body.classList.contains('coachmode')&&typeof coachMsg==='function')return coachMsg('✓ Saved · '+t,'ok');let f=document.getElementById('flash');if(!f){f=document.createElement('div');f.id='flash';document.body.appendChild(f);}f.textContent='✓ '+t;f.classList.add('on');clearTimeout(f._t);f._t=setTimeout(()=>f.classList.remove('on'),700);}
@@ -133,7 +133,7 @@ $('types').addEventListener('click',e=>{const c=e.target.dataset.c;if(!c)return;
   placeCall(c,[]);render();if(tab==='game'&&D.type)advance('loc');});
 [['hL','L'],['hR','R'],['hN','N']].forEach(([id,h])=>$(id).onclick=()=>{$('batDlg').close('ok');setHand(h);});
 $('batTog').onclick=()=>openSheet($('batDlg'));$('bpTest').onclick=()=>toggleTest();
-function setHand(h){if(tab==='game'&&game()){game().cur.hand=h;dirty('games',game().id);save();}else bpHand=h;if(D.callTxt)D.parsed=PC.parseCall(D.callTxt,h,throwsOf(),S().customTypes);render();}
+function setHand(h){if(tab==='game'&&game()){game().cur.hand=h;dirty('games',game().id);save();}else bpHand=PC.sessionHand(S().settings,h);if(D.callTxt)D.parsed=PC.parseCall(D.callTxt,curHand(),throwsOf(),S().customTypes);render();}
 // ---------- record building ----------
 // the planned spot(s) for the pitch in progress: ✎ Aim / band-setup aim, else the call's own spot, else a tapped target
 // One flow draft. The screen reads it; it does not keep a second called/actual copy or a second validator.

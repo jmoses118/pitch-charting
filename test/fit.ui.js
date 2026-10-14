@@ -21,7 +21,7 @@ for(const [W,H] of [[390,844],[375,667]]){const tag=`${W}x${H}`;
   ok(/^Today \d+ · Wknd \d+$/.test(await p.textContent('#wlMini'))&&await ev(()=>getComputedStyle(document.querySelector('.topbar')).display==='none'),`${tag}: slim header with workload counts`);
   // tap through a bullpen pitch without scrolling
   const tap=async z=>{const r=await p.$eval(`#zone [data-z="${z}"]`,e=>{const r=e.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2};});await p.mouse.click(r.x,r.y);await p.waitForTimeout(100);};
-  await p.click('#batTog');await p.click('#hR');await p.click('#types [data-c="FB"]');await tap(3);await tap(2);
+  await p.click('#types [data-c="FB"]');await tap(3);await tap(2);
   ok(await ev(()=>(__app.store.real.sessions.at(-1)||{pitches:[]}).pitches.length)===1&&await ev(()=>scrollY===0),`${tag}: bullpen pitch logged with no scrolling`);
   await ev(()=>{__app.store.real.sessions.at(-1).ended=Date.now();__app.store.real.activeSession=null;__app.store.save();});
   await ev(g=>{const S=__app.store.real;S.games.push(g);S.activeGame='g1';__app.store.save();__app.render();},GAME);
