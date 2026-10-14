@@ -16,7 +16,6 @@ const coachGame=lk=>!lk&&tab==='game'&&!!game()&&role()==='coach';
 let sideCard=null,cMsg=null;
 // ---------- zone: 5×5 grid (pitcher's view); ring quads 11–14 are L-shaped, so they own 3 cells each ----------
 const Z5=[[11,11,15,12,12],[11,1,2,3,12],[16,4,5,6,17],[13,7,8,9,14],[13,13,18,14,14]];
-const Z5_LABEL=new Set(['0,0','0,2','0,4','2,0','2,4','4,0','4,2','4,4']); // where each ring number is printed
 // ---------- status strip messages (replace toasts while calling: nothing covers the count) ----------
 function coachMsg(t,kind){cMsg={t,kind:kind||'info',at:Date.now()};renderHint();clearTimeout(coachMsg.t);coachMsg.t=setTimeout(()=>{cMsg=null;renderHint();},2600);}
 const RES_BTNS=[['ball','Ball','b-ball'],['called','Called K','b-cs'],['swinging','Swing','b-ss'],['foul','Foul','b-foul'],['inplay','In play ▸','b-ip'],['hbp','HBP','b-hbp'],['foultip','Foul tip','b-ss']];
@@ -25,8 +24,8 @@ const inningTag=g=>(g.homeAway==='home'?'T':g.homeAway==='away'?'B':'Inn ')+g.cu
 function callCode(){const sh=curSheet();return D.cell&&sh&&D.cell.sheet===sh.id?PC.cellCode(sh,D.cell.r,D.cell.c):'';}
 function hintText(){const g=game(),cmp=$('coach').classList.contains('compact');if(sideCard)return '';if(D.aimEdit)return['✎','Tap the new aim'];if(D.ip)return['','Pick the outcome'];
   if(D.shook&&!D.type)return['',cmp?'Threw?':'Which pitch?']; // short: status already shows "⤺ CH7 → ?"
-  if(!curSheet())return['1',cmp?'Tap a result':'No sheet – tap a result'];if(!D.parsed&&!D.shook)return['1',cmp?'Cell or result':'Tap a cell or result'];
-  if(!D.loc)return['2',cmp?'Where?':'Tap where it went'];return['3',cmp?'Result?':'Tap the result'];}
+  if(!curSheet())return['1',cmp?'No sheet':'Add a call sheet'];if(!D.parsed&&!D.shook)return['1',cmp?'Tap a cell':'Tap a wristband cell'];
+  if(!D.shook&&!aimSet().length)return['2',cmp?'Aim?':'Tap the aim'];if(!D.loc)return['2',cmp?'Where?':'Tap where it went'];return['3',cmp?'Result?':'Tap the result'];}
 function renderHint(){const e=$('cxHint');if(!e)return;if(cMsg&&(!D.aimEdit||cMsg.kind==='warn')){e.className='cs-hint msg '+cMsg.kind;e.textContent=cMsg.t;return;}const h=hintText();e.className='cs-hint';e.innerHTML=h?`<span class="cs-n">${H(h[0])}</span>${H(h[1])}`:'';}
 function sizeCoach(){const sh=curSheet(),cols=sh?Math.max(...sh.rows.map(r=>r.length),1):8,rows=sh?sh.rows.length:7;const el=$('coach'),cs=getComputedStyle(el);
   const padX=parseFloat(cs.paddingLeft)+parseFloat(cs.paddingRight),padY=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom);
@@ -59,14 +58,14 @@ function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,h
   $('cAct').classList.toggle('hide',!!D.ip);$('cContact').classList.toggle('hide',!D.ip);
   document.querySelectorAll('#cContact [data-bb]').forEach(b=>b.classList.toggle('on',b.dataset.bb===D.bb));
   // zone
-  const am=new Set(aims);$('cZone').innerHTML=Z5.map((row,r)=>row.map((z,ci)=>{const lab=z<10||Z5_LABEL.has(r+','+ci);const isA=lab&&am.has(z),isL=lab&&D.loc===z;
-    return `<button data-z="${z}" class="${z<10?'zi':'zr'}${isA?' aim':''}${isA&&D.aimEdit?' editing':''}${D.aimEdit&&!PC.targetOk(D.type,z)?' noaim':''}${isL?' act':''}" ${lab?'':'aria-hidden="true" tabindex="-1"'} aria-label="${lab?'Zone '+z+(isA?', aim':'')+(isL?', landed':''):''}">${lab?`<span>${z}</span>${isA?'<small>AIM</small>':''}`:''}</button>`;}).join('')).join('');
+  const am=new Set(aims);$('cZone').innerHTML=Z5.map(row=>row.map(z=>{const isA=am.has(z),isL=D.loc===z;
+    return `<button type="button" data-z="${z}" class="${z<10?'zi':'zr'}${isA?' aim':''}${isA&&D.aimEdit?' editing':''}${D.aimEdit&&!PC.targetOk(D.type,z)?' noaim':''}${isL?' act':''}" aria-label="Zone ${z}${isA?', aim':''}${isL?', landed':''}"><span>${z}</span>${isA?'<small>AIM</small>':''}</button>`;}).join('')).join('');
   $('cZone').classList.toggle('editing',!!D.aimEdit);
   // results (or in-play outcomes)
   const two=c.s===2;const ur=`<button data-cx="undo" aria-label="Undo last pitch">↶<small>Undo</small></button><button data-cx="redo" aria-label="Redo" ${redoStack.length?'':'disabled'}>↷<small>Redo</small></button>`;
   if(viewOnly())$('cRes').innerHTML=`<div class="cro" role="status"><b>👁 Scoring on another phone</b><span>View only</span><button data-cx="take">Take over scoring</button></div>`;else if(D.shook&&!D.type)$('cRes').innerHTML=allTypes().map(t=>`<button data-ty="${H(t.code)}" aria-label="She threw ${H(t.name)}">${H(t.code)}</button>`).join('')+`<button data-cx="unshake" class="shkx">✕ Cancel</button>`;
   else $('cRes').innerHTML=(D.ip?IP_BTNS.map(([v,l])=>`<button data-ip="${v}" class="${/^(out|1B|2B|3B|HR)$/.test(v)?'b-ip':''}">${l}</button>`).join('')+'<button data-cx="back">← Back</button>':
-    RES_BTNS.map(([v,l,k])=>`<button data-r="${v}" class="${k}${D.parsed?'':' soft'}">${l}</button>`).join('')+`<button data-cx="aim" class="${D.aimEdit?'on':''}" aria-pressed="${!!D.aimEdit}" ${D.parsed?'':'disabled'}>✎ Aim</button>`)+
+    RES_BTNS.map(([v,l,k])=>`<button data-r="${v}" class="${k}${D.parsed?'':' soft'}" ${D.parsed?'':'disabled'}>${l}</button>`).join('')+`<button data-cx="aim" class="${D.aimEdit?'on':''}" aria-pressed="${!!D.aimEdit}" ${D.parsed?'':'disabled'}>✎ Aim</button>`)+
     ur+(D.ip?'':`<button data-cx="same" aria-label="Same call as last pitch" ${lastCell?'':'disabled'}>⟳<small>Same</small></button>`+(D.shook?`<button data-cx="unshake" class="shkx" aria-label="Cancel shake-off">✕<small>Shake</small></button>`:`<button data-cx="shake" class="shk" aria-label="Shake-off: she shook off the call" ${D.parsed?'':'disabled'}>⤺<small>Shake-off</small></button>`));
   document.querySelectorAll('#cAct [data-z]').forEach(b=>b.classList.toggle('sel',+b.dataset.z===D.loc));
   // side retired card
@@ -81,14 +80,18 @@ let lpT=null,lpDone=false; // long-press (≥400 ms) on a zone cell sets the aim
 const zoneBtn=e=>e.target.closest('#cZone button[data-z]');
 $('cZone').addEventListener('pointerdown',e=>{if(viewOnly())return;const b=zoneBtn(e);if(!b)return;lpDone=false;clearTimeout(lpT);lpT=setTimeout(()=>{if(!D.parsed)return;lpDone=true;if(!PC.targetOk(D.type,+b.dataset.z)){coachMsg($('coach').classList.contains('compact')?PC.CH_AIM_TINY:PC.CH_AIM_SHORT,'warn');return;}D.aim=+b.dataset.z;D.aimEdit=false;buzz(15);render();coachMsg('✎ Aim → '+b.dataset.z);},400);});
 ['pointerup','pointerleave','pointercancel'].forEach(t=>$('cZone').addEventListener(t,()=>clearTimeout(lpT)));
-$('cZone').addEventListener('click',e=>{if(viewOnly()){toast(PC.SCORING_ELSEWHERE);return;}const b=zoneBtn(e);if(!b)return;if(lpDone){lpDone=false;return;}const z=+b.dataset.z;sideCard=null;
-  if(D.aimEdit){if(!PC.targetOk(D.type,z)){coachMsg($('coach').classList.contains('compact')?PC.CH_AIM_TINY:PC.CH_AIM_SHORT,'warn');return;}D.aim=z;D.aimEdit=false;render();return;}if(typeof clearFoulChips==='function')clearFoulChips();D.loc=D.loc===z?null:z;render();});
+function coachZoneAct(z,aimEdit){const cmp=$('coach').classList.contains('compact');const act=PC.gameZoneAction({aimEdit:!!aimEdit,shook:!!D.shook,called:!!D.parsed,type:D.type,targets:aimSet()},z);
+  if(act.action==='bad_target'){coachMsg(cmp?PC.CH_AIM_TINY:PC.CH_AIM_SHORT,'warn');return;}
+  if(act.action==='need_aim'){coachMsg(cmp?'Aim?':'Tap the aim first','warn');return;}
+  if(act.action==='aim'){D.aim=act.z;D.aimEdit=false;render();coachMsg('✎ Aim → '+act.z);return;}
+  if(typeof clearFoulChips==='function')clearFoulChips();D.loc=D.loc===z?null:z;render();}
+$('cZone').addEventListener('click',e=>{if(viewOnly()){toast(PC.SCORING_ELSEWHERE);return;}const b=zoneBtn(e);if(!b)return;if(lpDone){lpDone=false;return;}sideCard=null;coachZoneAct(+b.dataset.z,D.aimEdit);});
 $('cRes').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;sideCard=null;
   if(b.dataset.r){if(b.dataset.r==='inplay'){D.ip=true;render();return;}recordGame(b.dataset.r);return;}
   if(b.dataset.ip){recordGame('inplay',b.dataset.ip);return;}
   if(b.dataset.ty){D.type=b.dataset.ty;render();return;}
   const x=b.dataset.cx;if(x==='shake')return shakeOff();if(x==='unshake')return cancelShake();if(x==='take')return openTakeover();if(x==='back'){D.ip=false;D.spray=null;render();}else if(x==='aim'){D.aimEdit=!D.aimEdit;render();}else if(x==='undo')undoLast();else if(x==='redo')redoLast();else if(x==='same'&&lastCell)callCell(lastCell.r,lastCell.c);});
-$('cAct').addEventListener('click',e=>{if(viewOnly()){toast(PC.SCORING_ELSEWHERE);return;}const b=e.target.closest('[data-z]');if(!b)return;sideCard=null;if(typeof clearFoulChips==='function')clearFoulChips();D.loc=+b.dataset.z;render();});
+$('cAct').addEventListener('click',e=>{if(viewOnly()){toast(PC.SCORING_ELSEWHERE);return;}const b=e.target.closest('[data-z]');if(!b)return;sideCard=null;coachZoneAct(+b.dataset.z,false);});
 $('cContact').addEventListener('click',e=>{const b=e.target.closest('[data-bb]');if(!b)return;D.bb=D.bb===b.dataset.bb?null:b.dataset.bb;render();});
 $('cSpray').addEventListener('click',e=>{const r=$('cSpray').getBoundingClientRect();D.spray=[+((e.clientX-r.left)/r.width).toFixed(3),+((e.clientY-r.top)/r.height).toFixed(3)];renderCoach();});
 $('cSideUndo').onclick=()=>{sideCard=null;undoLast();};$('cSidePause').onclick=()=>{sideCard=null;pauseGame();};$('cSideOk').onclick=()=>{sideCard=null;render();};

@@ -1,5 +1,12 @@
 # Changelog
 
+## v47 – Coach ring and change-up aim
+### Fixed
+- **Landscape coach zone.** Every ring box is labeled and tappable, including the cell above box 3 (zone 12). Aim and the landing mark show on that cell. A high pitch can be recorded there.
+- **Change-up with no called spot** (CHG, or a high change-up). The first zone tap is the aim, the same as portrait. The next tap is where it went, including a high box, in the dirt, or over the catcher. Stats counts that aim.
+- **A result with no pitch type is not saved.** That pitch was showing up on Stats as "?".
+- Cache: `te-pitch-v47`.
+
 ## v40 – Scoring screen (simpler flow)
 ### Added
 - **One tap starts a scheduled game.** Games that arrived from schedule sync show a Start button. One tap sets the game active, claims this phone as the scorer, and fills an empty lineup with Batter 1–9. The manual start form is still there. Tapping a GameChanger link does not start the game.

@@ -428,6 +428,16 @@ test('scoring lock for sessions: device_id until the scorer column migration is 
   PC.mergeRemote(s,{sessions:[{id:'s1',date:'2026-10-13',device_id:'C',updated_at:'2026-10-14T11:00:00Z'}]});assert.equal(s.sessions[0].scorer,'C');
   PC.mergeRemote(s,{sessions:[{id:'s1',date:'2026-10-13',device_id:'C',scorer:'D',updated_at:'2026-10-14T12:00:00Z'}]});assert.equal(s.sessions[0].scorer,'D');});
 test('rowPitch keeps every valid spot (zone, ring, way off 21-24) and drops junk',()=>{const p=PC.rowPitch({id:'a',mode:'bullpen',targets:[3,11,21,24,10,19,25,0,'x'],loc:22});assert.deepEqual(p.targets,[3,11,21,24]);assert.equal(p.loc,22);assert.equal(PC.rowPitch({id:'b',mode:'bullpen',loc:19}).loc,null);});
+test('game zone tap: a call with no spot aims first; the cell above box 3 is zone 12',()=>{
+  const ch={aimEdit:false,shook:false,called:true,type:'CH',targets:[]};
+  assert.equal(PC.gameZoneAction(ch,12).action,'bad_target');assert.equal(PC.gameZoneAction(ch,3).action,'bad_target');
+  assert.deepEqual(PC.gameZoneAction(ch,8),{action:'aim',z:8});assert.equal(PC.gameZoneAction(ch,31).action,'need_aim');assert.equal(PC.gameZoneAction(ch,21).action,'need_aim');
+  assert.deepEqual(PC.gameZoneAction(Object.assign({},ch,{targets:[8]}),12),{action:'loc',z:12});
+  assert.deepEqual(PC.gameZoneAction({aimEdit:false,shook:false,called:true,type:'FB',targets:[6]},12),{action:'loc',z:12});
+  assert.deepEqual(PC.gameZoneAction({aimEdit:true,shook:false,called:true,type:'FB',targets:[6]},12),{action:'aim',z:12});
+  assert.deepEqual(PC.gameZoneAction({aimEdit:false,shook:true,called:true,type:'CH',targets:[]},8),{action:'loc',z:8});
+  const bare={type:null,targets:[],loc:5};const rep=PC.sessionReport([bare,{type:'CH',targets:[8],loc:31,result:'ball'}]);
+  assert.ok(rep.types['?']);assert.equal(rep.types.CH.stats.called,1);assert.ok(!rep.types.CH.feedback.join(' ').includes('no spot'));});
 test("change-up targets: only 4, 7, 8, 9, 13, 14, 18; high CH calls (CH H+, CH H, CH 2) get no spot and are flagged",()=>{assert.deepEqual(PC.CH_TARGETS,[4,7,8,9,13,14,18]);assert.deepEqual(PC.aimOpts('CH'),[4,7,8,9,13,14,18]);assert.equal(PC.aimOpts('FB').length,17);
   for(const c of ['CH H+','CH H','CH 2','CH15']){const p=PC.parseCall(c,'R','R');assert.equal(p.type,'CH');assert.deepEqual(p.targets,[]);assert.ok(p.chHigh,c);}
   for(const [c,z] of [['CH7',7],['CHG 9',9],['CH L',8],['CH13',13]]){const p=PC.parseCall(c,'R','R');assert.deepEqual(p.targets,[z]);assert.ok(!p.chHigh);}

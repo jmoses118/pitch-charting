@@ -35,6 +35,15 @@ function bullpenTap(d,z){const st=bullpenStep(d);if(st==='type')return{action:'n
   if(st==='target'&&!PC.targetOk(d.type,z))return{action:'bad_target',draft:d};
   if(st==='target')return{action:'target',draft:Object.assign({},d,{target:z})};
   const targets=(d.callTargets&&d.callTargets.length)?d.callTargets.slice():[d.target];return{action:'log',draft:Object.assign({},d,{loc:z}),targets};}
+// Game zone tap. A call that already names a spot: the tap is where it went.
+// A call with no spot (CHG, a high change-up, band not set): the first tap is the aim, same as portrait.
+// Shake-off keeps her aim optional, so a tap is where it went until she sets one with ✎ Aim.
+// aimEdit forces an aim. In dirt / over the catcher / way off are never an aim.
+function gameZoneAction(d,z){z=+z;d=d||{};
+  if(d.aimEdit){if(!PC.targetOk(d.type,z))return{action:'bad_target'};return{action:'aim',z};}
+  const need=!d.shook&&d.called&&!(d.targets&&d.targets.length);
+  if(need){if(PC.isWay(z)||PC.isActualOnly(z))return{action:'need_aim'};if(!PC.canAim(d.type,z))return{action:'bad_target'};return{action:'aim',z};}
+  return{action:'loc',z};}
 // Redo holds undone location taps and pitches. A new logged pitch clears it. Cap is the newest 10.
 const REDO_MAX=10;
 const FOUL_TIMES={early:'Early',ontime:'On time',late:'Late'};
@@ -57,5 +66,5 @@ function editActual(pitch,loc){loc=+loc;if(!pitch||!PC.GRID_XY[loc])return false
 function revertEdit(pitch,snap){if(!pitch||!snap)return false;const was=!!pitch.edited,called=pitch.calledLoc==null?null:pitch.calledLoc;const nextCalled=snap.calledLoc==null?null:snap.calledLoc;
   const same=pitch.loc===snap.loc&&pitch.actualLoc===snap.actualLoc&&called===nextCalled&&was===!!snap.edited;pitch.loc=snap.loc;pitch.actualLoc=snap.actualLoc;
   if(nextCalled==null)delete pitch.calledLoc;else pitch.calledLoc=nextCalled;if(snap.edited)pitch.edited=true;else delete pitch.edited;return !same;}
-Object.assign(PC,{BB_TYPES,BB_NAME,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,bullpenStep,bullpenTap,REDO_MAX,FOUL_TIMES,redoPush,redoPop,redoState,cleanFoul,cleanFlag,cleanVelo,bullpenResult,editActual,revertEdit});
+Object.assign(PC,{BB_TYPES,BB_NAME,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,bullpenStep,bullpenTap,gameZoneAction,REDO_MAX,FOUL_TIMES,redoPush,redoPop,redoState,cleanFoul,cleanFlag,cleanVelo,bullpenResult,editActual,revertEdit});
 })(typeof window!=='undefined'?window:globalThis);

@@ -64,6 +64,20 @@ for(const [W,H,MIN,ZMIN,RESW] of [[844,390,48,48,48],[667,375,44,34,46]]){const 
   await p.click('#cRes [data-ip="1B"]');await wait();{const r=(await G()).pitches.at(-1);ok(r.result==='inplay'&&r.ip==='1B'&&Array.isArray(r.spray)&&r.loc===2,`${tag}: in-play outcome logs with spray ${JSON.stringify(r.spray)}`);}
   // ---- Undo ----
   {const n=(await G()).pitches.length;await p.click('#cRes [data-cx="undo"]');await wait();ok((await G()).pitches.length===n-1,`${tag}: always-visible Undo removes the last pitch`);}
+  // ---- ring labels + change-up aim (a call with no spot) ----
+  ok(await ev(()=>{const b=[...document.querySelectorAll('#cZone button')];const t=b.map(e=>e.querySelector('span').textContent);return b.length===25&&b.every((e,i)=>e.getAttribute('aria-hidden')!=='true'&&e.tabIndex>=0&&t[i]===e.dataset.z)&&t.slice(0,5).join(',')==='11,11,15,12,12';}),`${tag}: every ring cell is labeled, including 12 above box 3`);
+  await p.click('#cBand button[data-r="1"][data-c="7"]');await wait();
+  ok(/Tap the aim|Aim\?/.test(await p.textContent('#cxHint')),`${tag}: change-up with no spot asks for the aim`);
+  await ev(()=>document.querySelectorAll('#cZone button')[3].click());await wait();
+  ok(await ev(()=>D.aim==null&&D.loc==null&&/aim low|CH: aim low/i.test(document.getElementById('cxHint').textContent)),`${tag}: change-up cannot aim above box 3`);
+  await p.click('#cZone button[data-z="8"]');await wait();
+  ok(await ev(()=>D.aim===8&&D.loc==null&&!!document.querySelector('#cZone .aim[data-z="8"]')),`${tag}: first legal tap is the change-up aim, not the landing`);
+  await ev(()=>document.querySelectorAll('#cZone button')[3].click());await wait();
+  ok(await ev(()=>{const b=[...document.querySelectorAll('#cZone button')];return D.loc===12&&D.aim===8&&b[3].classList.contains('act')&&b[4].classList.contains('act')&&b[3].getAttribute('aria-label').includes('Zone 12');}),`${tag}: landing on 12 marks the cell above box 3`);
+  await p.click('#cAct [data-z="31"]');await wait();await p.click('#cRes [data-r="ball"]');await wait();
+  {const r=(await G()).pitches.at(-1);ok(r&&r.type==='CH'&&JSON.stringify(r.targets)==='[8]'&&r.loc===31&&r.calledLoc===8,`${tag}: change-up aim 8 is saved when it finishes in the dirt`);}
+  {const n=(await G()).pitches.length;await ev(()=>{resetDraft();render();});ok(await ev(()=>[...document.querySelectorAll('#cRes [data-r]')].every(b=>b.disabled)),`${tag}: results stay disabled until a pitch is called`);await ev(()=>recordGame('ball'));ok((await G()).pitches.length===n,`${tag}: a result with no pitch type is not logged`);}
+  {const txt=await ev(()=>{tab='stats';render();document.getElementById('sScope').value='all';render();const t=document.getElementById('sTypes').textContent;tab='game';render();return t;});ok(/Change-up/.test(txt)&&/of 1 aimed/.test(txt)&&!/no spot aimed/.test(txt)&&!/\?\s+\d+ thrown/.test(txt),`${tag}: Stats reads the change-up aim and has no ? pitch`+( /Change-up/.test(txt)?'':' → '+JSON.stringify(txt).slice(0,220)));}
   // ---- band setup (menu) ----
   await p.click('#cxMenu');await wait(250);
   ok(await inView('#cMenuDlg .cmenu-g button')&&await inView('#cMenuDlg button[value=cancel]'),`${tag}: game menu fits, Cancel on screen`);
