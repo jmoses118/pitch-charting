@@ -47,9 +47,9 @@ function render(skipCallInput){const s=S();applyViewOnly(viewOnly());if(typeof r
   const needTarget=callOn&&D.parsed&&!D.parsed.targets.length&&!D.target;
   renderSteps(needTarget);
   const called=typeof calledLocNow==='function'?calledLocNow(D.loc):null;
-  $('phase').innerHTML=needTarget?'Tap the <b>called target</b> on the grid':(tab==='bullpen'?bpPhase():`Tap where it <b>actually</b> went${called!=null?` · called ${called}`:''}${D.loc?` → <b>${D.type||''} ${locTxt(D.loc)}</b> (${PC.locInfo(D.loc,hand,throwsOf()).label})`:''}, then the result`);
+  $('phase').innerHTML=needTarget?'Tap the <b>called target</b> on the grid':(tab==='bullpen'?bpPhase():`Tap where it went, then the result${called!=null?` · called ${called}`:''}`);
   $('resBtns').classList.toggle('hide',!!D.ip);$('ipBtns').classList.toggle('hide',!D.ip);
-  $('undo').textContent=D.loc?'Undo location':tab==='bullpen'&&(D.type||D.target||D.callTxt)?'Undo step':'Undo';
+  $('undo').textContent=D.loc?'Undo location':(editUndo?'Undo edit':tab==='bullpen'&&(D.type||D.target||D.callTxt)?'Undo step':'Undo');
   $('redo').disabled=!redoStack.length;$('pRedo').disabled=!redoStack.length;
   const sheet=tab==='game'&&!!(D.sheet||D.ip);$('resSheet').classList.toggle('hide',!sheet);$('resTog').classList.toggle('hide',tab!=='game');
   $('resHead').textContent=D.ip?'Ball in play':D.loc?`Result · ${D.type?D.type+' ':''}${locTxt(D.loc)}`:'Result';

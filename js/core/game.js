@@ -53,5 +53,9 @@ function editActual(pitch,loc){loc=+loc;if(!pitch||!PC.GRID_XY[loc])return false
   const targets=Array.isArray(pitch.targets)?pitch.targets:[];let calledMoved=false;
   if(targets.length>1){const next=PC.nearestTarget(targets,loc);if(next!=null&&next!==pitch.calledLoc){pitch.calledLoc=next;calledMoved=true;}}
   if(!same||calledMoved)pitch.edited=true;return true;}
-Object.assign(PC,{BB_TYPES,BB_NAME,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,bullpenStep,bullpenTap,REDO_MAX,FOUL_TIMES,redoPush,redoPop,redoState,cleanFoul,cleanFlag,cleanVelo,bullpenResult,editActual});
+// Put a corrected pitch back to the spot it had before the edit. Returns false when nothing changed.
+function revertEdit(pitch,snap){if(!pitch||!snap)return false;const was=!!pitch.edited,called=pitch.calledLoc==null?null:pitch.calledLoc;const nextCalled=snap.calledLoc==null?null:snap.calledLoc;
+  const same=pitch.loc===snap.loc&&pitch.actualLoc===snap.actualLoc&&called===nextCalled&&was===!!snap.edited;pitch.loc=snap.loc;pitch.actualLoc=snap.actualLoc;
+  if(nextCalled==null)delete pitch.calledLoc;else pitch.calledLoc=nextCalled;if(snap.edited)pitch.edited=true;else delete pitch.edited;return !same;}
+Object.assign(PC,{BB_TYPES,BB_NAME,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,bullpenStep,bullpenTap,REDO_MAX,FOUL_TIMES,redoPush,redoPop,redoState,cleanFoul,cleanFlag,cleanVelo,bullpenResult,editActual,revertEdit});
 })(typeof window!=='undefined'?window:globalThis);

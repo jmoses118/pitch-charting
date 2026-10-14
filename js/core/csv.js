@@ -4,7 +4,7 @@
 'use strict';
 const PC=root.PC=root.PC||{};
 // ---------- CSV ----------
-const CSV_COLS=['mode','game_id','date','opponent','event','home_away','session','pitcher','pitcher_num','throws','inning','outs_before','lineup_slot','batter','batter_num','bats','balls_before','strikes_before','pitch_no','pitcher_pitch_no','call','call_target','type','location','location_desc','result','in_play','strike','hit_spot','ab_end','ts','called_location','actual_location','foul_time','wp_pb','velocity','called_type','shook','edited'];
+const CSV_COLS=['mode','game_id','date','opponent','event','home_away','session','pitcher','pitcher_num','throws','inning','outs_before','lineup_slot','batter','batter_num','bats','balls_before','strikes_before','pitch_no','pitcher_pitch_no','call','call_target','type','location','location_desc','result','in_play','strike','hit_spot','ab_end','ts','called_location','actual_location','foul_time','wp_pb','velocity','called_type','shook','from_video'];
 const esc=v=>{v=v==null?'':String(v);return/[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
 function toCSV(rows){return[CSV_COLS.join(',')].concat(rows.map(r=>CSV_COLS.map(c=>esc(r[c])).join(','))).join('\n');}
 // One pitcher's pitches on one date. Name is the first name stored on the pitcher; number breaks a shared first name.
@@ -19,9 +19,10 @@ function parseCSV(txt){const rows=[];let row=[],f='',q=false;for(let i=0;i<txt.l
 function calledTypeOf(p){if(!p)return '';if(p.calledType)return String(p.calledType);
   if(p.call&&typeof PC.parseCall==='function'){const parsed=PC.parseCall(p.call,p.hand||'R','R',[]);if(parsed&&parsed.type)return parsed.type;}
   if(!p.shook&&p.type)return String(p.type);return '';}
-function csvChart(p){p=p||{};return{called_location:p.calledLoc!=null?p.calledLoc:'',actual_location:p.actualLoc!=null?p.actualLoc:(p.loc!=null?p.loc:''),foul_time:p.foulTime||'',wp_pb:p.wpPb||'',velocity:p.velo!=null&&p.velo!==''?p.velo:'',called_type:calledTypeOf(p),shook:p.shook?1:'',edited:p.edited?1:''};}
-// Re-import: called_type sets calledType; 1 / true / yes sets shook and edited. Empty or 0 leaves them unset so an old file still imports.
-function csvApply(base,r){base=base||{};if(r&&r.called_type)base.calledType=String(r.called_type).trim();if(r&&/^(1|true|yes)$/i.test(String(r.shook||'').trim()))base.shook=true;if(r&&/^(1|true|yes)$/i.test(String(r.edited||'').trim()))base.edited=true;return base;}
+function csvChart(p){p=p||{};return{called_location:p.calledLoc!=null?p.calledLoc:'',actual_location:p.actualLoc!=null?p.actualLoc:(p.loc!=null?p.loc:''),foul_time:p.foulTime||'',wp_pb:p.wpPb||'',velocity:p.velo!=null&&p.velo!==''?p.velo:'',called_type:calledTypeOf(p),shook:p.shook?1:'',from_video:p.edited?1:''};}
+// Re-import: called_type sets calledType; 1 / true / yes sets shook. from_video does the same for a corrected pitch. An older file's edited column still counts. Empty or 0 leaves them unset.
+function csvFlag(v){return /^(1|true|yes)$/i.test(String(v==null?'':v).trim());}
+function csvApply(base,r){base=base||{};if(r&&r.called_type)base.calledType=String(r.called_type).trim();if(r&&csvFlag(r.shook))base.shook=true;if(r&&(csvFlag(r.from_video)||csvFlag(r.edited)))base.edited=true;return base;}
 function csvToken(s){return String(s||'').replace(/[^A-Za-z0-9]+/g,'-').replace(/^-+|-+$/g,'');}
 // File name: first name and jersey only. The rest of the roster text never lands in the name.
 function csvPitcherFile(pitcher,date){const raw=pitcher&&pitcher.name;const first=typeof PC.firstName==='function'?PC.firstName(raw):String(raw||'').trim().split(/\s+/)[0];

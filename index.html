@@ -114,12 +114,12 @@
    <div class="grid2" id="callAlt" style="margin-top:6px"></div><div class="mut" id="callDesc" style="margin-top:6px"></div>
   </div>
  </div>
- <div class="card"><div class="lbl" id="logTitle">Log</div><div class="log" id="log"></div></div>
+ <div class="card"><div class="lbl" id="logTitle">Log</div><div class="mut" id="logHint">Tap a pitch to fix where it went</div><div class="log" id="log"></div></div>
 </section>
 <!-- STATS -->
 <section id="tab-stats" class="hide">
  <div class="card"><div class="row"><select id="sScope"></select></div><div class="row" style="margin-top:6px"><select id="sPitcher"></select></div><button id="sReport" class="hide" class="primary" style="width:100%;margin-top:8px">Session report</button></div>
- <div class="card hide" id="pitchListCard"><div class="lbl">Pitches</div><div class="mut" id="pitchListNote">Tap a pitch to correct where it went.</div><div class="log" id="pitchList"></div></div>
+ <div class="card hide" id="pitchListCard"><div class="lbl">Pitches</div><div class="mut" id="pitchListNote">Tap a pitch to fix where it went</div><div class="log" id="pitchList"></div></div>
  <div class="card" id="heatCard"><div class="row sp"><div class="lbl" style="margin:0">Zone heat map</div><div class="row" role="group" aria-label="Heat map view"><button id="hvI" aria-pressed="true" aria-label="Miss by intended target">Miss</button><button id="hvA" aria-pressed="false" aria-label="Where pitches landed">Landed</button></div></div>
   <div class="row wrap" id="hfChips" style="margin:8px 0;gap:6px" aria-live="polite"></div>
   <div class="row"><button id="hfOpen" style="flex:1">Filters</button><button id="hfReset">Reset</button></div>
@@ -177,7 +177,7 @@
   <div class="lbl" style="margin-top:10px">Pitching coach</div><div class="mut" style="font-size:12px">Sees full data for the pitchers you pick, scores their bullpens and adds notes. No call sheets, setup, codes or other pitchers.</div>
   <div id="ncPcList" class="row wrap" style="gap:8px;margin-top:6px"></div><div class="row" style="margin-top:6px"><input id="ncPcName" placeholder="Coach name (label)" style="flex:1"><button id="ncPcoach">New pitching-coach code</button></div></div></details>
  <details class="card disc" id="pCard" open><summary>Pitchers</summary><div class="discbody"><div id="pList"></div><button id="addP" style="width:100%;margin-top:6px">+ Add pitcher</button>
-  <details style="margin-top:8px"><summary class="mut">Archived</summary><div id="pArch"></div></details></div></details>
+  <details class="arch"><summary>Archived</summary><div id="pArch"></div></details></div></details>
  <details class="card disc" id="rosterCard"><summary>Team roster</summary><div class="discbody"><div id="roster"></div><button id="addR" style="width:100%">+ Add player</button></div></details>
  <details class="card disc"><summary>Custom pitch types</summary><div class="discbody"><div id="cTypes" class="mut"></div><div class="row" style="margin-top:6px"><input id="ctCode" placeholder="Code (e.g. SL)" style="width:110px"><input id="ctName" placeholder="Name" style="flex:1"><button id="ctAdd">Add</button></div></div></details>
  <details class="card disc"><summary>Data &amp; backup</summary><div class="discbody"><div class="grid2">
@@ -229,8 +229,8 @@
  <div class="row dlgfoot"><button value="cancel" formnovalidate class="ghost" style="flex:1">Cancel</button><button value="ok" class="success" style="flex:2">✓ Save band</button></div></form></dialog>
 <nav aria-label="Sections"><button data-t="game" class="on"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M7.6 5.2c1.6 2 2.4 4.3 2.4 6.8s-.8 4.8-2.4 6.8M16.4 5.2c-1.6 2-2.4 4.3-2.4 6.8s.8 4.8 2.4 6.8"/></svg><span>Game</span></button><button data-t="bullpen"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8"/></svg><span>Bullpen</span></button><button data-t="stats"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg><span>Stats</span></button><button data-t="setup"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span>Setup</span></button></nav>
 <dialog id="editDlg" class="sheet" aria-labelledby="editT"><form method="dialog">
- <div class="lbl" id="editT">Edit pitch</div>
- <p class="mut" id="editSub"></p>
+ <div class="lbl" id="editT">Fix location (from video)</div>
+ <p class="mut" id="editSub">Aim and result stay the same.</p>
  <div class="editscroll">
   <svg id="editZone" viewBox="-14 -6 128 138" role="img" aria-label="Actual location"></svg>
   <div id="editWay" class="way4"><button type="button" data-z="21">Way high</button><button type="button" data-z="22">Way low</button><button type="button" data-z="23">Way left</button><button type="button" data-z="24">Way right</button></div>

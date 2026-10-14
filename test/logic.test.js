@@ -507,7 +507,7 @@ test('CSV export per pitcher per date, with called and actual location columns',
   const hit=PC.filterPitcherDate(rows,{pitcher:'Avery',num:'45',date:'2026-10-14'});
   assert.equal(hit.length,1);assert.equal(hit[0].actual_location,31);
   assert.equal(PC.filterPitcherDate(rows,{}).length,4);
-  assert.ok(PC.toCSV(hit).includes('called_location'));assert.ok(PC.toCSV(hit).split('\n')[0].endsWith('edited'));
+  assert.ok(PC.toCSV(hit).includes('called_location'));assert.ok(PC.toCSV(hit).split('\n')[0].endsWith('from_video'));
   assert.ok(PC.toCSV(hit).split('\n')[0].includes('shook'));assert.ok(PC.toCSV(hit).split('\n')[0].includes('called_type'));
 });
 test('called location is the target nearest the actual spot',()=>{
@@ -602,9 +602,19 @@ test('edited flag syncs on the pitch row and round-trips in CSV without a new co
   const back=PC.rowPitch(row);assert.equal(back.edited,true);assert.equal(back.shook,true);assert.equal(back.callRaw,'CH 8');assert.equal(back.loc,31);
   assert.equal(PC.rowPitch({id:'x',call_raw:'FB 3',shook:false}).edited,false);
   const chart=PC.csvChart({type:'FB',call:'CH8',shook:true,edited:true,loc:31,actualLoc:31,calledLoc:8,hand:'R'});
-  assert.equal(chart.edited,1);assert.equal(chart.shook,1);assert.equal(chart.actual_location,31);
+  assert.equal(chart.from_video,1);assert.equal(chart.edited,undefined);assert.equal(chart.shook,1);assert.equal(chart.actual_location,31);
   const csv=PC.toCSV([Object.assign({mode:'game',pitcher:'Avery',location:31},chart)]);
-  assert.ok(csv.split('\n')[0].endsWith('edited'));
+  assert.ok(csv.split('\n')[0].endsWith('from_video'));assert.equal(csv.split('\n')[0].includes(',edited'),false);
   const applied=PC.csvApply({},PC.parseCSV(csv)[0]);assert.equal(applied.edited,true);assert.equal(applied.shook,true);
-  assert.equal(PC.csvApply({},{edited:'0'}).edited,undefined);assert.equal(PC.csvApply({},{edited:'yes'}).edited,true);
+  assert.equal(PC.csvApply({},{from_video:'0'}).edited,undefined);assert.equal(PC.csvApply({},{from_video:'yes'}).edited,true);
+  assert.equal(PC.csvApply({},{edited:'yes'}).edited,true);assert.equal(PC.csvApply({},{edited:'1',from_video:'0'}).edited,true);
+});
+test('undo of a location edit restores the spot and leaves later pitches',()=>{
+  const later={id:'b',loc:8,actualLoc:8,calledLoc:8,result:'called'};
+  const p={id:'a',loc:5,actualLoc:5,calledLoc:14,targets:[11,14],result:'ball'};
+  const snap={loc:p.loc,actualLoc:p.actualLoc,calledLoc:p.calledLoc,edited:!!p.edited};
+  assert.equal(PC.editActual(p,1),true);assert.equal(p.loc,1);assert.equal(p.calledLoc,11);assert.equal(p.edited,true);
+  assert.equal(PC.revertEdit(p,snap),true);
+  assert.equal(p.loc,5);assert.equal(p.actualLoc,5);assert.equal(p.calledLoc,14);assert.equal(p.edited,undefined);
+  assert.equal(later.loc,8);assert.equal(PC.revertEdit(p,snap),false);
 });

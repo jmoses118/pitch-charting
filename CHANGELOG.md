@@ -37,16 +37,19 @@
 ### Edit pitch
 - **Tap a pitch in the list** (the game or bullpen log, the recent list, or Stats → Pitches after the game) to correct its **actual** location. The sheet is the full grid: zone, the ring, way off, In dirt, and Over catcher. Save writes that pitch. Cancel, Escape, and the backdrop write nothing.
 - Later pitches stay. The count and the result stay. Miss scoring follows the corrected spot (`loc` and `actualLoc`). When that call named more than one target, the called box becomes the target nearest the new spot (`PC.nearestTarget`), so CSV `called_location` matches. One target, or none, leaves the called box as it was. A distance tie keeps the earlier target.
-- The pitch is marked **edited**. The list shows “from video”. CSV appends an `edited` column (`1` or empty). An older file without that column still imports.
+- The pitch is marked **edited**. The list shows “from video”. CSV writes `from_video` (`1` or empty) and still imports an older `edited` column.
 - Only the scoring phone can save, including after the game. A view-only phone cannot.
 - The correction syncs with the pitch (`loc`, plus an invisible mark on `call_raw` so the flag comes back). No new database column.
 - Stats → Pitches lists the pitches only when one game or one session is selected, so Everything still shows the heat map.
 - On a short phone the log sits above the location row, so each pitch stays tappable.
+- **Undo after a correction** puts that pitch back. It does not delete the latest pitch. The "Location updated" toast has Undo for about 5 seconds. Logging a new pitch makes Undo remove that pitch again.
+- The sheet is titled **Fix location (from video)**. The log says "Tap a pitch to fix where it went" and marks each row with ✎. Stats rows show aim → actual. CSV calls the flag `from_video` and still reads an older `edited` column.
+- On a short phone the fix-location sheet keeps Way off and In dirt above Save. Coach foul-timing chips sit under the wristband, clear of the count. Portrait pitch-type chips are 48px, the entry line wraps, and Archived is a full-height row. Cache: `te-pitch-v46`.
 ### Go live
 - `chartColumn: true` and `shakeColumn: true` are set in `config.js`. `scorerColumn` was already on. Apply these two files to production before merge, in this order:
   1. `supabase/migrations/20261014140000_shake_off.sql` (`pitches.shook`)
   2. `supabase/migrations/20261014180000_scoring_chart.sql` (`called_loc`, `actual_loc`, `foul_time`, `wp_pb`, `velo`)
-- `20261014120000_scoring_lock.sql` is already applied. Cache: `te-pitch-v45`.
+- `20261014120000_scoring_lock.sql` is already applied. Cache: `te-pitch-v46`.
 
 ## v39 – Code Reviewer fixes
 ### Fixed

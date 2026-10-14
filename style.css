@@ -222,7 +222,7 @@ body.entrymode .count small{font-size:10px;display:inline;margin-right:4px}
 .stepline .steps li{padding-top:2px;border-top-width:2px;font-size:11px;letter-spacing:0;white-space:nowrap;overflow:visible;text-overflow:clip}
 button.mini{min-height:32px;padding:0 var(--s3);font-size:var(--fs-xs);font-weight:700;border-radius:var(--r-pill)}
 button.mini[aria-expanded="true"]{background:var(--c-royal);color:#fff}
-.entrybar .phase{padding:2px 0 0;margin:0;background:none;font-size:var(--fs-xs);color:var(--c-text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.entrybar .phase{padding:2px 0 0;margin:0;background:none;font-size:var(--fs-xs);color:var(--c-text-2);white-space:normal;overflow:visible;text-overflow:clip}
 body.entrymode #zone{max-width:none}
 button.zchip{position:absolute;z-index:2;min-height:32px;padding:0 var(--s2);border-radius:var(--r-pill);font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--c-surface-2);border-color:var(--c-line-strong)}
 .seg3{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:var(--s2)}.seg3 button{min-height:var(--tap-lg);font-weight:700}.seg3 button.sel{background:var(--c-royal);border-color:var(--c-royal-text);color:#fff}
@@ -242,7 +242,7 @@ body.entrymode .count{gap:var(--s1)}
 body.entrymode .count>div{display:flex;align-items:baseline;justify-content:center;gap:4px;white-space:nowrap;min-height:28px;align-items:center;font-size:var(--fs-sm)}
 body.entrymode .count small{margin:0;font-size:9px}
 body.entrymode .count .dots span{width:9px;height:9px}
-@media (max-height:720px){body.entrymode .entrybar .phase{display:none}body.entrymode .stepline{margin-top:2px}body.entrymode button.mini{min-height:28px}body.entrymode #wayBtns button,body.entrymode #actBtns button{min-height:48px;height:auto}body.entrymode #types.chips button{min-height:42px;height:42px}body.entrymode .pickrow select,body.entrymode .pickrow button.icon{min-height:36px}body.entrymode .count>div{min-height:24px}}
+@media (max-height:720px){body.entrymode header{padding-top:2px;padding-bottom:0}body.entrymode .topbar{margin-bottom:0}body.entrymode .entrybar{padding-top:2px;padding-bottom:0}body.entrymode .stepline{margin-top:0;gap:2px}body.entrymode .entrybar .phase{padding:0;line-height:1.2}body.entrymode button.mini{min-height:28px}body.entrymode #wayBtns button,body.entrymode #actBtns button{min-height:48px;height:auto}body.entrymode #types.chips button{min-height:48px;height:48px}body.entrymode .pickrow select,body.entrymode .pickrow button.icon{min-height:36px}body.entrymode .count>div{min-height:22px;padding-top:0;padding-bottom:0}}
 /* v36: the pitcher name never truncates – the picker sizes to its content and the counts wrap instead */
 .pickrow select{flex:1 0 auto}
 body:not(.entrymode) #wlMini{display:none}
@@ -337,7 +337,7 @@ body.padmode main{padding-bottom:calc(var(--pad-h,0px) + 12px)}
 .coach.compact .cs-hint{font-size:10px}
 .coach.compact .cmenu{width:44px;padding:0;font-size:20px}
 #wayBtns button{min-height:48px}body.padmode .bpad #wayBtns button,body.padmode #wayBtns button{min-height:48px}
-@media (max-height:720px){body.padmode .bpad{padding-top:4px;padding-bottom:4px}body.padmode #wayBtns button,body.padmode #actBtns button{min-height:48px;height:auto;font-size:11px;line-height:1.05}}
+@media (max-height:720px){body.padmode .bpad{padding:2px 8px 2px;row-gap:2px}body.padmode .padact{margin-top:2px}body.padmode #wayBtns button,body.padmode #actBtns button{min-height:48px;height:auto;font-size:11px;line-height:1.05}}
 .bpad #types.chips{flex-wrap:nowrap;overflow-x:auto}.bpad #types.chips button{flex:1 0 auto;min-width:44px;padding-left:6px;padding-right:6px}
 body.padmode #flash{top:56px;font-size:16px;padding:8px 16px;transform:translate(-50%,0) scale(.92)}body.padmode #flash.on{transform:translate(-50%,0) scale(1)}
 body.padmode #locRow{display:none}
@@ -351,7 +351,7 @@ body.padmode #locRow{display:none}
 .rejlist{display:grid;gap:10px}.rejrow{border-top:1px solid var(--c-line);padding-top:8px;display:grid;gap:4px}.rejerr{font-size:12px;word-break:break-word}.rejseg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.rejseg button{font-weight:700}.rejseg button.on{background:var(--c-royal);color:#fff;border-color:var(--c-royal)}.rejseg button[data-act=discard].on{background:var(--c-danger);border-color:var(--c-danger)}
 .rejwhy{font-size:13px;line-height:1.35}
 #undoToast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:10000;display:none;align-items:center;gap:12px;background:#1C1C1C;color:#fff;border-radius:12px;padding:6px 6px 6px 14px;font-weight:700;box-shadow:var(--shadow-2);max-width:92vw}
-#undoToast.on{display:flex}#undoToast button{min-height:44px;background:transparent;color:#9DB2FF;border:1.5px solid #9DB2FF;font-weight:800}
+#undoToast.on{display:flex}#undoToast button{min-height:48px;background:transparent;color:#9DB2FF;border:1.5px solid #9DB2FF;font-weight:800}
 .bandnote{font-size:12px;margin-top:2px}.bandrow.bandbad{border-left:4px solid #E0A100;padding-left:8px}.bandwas{font-size:12px;font-weight:700;color:var(--c-text);margin-top:2px}
 .cs-foot .cmenu{flex-shrink:0}
 
@@ -437,16 +437,20 @@ body.viewonly #foulChips,body.viewonly #cSlot{display:none!important}
 .plist,.rrow{width:100%;min-height:48px;margin:0;text-align:left;font-weight:600;font-size:var(--fs-sm);line-height:1.25;background:transparent;border:0;border-radius:0;border-bottom:1px solid var(--c-line);color:inherit;white-space:normal}
 .plist{display:flex;align-items:center;gap:8px;padding:6px 0}
 .plist .n{flex:none;width:26px;color:var(--c-text-3)}
+.pedit{flex:none;color:var(--c-text-2);font-size:16px;font-weight:700;line-height:1}
+.plist-aim{display:inline;color:var(--c-text-2);font-weight:650}
 .plist-main{flex:1 1 auto;min-width:0}
 .plist-res{flex:0 1 auto;text-align:right}
 .rrow{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:var(--s3);align-items:center;padding:4px 0}
 .recent .badge{width:30px;height:30px;display:block}
 .fromvid{display:inline;color:var(--c-text-2);font-size:12px;font-weight:650}
 html[data-theme="field"] .plist,html[data-theme="field"] .rrow{border-width:0 0 1px;background:transparent}
-#editDlg[open]{display:flex;flex-direction:column;overflow:hidden;max-height:min(92vh,100dvh)}
+#editDlg[open]{display:flex;flex-direction:column;overflow:hidden;max-height:min(92dvh,100dvh)}
 #editDlg form{display:flex;flex-direction:column;flex:1;min-height:0;margin:0}
 #editDlg .editscroll{overflow:auto;flex:1;min-height:0}
-#editZone{width:100%;height:auto;display:block;touch-action:manipulation}
+#editZone{display:block;width:min(100%,334px);height:auto;aspect-ratio:128/138;margin:0 auto;touch-action:manipulation}
 #editWay button,#editAct button,#editDlg .dlgfoot button{min-height:48px}
-#editDlg .dlgfoot{flex:none}
+#editDlg .dlgfoot{position:static;flex:none;background:transparent}
 #editDlg .dlgfoot button{flex:1}
+@media (max-height:720px){#editZone{width:258px;height:318px;aspect-ratio:128/158;max-width:100%}}
+details.arch{margin-top:8px}details.arch>summary{min-height:48px;display:flex;align-items:center;font-weight:700;font-size:var(--fs-md);cursor:pointer}
