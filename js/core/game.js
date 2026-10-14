@@ -67,5 +67,10 @@ function editActual(pitch,loc){loc=+loc;if(!pitch||!PC.GRID_XY[loc])return false
 function revertEdit(pitch,snap){if(!pitch||!snap)return false;const was=!!pitch.edited,called=pitch.calledLoc==null?null:pitch.calledLoc;const nextCalled=snap.calledLoc==null?null:snap.calledLoc;
   const same=pitch.loc===snap.loc&&pitch.actualLoc===snap.actualLoc&&called===nextCalled&&was===!!snap.edited;pitch.loc=snap.loc;pitch.actualLoc=snap.actualLoc;
   if(nextCalled==null)delete pitch.calledLoc;else pitch.calledLoc=nextCalled;if(snap.edited)pitch.edited=true;else delete pitch.edited;return !same;}
-Object.assign(PC,{BB_TYPES,BB_NAME,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,bullpenStep,bullpenTap,gameZoneAction,REDO_MAX,FOUL_TIMES,redoPush,redoPop,redoState,cleanFoul,cleanFlag,cleanVelo,bullpenResult,editActual,revertEdit});
+// End of an at-bat and the batter menu both start a fresh count. Manual outs and Next inning
+// zero the count a different way and do not use these: they do not advance the batter.
+function freshAb(cur){cur.b=0;cur.s=0;cur.hand=null;cur.abn=(+cur.abn||0)+1;return cur;}
+function nextBatter(cur,lineupLen){freshAb(cur);const n=Math.max(1,lineupLen||1);cur.slot=((+cur.slot||0)+1)%n;return cur;}
+function retireSide(cur){cur.outs=0;cur.inning=(+cur.inning||1)+1;return cur;}
+Object.assign(PC,{BB_TYPES,BB_NAME,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,freshAb,nextBatter,retireSide,bullpenStep,bullpenTap,gameZoneAction,REDO_MAX,FOUL_TIMES,redoPush,redoPop,redoState,cleanFoul,cleanFlag,cleanVelo,bullpenResult,editActual,revertEdit});
 })(typeof window!=='undefined'?window:globalThis);

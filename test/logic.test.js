@@ -188,6 +188,27 @@ test('game logic: no pitch after the at-bat ends; K-D3 thrown out; foul tip; dou
   o=PC.applyPitch({b:0,s:1},'foultip');assert.equal(o.s,2);assert.equal(o.end,null);o=PC.applyPitch({b:2,s:2},'foultip');assert.equal(o.end,'K');assert.equal(o.outs,1);assert.ok(PC.isStrike('foultip'));
   o=PC.applyPitch({b:0,s:0},'inplay','DP');assert.equal(o.outs,2);assert.equal(o.end,'DP');
   const s=PC.summarize([{result:'kd3out',end:'K'},{result:'foultip',end:'K'},{result:'kd3',end:'K-D3'}]);assert.equal(s.k,3);assert.equal(s.strikes,3);});
+test('nextBatter, freshAb, and retireSide match the end-of-at-bat and batter-menu arithmetic',()=>{
+  const c={b:2,s:1,hand:'L',abn:4,slot:2,outs:1,inning:3};
+  PC.nextBatter(c,9);
+  assert.equal(c.b,0);assert.equal(c.s,0);assert.equal(c.hand,null);assert.equal(c.abn,5);assert.equal(c.slot,3);
+  assert.equal(c.outs,1);assert.equal(c.inning,3,'advancing the batter does not retire the side');
+  const last={b:1,s:2,hand:'R',abn:0,slot:8,outs:2,inning:1};
+  PC.nextBatter(last,9);assert.equal(last.slot,0);assert.equal(last.abn,1);assert.equal(last.hand,null);
+  const wrap={b:0,s:0,hand:'L',abn:2,slot:0,outs:0,inning:1};
+  PC.nextBatter(wrap,1);assert.equal(wrap.slot,0);assert.equal(wrap.abn,3);
+  const empty={slot:4,b:3,s:1,abn:1,hand:'R',outs:0,inning:2};
+  PC.nextBatter(empty,0);assert.equal(empty.slot,0);
+  const menu={b:3,s:2,hand:'R',abn:7,slot:1,outs:2,inning:4};
+  menu.slot=5;PC.freshAb(menu);
+  assert.equal(menu.slot,5,'the batter menu sets the slot, then starts a fresh at-bat');
+  assert.equal(menu.b,0);assert.equal(menu.s,0);assert.equal(menu.hand,null);assert.equal(menu.abn,8);
+  assert.equal(menu.outs,2);assert.equal(menu.inning,4);
+  const side={outs:3,inning:6,b:1,s:1,slot:2,abn:3,hand:'L'};
+  PC.retireSide(side);
+  assert.equal(side.outs,0);assert.equal(side.inning,7);
+  assert.equal(side.b,1);assert.equal(side.s,1);assert.equal(side.slot,2);assert.equal(side.hand,'L');
+});
 test('new pitcher requires a throwing hand',()=>{const st=PC.makeStore(mem());assert.throws(()=>st.addPitcher({name:'X'}));assert.throws(()=>st.addPitcher({name:'X',throws:''}));assert.equal(st.addPitcher({name:'X',throws:'L'}).throws,'L');});
 test('missData per-cell on-target count never exceeds pitches aimed there',()=>{const P=[[3,3],[3,2],[3,9],[3,5],[7,7]].map(([t,l])=>({p:{targets:[t],loc:l}}));const d=PC.missData(P,{});assert.equal(d.cells[3].n,4);assert.equal(d.cells[3].good,2);assert.equal(d.cells[7].good,1);for(const z in d.cells)assert.ok((d.cells[z].good||0)<=d.cells[z].n);});
 test('change-up rule: CH landing in top/middle row is a miss even on target; bottom row normal',()=>{
