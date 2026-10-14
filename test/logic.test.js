@@ -448,6 +448,14 @@ test("change-up targets: only 4, 7, 8, 9, 13, 14, 18; high CH calls (CH H+, CH H
 test('hitSpot uses pitchMiss: Stats Spot% and the report agree, a CH up never counts as a hit',()=>{assert.equal(PC.hitSpot({type:'CH',targets:[2],loc:2}),false);assert.equal(PC.hitSpot({type:'FB',targets:[11],loc:11}),true);assert.equal(PC.hitSpot({type:'FB',targets:[],loc:5}),false);
   const P=[{type:'CH',targets:[2],loc:2},{type:'FB',targets:[4],loc:4},{type:'CH',targets:[8],loc:8}];assert.equal(PC.summarize(P).spot,PC.sessionReport(P).hits);});
 test('localDate: 9:30 PM ET stays on the same day (UTC would roll to tomorrow)',()=>{const old=process.env.TZ;process.env.TZ='America/New_York';try{const ts=Date.parse('2026-10-16T21:30:00-04:00');assert.equal(PC.localDate(ts),'2026-10-16');assert.notEqual(new Date(ts).toISOString().slice(0,10),'2026-10-16');}finally{process.env.TZ=old;}});
+test('lastOuting uses the local calendar date when the game has none',()=>{const old=process.env.TZ;process.env.TZ='America/New_York';try{
+  const ts=Date.parse('2026-10-16T21:30:00-04:00');
+  assert.notEqual(new Date(ts).toISOString().slice(0,10),'2026-10-16');
+  const st={games:[{id:'g',opponent:'Storm',pitches:[{pitcherId:'p',ts}]}]};
+  assert.equal(PC.lastOuting(st,'p').date,'2026-10-16');
+  const dated={games:[{id:'g',date:'2026-10-01',opponent:'Storm',pitches:[{pitcherId:'p',ts}]}]};
+  assert.equal(PC.lastOuting(dated,'p').date,'2026-10-01');
+}finally{process.env.TZ=old;}});
 test('no UI code builds a date from UTC (toISOString().slice(0,10))',()=>{const fs=require('fs'),path=require('path');const dir=path.join(__dirname,'..','js','ui');for(const f of fs.readdirSync(dir))assert.ok(!/toISOString\(\)\.slice\(0,\s*10\)/.test(fs.readFileSync(path.join(dir,f),'utf8')),f);});
 test('heatSummary (Miss / Landed) accounts for every pitch: no-aim and souvenir counts',()=>{const items=[{p:{type:'FB',targets:[2],loc:5}},{p:{type:'FB',targets:[4],loc:4}},{p:{type:'FB',targets:[],loc:6}},{p:{type:'FB',targets:[],loc:null}}];
   const m=PC.missData(items,{});assert.equal(PC.heatSummary(m,true),"Showing 2 of 4 pitches (the ones with an aim). Box = where she aimed · color = how far off. 🎁 1 souvenir. 2 with no aim aren't shown – see Landed.");
