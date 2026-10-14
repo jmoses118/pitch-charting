@@ -62,3 +62,5 @@ Rule: on a 390×844 phone (and 375×667 for an SE), everything needed to log a p
 
 ## Coach screen (v37)
 Landscape only (`(orientation: landscape) and (max-height: 500px)`). The grid is `auto | --mid | 106px`: band table, then status + zone, then results. `sizeCoach()` sets `--k` (band cell) and `--z` (zone cell): 48px at 844x390 and about 40px at 667x375. Palettes are set with `html[data-theme=field|night]` (Auto switches by time). Result tokens use Okabe-Ito colours. Band setup maps cells that have no zone to a spot (or no spot) once per sheet. The bullpen pad (`#bpPad`, `body.padmode`) is fixed above the nav, and fitZone subtracts `--pad-h`.
+
+Review fixes (v37): `.cs-hint` is a fixed single line (ellipsis), `.cstatus` has a fixed height (`--sth`), and `sizeCoach()` caps the zone by height and counts the 1.5px grid lines. Under 700px width `.coach.compact` uses `--rh` 20, `--res` 98, band 44, a compact status and a ⋯ icon. Elements marked `data-ellipsis` may truncate on purpose (the layout audit skips them).

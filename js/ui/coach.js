@@ -24,15 +24,19 @@ const IP_BTNS=[['out','Out'],['1B','1B'],['2B','2B'],['3B','3B'],['HR','HR'],['E
 const inningTag=g=>(g.homeAway==='home'?'T':g.homeAway==='away'?'B':'Inn ')+g.cur.inning;
 function callCode(){const sh=curSheet();return D.cell&&sh&&D.cell.sheet===sh.id?PC.cellCode(sh,D.cell.r,D.cell.c):'';}
 function hintText(){const g=game();if(sideCard)return '';if(D.aimEdit)return['✎','Tap the new aim'];if(D.ip)return['','Pick the outcome'];
-  if(!curSheet())return['1','Add a call sheet in Setup, or tap a result'];if(!D.parsed)return['1','Tap a band cell to call'];if(!D.loc)return['2','Tap where it went (or a result)'];return['3','Tap the result'];}
+  if(!curSheet())return['1','Add a call sheet in Setup, or tap a result'];if(!D.parsed)return['1','Tap a cell or a result'];if(!D.loc)return['2','Tap where it went'];return['3','Tap the result'];}
 function renderHint(){const e=$('cxHint');if(!e)return;if(cMsg&&!D.aimEdit){e.className='cs-hint msg '+cMsg.kind;e.textContent=cMsg.t;return;}const h=hintText();e.className='cs-hint';e.innerHTML=h?`<span class="cs-n">${H(h[0])}</span>${H(h[1])}`:'';}
 function sizeCoach(){const sh=curSheet(),cols=sh?Math.max(...sh.rows.map(r=>r.length),1):8,rows=sh?sh.rows.length:7;const el=$('coach'),cs=getComputedStyle(el);
   const padX=parseFloat(cs.paddingLeft)+parseFloat(cs.paddingRight),padY=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom);
-  const W=el.clientWidth-padX,Hh=el.clientHeight-padY,RES=106,GAP=7,HDR=24,RH=28;
-  // band cells and inner zone cells share the room; both aim for 48px (ring = 2/3), the band never needs to scroll
-  let k=Math.min(48,Math.floor((Hh-HDR-3)/rows));let z=48;const mid=z=>Math.round(z*3+z*4/3+8);
-  if(RH+cols*k+GAP+mid(z)+GAP+RES>W){const f=(W-RH-2*GAP-RES-8)/(cols+13/3);k=Math.min(k,Math.floor(f));z=Math.min(48,Math.floor(f));}
-  el.style.setProperty('--k',k+'px');el.style.setProperty('--z',z+'px');el.style.setProperty('--mid',mid(z)+'px');}
+  const W=el.clientWidth-padX,Hh=el.clientHeight-padY,compact=W+padX<700,GAP=7,HDR=24,LN=1.5,RH=compact?20:28,RES=compact?98:106,KMAX=compact?44:48;
+  // padding already holds the safe-area insets; count the (rows+1)/(cols+1) 1.5px grid lines so the band never runs into the home bar
+  const LH=(rows+1)*LN,LW=(cols+1)*LN,mid=z=>Math.round(z*3+z*4/3+8);
+  let k=Math.min(KMAX,Math.floor((Hh-HDR-LH)/rows)),z=48;
+  const STH=compact?128:136;z=Math.min(48,Math.floor((Hh-STH-8-8)/(13/3)));el.style.setProperty('--sth',STH+'px');
+  if(compact)z=Math.min(z,Math.floor((W-RH-2*GAP-RES-cols*k-LW-8)/(13/3)));
+  else if(RH+LW+cols*k+GAP+mid(z)+GAP+RES>W){const f=(W-RH-LW-2*GAP-RES-8)/(cols+13/3);k=Math.min(k,Math.floor(f));z=Math.min(z,Math.floor(f));}
+  el.classList.toggle('compact',compact);$('cxMenu').textContent=compact?'⋯':'⋯ Game';
+  el.style.setProperty('--k',k+'px');el.style.setProperty('--z',z+'px');el.style.setProperty('--mid',mid(z)+'px');el.style.setProperty('--rh',RH+'px');el.style.setProperty('--res',RES+'px');}
 function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,hand=curHand(),cp=curPitcherId();
   document.body.classList.toggle('mirror',PREF.get('mirror','0')==='1');sizeCoach();
   // band
@@ -42,14 +46,14 @@ function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,h
       return `<td><button data-r="${r}" data-c="${ci}" class="${on?'on':''}" aria-pressed="${on}" aria-label="${H(PC.cellCode(sh,r,ci))} ${H(t||'empty')}" ${t?'':'disabled'}>${H(t)}</button></td>`;}).join('')}</tr>`).join('')+'</tbody>';}
   $('coach').classList.toggle('dim',!!(D.aimEdit||D.ip));
   // status
-  const pit=S().pitchers.find(p=>p.id===cp);$('cxPitcher').textContent=pit?PC.pitcherLabel(pit):'Pick a pitcher';$('cxInn').textContent=inningTag(g);$('cxOuts').textContent=c.outs+(c.outs===1?' out':' outs');$('cxCount').textContent=c.b+'-'+c.s;
-  const b=g.lineup[c.slot]||{};$('cxBat').innerHTML=`<span class="ic" aria-hidden="true">👤</span><b>${b.num?'#'+H(b.num)+' ':''}${H(b.name||'Batter '+(c.slot+1))}</b> · ${hand==='L'?'LHB':'RHB'} · <span title="Pitches">⚾ ${PC.pitchCount(g.pitches,cp)}</span>`;
+  const pit=S().pitchers.find(p=>p.id===cp);$('cxPitcher').textContent=pit?PC.pitcherLabel(pit):'Pick a pitcher';$('cxInn').textContent=inningTag(g);const cmp=$('coach').classList.contains('compact');$('cxOuts').textContent=cmp?'●'.repeat(c.outs)+'○'.repeat(Math.max(0,3-c.outs)):c.outs+(c.outs===1?' out':' outs');$('cxOuts').setAttribute('aria-label',c.outs+' out'+(c.outs===1?'':'s'));$('cxCount').textContent=c.b+'-'+c.s;
+  const b=g.lineup[c.slot]||{};$('cxBat').innerHTML=cmp?`<b>${b.num?'#'+H(b.num):H(b.name||'Batter '+(c.slot+1))}</b> · ${hand==='L'?'LHB':'RHB'} · <span title="Pitches">⚾ ${PC.pitchCount(g.pitches,cp)}</span>`:`<span class="ic" aria-hidden="true">👤</span><b>${b.num?'#'+H(b.num)+' ':''}${H(b.name||'Batter '+(c.slot+1))}</b> · ${hand==='L'?'LHB':'RHB'} · <span title="Pitches">⚾ ${PC.pitchCount(g.pitches,cp)}</span>`;
   const code=callCode(),aims=aimSet();$('cxCode').innerHTML=D.parsed?`${H(code)}&nbsp; ${H(D.callTxt)}`:'<span class="cs-none">– –&nbsp; no call yet</span>';
   $('cxAim').textContent=D.parsed?(aims.length?'aim '+aims.join('/'):'no spot')+(D.aim?' ✎':''):'';
   renderHint();const n=store.pendingCount(),st=store.real.sync;$('cxNet').textContent=store.isTest?'Test mode – not saved':!navigator.onLine?`Offline – saved on phone${n?' · '+n+' to sync':''}`:(!st.teamCode?'Saved on phone':n?`Saved on phone · ${n} to sync`:'Saved · synced');
   // in play: spray field replaces the status details
   $('cSprayWrap').classList.toggle('hide',!D.ip);['cs-bat','cs-call','cs-hint','cs-foot'].forEach(k=>$('cStatus').querySelector('.'+k).classList.toggle('hide',!!D.ip));
-  if(D.ip){$('cxIp').textContent=`IN PLAY · ${code?code+' ':''}${D.callTxt||''}${aims.length?' → '+aims.join('/'):''}${D.loc?' · landed '+D.loc:''} · tap spray (optional)`;const dot=$('cSprayDot');dot.classList.toggle('hide',!D.spray);if(D.spray){dot.setAttribute('cx',D.spray[0]*200);dot.setAttribute('cy',D.spray[1]*92);}}
+  if(D.ip){$('cxIp').textContent=`IN PLAY · ${code?code+' ':''}${D.callTxt||''}${aims.length?' → '+aims.join('/'):''}${D.loc?' · landed '+D.loc:''} · tap spray (optional, saved on this phone)`;const dot=$('cSprayDot');dot.classList.toggle('hide',!D.spray);if(D.spray){dot.setAttribute('cx',D.spray[0]*200);dot.setAttribute('cy',D.spray[1]*92);}}
   // zone
   const am=new Set(aims);$('cZone').innerHTML=Z5.map((row,r)=>row.map((z,ci)=>{const lab=z<10||Z5_LABEL.has(r+','+ci);const isA=lab&&am.has(z),isL=lab&&D.loc===z;
     return `<button data-z="${z}" class="${z<10?'zi':'zr'}${isA?' aim':''}${isA&&D.aimEdit?' editing':''}${isL?' act':''}" ${lab?'':'aria-hidden="true" tabindex="-1"'} aria-label="${lab?'Zone '+z+(isA?', aim':'')+(isL?', landed':''):''}">${lab?`<span>${z}</span>${isA?'<small>AIM</small>':''}`:''}</button>`;}).join('')).join('');
@@ -90,7 +94,7 @@ $('cmMirror').onclick=()=>{PREF.set('mirror',PREF.get('mirror','0')==='1'?'0':'1
 const AIM_OPTS=[1,2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18];
 let bandSheetId=null;
 function openBandSetup(id){const sh=id?sheets().find(x=>x.id===id):curSheet();bandSheetId=sh&&sh.id;if(!sh)return toast('Add a call sheet first');const u=PC.unmappedCells(sh,S().customTypes);const total=sh.rows.reduce((n,r)=>n+r.filter(t=>String(t||'').trim()).length,0);
-  $('bandT').textContent='Band setup · '+sh.name;$('bandSub').textContent=u.length?`${total-u.reduce((n,x)=>n+x.cells.length,0)} of ${total} cells already map from the call text. These have a pitch type but no spot – pick an aim once (same text shares one choice):`:'Every cell already maps to a spot.';
+  $('bandT').textContent='Band setup · '+sh.name;$('bandSub').textContent=u.length?`${total-u.reduce((n,x)=>n+x.cells.length,0)} of ${total} cells already map from the call text. These have a pitch type but no spot – pick an aim once (same text shares one choice). Saved on this phone.`:'Every cell already maps to a spot.';
   $('bandList').innerHTML=u.map(x=>{const v=sh.aims&&x.norm in sh.aims?+sh.aims[x.norm]:'';return `<div class="bandrow"><div class="bandcells"><b>${x.cells.map(H).join(', ')}</b> <span class="tag">${H(x.text)}</span></div>
     <label class="bandsel">Aim <select data-norm="${H(x.norm)}" aria-label="Aim for ${H(x.text)}"><option value="" ${v===''?'selected':''}>Pick…</option><option value="0" ${v===0?'selected':''}>No spot</option>${AIM_OPTS.map(z=>`<option value="${z}" ${v===z?'selected':''}>Zone ${z}</option>`).join('')}</select></label></div>`;}).join('');
   openSheet($('bandDlg'));}
@@ -112,4 +116,5 @@ addEventListener('resize',()=>{if(document.body.classList.contains('coachmode'))
 // Setup: display prefs + band setup for the sheet being edited
 $('thSel').onchange=e=>{PREF.set('theme',e.target.value);applyTheme();render();};$('mirrorChk').onchange=e=>{PREF.set('mirror',e.target.checked?'1':'0');render();};
 $('csBand').onclick=()=>openBandSetup(typeof csCur==='function'&&csCur()?csCur().id:null);
-function renderDisplayPrefs(){$('thSel').value=PREF.get('theme','field');$('mirrorChk').checked=PREF.get('mirror','0')==='1';}
+document.querySelectorAll('.thseg [data-th]').forEach(b=>b.onclick=()=>{PREF.set('theme',b.dataset.th);applyTheme();render();});
+function renderDisplayPrefs(){const th=PREF.get('theme','field');document.querySelectorAll('.thseg [data-th]').forEach(b=>{b.classList.toggle('on',b.dataset.th===th);b.setAttribute('aria-pressed',b.dataset.th===th);});$('thSel').value=th;$('mirrorChk').checked=PREF.get('mirror','0')==='1';}

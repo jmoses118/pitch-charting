@@ -263,12 +263,12 @@ html[data-theme="field"] #flash{background:#0E5A24}
 html[data-theme="night"]{--c-bg:#000000}
 /* ---------- coach pitch-calling screen (landscape) ---------- */
 body.coachmode{padding:0;overflow:hidden}body.coachmode header,body.coachmode main,body.coachmode nav,body.coachmode #toast,body.coachmode #flash{display:none!important}
-.coach{position:fixed;inset:0;z-index:7;display:grid;grid-template-columns:auto var(--mid,216px) 106px;gap:7px;justify-content:center;align-items:start;background:var(--c-bg);
+.coach{position:fixed;inset:0;z-index:7;display:grid;grid-template-columns:auto var(--mid,216px) var(--res,106px);gap:7px;justify-content:center;align-items:start;background:var(--c-bg);
   padding:4px max(6px,env(safe-area-inset-right)) max(4px,env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left))}
 body.mirror .coach .cband{order:3}body.mirror .coach .cres{order:1}
 #cBand{border-collapse:collapse;table-layout:fixed}
 #cBand th{text-align:center;background:var(--c-band-hdr,#E9ECF2);color:var(--c-text);font-weight:800;border:1.5px solid var(--c-band-line,#1C1C1C);padding:0}
-#cBand thead th{height:24px;font-size:15px}#cBand tbody th{width:28px;font-size:17px}#cBand th.corner{width:28px}
+#cBand thead th{height:24px;font-size:15px}#cBand tbody th{width:var(--rh,28px);font-size:17px}#cBand th.corner{width:var(--rh,28px)}
 #cBand td{border:1.5px solid var(--c-band-line,#1C1C1C);padding:0;width:var(--k);height:var(--k)}
 #cBand td button{display:block;width:var(--k);height:var(--k);min-height:0;border:0;border-radius:0;padding:0 1px;background:var(--c-band-cell,#fff);color:var(--c-band-text,#1C1C1C);font-weight:800;font-size:calc(var(--k)*.27);line-height:1.05;white-space:nowrap;overflow:hidden}
 #cBand td button.on{background:var(--c-royal);color:#fff}
@@ -277,17 +277,17 @@ html[data-theme="night"] .coach,html:not([data-theme]) .coach{--c-band-hdr:#1D26
 html[data-theme="night"] #cBand td button.on{background:#3A5CF0}
 .coach.dim .cband{opacity:.45}
 .cmid{position:relative;display:flex;flex-direction:column;gap:8px;width:var(--mid,216px)}
-.cstatus{background:#1C1C1C;color:#fff;border-left:5px solid var(--c-royal);border-radius:12px;padding:6px 6px 6px 8px;min-height:132px;display:flex;flex-direction:column;gap:2px;overflow:hidden}
+.cstatus{background:#1C1C1C;color:#fff;border-left:5px solid var(--c-royal);border-radius:12px;padding:6px 6px 6px 8px;height:var(--sth,136px);flex:0 0 auto;display:flex;flex-direction:column;gap:2px;overflow:hidden}
 html[data-theme="night"] .cstatus{background:#0D121B;border:1px solid #34445E;border-left:5px solid #3A5CF0}
 .cs-top{display:flex;align-items:center;gap:3px;font-size:calc(var(--z,48px)*.29);white-space:nowrap}.cs-top b{flex:0 0 auto}
 .cchip{border:1.5px solid #C3CAD6;border-radius:8px;padding:0 4px;font-size:calc(var(--z,48px)*.25);white-space:nowrap;font-weight:700;line-height:18px}
 .cs-count{margin-left:auto;font-size:22px;font-weight:900}
-.cs-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:auto}
-.cmenu{min-height:26px;padding:0 8px;border:1.5px solid #C3CAD6!important;border-radius:8px;background:none;color:#fff;font-size:12px;font-weight:800;line-height:1;white-space:nowrap}
+.cs-foot{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:auto}.cs-hl{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}.cs-hl .cs-net{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cstatus>*{flex-shrink:0}
+.cmenu{min-height:44px;min-width:44px;padding:0 8px;border:1.5px solid #C3CAD6!important;border-radius:8px;background:none;color:#fff;font-size:12px;font-weight:800;line-height:1;white-space:nowrap}
 .cs-bat{font-size:12.5px;color:#C3CAD6;white-space:nowrap;overflow:hidden}.cs-bat b{color:#fff}.cs-bat .ic{filter:grayscale(1)}
 .cs-call{font-size:calc(var(--z,48px)*.5);font-weight:900;line-height:1.1;white-space:nowrap;display:flex;align-items:baseline;gap:6px;letter-spacing:-.01em}
 .cs-aim{font-size:14px;color:#9DB2FF;font-weight:800}.cs-none{color:#7D8AA0;font-size:18px}
-.cs-hint{font-size:13px;color:#EEF2F8;display:flex;align-items:center;gap:6px;min-height:20px}
+.cs-hint{font-size:13px;color:#EEF2F8;display:block;height:1.4em;line-height:1.4em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cs-hint .cs-n{margin-right:6px;vertical-align:1px}
 .cs-n{display:inline-grid;place-items:center;min-width:18px;height:18px;border-radius:5px;background:#9DB2FF;color:#0B0F17;font-size:11px;font-weight:900}
 .cs-hint.msg{font-weight:800}.cs-hint.msg.ok{color:#7EE2A0}
 .cs-net{font-size:11px;color:#A9B4C6}
@@ -321,4 +321,16 @@ html[data-theme="night"] .czone .act::after{background:#EEF2F8;box-shadow:0 0 0 
 .bpad #types.chips{padding-bottom:4px}.bpad #wayBtns{margin:0}
 .padact{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px}.padact button{min-height:44px;font-weight:800}
 body.padmode main{padding-bottom:calc(var(--pad-h,0px) + 12px)}
-@media (max-height:720px){.padlbl{display:none}.padact button{min-height:40px}.bpad #wayBtns button{min-height:34px}}
+@media (max-height:720px){.padlbl{display:none}.padact button{min-height:40px}}
+
+/* v37 review fixes */
+#cSideOk{color:#fff;background:transparent;border:2px solid #C3CAD6}
+.dlgfoot{position:sticky;bottom:0;background:var(--c-surface,var(--c-bg));padding:10px 0 2px;margin-top:6px;z-index:1}
+@media (orientation:landscape) and (max-height:500px){#cMenuDlg .cmenu-g{grid-template-columns:repeat(3,1fr);gap:6px}#cMenuDlg .cmenu-g button{min-height:48px;padding:0 6px}#cMenuDlg{max-height:calc(100vh - 16px);width:min(820px,96vw);max-width:96vw}}
+.coach.compact .cres{grid-template-columns:46px 46px}.coach.compact .cs-bat{font-size:12px}
+.coach.compact .cmenu{width:44px;padding:0;font-size:20px}
+#wayBtns button{min-height:48px}body.padmode .bpad #wayBtns button,body.padmode #wayBtns button{min-height:48px}
+.bpad #types.chips{flex-wrap:nowrap;overflow-x:auto}.bpad #types.chips button{flex:1 0 auto;min-width:44px;padding-left:6px;padding-right:6px}
+body.padmode #flash{top:56px;font-size:16px;padding:8px 16px;transform:translate(-50%,0) scale(.92)}body.padmode #flash.on{transform:translate(-50%,0) scale(1)}
+.thseg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}.thseg button{min-height:44px;font-weight:800}.thseg button.on{background:var(--c-royal);color:#fff;border-color:var(--c-royal)}
+.coach.compact .cres button{font-size:12px}

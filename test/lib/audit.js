@@ -10,7 +10,7 @@ const AUDIT=()=>{const out=[];const W=innerWidth;const name=e=>e.tagName.toLower
     if(e.tagName==='SELECT'){const o=e.options[e.selectedIndex];if(!o)continue;cx.font=cs.font;const room=e.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)-(e.id==='pitcher'?0:-4);
       if(cx.measureText(o.text).width>room+1)out.push('select text truncated: '+name(e)+' "'+o.text+'" '+Math.round(cx.measureText(o.text).width)+'>'+Math.round(room));continue;}
     if(cs.display==='inline'||scroller(e))continue;
-    if(e.scrollWidth>e.clientWidth+1&&(cs.overflowX!=='visible'||cs.textOverflow==='ellipsis'||[...e.childNodes].some(n=>n.nodeType===3&&n.textContent.trim())))out.push('clipped: '+name(e)+' '+e.scrollWidth+'>'+e.clientWidth);
+    if(!e.hasAttribute("data-ellipsis")&&e.scrollWidth>e.clientWidth+1&&(cs.overflowX!=='visible'||cs.textOverflow==='ellipsis'||[...e.childNodes].some(n=>n.nodeType===3&&n.textContent.trim())))out.push('clipped: '+name(e)+' '+e.scrollWidth+'>'+e.clientWidth);
     const r=e.getBoundingClientRect();if(!inScroller(e)&&(r.right>W+1||r.left<-1))out.push('off-screen: '+name(e)+' '+Math.round(r.left)+'..'+Math.round(r.right));}
   const Q=[...document.querySelectorAll('header button,header select,header .tag,header .wlmini,header .brand,main button,main select,main input,main .tag,main .lbl,main .title,main label,nav button,#coach button,#coach .cchip,#coach th,#coach .cs-count,#coach .cs-call,#coach .cs-hint')].filter(e=>shown(e)&&!inScroller(e));
   const ctx=e=>e.closest('header,nav,dialog,.bsheet,.bpad,.entrybar,.zonewrap,.cside,#coach')||document.body;
