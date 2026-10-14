@@ -83,11 +83,11 @@ $('cRes').addEventListener('click',e=>{const b=e.target.closest('button');if(!b|
 $('cSpray').addEventListener('click',e=>{const r=$('cSpray').getBoundingClientRect();D.spray=[+((e.clientX-r.left)/r.width).toFixed(3),+((e.clientY-r.top)/r.height).toFixed(3)];renderCoach();});
 $('cSideUndo').onclick=()=>{sideCard=null;undoLast();};$('cSidePause').onclick=()=>{sideCard=null;pauseGame();};$('cSideOk').onclick=()=>{sideCard=null;render();};
 // game menu (⋯): the rarely used controls live here, off the charting screen
-$('cxMenu').onclick=()=>openSheet($('cMenuDlg'));
+$('cxMenu').onclick=()=>{applyViewOnly(viewOnly());openSheet($('cMenuDlg'));};
 const menuDo=f=>()=>{$('cMenuDlg').close('ok');f();};
 $('cmOutM').onclick=menuDo(()=>$('outMinus').click());$('cmOutP').onclick=menuDo(()=>$('outPlus').click());$('cmInn').onclick=menuDo(()=>$('innPlus').click());$('cmIbb').onclick=menuDo(()=>$('ibb').click());
 $('cmKd3').onclick=menuDo(()=>recordGame('kd3'));$('cmKd3o').onclick=menuDo(()=>recordGame('kd3out'));$('cmPause').onclick=menuDo(pauseGame);$('cmEnd').onclick=menuDo(endGame);
-$('cmBand').onclick=menuDo(()=>openBandSetup());
+$('cmTake').onclick=menuDo(()=>openTakeover());$('cmBand').onclick=menuDo(()=>openBandSetup());
 $('cmTheme').onclick=()=>{const t=PREF.get('theme','field');PREF.set('theme',THEMES[(THEMES.indexOf(t)+1)%THEMES.length]);applyTheme();render();};
 $('cmMirror').onclick=()=>{PREF.set('mirror',PREF.get('mirror','0')==='1'?'0':'1');render();};
 // ---------- band setup: pick an aim once for the cells whose text has a pitch type but no spot ----------

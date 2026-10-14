@@ -73,4 +73,5 @@ Change-up aims: in ✎ Aim mode, boxes a change-up can't be aimed at become dash
 ## Scoring lock (v39)
 - View-only phone, portrait: amber bar at the top of entry – "👁 Scoring on another phone · view only" + **Take over scoring** (≥44px). Scoring controls hidden; count, zone and recent pitches stay visible.
 - Coach landscape: the result column becomes "👁 Scoring on another phone / View only / **Take over scoring**".
+- ⋯ Game menu on a view-only phone: amber note "👁 Scoring on another phone · view only. Game changes are off here." + **Take over scoring** on top; game-changing items greyed (disabled); Band setup, Display and Mirror stay active.
 - Takeover popup: title "Take over scoring?", body "Another phone is scoring this. Only take over if that phone died or the coach handed it to you. That phone will switch to view only.", buttons Cancel (focused) and **Take over scoring**.

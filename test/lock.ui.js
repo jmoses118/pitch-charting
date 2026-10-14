@@ -18,10 +18,22 @@ for(const [W,H] of [[844,390],[667,375],[932,430]]){const tag=`${W}x${H}`;const 
   {const pr=await ev(AUDIT);ok(!pr.length,`${tag} coach: no clipping/overlap${pr.length?' → '+pr.slice(0,4).join(' | '):''}`);}
   ok(await ev(()=>{const r=document.querySelector('#cRes [data-cx=take]').getBoundingClientRect();return r.height>=44&&r.bottom<=innerHeight&&r.right<=innerWidth;}),`${tag} coach: Take over scoring ≥44px and on screen`);
   if(SHOT)await p.screenshot({path:`${SHOT}coach-view-only-${tag}.png`});
+  // ⋯ Game menu on the view-only phone: game-changing items disabled, note shown, viewing items still on
+  await p.click('#cxMenu');await w(250);
+  ok(await ev(()=>['cmOutM','cmOutP','cmEnd','cmInn','cmIbb','cmKd3','cmKd3o','cmPause'].every(i=>document.getElementById(i).disabled)&&['cmBand','cmTheme','cmMirror'].every(i=>!document.getElementById(i).disabled)),`${tag} menu: pause/end/outs/inning/IBB/D3 disabled, band setup/theme/mirror on`);
+  ok(await ev(()=>{const m=document.getElementById('cmRo');return getComputedStyle(m).display!=='none'&&/Scoring on another phone/.test(m.textContent);}),`${tag} menu: "Scoring on another phone" note shown`);
+  {const pr=await ev(AUDIT);ok(!pr.length,`${tag} menu: no clipping/overlap${pr.length?' → '+pr.slice(0,4).join(' | '):''}`);}
+  if(SHOT)await p.screenshot({path:`${SHOT}coach-menu-view-only-${tag}.png`});
+  await p.click('#cMenuDlg button[value=cancel]');await w();
+  ok(await ev(()=>{const g=__app.store.real.games[0],before=JSON.stringify([g.cur,g.ended,g.status,__app.store.real.activeGame]);window.confirm=()=>true;
+    for(const f of [()=>endGame(),()=>pauseGame()])try{f();}catch(e){}
+    for(const i of ['outPlus','outMinus','innPlus','ibb'])document.getElementById(i).onclick();
+    return JSON.stringify([g.cur,g.ended,g.status,__app.store.real.activeGame])===before;}),`${tag} code: end/pause/outs/inning/IBB refused on the view-only phone`);
   await p.click('#cRes [data-cx=take]');await w(250);ok(await ev(()=>document.getElementById('takeDlg').open),`${tag} coach: Take over asks to confirm`);
   if(SHOT)await p.screenshot({path:`${SHOT}coach-takeover-${tag}.png`});
   await p.click('#takeCancel');await w();ok(await ev(()=>__app.store.real.games[0].scorer==='dev_other_phone'&&document.body.classList.contains('viewonly')),`${tag} coach: Cancel keeps the other phone scoring`);
   await p.click('#cRes [data-cx=take]');await w(200);await p.click('#takeOk');await w(300);
+  await p.click('#cxMenu');await w(200);ok(await ev(()=>!document.getElementById('cmEnd').disabled&&!document.getElementById('cmPause').disabled&&getComputedStyle(document.getElementById('cmRo')).display==='none'),`${tag} menu: items come back after take over`);await p.click('#cMenuDlg button[value=cancel]');await w();
   ok(await ev(()=>{const S=__app.store.real;return S.games[0].scorer===S.sync.deviceId&&!!S.sync.queue.games.g_1&&!document.body.classList.contains('viewonly')&&!!document.querySelector('#cRes [data-r]');}),`${tag} coach: Take over moves the lock here, queues it to sync, scoring buttons return`);
   ok(!errs.length,`${tag}: no page errors ${errs.join('|')}`);await c.close();}
 // ---- portrait: view-only bar + takeover popup, 3 sizes; own game is never locked; bullpen lock ----
@@ -40,8 +52,8 @@ for(const [W,H] of [[390,844],[375,667],[430,932]]){const tag=`${W}x${H}`;const 
   // bullpen session owned by another phone (synced row) is view only too
   await ev(()=>{const S=__app.store.real;S.games[0].ended=Date.now();S.games[0].status='final';S.activeGame=null;S.sessions.push({id:'s_o',date:'2026-10-14',started:1,scorer:'dev_other_phone',pitches:[{id:'b1',mode:'bullpen',pitcherId:'p_woods',ts:1,type:'FB',loc:5,targets:[5]}]});S.activeSession='s_o';__app.store.save();});
   await p.click('nav [data-t="bullpen"]');await w(300);
-  const n=await ev(()=>{try{logBullpen([5]);}catch(e){}return __app.store.real.sessions.find(s=>s.id==='s_o').pitches.length;});
-  ok(await ev(()=>document.body.classList.contains('viewonly'))&&n===1,`${tag} bullpen: other phone's session is view only and refuses pitches`);
+  const n=await ev(()=>{try{logBullpen([5]);}catch(e){}window.confirm=()=>true;try{pauseBullpen();endBullpen();}catch(e){}return __app.store.real.sessions.find(s=>s.id==='s_o').pitches.length;});
+  ok(await ev(()=>document.body.classList.contains('viewonly'))&&n===1&&await ev(()=>__app.store.real.activeSession==='s_o'&&document.getElementById('bpEnd').disabled),`${tag} bullpen: other phone's session is view only; refuses pitches, pause and end`);
   // a new session started here is owned here
   await ev(()=>{const S=__app.store.real;S.activeSession=null;__app.render();});await ev(()=>{logBullpen([5]);});
   ok(await ev(()=>{const S=__app.store.real,s=S.sessions.find(x=>x.id===S.activeSession);return s&&s.scorer===S.sync.deviceId&&!document.body.classList.contains('viewonly');}),`${tag} bullpen: a session started here is scored here`);

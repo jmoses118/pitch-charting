@@ -146,6 +146,10 @@ store.real.sync.scorerCol=!!CFG.scorerColumn; // true only after supabase/migrat
 const myDevice=()=>store.real.sync.deviceId;
 function liveBox(){if(tab==='game'){const g=game();return PC.gameInProgress(g)?g:null;}return tab==='bullpen'?session():null;}
 const viewOnly=()=>PC.lockedBox(liveBox(),myDevice());
+// controls that change the live game / session: disabled on a view-only phone (viewing items – band setup, theme, mirror – stay)
+const RO_EDIT_IDS=['cmOutM','cmOutP','cmEnd','cmInn','cmIbb','cmKd3','cmKd3o','cmPause','gEnd','gPause','lkEndG','lkPauseG','outPlus','outMinus','innPlus','ibb','bpEnd','bpPause','lkEndBp','lkPauseBp','pUndo','pPause','pEnd','undo'];
+function applyViewOnly(vo){document.body.classList.toggle('viewonly',vo);const m=$('cmRo');if(m)m.classList.toggle('hide',!vo);
+  for(const id of RO_EDIT_IDS){const e=$(id);if(!e)continue;if(vo){if(!e.disabled){e.disabled=true;e.dataset.rolock='1';}}else if(e.dataset.rolock){e.disabled=false;delete e.dataset.rolock;}}}
 function scoreGuard(){if(!viewOnly())return false;toast(PC.SCORING_ELSEWHERE);return true;}
 function openTakeover(){if(!liveBox())return;$('takeDlg').returnValue='';$('takeDlg').showModal();$('takeCancel').focus();}
 $('roTake').onclick=openTakeover;

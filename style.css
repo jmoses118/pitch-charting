@@ -358,3 +358,5 @@ body.viewonly #zone,body.viewonly #cZone,body.viewonly #cBand{pointer-events:non
 #cRes .cro button{min-height:44px;font-weight:700}
 body.viewonly #cRes{display:flex!important;flex-direction:column;justify-content:center;align-items:stretch}
 body.viewonly #cRes .cro{flex:0 0 auto}
+#cmRo.cmro{display:flex}#cmRo.cmro.hide{display:none}
+.cmenu-g button:disabled{opacity:.4}
