@@ -593,6 +593,46 @@ test('FLOW-1: a second tap of the actual location clears it in the shared machin
     assert.ok(!/D\.loc\s*=\s*z\b/.test(src),file+' must not assign the tapped cell itself');
   }
 });
+test('FLOW-1: screens do not keep a second step machine',()=>{const fs=require('fs'),path=require('path');const banned=/bullpenStep|bullpenTap|gameZoneAction|zoneDraft/;
+  for(const dir of ['js/core','js/ui'])for(const f of fs.readdirSync(path.join(__dirname,'..',dir))){if(!f.endsWith('.js'))continue;
+    assert.ok(!banned.test(fs.readFileSync(path.join(__dirname,'..',dir,f),'utf8')),f);}});
+test('FLOW-6, FLOW-7: bullpen pitch saves with no result; hit-spot % including a bottom-row hit; low-pitch bonus',()=>{
+  const row=PC.scoreCommit(PC.scoreTap(PC.scoreApply({mode:'bullpen'},{op:'call',type:'CB',called:[14]}).draft,14).draft);
+  assert.equal(row.result,null);assert.equal(PC.hitSpot(row),true);
+  const ch=PC.scoreCommit(PC.scoreTap(PC.scoreApply({mode:'bullpen'},{op:'call',type:'CH',called:[14]}).draft,14).draft);
+  assert.equal(ch.result,null);assert.equal(PC.hitSpot(ch),true);
+  const miss={type:'FB',targets:[8],loc:5};const sum=PC.summarize([ch,miss]);
+  assert.equal(sum.spotN,2);assert.equal(sum.spot,1);assert.equal(sum.spotPct,50);
+  for(const [type,loc] of [['CH',13],['DR',14],['DC',18]]){const p={type,targets:[8],loc};assert.equal(PC.lowGood(p),true,type+' '+loc);assert.equal(PC.pitchMiss(p).good,true);assert.equal(PC.pitchMiss(p).low,true);}
+  assert.equal(PC.hitSpot({type:'CH',targets:[8],loc:13}),false);
+  assert.equal(PC.lowGood({type:'FB',targets:[8],loc:13}),false);
+  assert.equal(PC.lowGood({type:'CH',targets:[8],loc:13,inning:1}),false);
+  assert.equal(PC.bullpenResult,undefined);
+});
+test('FLOW-6a: migration removes bpResult from stored sessions and pitches',()=>{
+  const m=mem();const raw=PC.defaultState();raw.bpResult='ball';
+  raw.sessions=[{id:'s1',date:'d',bpResult:'called',pitches:[{id:'p1',type:'FB',loc:5,result:'ball',ip:'out',end:'K'},{id:'p2',type:'CH',loc:8,result:'called',bpResult:'ball'}]}];
+  raw.games=[{id:'g1',date:'d',opponent:'o',pitches:[{id:'gp',type:'FB',loc:5,result:'ball'},{id:'gb',mode:'bullpen',type:'FB',loc:8,result:'called'}]}];
+  raw.sync={migrated:true,queue:{pitchers:{},games:{},sessions:{},pitches:{}},tomb:{}};raw.migNames1=true;raw.migNames2=true;raw.migWoods1=true;raw.migSheets1=true;
+  m.setItem(PC.KEY,JSON.stringify(raw));const st=PC.makeStore(m);
+  assert.equal(st.real.bpResult,undefined);assert.equal(st.real.sessions[0].bpResult,undefined);
+  assert.equal(st.real.sessions[0].pitches[0].result,undefined);assert.equal(st.real.sessions[0].pitches[0].ip,undefined);assert.equal(st.real.sessions[0].pitches[0].end,undefined);
+  assert.equal(st.real.sessions[0].pitches[1].result,undefined);assert.equal(st.real.sessions[0].pitches[1].bpResult,undefined);
+  assert.equal(st.real.games[0].pitches[0].result,'ball');assert.equal(st.real.games[0].pitches[1].result,undefined);
+  assert.ok(st.real.sync.queue.pitches.p1);assert.ok(st.real.sync.queue.pitches.gb);assert.equal(st.real.sync.queue.pitches.gp,undefined);
+});
+test('FLOW-6a: SQL migration clears the Supabase bullpen results',()=>{const fs=require('fs'),path=require('path');
+  const sql=fs.readFileSync(path.join(__dirname,'..','supabase','migrations','20261014230000_bullpen_no_result.sql'),'utf8');
+  assert.match(sql,/update\s+public\.pitches/i);assert.match(sql,/result\s*=\s*null/i);assert.match(sql,/ip\s*=\s*null/i);assert.match(sql,/end_event\s*=\s*null/i);assert.match(sql,/mode\s*=\s*'bullpen'/);
+  const rows=[{mode:'bullpen',result:'ball',ip:'out',end_event:'K'},{mode:'game',result:'ball',ip:null,end_event:null}];
+  const cleared=rows.map(r=>r.mode==='bullpen'?{mode:r.mode,result:null,ip:null,end_event:null}:r);
+  assert.equal(cleared[0].result,null);assert.equal(cleared[0].ip,null);assert.equal(cleared[0].end_event,null);assert.equal(cleared[1].result,'ball');
+});
+test('FLOW-8: new session has no batter',()=>{const st=PC.makeStore(mem());
+  assert.equal(st.real.sessions.length,0);assert.equal(st.real.settings.showBatterHand,false);
+  assert.equal(PC.sessionHand(st.real.settings,'R'),'N');assert.equal(PC.sessionHand(st.real.settings,'L'),'N');
+  assert.equal(PC.sessionHand({showBatterHand:true},'L'),'L');assert.equal(PC.sessionHand({showBatterHand:true},'R'),'R');assert.equal(PC.sessionHand({showBatterHand:true},'X'),'N');
+});
 test('in dirt and over the catcher score as way off and still count as landed',()=>{
   const m=PC.pitchMiss({type:'FB',targets:[8],loc:31});assert.equal(m.sev,PC.MAX_MISS-1);assert.equal(PC.chUp({type:'CH',loc:32}),false);
   const items=[{p:{type:'FB',targets:[8],loc:31}},{p:{type:'FB',targets:[8],loc:5}}];
@@ -604,11 +644,10 @@ test('redo stack keeps the newest 10 and a new item drops the oldest',()=>{
   const popped=PC.redoPop(s);assert.equal(popped.item.i,11);assert.equal(popped.stack.length,9);
   assert.equal(PC.redoPop([]).item,null);
 });
-test('foul timing, wild pitch and velocity are cleaned; bullpen result defaults only to ball or called strike',()=>{
+test('FLOW-11, FLOW-12: foul timing, wild pitch and velocity are cleaned',()=>{
   assert.equal(PC.cleanFoul('early'),'early');assert.equal(PC.cleanFoul('skip'),null);assert.equal(PC.cleanFoul('late'),'late');
   assert.equal(PC.cleanFlag('wp'),'wp');assert.equal(PC.cleanFlag('pb'),'pb');assert.equal(PC.cleanFlag('ball'),null);
   assert.equal(PC.cleanVelo('72.24'),72.2);assert.equal(PC.cleanVelo(19),null);assert.equal(PC.cleanVelo(''),null);assert.equal(PC.cleanVelo(110),110);
-  assert.equal(PC.bullpenResult('ball'),'ball');assert.equal(PC.bullpenResult('called'),'called');assert.equal(PC.bullpenResult(''),null);assert.equal(PC.bullpenResult('swinging'),null);
 });
 test('CSV export per pitcher per date, with called and actual location columns',()=>{
   const rows=[{pitcher:'Avery',pitcher_num:'45',date:'2026-10-14',called_location:8,actual_location:31,mode:'game'},

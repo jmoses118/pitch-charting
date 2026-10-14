@@ -5,7 +5,7 @@ await c.route(/supabase\.co/,r=>r.abort());await c.addInitScript(()=>localStorag
 const shot=async n=>{await p.waitForTimeout(400);await p.screenshot({path:OUT+'after-'+n+'.png'});};
 const tap=async z=>{const r=await p.$eval(`#zone [data-z="${z}"]`,e=>{const r=e.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2};});await p.mouse.click(r.x,r.y);await p.waitForTimeout(120);};
 await p.goto(BASE);await p.evaluate(()=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';S.callSheets=[{id:'cs1',name:'Band A',cols:['1','2','3'],rows:[['FB 3','CH 7','DC 9'],['FB IN','DR 8','FB A']]}];__app.store.save();__app.render();});
-await p.click('nav [data-t="bullpen"]');await p.click('#batTog');await p.click('#hR');
+await p.click('nav [data-t="bullpen"]');await p.evaluate(()=>{S().settings.showBatterHand=true;__app.render();});await p.click('#batTog');await p.click('#hR');
 for(const [t,a,l] of [['FB',3,3],['FB',1,2],['CH',7,5],['DC',9,14]]){await p.click(`#types [data-c="${t}"]`);await tap(a);await tap(l);}
 await p.click('#types [data-c="DR"]');await shot('bullpen');
 await p.evaluate(()=>{const S=__app.store.real;S.sessions.at(-1).ended=Date.now();S.activeSession=null;

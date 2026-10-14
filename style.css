@@ -407,13 +407,12 @@ body.padmode #actBtns button{min-height:48px;height:auto}
 .bsheet{display:flex;flex-direction:column;overflow:hidden;max-height:min(78vh,100dvh)}
 .pextra{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 8px}
 .pextra .seg{flex:1 1 180px}
-.pextra .seg button,.xDlg .seg button,#bpRes button{min-height:48px;font-weight:700}
+.pextra .seg button,.xDlg .seg button{min-height:48px;font-weight:700}
 .velolab{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;min-height:48px}
 .velolab input,#xVelo{width:96px;min-height:48px}
 .startg{flex:1;text-align:left}
 .startg small{font-weight:600;opacity:.9}
 .gclink{color:var(--c-royal-text);padding:0 8px;min-height:48px;display:flex;align-items:center;font-weight:800}
-#bpRes{margin:4px 0 8px}
 /* v42: 4-column sheet, pinned footer, 48px dirt row, outline contact, foul chips */
 .bsscroll{overflow:auto;flex:1 1 auto;min-height:0}
 .bsfoot{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:6px;flex:0 0 auto;padding-top:8px}

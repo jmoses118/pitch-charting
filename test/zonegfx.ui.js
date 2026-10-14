@@ -17,6 +17,7 @@ ok(await ev(()=>!!document.querySelector('#zone .plate')),'home plate drawn');ok
 ok(/GLOVE/.test(await ev(()=>document.getElementById('zone').textContent)),'no batter -> glove/arm side labels');
 const sz=await p.$eval('#zone [data-z="5"]',e=>{const r=e.getBoundingClientRect();return Math.min(r.width,r.height);});ok(sz>=48,'zone box tap target >= 48px ('+Math.round(sz)+')');
 const rows=await ev(()=>[...document.querySelectorAll('#recent li')].map(li=>li.textContent));ok(rows.length===2&&/Souvenir/.test(rows[0])&&/Change-up/.test(rows[0])&&/aim 7 → @5/.test(rows[0])&&/On target/.test(rows[1]),'recent list newest first: '+JSON.stringify(rows));
+await ev(()=>{S().settings.showBatterHand=true;__app.render();});
 await p.click('#batTog');await p.click('#hR');ok(await ev(()=>{const g=document.querySelector('#zone .batter');return !!g&&!g.getAttribute('transform');}),'RHB silhouette on the pitcher\'s right');
 await p.click('#batTog');await p.click('#hL');ok(await ev(()=>/scale\(-1 1\)/.test(document.querySelector('#zone .batter').getAttribute('transform')||'')),'LHB silhouette mirrored to the left');
 // game: current at-bat only
