@@ -2,11 +2,11 @@
 
 ## v38 – Game, heat map and report always agree (Jim's test-mode bug)
 ### Fixed
-- **"Count stuck at 0-0" after 6 pitches.** The count was right (two at-bats had finished), but the zone kept showing the last batter's balls with no label. The zone now says "Last batter's 3 pitches · 1B · new at-bat starts 0-0" and fades those balls until the next pitch.
-- **Heat map Miss summary was confusing** ("3 pitches … 3 had no intended spot"). It now reads "3 of 6 pitches had an aimed spot … 3 pitches with no aim left out (see Landed)". Landed counts every pitch: "6 pitches · where they landed".
-- **"✓1.0" boxes** looked like a score or a hit. Boxes now say "On spot" or "1 off" / "2 off" (average boxes between the aim and the landing) and "1 aimed".
+- **"Count stuck at 0-0" after 6 pitches.** The count was right (two at-bats had finished), but the zone kept showing the last batter's balls with no label. The zone now says "Last batter: 3 pitches · single · next batter starts 0-0" and fades those balls until the next pitch.
+- **Heat map Miss summary was confusing** ("3 pitches … 3 had no intended spot"). It now reads "Showing 3 of 6 pitches (the ones with an aim). Box = where she aimed · color = how far off. 3 with no aim aren't shown – see Landed." Landed counts every pitch: "6 pitches · where they landed".
+- **"✓1.0" boxes** looked like a score or a hit. Boxes (heat map and bullpen report) now say "Hit spot", "Close" (1 box off, still on target) or "2 off" / "3 off" / "4 off" in whole boxes, plus "1 pitch" / "3 pitches". Legend: "Number = how many boxes she missed by. 'Close' = 1 box off – still on target."
 - **Per-pitch report strike %** used where the ball landed, not the umpire's call, so it could disagree with the Game count and Stats. Game pitches now use the result (one shared `PC.strikeOf`); bullpen pitches, which have no result, still use the zone. Intentional walks are no longer counted as thrown.
-- Report labels: "On target 2 of 2 aimed" and "Each pitch type (all thrown · on target = aimed ones)".
+- Report labels: "On target 2 of 2 aimed"; the card is titled "Each pitch type" with the note "Strikes count every pitch. On target counts only pitches with an aim."
 ### Notes
 - The red frame on every screen in test mode is intentional (TEST MODE – NOT SAVED); it isn't an error.
 

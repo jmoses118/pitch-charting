@@ -25,7 +25,8 @@ ok(JSON.stringify(P.map(x=>x.targets||[]))==='[[6],[3],[7],[],[],[]]','aims stor
 // ---- Game ----
 ok(await p.textContent('#pc')==='6','Game: PITCHES 6');
 ok(g.cur.outs===1&&g.cur.b===0&&g.cur.s===0&&g.cur.abn===3&&await p.textContent('#cnt')==='0-0','Game: count/outs correct after two finished at-bats (0-0, 1 out, 3rd batter)');
-ok(/Last batter's 3 pitches · 1B · new at-bat starts 0-0/.test(await ev(()=>document.getElementById('zoneNote')?.textContent||''))&&await ev(()=>!document.getElementById('zoneNote').classList.contains('hide')),'Game: zone says the balls are the last batter\'s, so 0-0 is not a stuck count');
+ok(/^Last batter: 3 pitches · single · next batter starts 0-0$/.test(await ev(()=>document.getElementById('zoneNote')?.textContent||''))&&await ev(()=>!document.getElementById('zoneNote').classList.contains('hide')),'Game: zone says the balls are the last batter\'s, so 0-0 is not a stuck count');
+ok(await ev(()=>{const b=[...document.querySelectorAll('#zone .ball')];return b.length===3&&b.every(e=>+getComputedStyle(e).opacity<=.55);}),'Game: last batter\'s balls are faded');
 if(SHOT){await w(1500);await p.screenshot({path:SHOT+'game-portrait.png'});}
 await p.click('#types button:first-child');await tapZ(5);await w();await p.click('#resBtns [data-r="ball"]');await w();
 ok(await ev(()=>!!document.getElementById('zoneNote')?.classList.contains('hide'))&&await p.textContent('#cnt')==='1-0','Game: note clears and count moves on the next pitch (1-0)');
@@ -36,8 +37,10 @@ await p.click('#hvA');await w();const landed=await ev(()=>({t:document.getElemen
 ok(/^6 pitches · where they landed/.test(landed.t),'Landed: counts all 6 pitches, aimed or not → "'+landed.t+'"');
 if(SHOT){await p.screenshot({path:SHOT+'heat-landed.png'});}
 await p.click('#hvI');await w();const miss=await ev(()=>({t:document.getElementById('hSummary').textContent,cells:[...document.querySelectorAll('#hMap text')].map(e=>e.textContent)}));
-ok(/^3 of 6 pitches had an aimed spot/.test(miss.t)&&/3 pitches with no aim left out \(see Landed\)/.test(miss.t),'Miss: says 3 of 6 aimed and the 3 with no aim are left out → "'+miss.t+'"');
-ok(!miss.cells.some(t=>/[✓✗]/.test(t))&&miss.cells.some(t=>/ off$|^On spot$/.test(t))&&miss.cells.filter(t=>/ aimed$/.test(t)).length===3,'Miss: kid-clear box labels ("1 off" / "On spot", "1 aimed"), no ✓1.0 '+miss.cells.filter(t=>/off|spot|aimed/.test(t)).join(','));
+ok(miss.t==='Showing 3 of 6 pitches (the ones with an aim). Box = where she aimed · color = how far off. 3 with no aim aren\'t shown – see Landed.','Miss: shows 3 of 6 and says the 3 with no aim aren\'t shown → "'+miss.t+'"');
+{const lab=miss.cells.filter(t=>/off$|^Hit spot$|^Close$/.test(t));ok(!miss.cells.some(t=>/[✓✗.]\d|aimed|On spot/.test(t))&&lab.length===3&&lab.every(t=>/^(Hit spot|Close|[2-4] off)$/.test(t))&&miss.cells.filter(t=>/^1 pitch$/.test(t)).length===3,'Miss: kid-clear whole-box labels (Hit spot / Close / N off, "1 pitch") '+lab.join(','));}
+ok(/Number = how many boxes she missed by\. "Close" = 1 box off – still on target\./.test(await p.textContent('#hLegend')),'Miss legend explains Close');
+ok(await ev(()=>[...document.querySelectorAll('#hMap text')].filter(e=>/spot|Close|off$/.test(e.textContent)).every(e=>{const c=e.getBBox();return parseFloat(e.style.fontSize)===4.6&&c.width<=20;})),'Miss labels 4.6px and fit their box');
 if(SHOT){await p.screenshot({path:SHOT+'heat-miss.png'});}
 // ---- per-pitch report agrees with Game ----
 const rep=await ev(()=>[...document.querySelectorAll('#sTypes .tsec')].map(s=>{const t=s.textContent;return{n:+(t.match(/(\d+) thrown/)||[])[1],aim:(t.match(/On target (\d+) of (\d+) aimed/)||[]).slice(1).map(Number),st:+(t.match(/Strikes (\d+)%/)||[])[1]};}));
@@ -45,6 +48,7 @@ const thrown=rep.reduce((a,x)=>a+x.n,0),aimed=rep.reduce((a,x)=>a+(x.aim[1]||0),
 ok(thrown===6&&aimed===3,`report: ${thrown} thrown across types (=6), ${aimed} aimed (=3) `+JSON.stringify(rep));
 const exp=await ev(()=>{const P=S().games[0].pitches.filter(p=>!p.noPitch),by={};P.forEach(p=>{const t=p.type||'?';(by[t]=by[t]||{n:0,s:0}).n++;if(PC.isStrike(p.result))by[t].s++;});return by;});
 const fb=rep.find(x=>x.n===exp.FB.n);ok(!!fb&&fb.st===Math.round(100*exp.FB.s/exp.FB.n),`report: FB strike % follows the umpire results like the Game count (${fb&&fb.st}% vs ${Math.round(100*exp.FB.s/exp.FB.n)}%)`);
-ok(/Each pitch type/.test(await p.textContent('#sTypesCard .lbl')),'report title says it covers every pitch thrown');
+ok((await p.textContent('#sTypesCard .lbl')).trim()==='Each pitch type'&&(await p.textContent('#sTypesNote')).trim()==='Strikes count every pitch. On target counts only pitches with an aim.','report title "Each pitch type" + strikes/on-target note');
+ok(await ev(()=>[...document.querySelectorAll('#sTypes svg text')].every(e=>!/aimed$|On spot|\d\.\d off/.test(e.textContent))),'report thumbnails use the same labels');
 if(SHOT){await p.$eval('#sTypesCard',e=>e.scrollIntoView());await w(200);await p.screenshot({path:SHOT+'report.png'});}
 ok(!errs.length,'no page errors '+errs.join('|'));await b.close();console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);})();
