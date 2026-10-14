@@ -86,7 +86,7 @@ main{padding:var(--s3)}
 /* progressive disclosure */
 details.disc>summary{list-style:none;cursor:pointer;min-height:var(--tap);display:flex;align-items:center;gap:var(--s2);font-weight:700;font-size:var(--fs-md);flex-wrap:wrap}
 details.disc>summary::-webkit-details-marker{display:none}
-details.disc>summary::after{content:"";width:8px;height:8px;margin-left:auto;border-right:2px solid var(--c-text-2);border-bottom:2px solid var(--c-text-2);transform:rotate(45deg);transition:transform .2s var(--ease);order:9}
+details.disc>summary::after{content:"";width:8px;height:8px;margin-left:auto;border-right:2px solid var(--c-text-2);border-bottom:2px solid var(--c-text-2);transform:rotate(45deg);transition:transform .2s var(--ease);order:9;margin-right:3px;flex-shrink:0}
 details.disc[open]>summary::after{transform:rotate(-135deg)}
 details.disc>summary .mut{font-weight:400;font-size:var(--fs-xs)}
 details.card.disc{padding-top:var(--s1);padding-bottom:var(--s1)}details.card.disc[open]{padding-bottom:var(--s4)}
@@ -201,7 +201,7 @@ body.entrymode #wayBtns{margin:var(--s1) 0 var(--s3)}
 body.entrymode .topbar,body.entrymode #wlMsg{display:none}
 body.entrymode header{padding-top:calc(var(--s1) + env(safe-area-inset-top));padding-bottom:var(--s1)}
 body.entrymode .pickrow{margin-bottom:0;gap:var(--s2)}
-body.entrymode .pickrow select{flex:1;min-width:0;min-height:40px;font-weight:700;font-size:var(--fs-md);padding-right:28px}
+body.entrymode .pickrow select{flex:0 0 auto;max-width:62%;min-height:40px;font-weight:700;font-size:var(--fs-md);padding-right:28px}
 body.entrymode .pickrow button.icon{min-height:40px;width:40px}
 body.entrymode #gameHead{margin-top:var(--s1)}
 body.entrymode .count>div{padding:1px var(--s2);font-size:var(--fs-md)}
@@ -239,3 +239,9 @@ body.entrymode .count>div{display:flex;align-items:baseline;justify-content:cent
 body.entrymode .count small{margin:0;font-size:9px}
 body.entrymode .count .dots span{width:9px;height:9px}
 @media (max-height:720px){body.entrymode .entrybar .phase{display:none}body.entrymode .stepline{margin-top:var(--s1)}body.entrymode button.mini{min-height:28px}body.entrymode #wayBtns button{min-height:34px}body.entrymode #types.chips button{min-height:42px;height:42px}body.entrymode .pickrow select,body.entrymode .pickrow button.icon{min-height:36px}body.entrymode .count>div{min-height:24px}}
+/* v36: the pitcher name never truncates – the picker sizes to its content and the counts wrap instead */
+.pickrow select{flex:1 0 auto}
+body:not(.entrymode) #wlMini{display:none}
+body.entrymode .wlmini{flex:1 1 0;min-width:0;white-space:normal;line-height:1.15;text-align:right}
+body.entrymode .pickrow .tag{flex:0 0 auto;white-space:nowrap}
+.topbar .tag{white-space:nowrap}

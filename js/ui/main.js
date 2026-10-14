@@ -3,7 +3,7 @@
 'use strict';
 // ---------- render ----------
 // current-step indicator above the zone: Pitch → Aim → Landed (bullpen), Pitch → Location → Result (game)
-function renderSteps(needTarget){const bp=tab==='bullpen';const labels=bp?['Pitch','Aim','Landed']:['Pitch','Location','Result'];let i;
+function renderSteps(needTarget){const bp=tab==='bullpen';const labels=bp?['Pitch','Aim','Landed']:['Pitch','Where','Result'];let i;
   if(bp){const st=PC.bullpenStep({type:D.type||(D.parsed&&D.parsed.type),target:D.target,callTargets:callOn&&D.parsed?D.parsed.targets:[]});i=st==='type'?0:st==='target'?1:2;}
   else i=needTarget?0:D.loc?2:D.type?1:0;
   [...$('steps').children].forEach((li,k)=>{li.textContent=labels[k];li.className=k<i?'done':k===i?'now':'';if(k===i)li.setAttribute('aria-current','step');else li.removeAttribute('aria-current');});}
@@ -21,6 +21,8 @@ function render(skipCallInput){const s=S();{const gg=game();const two=!!(gg&&gg.
   $('modeTag').textContent=(store.isTest?'TEST · ':'')+(tab==='game'?(g?'GAME':'NO GAME'):tab==='bullpen'?'BULLPEN':tab.toUpperCase());
   ['game','bullpen','stats','setup'].forEach(t=>$('tab-'+t).classList.toggle('hide',t!==tab));
   const lk=renderModeLock();const showEntry=!lk&&((tab==='game'&&g)||tab==='bullpen');$('entry').classList.toggle('hide',!showEntry);document.body.classList.toggle('entrymode',showEntry);
+  // sync chip: logo row normally; while charting the logo row hides, so it moves (compact) next to the pitcher
+  {const st=$('syncTag'),home=showEntry?$('addPQuick'):$('modeTag');if(st.nextSibling!==home)home.parentNode.insertBefore(st,home);}
   $('gameHead').classList.toggle('hide',!(tab==='game'&&g));
   $('noGame').classList.toggle('hide',!!g||!!lk);$('inGame').classList.toggle('hide',!g);
   const sch=s.games.filter(x=>PC.gameStatus(x)==='scheduled').sort((x,y)=>(x.date+x.gameNo).localeCompare(y.date+y.gameNo,undefined,{numeric:true}));
