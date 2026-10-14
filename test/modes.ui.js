@@ -1,7 +1,7 @@
 // Game and bullpen are mutually exclusive on a device: lock cards, pause/end/resume, no data loss. Throwaway profile, Supabase blocked (offline).
 const {chromium}=require('playwright-core');const BASE=process.argv[2]||'http://localhost:8766/';let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};
 (async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
-await c.route(/supabase\.co/,r=>r.abort());const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());
+await c.route(/supabase\.co/,r=>r.abort());await c.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());
 const vis=s=>p.isVisible(s);const tab=async t=>{await p.click(`nav [data-t="${t}"]`);await p.waitForTimeout(120);};const clk=async s=>{await p.$eval(s,e=>e.scrollIntoView({block:'center'}));await p.click(s);await p.waitForTimeout(150);};
 const st=f=>p.evaluate(f);
 await p.goto(BASE);await st(()=>{__app.store.real.pitchers.push({id:'p_t',name:'Test Pitcher',num:'1',throws:'R'});__app.store.real.curPitcher='p_t';__app.store.save();__app.render();});

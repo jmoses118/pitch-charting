@@ -1,7 +1,7 @@
 // Mid-game pitching change, in test mode with Supabase blocked: nothing reaches real data.
 const {chromium}=require('playwright-core');const BASE=process.argv[2]||'http://localhost:8766/';let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};
 (async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
-let net=0;await c.route(/supabase\.co/,r=>{net++;r.abort();});const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());
+let net=0;await c.route(/supabase\.co/,r=>{net++;r.abort();});const p=await c.newPage();await p.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());
 const tap=async s=>{await p.$eval(s,e=>e.scrollIntoView({block:'center'}));await p.click(s,{force:true});await p.waitForTimeout(80);};
 const pitch=async(t,z,r)=>{await tap(`#types [data-c="${t}"]`);await tap(`#zone [data-z="${z}"]`);await tap(`#resBtns [data-r="${r}"]`);};
 const st=()=>p.evaluate(()=>{const g=__app.store.state.games.find(x=>x.id==='g_t');return{cur:Object.assign({},g.cur),cp:__app.store.state.curPitcher,hdr:document.querySelector('header,#hdr')?.innerText||document.body.innerText.slice(0,200)};});

@@ -1,7 +1,7 @@
 // Gameday-style zone graphics: softball markers, plate, batter silhouette, recent list, drill-down. Throwaway profile, Supabase blocked.
 const {chromium}=require('playwright-core');const BASE=process.argv[2]||'http://localhost:8766/';let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};
 (async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
-await c.route(/supabase\.co/,r=>r.abort());const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());const ev=f=>p.evaluate(f);
+await c.route(/supabase\.co/,r=>r.abort());await c.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());const ev=f=>p.evaluate(f);
 await p.goto(BASE);await ev(()=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';__app.store.save();__app.render();});
 // bullpen: tap through two pitches with the real UI
 await p.click('nav [data-t="bullpen"]');await p.click('#batTog');await p.click('#hN');

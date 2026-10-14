@@ -1,5 +1,5 @@
 const {chromium}=require('playwright-core');
-(async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});const pg=await b.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,colorScheme:'dark'});
+(async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});const pg=await b.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,colorScheme:'dark'});await pg.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));
 const errs=[];pg.on('pageerror',e=>errs.push(e.message));
 await pg.goto('http://localhost:'+process.argv[2]+'/');
 await pg.fill('#gOpp','Lightning');await pg.click('#gStart');
@@ -18,7 +18,7 @@ await pg.click('#gPause'); // a game in progress locks the bullpen (modes are ex
 await pg.click('nav [data-t="bullpen"]');await pg.check('#callOn');await pg.fill('#callTxt','chg 7');await tap(7);
 await pg.fill('#callTxt','FB A');console.log('desc',await pg.textContent('#callDesc'),await pg.isVisible('#callTxt'),await pg.inputValue('#callTxt'));await tap(16);console.log('afterA',await pg.evaluate(()=>{const s=__app.store.state;return [s.activeSession,s.sessions.map(x=>x.id+':'+x.pitches.length)]}),await pg.textContent('#bpSum'),await pg.textContent('#callDesc'));await pg.fill('#callTxt','H+');await tap(15);await pg.click('#types [data-c="DC"]');await tap(8);await tap(9);
 await pg.uncheck('#callOn');
-for(const [t,want,act] of [['FB',3,3],['CH',7,8]]){await pg.click(`#types [data-c="${t}"]`);if(!(await pg.textContent('#phase')).includes('intended'))throw 'step2 '+t;await tap(want);if(!(await pg.textContent('#phase')).includes('actually'))throw 'step3 '+t;await tap(act);if(!(await pg.textContent('#phase')).includes('Choose the pitch'))throw 'reset '+t;}
+for(const [t,want,act] of [['FB',3,3],['CH',7,8]]){await pg.click(`#types [data-c="${t}"]`);if(!/intended|Last:/.test(await pg.textContent('#phase'))||(await pg.textContent('#steps li.now'))!=='Aim')throw 'step2 '+t;await tap(want);if(!(await pg.textContent('#phase')).includes('actually'))throw 'step3 '+t;await tap(act);if((await pg.textContent('#steps li.now'))!=='Aim'||!(await pg.textContent('#phase')).includes('Last:'))throw 'sticky type, back to aim '+t;}
 console.log('bullpen sum:',await pg.textContent('#bpSum'));
 await pg.screenshot({path:'/workspace/pitch-charting-app/test/shot-bullpen.png',fullPage:true});
 // test mode

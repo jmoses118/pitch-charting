@@ -59,3 +59,6 @@ Rule: on a 390×844 phone (and 375×667 for an SE), everything needed to log a p
   - Not charting: the full workload sentence is on its own line.
   - Charting: the logo row hides, the sync chip moves (compact) next to the picker, and the short "Today n · Wknd n" counts wrap rather than squeeze the name.
 - **No text may clip or ellipsize unintentionally** on any tab or state at 375×667, 390×844 and 430×932, and no controls may overlap. `test/layout.ui.js` enforces this; horizontal scrollers (pitch chips, wristband table) are the only exceptions.
+
+## Coach screen (v37)
+Landscape only (`(orientation: landscape) and (max-height: 500px)`). The grid is `auto | --mid | 106px`: band table, then status + zone, then results. `sizeCoach()` sets `--k` (band cell) and `--z` (zone cell): 48px at 844x390 and about 40px at 667x375. Palettes are set with `html[data-theme=field|night]` (Auto switches by time). Result tokens use Okabe-Ito colours. Band setup maps cells that have no zone to a spot (or no spot) once per sheet. The bullpen pad (`#bpPad`, `body.padmode`) is fixed above the nav, and fitZone subtracts `--pad-h`.

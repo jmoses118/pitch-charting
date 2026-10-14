@@ -5,7 +5,7 @@ const {chromium}=require('playwright-core');const BASE=process.argv[2]||'http://
 const GAME={id:'g1',date:'2026-10-13',opponent:'Storm',homeAway:'away',status:'active',started:1,lineup:[{slot:1,name:'B1',num:'1',hand:'R'},{slot:2,name:'B2',num:'2',hand:'L'}],cur:{inning:2,outs:1,slot:0,b:1,s:1,abn:3},pitches:[]};
 (async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});
 for(const [W,H] of [[390,844],[375,667]]){const tag=`${W}x${H}`;
-  const c=await b.newContext({viewport:{width:W,height:H},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());
+  const c=await b.newContext({viewport:{width:W,height:H},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());await c.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));
   const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());const ev=(f,a)=>p.evaluate(f,a);
   await p.goto(BASE);await ev(()=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';S.customTypes=[{code:'SC',name:'Screwball'}];__app.store.save();__app.render();});
   const inView=sel=>ev(s=>{const r=document.querySelector(s).getBoundingClientRect();const nav=document.querySelector('nav').getBoundingClientRect().top;return r.width>0&&r.top>=0&&r.left>=0&&r.right<=innerWidth+.5&&r.bottom<=nav+.5;},sel);

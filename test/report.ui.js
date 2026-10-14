@@ -1,4 +1,4 @@
-const {chromium}=require('playwright-core');const BASE=process.argv[2],SHOT=process.argv[3];(async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});const c=await b.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,colorScheme:'dark',acceptDownloads:true});const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());
+const {chromium}=require('playwright-core');const BASE=process.argv[2],SHOT=process.argv[3];(async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});const c=await b.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,colorScheme:'dark',acceptDownloads:true});const p=await c.newPage();await p.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());
 await p.goto(BASE);const before=await p.evaluate(()=>localStorage.getItem('te_pitchchart_v1'));
 await p.click('nav [data-t="bullpen"]');await p.click('#bpTest');
 const tap=async s=>{await p.$eval(s,e=>e.scrollIntoView({block:"center"}));await p.click(s,{force:true});};

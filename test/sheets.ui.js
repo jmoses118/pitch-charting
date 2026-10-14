@@ -3,7 +3,7 @@
 const {chromium}=require('playwright-core');const BASE=process.argv[2]||'http://localhost:8766/';let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};
 (async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});
 for(const [W,H] of [[390,844],[375,667]]){const tag=`${W}x${H}`;
-  const c=await b.newContext({viewport:{width:W,height:H},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());
+  const c=await b.newContext({viewport:{width:W,height:H},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());await c.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));
   const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));const ev=(f,a)=>p.evaluate(f,a);const wait=ms=>p.waitForTimeout(ms||200);
   await p.goto(BASE);await ev(()=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'},{id:'p_r',name:'Reese',num:'7',throws:'L'}];S.curPitcher='p_a';
     const s={id:'s1',date:'2026-10-12',pitcherId:'p_a',started:1,ended:2,pitches:[]};[[3,3],[3,2],[7,5],[9,14],[1,1],[7,8]].forEach(([t,l],i)=>s.pitches.push({id:'x'+i,pitcherId:'p_a',type:'FB',targets:[t],loc:l,b:0,s:0}));S.sessions.push(s);__app.store.save();__app.render();});

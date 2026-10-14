@@ -353,3 +353,18 @@ test('pitchMark: good / miss / souvenir, and competitive when nothing was aimed'
   assert.equal(PC.pitchMark({type:'FB',targets:[1],loc:null}),null);});
 test('recentPitches numbers the at-bat / session in sequence and keeps the last n',()=>{const L=[{id:1},{id:2,noPitch:true},{id:3},{id:4,deleted:true},{id:5}];
   assert.deepEqual(PC.recentPitches(L).map(x=>[x.p.id,x.no]),[[1,1],[3,2],[5,3]]);assert.deepEqual(PC.recentPitches(L,2).map(x=>x.no),[2,3]);});
+test('band setup: cell codes, unmapped cells grouped by call, chosen aims', () => {
+  const sh = PC.defaultCallSheet();
+  assert.equal(PC.cellCode(sh, 2, 4), '3-05');
+  const u = PC.unmappedCells(sh, []);
+  const cells = u.reduce((n, g) => n + g.cells.length, 0);
+  assert.equal(cells, 9); // 47 of 56 map from the text; 9 have a type but no spot
+  const chg = u.find(g => g.norm === 'CH');
+  assert.deepEqual(chg.cells.sort(), ['2-08', '3-04', '7-06'].sort());
+  assert.equal(PC.bandSetupDone(sh, []), false);
+  sh.aims = {}; u.forEach(g => sh.aims[g.norm] = 0); sh.aims.CH = 8;
+  assert.equal(PC.bandSetupDone(sh, []), true);
+  assert.equal(PC.bandAim(sh, PC.parseCall('CHG', 'R', 'R')), 8);
+  assert.equal(PC.bandAim(sh, PC.parseCall('SRW', 'R', 'R')), null); // "no spot"
+  assert.equal(PC.bandAim(sh, PC.parseCall('Fb In', 'R', 'R')), null); // already mapped: text wins
+});

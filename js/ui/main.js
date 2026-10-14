@@ -51,7 +51,7 @@ function render(skipCallInput){const s=S();{const gg=game();const two=!!(gg&&gg.
   const sheet=tab==='game'&&!!(D.sheet||D.ip);$('resSheet').classList.toggle('hide',!sheet);$('resTog').classList.toggle('hide',tab!=='game');
   $('resHead').textContent=D.loc?`Result · ${D.type?D.type+' ':''}${locTxt(D.loc)}`:'Result';
   const wbOn=!$('wbCard').classList.contains('hide');$('wbTog').classList.toggle('hide',!wbOn);if(!wbOn)$('wbDet').open=false;
-  drawZone();fitZone();
+  renderModes(lk,showEntry);drawZone();fitZone();
   // log
   const RL=RESULT_SHORT;
   const line=(p,i)=>`<div><span class="n">${i+1}</span><span style="flex:1">${tab==='game'?H(pName(p.pitcherId).split(' ')[0])+' vs '+H(p.batter)+': ':''}${p.call?'<b>['+H(p.call)+']</b> ':''}${H(p.type||'')}${p.loc?' <span class="tag">'+H(locTxt(p.loc))+'</span>':''}${p.targets&&p.targets.length&&p.loc?(PC.hitSpot(p)?' ✓':' ✗'):''}</span><span>${p.result?RL[p.result]+(p.ip?' '+p.ip:''):(PC.isZone(p.loc)?'K':'B')}${p.end?' · <b>'+p.end+'</b>':''}</span>${p.result?`<span class="tag">${p.b}-${p.s}</span>`:''}</div>`;

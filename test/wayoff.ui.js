@@ -1,7 +1,7 @@
 // Way-off taps + competitive ring, in test mode with Supabase blocked.
 const {chromium}=require('playwright-core');const BASE=process.argv[2]||'http://localhost:8766/';let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};
 (async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
-await c.route(/supabase\.co/,r=>r.abort());const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());
+await c.route(/supabase\.co/,r=>r.abort());await c.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());
 const tap=async s=>{await p.$eval(s,e=>e.scrollIntoView({block:'center'}));await p.click(s,{force:true});await p.waitForTimeout(80);};
 await p.goto(BASE);await p.click('nav [data-t="bullpen"]');await p.click('#bpTest');ok(await p.isVisible('#testbar'),'test mode');
 const pen=async(t,aim,land)=>{await tap(`#types [data-c="${t}"]`);await tap(`#zone [data-z="${aim}"]`);await tap(land>20?`#wayBtns [data-z="${land}"]`:`#zone [data-z="${land}"]`);};

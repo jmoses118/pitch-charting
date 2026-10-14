@@ -62,6 +62,8 @@
  <div class="zonewrap"><svg id="zone" viewBox="-14 -6 128 138"></svg>
   <button id="batTog" class="zchip" aria-haspopup="dialog" aria-controls="batDlg"></button></div>
  <div id="wayBtns" class="way4"><button data-z="21">Way high</button><button data-z="22">Way low</button><button data-z="23">Way left</button><button data-z="24">Way right</button></div>
+ <div id="bpPad" class="bpad hide" aria-label="Bullpen pad"><div class="lbl padlbl">Pitch (sticky – repeats last)</div><div id="padTypes"></div><div class="lbl padlbl">Way off</div><div id="padWay"></div>
+  <div class="padact"><button id="pUndo">↶ Undo</button><button id="pPause">❚❚ Pause</button><button id="pEnd">⚑ End</button></div></div>
  <div id="resSheet" class="bsheet hide" role="dialog" aria-labelledby="resHead">
   <div class="row sp bshead"><div id="resHead" class="lbl">Result</div><button id="resClose" class="mini" aria-label="Close result picker">✕</button></div>
   <div id="resBtns" class="grid3">
@@ -126,6 +128,9 @@
 <section id="tab-setup" class="hide">
  <details class="card disc" open><summary>Practice / test mode</summary><div class="discbody"><button id="testBtn" style="width:100%"></button>
   <div class="mut" style="margin-top:6px">Test mode works like normal but nothing is saved, nothing goes into history, stats or exports, and it's wiped when you exit.</div></div></details>
+ <details class="card disc" id="dispCard"><summary>Display <span class="mut">this phone</span></summary><div class="discbody">
+  <label class="row" style="gap:8px"><span style="flex:1">Colors</span><select id="thSel" style="width:auto"><option value="field">☀ Field (day)</option><option value="night">☾ Night</option><option value="auto">◐ Auto (sunset)</option></select></label>
+  <label class="check"><input type="checkbox" id="mirrorChk"> Mirror the game screen <span class="mut">results on the left, band on the right</span></label></div></details>
  <details class="card disc" id="alertCard"><summary>Pitch-count alerts &amp; limits <span class="mut">shared by all coach phones</span></summary><div class="discbody">
   <div class="row"><span class="mut" style="flex:1">In-game alert at (pitches)</span><input id="alTh" inputmode="numeric" style="width:110px" placeholder="75, 90"></div>
   <div class="row" style="margin-top:6px"><span class="mut" style="flex:1">Soft limit per day (game + bullpen)</span><input id="limDay" inputmode="numeric" style="width:110px" placeholder="off"></div>
@@ -138,6 +143,7 @@
   <div class="row"><select id="csSel" style="flex:1"></select><button id="csNew">+ Sheet</button><button id="csDel" class="danger">Delete</button></div>
   <div class="row" style="margin-top:6px"><input id="csName" placeholder="Sheet name" style="flex:1"><select id="csPitcher"></select></div>
   <div class="wbWrap" style="margin-top:6px"><table class="wbTbl wbEdit" id="csTbl"></table></div>
+  <button id="csBand" style="width:100%;margin-top:6px">Band setup – aims for cells with no spot</button>
   <div class="grid4" style="margin-top:6px"><button id="csAddR">+ Row</button><button id="csDelR">− Row</button><button id="csAddC">+ Col</button><button id="csDelC">− Col</button></div>
   <div class="mut" style="margin-top:6px">Type codes like Fb 3, SRWI, CHG 7, Fb A, H+. Coach only; players never see call sheets.</div></div></details>
  <details class="card disc" open><summary>Cloud sync</summary><div class="discbody">
@@ -159,6 +165,33 @@
   <div class="mut" id="storeMsg" style="margin-top:6px"></div></div></details>
 </section>
 </main>
+<!-- coach pitch-calling screen (game, landscape) -->
+<section id="coach" class="coach hide" aria-label="Pitch calling">
+ <div class="cband"><table id="cBand" aria-label="Wristband call sheet"></table><div id="cNoBand" class="mut hide">No call sheet yet – add one in Setup → Wristband call sheets.</div></div>
+ <div class="cmid">
+  <div id="cStatus" class="cstatus">
+   <div class="cs-top"><b id="cxPitcher"></b><span class="cchip" id="cxInn"></span><span class="cchip" id="cxOuts"></span><span class="cs-count" id="cxCount"></span></div>
+   <div class="cs-bat" id="cxBat"></div>
+   <div class="cs-call"><span id="cxCode"></span><span id="cxAim" class="cs-aim"></span></div>
+   <div class="cs-hint" id="cxHint" role="status" aria-live="polite"></div>
+   <div class="cs-foot"><span class="cs-net" id="cxNet"></span><button id="cxMenu" class="cmenu" aria-label="Game menu: outs, innings, pause, end, display" aria-haspopup="dialog">⋯ Game</button></div>
+   <div id="cSprayWrap" class="hide"><div class="cs-ip" id="cxIp"></div><svg id="cSpray" viewBox="0 0 200 92" role="img" aria-label="Spray field: tap where the ball went (optional)"><path class="sp-fair" d="M100 90 L8 30 Q100 -18 192 30 Z"/><path class="sp-inf" d="M100 90 L74 66 L100 44 L126 66 Z"/><circle id="cSprayDot" class="hide" r="5"/></svg></div>
+  </div>
+  <div id="cZone" class="czone" role="group" aria-label="Strike zone, pitcher's view"></div>
+  <div id="cSide" class="cside hide" role="alertdialog" aria-labelledby="cSideT"><div id="cSideT" class="cside-t">⚑ Side retired</div><div id="cSideSum" class="mut"></div>
+   <button id="cSideUndo">↶ Undo last pitch</button><button id="cSidePause" class="success">❚❚ We're batting – pause</button><button id="cSideOk" class="ghost">Keep charting</button></div>
+ </div>
+ <div id="cRes" class="cres" role="group" aria-label="Result"></div>
+</section>
+<div id="rotate" class="rotate hide" role="dialog" aria-labelledby="rotT"><div class="rot-ic" aria-hidden="true">↻</div><div id="rotT" class="rot-t">Turn your phone sideways</div><div class="mut">Pitch calling shows the whole wristband, the zone and the results together in landscape.</div><button id="rotOk" class="ghost">Chart in portrait instead</button></div>
+<dialog id="cMenuDlg" class="sheet" aria-labelledby="cMenuT"><form method="dialog"><div class="lbl" id="cMenuT">Game</div>
+ <div class="cmenu-g"><button type="button" id="cmOutM">Out −</button><button type="button" id="cmOutP">Out +</button><button type="button" id="cmInn">Next inning</button><button type="button" id="cmIbb">Intentional walk</button>
+ <button type="button" id="cmKd3">K – reached (D3)</button><button type="button" id="cmKd3o">K – D3 thrown out</button><button type="button" id="cmBand">Band setup</button><button type="button" id="cmTheme"></button><button type="button" id="cmMirror"></button>
+ <button type="button" id="cmPause">❚❚ Pause game</button><button type="button" id="cmEnd" class="danger">End game</button></div>
+ <button value="cancel" formnovalidate class="ghost" style="width:100%;margin-top:10px">Cancel</button></form></dialog>
+<dialog id="bandDlg" class="sheet" aria-labelledby="bandT"><form method="dialog"><div class="row sp"><div class="lbl" id="bandT">Band setup</div><span class="tag">one time</span></div>
+ <div id="bandSub" class="mut"></div><div id="bandList" class="bandlist"></div>
+ <div class="row" style="margin-top:10px"><button value="cancel" formnovalidate class="ghost" style="flex:1">Cancel</button><button value="ok" class="success" style="flex:2">✓ Save band</button></div></form></dialog>
 <nav aria-label="Sections"><button data-t="game" class="on"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M7.6 5.2c1.6 2 2.4 4.3 2.4 6.8s-.8 4.8-2.4 6.8M16.4 5.2c-1.6 2-2.4 4.3-2.4 6.8s.8 4.8 2.4 6.8"/></svg><span>Game</span></button><button data-t="bullpen"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8"/></svg><span>Bullpen</span></button><button data-t="stats"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg><span>Stats</span></button><button data-t="setup"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span>Setup</span></button></nav>
 <dialog id="batDlg" class="sheet" aria-labelledby="batT"><form method="dialog"><div class="lbl" id="batT">Batter</div>
  <div class="mut" id="batSub" style="margin-bottom:8px">Sets which side is "in" and "away" and where the silhouette stands.</div>
@@ -177,5 +210,5 @@
  <div id="ddCap" style="font-size:15px;line-height:1.4;margin-top:6px"></div><div id="ddKey" class="mut" style="font-size:12px;margin-top:6px"></div>
  <button id="ddClose" style="width:100%;margin-top:10px">Close</button></dialog>
 <div id="toast"></div>
-<script src="config.js"></script><script src="js/core/grid.js"></script><script src="js/core/calls.js"></script><script src="js/core/game.js"></script><script src="js/core/scoring.js"></script><script src="js/core/csv.js"></script><script src="js/core/workload.js"></script><script src="js/core/sync.js"></script><script src="js/core/modes.js"></script><script src="js/core/store.js"></script><script src="js/ui/shared.js"></script><script src="js/ui/zonegfx.js"></script><script src="js/ui/game.js"></script><script src="js/ui/bullpen.js"></script><script src="js/ui/report.js"></script><script src="js/ui/stats.js"></script><script src="js/ui/setup.js"></script><script src="js/ui/main.js"></script>
+<script src="config.js"></script><script src="js/core/grid.js"></script><script src="js/core/calls.js"></script><script src="js/core/game.js"></script><script src="js/core/scoring.js"></script><script src="js/core/csv.js"></script><script src="js/core/workload.js"></script><script src="js/core/sync.js"></script><script src="js/core/modes.js"></script><script src="js/core/store.js"></script><script src="js/ui/shared.js"></script><script src="js/ui/zonegfx.js"></script><script src="js/ui/game.js"></script><script src="js/ui/bullpen.js"></script><script src="js/ui/report.js"></script><script src="js/ui/stats.js"></script><script src="js/ui/setup.js"></script><script src="js/ui/coach.js"></script><script src="js/ui/main.js"></script>
 </body></html>

@@ -3,7 +3,7 @@ const {chromium}=require('playwright-core');const BASE=process.argv[2]||'http://
 fs.mkdirSync(OUT,{recursive:true});fs.readdirSync(OUT).forEach(f=>fs.unlinkSync(OUT+f));let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};
 (async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});const c=await b.newContext({viewport:{width:390,height:844},deviceScaleFactor:3,colorScheme:'dark',isMobile:true,hasTouch:true});
 let net=0;await c.route(/supabase\.co/,r=>{net++;r.abort();});await c.addInitScript(()=>{window.__vib=[];navigator.vibrate=p=>{window.__vib.push(p);return true;};});
-const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());let N=0;
+const p=await c.newPage();await p.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());let N=0;
 const cap=async t=>p.evaluate(t=>{let d=document.getElementById('demoCap');if(!d){d=document.createElement('div');d.id='demoCap';d.style.cssText='position:fixed;left:10px;right:10px;bottom:84px;z-index:2147483647;background:#1E3FD0;color:#fff;font:700 15px -apple-system,system-ui,sans-serif;padding:9px 12px;border-radius:12px;box-shadow:0 4px 16px #000a;text-align:center';}
   const ds=document.querySelectorAll('dialog[open]');(ds[ds.length-1]||document.body).appendChild(d);d.textContent=t;},t);
 const clean=()=>p.evaluate(()=>{const y=__app.store.real.sync;Object.keys(y.queue).forEach(k=>y.queue[k]={});y.tomb={};y.last=Date.now();y.lastError=null;__app.store.save();__app.render();});
