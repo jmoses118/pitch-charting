@@ -150,7 +150,7 @@ $('testBtn').onclick=toggleTest;$('exitTest2').onclick=toggleTest;
 // ---------- cloud sync ----------
 const CFG=window.PC_CONFIG||{};const sync=CFG.url&&CFG.key?PC.makeSync(store,{url:CFG.url,key:CFG.key}):null;let syncT=null,syncing=false;
 // Scoring lock: the live game / bullpen session on screen is scored only from the phone that owns it (PC.canScore)
-store.real.sync.scorerCol=!!CFG.scorerColumn; store.real.sync.shakeCol=!!CFG.shakeColumn; store.real.sync.chartCol=!!CFG.chartColumn; // chart columns only after 20261014180000_scoring_chart.sql is applied (not applied)
+store.real.sync.scorerCol=!!CFG.scorerColumn; store.real.sync.shakeCol=!!CFG.shakeColumn; store.real.sync.chartCol=!!CFG.chartColumn; // on after 20261014140000_shake_off.sql and 20261014180000_scoring_chart.sql
 const myDevice=()=>store.real.sync.deviceId;
 function liveBox(){if(tab==='game'){const g=game();return PC.gameInProgress(g)?g:null;}return tab==='bullpen'?session():null;}
 const viewOnly=()=>PC.lockedBox(liveBox(),myDevice());

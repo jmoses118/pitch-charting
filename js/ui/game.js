@@ -143,8 +143,8 @@ $('editWay').addEventListener('click',e=>{const b=e.target.closest('[data-z]');i
 $('editAct').addEventListener('click',e=>{const b=e.target.closest('[data-z]');if(b)pickEdit(+b.dataset.z);});
 $('editDlg').addEventListener('close',()=>{const id=editId;editId=null;if($('editDlg').returnValue!=='ok')return;const hit=findPitch(id);
   if(!hit||!editAllowed(hit))return toast('Only the scoring phone can change a pitch.');if(editLoc==null)return toast('Tap where it actually went');
-  const n=hit.box.pitches.length,prev=hit.p.loc,prevAct=hit.p.actualLoc,was=!!hit.p.edited;
+  const n=hit.box.pitches.length,prev=hit.p.loc,prevAct=hit.p.actualLoc,prevCalled=hit.p.calledLoc,was=!!hit.p.edited;
   if(!PC.editActual(hit.p,editLoc)||hit.box.pitches.length!==n)return;
-  if(hit.p.loc===prev&&hit.p.actualLoc===prevAct&&!!hit.p.edited===was)return;
+  if(hit.p.loc===prev&&hit.p.actualLoc===prevAct&&hit.p.calledLoc===prevCalled&&!!hit.p.edited===was)return;
   dirty('pitches',hit.p.id);save();render();toast('Location updated');});
 loadRedo();

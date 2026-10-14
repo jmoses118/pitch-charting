@@ -17,7 +17,7 @@
 - Shake-off stays on the portrait screen and the landscape coach Game screen (called pitch vs thrown pitch + result).
 - Strike zone, wristband aim, and Thunder Elite colours are unchanged.
 ### Notes
-- Migration `supabase/migrations/20261014180000_scoring_chart.sql` adds `called_loc`, `actual_loc`, `foul_time`, `wp_pb`, `velo`. **Not applied** to the live project. `chartColumn` is unset in `config.js`, so those columns are not sent until a coach applies the file and turns the flag on. Cache: `te-pitch-v41`.
+- Migration `supabase/migrations/20261014180000_scoring_chart.sql` adds `called_loc`, `actual_loc`, `foul_time`, `wp_pb`, `velo`. See **Go live** below. Cache: `te-pitch-v41`.
 ### Review
 - **CSV** appends `called_type` (the called pitch) and `shook` (`1` when she shook it off). Import reads both. An older file without those columns still imports. The download name uses her first name and jersey only, with safe characters (`PC.csvPitcherFile`).
 - **Velocity** outside 20–110 shows "Velocity must be between 20 and 110. Not saved." Empty stays empty, with no message.
@@ -36,12 +36,17 @@
 - Cache: `te-pitch-v42`.
 ### Edit pitch
 - **Tap a pitch in the list** (the game or bullpen log, the recent list, or Stats → Pitches after the game) to correct its **actual** location. The sheet is the full grid: zone, the ring, way off, In dirt, and Over catcher. Save writes that pitch. Cancel, Escape, and the backdrop write nothing.
-- Later pitches stay. The count, the result, and the called location stay. Miss scoring follows the corrected spot (`loc` and `actualLoc`).
+- Later pitches stay. The count and the result stay. Miss scoring follows the corrected spot (`loc` and `actualLoc`). When that call named more than one target, the called box becomes the target nearest the new spot (`PC.nearestTarget`), so CSV `called_location` matches. One target, or none, leaves the called box as it was. A distance tie keeps the earlier target.
 - The pitch is marked **edited**. The list shows “from video”. CSV appends an `edited` column (`1` or empty). An older file without that column still imports.
 - Only the scoring phone can save, including after the game. A view-only phone cannot.
 - The correction syncs with the pitch (`loc`, plus an invisible mark on `call_raw` so the flag comes back). No new database column.
 - Stats → Pitches lists the pitches only when one game or one session is selected, so Everything still shows the heat map.
-- On a short phone the log sits above the location row, so each pitch stays tappable. Cache: `te-pitch-v44`.
+- On a short phone the log sits above the location row, so each pitch stays tappable.
+### Go live
+- `chartColumn: true` and `shakeColumn: true` are set in `config.js`. `scorerColumn` was already on. Apply these two files to production before merge, in this order:
+  1. `supabase/migrations/20261014140000_shake_off.sql` (`pitches.shook`)
+  2. `supabase/migrations/20261014180000_scoring_chart.sql` (`called_loc`, `actual_loc`, `foul_time`, `wp_pb`, `velo`)
+- `20261014120000_scoring_lock.sql` is already applied. Cache: `te-pitch-v45`.
 
 ## v39 – Code Reviewer fixes
 ### Fixed
@@ -59,7 +64,7 @@
 - New **⤺ Shake-off** button in the Game pitch flow (portrait) and on the landscape coach screen next to Aim/Undo/Same: records the coach's call as shaken off, then the pitch type she actually threw, where it went and the result, linked to the call. Cancel and Undo supported.
 - Stats gets a **Shake-offs** card per pitcher (also in the bullpen report when present): count, shook vs followed-call results (strike %, hits, hard contact, K, balls), and each shake-off with called vs thrown, count, previous pitch and outcome.
 - Scoring: a shake-off pitch is scored against her own aim; unknown = no aim (SCORING.md).
-- Sync works on today's schema (call_raw tag). Optional migration `20261014140000_shake_off.sql` (`pitches.shook`) – **not applied**.
+- Sync works on today's schema (call_raw tag). Migration `20261014140000_shake_off.sql` (`pitches.shook`) is listed under **Go live**; `shakeColumn:true` is set.
 - Bullpen: not included (no wristband call in bullpen).
 - History check: "shake" never appeared in any commit or PR (#1–#12), so this is new, not a restore.
 

@@ -579,6 +579,19 @@ test('edit actual location keeps later pitches, the call, and the count, and mar
   assert.equal(PC.editActual(pitches[0],21),true);assert.equal(pitches[0].edited,true);
   const plain={id:'c',loc:5,actualLoc:5,result:'foul'};assert.equal(PC.editActual(plain,5),true);assert.equal(plain.edited,undefined);
 });
+test('editing the actual location recomputes calledLoc when the call had more than one target',()=>{
+  const p={id:'m',loc:9,actualLoc:9,calledLoc:14,targets:[11,14],result:'ball',call:'FB'};
+  assert.equal(PC.nearestTarget(p.targets,9),14);
+  assert.equal(PC.editActual(p,1),true);
+  assert.equal(p.loc,1);assert.equal(p.actualLoc,1);assert.equal(p.calledLoc,11);assert.equal(p.result,'ball');assert.equal(p.edited,true);
+  const chart=PC.csvChart(p);assert.equal(chart.called_location,11);assert.equal(chart.actual_location,1);
+  const one={id:'o',loc:5,actualLoc:5,calledLoc:7,targets:[7],result:'ball'};
+  assert.equal(PC.editActual(one,31),true);assert.equal(one.calledLoc,7);assert.equal(PC.csvChart(one).called_location,7);
+  const tie={id:'t',loc:9,actualLoc:9,calledLoc:14,targets:[11,12],result:'ball'};
+  assert.equal(PC.editActual(tie,2),true);assert.equal(tie.calledLoc,11);
+  const stay={id:'s',loc:1,actualLoc:1,calledLoc:11,targets:[11,14],result:'ball'};
+  assert.equal(PC.editActual(stay,1),true);assert.equal(stay.calledLoc,11);assert.equal(stay.edited,undefined);
+});
 test('edited flag syncs on the pitch row and round-trips in CSV without a new column',()=>{const st=coachStore(),s=st.real;
   s.games.push({id:'g',date:'d',opponent:'o',homeAway:'home',lineup:[],cur:{},pitches:[
     {id:'p1',ts:1,type:'FB',call:'CH8',callRaw:'CH 8',shook:true,targets:[8],loc:31,actualLoc:31,calledLoc:8,result:'ball',edited:true},

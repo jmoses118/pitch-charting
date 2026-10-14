@@ -47,7 +47,11 @@ function cleanFlag(v){return v==='wp'||v==='pb'?v:null;}
 function cleanVelo(v){if(v==null||v==='')return null;const n=+v;return Number.isFinite(n)&&n>=20&&n<=110?Math.round(n*10)/10:null;}
 // Bullpen may stamp a ball or a called strike when the phone's default is set. Anything else stays unset.
 function bullpenResult(def){return def==='ball'||def==='called'?def:null;}
-// Correct where a past pitch actually went. Does not remove it, reorder the list, or touch the call, the count, or the result.
-function editActual(pitch,loc){loc=+loc;if(!pitch||!PC.GRID_XY[loc])return false;const same=pitch.loc===loc&&pitch.actualLoc===loc;pitch.loc=loc;pitch.actualLoc=loc;if(!same)pitch.edited=true;return true;}
+// Correct where a past pitch actually went. Does not remove it, reorder the list, or touch the result or the count.
+// One target (or none) keeps calledLoc. Several targets recompute it as the nearest to the new spot, so CSV called_location matches.
+function editActual(pitch,loc){loc=+loc;if(!pitch||!PC.GRID_XY[loc])return false;const same=pitch.loc===loc&&pitch.actualLoc===loc;pitch.loc=loc;pitch.actualLoc=loc;
+  const targets=Array.isArray(pitch.targets)?pitch.targets:[];let calledMoved=false;
+  if(targets.length>1){const next=PC.nearestTarget(targets,loc);if(next!=null&&next!==pitch.calledLoc){pitch.calledLoc=next;calledMoved=true;}}
+  if(!same||calledMoved)pitch.edited=true;return true;}
 Object.assign(PC,{BB_TYPES,BB_NAME,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,bullpenStep,bullpenTap,REDO_MAX,FOUL_TIMES,redoPush,redoPop,redoState,cleanFoul,cleanFlag,cleanVelo,bullpenResult,editActual});
 })(typeof window!=='undefined'?window:globalThis);

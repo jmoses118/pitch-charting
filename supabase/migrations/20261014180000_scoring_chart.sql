@@ -1,8 +1,7 @@
 -- Scoring chart fields: called location vs actual location, optional foul timing,
 -- wild pitch / passed ball, optional velocity.
--- NOT APPLIED. Do not run this against the live project. The app keeps these
--- fields on the phone until chartColumn:true is set in config.js after a coach
--- applies this file.
+-- Apply this file before merging the build that sets chartColumn:true in config.js.
+-- Apply 20261014140000_shake_off.sql first.
 alter table public.pitches add column if not exists called_loc int;
 alter table public.pitches add column if not exists actual_loc int;
 alter table public.pitches add column if not exists foul_time text;
