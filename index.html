@@ -150,7 +150,7 @@
  <details class="card disc" open><summary>Cloud sync</summary><div class="discbody">
   <div class="row"><input id="teamCode" placeholder="Team code (same on every phone)" autocapitalize="characters" autocomplete="off" style="flex:1"><button id="teamSave">Save</button></div>
   <div class="grid2" style="margin-top:6px"><button id="syncNow" class="primary">Sync now</button><button id="pullCloud">Restore from cloud</button></div>
-  <div class="mut" id="syncMsg" style="margin-top:6px"></div><div id="roleMsg" class="tag hide" style="margin-top:6px;display:inline-block"></div></div></details>
+  <div class="mut" id="syncMsg" style="margin-top:6px"></div><button id="rejBtn" class="danger hide" style="width:100%;margin-top:6px" aria-haspopup="dialog">⚠ Sync problems</button><div id="roleMsg" class="tag hide" style="margin-top:6px;display:inline-block"></div></div></details>
  <details class="card disc hide" id="codesCard"><summary>Access codes <span class="mut">coach only</span></summary><div class="discbody"><div class="mut" style="margin-bottom:6px">Player code = bullpen only, their own data. View-only = read the whole team. Revoke anytime.</div><div id="codesList"></div>
   <div class="row" style="margin-top:6px"><select id="ncPitcher"></select><button id="ncPlayer">New player code</button></div><button id="ncViewer" style="width:100%;margin-top:6px">New view-only code</button>
   <div class="lbl" style="margin-top:10px">Pitching coach</div><div class="mut" style="font-size:12px">Sees full data for the pitchers you pick, scores their bullpens and adds notes. No call sheets, setup, codes or other pitchers.</div>
@@ -189,6 +189,10 @@
  <button type="button" id="cmKd3">K – reached (D3)</button><button type="button" id="cmKd3o">K – D3 thrown out</button><button type="button" id="cmBand">Band setup</button><button type="button" id="cmTheme"></button><button type="button" id="cmMirror"></button>
  <button type="button" id="cmPause">❚❚ Pause game</button></div>
  <div class="dlgfoot"><button value="cancel" formnovalidate class="ghost" style="width:100%">Cancel</button></div></form></dialog>
+<dialog id="rejDlg" class="sheet" aria-labelledby="rejT"><form method="dialog"><div class="lbl" id="rejT">Sync problems</div>
+ <div class="mut" id="rejSub" style="margin-bottom:8px">The server refused these changes, so they are saved on this phone only. Choose Retry to send again or Discard to drop the change. Nothing happens until you tap Apply.</div>
+ <div id="rejList" class="rejlist"></div>
+ <div class="row dlgfoot"><button value="cancel" formnovalidate class="ghost" style="flex:1">Cancel</button><button value="ok" id="rejApply" class="primary" style="flex:2">Apply</button></div></form></dialog>
 <dialog id="bandDlg" class="sheet" aria-labelledby="bandT"><form method="dialog"><div class="row sp"><div class="lbl" id="bandT">Band setup</div><span class="tag">one time</span></div>
  <div id="bandSub" class="mut"></div><div id="bandList" class="bandlist"></div>
  <div class="row dlgfoot"><button value="cancel" formnovalidate class="ghost" style="flex:1">Cancel</button><button value="ok" class="success" style="flex:2">✓ Save band</button></div></form></dialog>

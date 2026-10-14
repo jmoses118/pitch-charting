@@ -11,6 +11,9 @@ Highlights: game + bullpen charting with Jim's wristband calls, miss severity / 
 - `config.js` holds the Supabase URL and **publishable** key (safe for clients; RLS enforces access). Never put a secret/service key in the repo.
 - Install the app on a phone with "Add to Home Screen"; the service worker (`sw.js`) caches every file for offline use.
 
+## Sync problems
+If the server refuses a change, Setup → Cloud sync shows **⚠ Sync problems**. Open it to retry or discard each change; Cancel leaves everything as it was.
+
 ## Privacy (minors)
 The repo is public and the players are minors. The app shows pitchers as **first name + jersey number** only (`PC.pitcherLabel`). Never commit surnames, birthdays or other personal details in code, seeds, tests, docs or screenshots. Use test data in demos.
 

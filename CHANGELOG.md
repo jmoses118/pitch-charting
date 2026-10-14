@@ -1,5 +1,20 @@
 # Changelog
 
+## v39 – Code Reviewer fixes
+### Fixed
+- **Sync no longer stalls on one refused row.** A 401/403 is now retried row by row like other 4xx errors, so the good rows and every later table still sync. Sync stops only if the coach code itself is no longer valid.
+- **Dates after 8 PM ET** were stamped with tomorrow's date (UTC). New bullpen sessions, new games, rest info and backups now use the phone's local date.
+- **Hit spot** in Stats and the report now use one rule (a change-up up in the zone never counts as a hit).
+- **Two coach phones** no longer roll back each other's live count, and bullpen session edits from any phone are pulled (last writer wins).
+- Pulled pitches keep way-off targets (21–24).
+### Added
+- **Change-ups are aimed low only:** boxes 4, 7, 8, 9, 13, 14, 18. Other boxes are refused in the bullpen, the call sheet and the coach screen. A high change-up call (e.g. CH H+) gets no spot and goes to band setup.
+- **Setup → Sync problems:** see changes the server refused, then retry or discard each one (Cancel changes nothing).
+- **Faster sync:** pull downloads only what changed since the last sync, with keyset paging.
+- CI runs the browser smoke and XSS tests on every PR.
+### Changed (code)
+- Heat map summary moved into scoring.js (`PC.heatSummary`), with tests. One miss-direction list and one best/weakest-spot helper. Removed the unused `isMiddleMiss` and a stray comment.
+
 ## v38 – Game, heat map and report always agree (Jim's test-mode bug)
 ### Fixed
 - **"Count stuck at 0-0" after 6 pitches.** The count was right (two at-bats had finished), but the zone kept showing the last batter's balls with no label. The zone now says "Last batter: 3 pitches · single · next batter starts 0-0" and fades those balls until the next pitch.

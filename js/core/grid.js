@@ -35,14 +35,12 @@ function locInfoRaw(z,hand){hand=hand==='L'?'L':'R';
   if(z===16||z===17){const h=(z===16?0:2)===insideCol(hand)?'in':'away';return{z,strikeZone:false,vert:'middle',horiz:h,label:`center ${h} (ball)`};}
   return null;}
 const ALL_CELLS=[11,15,12,1,2,3,16,4,5,6,17,7,8,9,13,18,14];
-// flatten state into pitch items with context (deleted/undone pitches are already gone from the arrays)
 // Miss distance on the grid (documented): every location sits on a 5x5 lattice in the pitcher's view.
 // Zone 1-9 = columns 1-3 x rows 1-3; outside spots: 11=(0,0) 15=(2,0) 12=(4,0) 16=(0,2) 17=(4,2) 13=(0,4) 18=(2,4) 14=(4,4).
 // Distance = Chebyshev "squares away" = max(|dx|,|dy|), so diagonal neighbours are 1 and the max is 4 (e.g. 11 -> 14).
 const GRID_XY={21:[2,-1],22:[2,5],23:[-1,2],24:[5,2],11:[0,0],15:[2,0],12:[4,0],16:[0,2],17:[4,2],13:[0,4],18:[2,4],14:[4,4]};for(let z=1;z<=9;z++)GRID_XY[z]=[(z-1)%3+1,Math.floor((z-1)/3)+1];
 const MAX_MISS=4;
-function isMiddleMiss(p){return p.loc===5&&p.targets&&p.targets.length>0&&!p.targets.includes(5);}
 function missDist(a,b){const p=GRID_XY[a],q=GRID_XY[b];if(!p||!q)return null;return Math.max(Math.abs(p[0]-q[0]),Math.abs(p[1]-q[1]));}
 function pct(a,b){return b?Math.round(1000*a/b)/10:null;}
-Object.assign(PC,{insideCol,awayCol,cz,isZone,isCorner,isOut,WAY,isWay,isCompetitive,gloveCol,locInfo,locInfoRaw,ALL_CELLS,GRID_XY,MAX_MISS,isMiddleMiss,missDist,pct});
+Object.assign(PC,{insideCol,awayCol,cz,isZone,isCorner,isOut,WAY,isWay,isCompetitive,gloveCol,locInfo,locInfoRaw,ALL_CELLS,GRID_XY,MAX_MISS,missDist,pct});
 })(typeof window!=='undefined'?window:globalThis);

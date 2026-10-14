@@ -77,7 +77,7 @@ function pickScheduled(id){const g=S().games.find(x=>x.id===id);if(!g)return;sch
   if(g.lineup&&g.lineup.length)draftLineup=g.lineup.map(b=>Object.assign({},b));$('newGameLbl').textContent=`Start ${g.gameNo||''} ${vsAt(g)} ${g.opponent} – set lineup`;renderLineupForm();$('noGame').scrollIntoView({behavior:'smooth'});}
 $('schedList').addEventListener('click',e=>{const b=e.target.closest('[data-sg]');if(b)pickScheduled(b.dataset.sg);});
 $('gStart').onclick=()=>{if(canGame()&&PC.sessionOpen(session()))return toast(PC.LOCK_MSG.bullpen);const lineup=draftLineup.map((b,i)=>({slot:i+1,name:b.name.trim()||('Batter '+(i+1)),num:b.num.trim(),hand:b.hand}));
-  const fields={date:$('gDate').value||new Date().toISOString().slice(0,10),opponent:$('gOpp').value.trim()||'Opponent',event:$('gEvent').value.trim(),homeAway:$('gHA').value,lineup,
+  const fields={date:$('gDate').value||today(),opponent:$('gOpp').value.trim()||'Opponent',event:$('gEvent').value.trim(),homeAway:$('gHA').value,lineup,
     cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:0,hand:null},started:Date.now(),status:'active'};
   let g=schedId&&S().games.find(x=>x.id===schedId);
   if(g){Object.assign(g,fields);g.pitches=g.pitches||[];}else{g=Object.assign({id:'g_'+PC.uid(),pitches:[]},fields);S().games.push(g);}

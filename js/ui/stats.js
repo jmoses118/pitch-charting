@@ -65,11 +65,6 @@ function heatOptions(items){items=items.filter(i=>vis(i.p.pitcherId));const s=S(
   return{type:uniq(items.map(i=>i.p.type)).sort().map(v=>[v,v]),pitcher:s.pitchers.filter(p=>!own||p.id===own).map(p=>[p.id,PC.pitcherLabel(p)]),throws:[['R','RHP'],['L','LHP']],
     batter:uniq(items.map(i=>i.batter)).sort().map(v=>[v,v]),side:[['R','RHB'],['L','LHB'],['N','No batter']],src:[['game','Games'],['bullpen','Bullpen']],
     game:(own?s.games.filter(g=>g.pitches.some(p=>p.pitcherId===own)):s.games).map(g=>[g.id,`${g.date||''} ${vsAt(g)} ${g.opponent}`]),session:s.sessions.map(x=>[x.id,`Bullpen ${x.date||''} (${x.pitches.length})`])};}
-// one sentence that always accounts for every pitch: shown + left out (no aim in Miss, no location in Landed)
-const pz=n=>`${n} pitch${n===1?'':'es'}`;
-function heatSummary(d,miss){const out=d.matched-d.total;
-  if(miss)return `Showing ${d.total} of ${pz(d.matched)} (the ones with an aim). Box = where she aimed · color = how far off.`+(d.mm?` 🎁 ${d.mm} souvenir${d.mm===1?'':'s'}.`:'')+(out?` ${out} with no aim aren't shown – see Landed.`:'');
-  return `${pz(d.total)} · where they landed`+(out?` · ${pz(out)} with no location left out`:'');}
 const HF_LBL={type:'Pitch',pitcher:'Pitcher',throws:'Pitcher hand',batter:'Batter',side:'Batter side',src:'Source',game:'Game',session:'Bullpen session'};
 function heatChipText(k,v,opts){const o=(opts[k]||[]).find(x=>x[0]===v);return `${HF_LBL[k]}: ${o?o[1]:v}`;}
 function renderHeat(){const items0=PC.heatItems(S());const own=role()==='player'?store.real.sync.pitcherId:null;const items=(own?items0.filter(i=>i.p.pitcherId===own):items0).filter(i=>vis(i.p.pitcherId));
@@ -79,9 +74,9 @@ function renderHeat(){const items0=PC.heatItems(S());const own=role()==='player'
   const act=PC.HEAT_KEYS.filter(k=>HF[k]&&!(own&&k==='pitcher'));
   $('hfChips').innerHTML=(act.length?act.map(k=>`<button class="tag" data-hfx="${H(k)}" aria-label="Remove filter ${H(heatChipText(k,HF[k],opts))}" style="min-height:34px;font-size:13px;background:#1d2a55;border:1px solid #2f4fb0">${H(heatChipText(k,HF[k],opts))} ✕</button>`).join(''):'<span class="mut">All pitches'+(own?' (yours)':'')+'</span>');
   $('hfReset').disabled=!act.length;
-  $('hSummary').textContent=heatSummary(d,miss);
+  $('hSummary').textContent=PC.heatSummary(d,miss);
   const empty=d.total===0;$('hEmpty').classList.toggle('hide',!empty);$('hMap').classList.toggle('hide',empty);$('hLegend').classList.toggle('hide',empty);if(empty)return;
-  if(miss&&own){paintKid($('hMap'),d);hookDrill($('hMap'),d);$('hSummary').textContent=heatSummary(d,true);$('hLegend').innerHTML=`<div style="font-size:13px;line-height:1.4">${KID_LEGEND}</div>`;return;}
+  if(miss&&own){paintKid($('hMap'),d);hookDrill($('hMap'),d);$('hSummary').textContent=PC.heatSummary(d,true);$('hLegend').innerHTML=`<div style="font-size:13px;line-height:1.4">${KID_LEGEND}</div>`;return;}
   zoneSVG($('hMap'),'R',{noNums:true,noSide:true});let ex='';
   PC.ALL_CELLS.forEach(z=>{const c=d.cells[z],el=$('hMap').querySelector(`[data-z="${z}"]`);if(!el)return;const[cx,cy]=center(z);
     const col=miss?PC.missColor(c.avg):PC.heatColor(c.n,d.max);el.style.fill=col?col.fill:'#161b22';const tc=col?col.text:'#6e7681';

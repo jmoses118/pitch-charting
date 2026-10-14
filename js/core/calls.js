@@ -26,6 +26,13 @@ const CALL_SUFFIX={
   L:{at:()=>8,desc:'down in zone'}};
 // parseCall("CHG 7"|"FB IN"|"FB A"|"H+"|"CB"...,batterHand,pitcherThrows,customTypes)
 // returns {type, suffix, targets:[zones], waste:bool, desc, norm} or null
+// Jim's rule (Oct 2026): a change-up is never aimed in the upper zone. Only these boxes are valid change-up targets:
+// 4/7 (middle-away / low-away side), 7-8-9 (bottom row) and 13-18-14 (just below the knees). Every target picker uses aimOpts().
+const CH_TARGETS=[4,7,8,9,13,14,18];
+const AIM_ALL=[1,2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18];
+const targetOk=(type,z)=>type!=='CH'||CH_TARGETS.includes(+z);
+const aimOpts=type=>AIM_ALL.filter(z=>targetOk(type,z));
+const CH_AIM_MSG='Change-ups are aimed low: 4, 7, 8, 9 or 13, 14, 18';
 function parseCall(code,hand,throws,custom){if(code==null)return null;const hand0=hand;hand=hand==='L'?'L':'R';throws=throws==='L'?'L':'R';
   let s=String(code).toUpperCase().trim().replace(/\s+/g,' ');if(!s)return null;
   if(s==='H+'||s==='A'||s==='IN')s='FB '+s;              // bare waste/in calls are fastballs
@@ -41,8 +48,10 @@ function parseCall(code,hand,throws,custom){if(code==null)return null;const hand
   else if(CALL_SUFFIX[suf==='I'?'IN':suf]){const d=CALL_SUFFIX[suf==='I'?'IN':suf];const r=d.at(inC,awC);targets=[r];waste=!!d.waste;desc=d.desc.replace('{B}',hand+'HB');}
   else if(type==='CB'){targets=throws==='L'?[9]:[7];alts=throws==='L'?[6]:[4];desc=`glove side of ${throws}HP (alt ${alts[0]})`;} // RHP glove side = pitcher's left: 7 (alt 4); LHP: 9 (alt 6)
   else desc='no location';
+  // a change-up call that names a high spot (e.g. CH H+, CH H, CH 2) keeps its type but gets no spot: flagged, never aimed up
+  let chHigh=false;if(type==='CH'&&targets.some(z=>!targetOk(type,z))){chHigh=true;targets=targets.filter(z=>targetOk(type,z));alts=alts.filter(z=>targetOk(type,z));desc='change-up is never aimed up – pick a low box';waste=false;}
   const norm=type+(suf?(/^\d+$/.test(suf)?suf:' '+(suf==='I'?'IN':suf)):'');
-  return{type,suffix:suf==='I'?'IN':suf,targets,alts,waste,desc,norm};}
+  return{type,suffix:suf==='I'?'IN':suf,targets,alts,waste,desc,norm,chHigh};}
 // Jim's catcher wristband (rows 1-7 x columns 01-08), transcribed from his photo
 const WRISTBAND_1=[['Fb 3','SRWI','Fb 1','CRV','Fb A','SRWO','CH7','FB In'],['Fb A','Fb','CRV','Fb9','Fb O','FB In','Fb H','CHG'],['Fb O','SRW','CH9','CHG','Fb In','CHG 9','Fb 7','Fb O'],
   ['Fb H','Fb O','SRWI','Fb A','Fb7','Fb3','CH9','SRW'],['CRV','Fb H+','SRW','DB','CHG 7','SRWO','CHG 7','Fb3'],['CHG 7','FB In','Fb H+','Fb 1','FB In','CRV','Fb O','DB'],['Fb In','Fb L','FB In','Fb H','Fb9','CHG','CRV','FB In']];
@@ -57,7 +66,7 @@ const cellCode=(sheet,r,c)=>`${r+1}-${(sheet&&sheet.cols&&sheet.cols[c])||String
 function unmappedCells(sheet,custom){const g={};((sheet&&sheet.rows)||[]).forEach((row,r)=>(row||[]).forEach((t,c)=>{const p=parseCall(t,'R','R',custom);
   if(p&&!p.targets.length)(g[p.norm]=g[p.norm]||{norm:p.norm,type:p.type,text:String(t).trim(),cells:[]}).cells.push(cellCode(sheet,r,c));}));return Object.values(g);}
 // aim chosen in band setup for an unmapped call (sheet.aims[norm] = zone, 0 = "no spot"); null when none
-function bandAim(sheet,parsed){if(!parsed||parsed.targets.length||!sheet||!sheet.aims)return null;const v=+sheet.aims[parsed.norm];return v>0?v:null;}
+function bandAim(sheet,parsed){if(!parsed||parsed.targets.length||!sheet||!sheet.aims)return null;const v=+sheet.aims[parsed.norm];return v>0&&targetOk(parsed.type,v)?v:null;}
 const bandSetupDone=(sheet,custom)=>unmappedCells(sheet,custom).every(u=>!!sheet.aims&&u.norm in sheet.aims);
-Object.assign(PC,{BASE_TYPES,ALIAS,normType,CALL_SUFFIX,parseCall,WRISTBAND_1,sheetCols,defaultCallSheet,parseCellRef,cellCode,unmappedCells,bandAim,bandSetupDone});
+Object.assign(PC,{CH_TARGETS,AIM_ALL,targetOk,aimOpts,CH_AIM_MSG,BASE_TYPES,ALIAS,normType,CALL_SUFFIX,parseCall,WRISTBAND_1,sheetCols,defaultCallSheet,parseCellRef,cellCode,unmappedCells,bandAim,bandSetupDone});
 })(typeof window!=='undefined'?window:globalThis);

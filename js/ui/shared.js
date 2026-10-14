@@ -77,9 +77,10 @@ function tapLoc(z){const way=PC.isWay(z);
   if(tab==='bullpen'){if(!D.type&&D.parsed)D.type=D.parsed.type;
     const r=PC.bullpenTap({type:D.type,target:D.target,callTargets:callOn&&D.parsed?D.parsed.targets:[]},z);
     if(r.action==='need_type'){toast('Pick the pitch type first');return;}
+    if(r.action==='bad_target'){toast(PC.CH_AIM_MSG);return;}
     if(r.action==='target'){if(way)return toast('Way off can\'t be a target – tap a box to aim');D.target=z;render();return;}
     D.loc=z;logBullpen(r.targets);return;}
-  if(callOn&&D.parsed&&!D.parsed.targets.length&&!D.target){if(way)return toast('Tap the called target box first');D.target=z;}
+  if(callOn&&D.parsed&&!D.parsed.targets.length&&!D.target){if(way)return toast('Tap the called target box first');if(!PC.targetOk(D.type,z))return toast(PC.CH_AIM_MSG);D.target=z;}
   else{D.loc=z;D.sheet=true;}
   render();if(tab==='game'&&D.loc)advance('result');}
 $('zone').addEventListener('click',e=>{const svg=$('zone');const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const p=pt.matrixTransform(svg.getScreenCTM().inverse());
@@ -108,7 +109,7 @@ function renderAlerts(){const set=ensureSettings();const cp=curPitcherId();const
   const msgs=[];if(showA&&a.lvl>=0)msgs.push(`${n} pitches – past the ${a.at} alert${a.next?` (next at ${a.next})`:''}`);
   if(wa&&wa.day.lvl>=0)msgs.push(`today ${wa.day.n}/${wa.day.limit}`);if(wa&&wa.weekend.lvl>=0)msgs.push(`weekend ${wa.weekend.n}/${wa.weekend.limit}`);
   const lvl=Math.max(showA?Math.min(1,a.lvl):-1,wa?wa.lvl:-1);el.className=msgs.length?'l'+Math.max(0,lvl):'hide';if(msgs.length)el.textContent=`⚠️ ${pName(cp)}: ${msgs.join(' · ')}`;
-  const rm=$('restMsg');const ri=set.showRest&&cp&&R0!=='player'&&R0!=='viewer'&&(tab==='game'||tab==='bullpen')?PC.restInfo(S(),cp,new Date().toISOString().slice(0,10),set.rest):null;
+  const rm=$('restMsg');const ri=set.showRest&&cp&&R0!=='player'&&R0!=='viewer'&&(tab==='game'||tab==='bullpen')?PC.restInfo(S(),cp,today(),set.rest):null;
   if(!ri||(tab==='game'&&g&&g.id===ri.gameId)){rm.className='hide';return;}
   const fd=d=>new Date(d+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'});
   rm.className=ri.ok?'ok':'no';rm.textContent=`${ri.ok?'✅':'⛔'} Last outing ${fd(ri.date)}${ri.opponent?' vs '+ri.opponent:''}: ${ri.n} pitches → ${ri.days} day${ri.days===1?'':'s'} rest. ${ri.ok?'Ready to pitch.':'Rest until '+fd(ri.ready)+'.'}`;}
@@ -149,7 +150,7 @@ async function doSync(manual,pull){if(!sync)return;if(store.isTest){if(manual)to
 function renderSync(){const e=$('syncTag');if(!e)return;const mini=document.body.classList.contains('entrymode');if(store.isTest){e.textContent=mini?'☁ off':'☁ off (test)';e.title='Sync off (test mode)';e.style.background='#5c1515';return;}
   const st=store.real.sync,n=store.pendingCount();const t=st.last?new Date(st.last).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'never';
   const full=!sync||!st.teamCode?'☁ not set up':syncing?'☁ syncing…':st.lastError?`☁ error · ${n} pending`:`☁ ${t} · ${n} pending`;e.title=full;e.textContent=!mini?full:!sync||!st.teamCode?'☁ off':syncing?'☁ …':st.lastError?`☁ ! ${n}`:n?`☁ ${n}`:'☁ ✓';e.style.background=st.lastError?'#5c1515':n?'#5c4813':'#1d4a2a';
-  if($('syncMsg'))$('syncMsg').textContent=`Last synced: ${t}. Pending: ${n}.${st.lastError?' Last error: '+st.lastError:''} Device ${st.deviceId}. Test mode never syncs.`+(()=>{const rj=Object.values(st.rejected||{});return rj.length?` Rejected by server (${rj.length}): `+rj.slice(-5).map(x=>`${x.table} ${String(x.id).slice(0,8)} (${x.status})`).join(', '):'';})();}
+  if($('syncMsg'))$('syncMsg').textContent=`Last synced: ${t}. Pending: ${n}.${st.lastError?' Last error: '+st.lastError:''} Device ${st.deviceId}. Test mode never syncs.`;if(typeof renderRejBtn==='function')renderRejBtn();}
 $('teamSave').onclick=()=>{if(store.isTest)return toast('Exit test mode first');const v=$('teamCode').value.trim().toUpperCase();if(v.length<20)return toast('Team code looks too short');const changed=store.real.sync.teamCode!==v;
   // never lose unsent work: a verified code with pending edits can't be swapped until they're sent (a rejected/typo code can always be corrected)
   if(changed&&store.real.sync.teamCode&&(['coach','player','pcoach'].includes(store.real.sync.role))&&store.pendingCount()>0){toast(`${store.pendingCount()} unsent changes – tap Sync now first (or export a backup)`);$('teamCode').value=store.real.sync.teamCode;return;}store.real.sync.teamCode=v;if(changed){store.real.sync.role=undefined;store.real.sync.teamId=null;store.real.sync.pitcherId=null;}store.markAllDirty();store.save();

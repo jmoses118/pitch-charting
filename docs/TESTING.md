@@ -26,3 +26,8 @@ coach.ui.js also checks: Keep charting contrast (≥10:1), no zone/status shift 
 
 ## agree.ui.js (v38)
 Replays Jim's Oct 14 test-mode sequence: 3 band-called pitches in landscape, then 3 no-aim pitches in portrait. Checks that Game (PITCHES, count, outs, last-at-bat note), the heat map (Landed counts all 6, Miss says 3 of 6 aimed and the rest are left out, kid-clear labels) and the per-pitch report (thrown, aimed, result-based strike %) agree. `SHOT_DIR` + `SHOT_PREFIX` save the before/after screenshots. The unit test `report strikes follow the umpire result` covers `PC.strikeOf`.
+
+## v39
+- `test/logic.test.js` adds: 403 row retried row by row, 401 + invalid code halts, 403 with a valid code quarantines and continues, rejected list/retry/discard, incremental keyset pull, sessions last-writer-wins, live game count never rolls back, rowPitch valid spots, change-up targets (incl. CH H+), hitSpot = pitchMiss, localDate after 9 PM ET, no UTC dates in UI code, `heatSummary` with no-aim and souvenir counts, `MISS_DIRS` / `topDir` / `bestWeak`.
+- `test/v39.ui.js`: Setup → Sync problems at 390x844, 375x667 and 430x932 (lists, plain words, layout audit, 44px controls, Cancel changes nothing, Apply retries/discards); change-up aim limits in the coach screen, band setup and bullpen; a 9:30 PM ET clock gives today's date for a new bullpen session and game. `SHOT_DIR` saves `setup-sync-problems-<size>.png`.
+- CI (`.github/workflows/ci.yml`) now has a `ui` job: playwright-core with the runner's Google Chrome, a local static server, then `ui.smoke.js` and `xss.ui.js`.

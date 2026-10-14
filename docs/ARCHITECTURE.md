@@ -41,3 +41,11 @@ UI action (js/ui) → `store.update()` mutates state → saved to `localStorage`
 
 ## js/ui/coach.js (v37)
 Loads after setup.js and before main.js. It holds the theme/mirror prefs, the landscape coach render (`renderModes`), the game menu, band setup (`openBandSetup`, which saves `sheet.aims`), the rotate prompt and the bullpen pad. Core helpers in calls.js: `cellCode`, `unmappedCells`, `bandAim`, `bandSetupDone`.
+
+## Sync (v39)
+- **Push:** a refused chunk (any 4xx, including 401/403 from row-level security) is retried row by row, so one bad row never blocks the good rows or later tables. Refused rows are quarantined in `sync.rejected` (`PC.quarantine`). Push halts, keeping everything queued, only when every row is refused for auth **and** `whoami` says the code is no longer valid (or its role changed).
+- **Sync problems:** Setup → Cloud sync → "⚠ Sync problems (N)" opens `#rejDlg` (setup.js). Each row can be kept, retried (`PC.retryRejected` re-queues it) or discarded (`PC.discardRejected`). Nothing changes until Apply; Cancel leaves everything as it was.
+- **Pull:** incremental. `sync.seen[table]` holds the newest `updated_at` merged. The next pull asks for `updated_at >= seen − 2 min` (overlap for slow commits; merging is idempotent) and pages by keyset `(updated_at, id)` (`PC.pullUrl`), never offset. `seen` resets when the team or role changes.
+- **Merging:** every table, including sessions, is last-writer-wins by `updated_at`. A live game's count (`games.cur`) carries `pn`, the number of pitches it was computed from; a pulled count is only taken if that phone had seen at least as many pitches (`PC.curNewer`), so two coach phones never roll each other's count back.
+- **rowPitch** keeps every valid spot (`PC.validSpot`: 1–9, 11–18, 21–24) and drops anything else.
+- Dates are always local (`PC.localDate` via `today()` in shared.js); nothing builds a date from UTC.
