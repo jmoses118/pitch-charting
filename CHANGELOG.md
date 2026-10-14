@@ -25,7 +25,7 @@
 - **Take over scoring** (with confirm and Cancel) moves scoring to this phone when the scoring phone dies.
 - On a view-only phone the ⋯ Game menu and the game/bullpen cards disable everything that changes the game (pause, end, outs, next inning, intentional walk, dropped 3rd strike, undo) and show the "Scoring on another phone" note with Take over scoring; band setup, theme and mirror stay available. Also blocked in code.
 - Replaces the "phone that has seen more pitches wins" rule (`cur.pn` removed).
-- New migration `20261014120000_scoring_lock.sql` (`sessions.scorer`) – **not applied to the live DB yet**; until then sessions use `device_id` and games use `cur.scorer`.
+- Migration `20261014120000_scoring_lock.sql` (`sessions.scorer`) – **applied 2026-10-14** to live project `qeqijbrokrkzpcacpjyw`; `scorerColumn:true` is set in `config.js` (`PC_CONFIG`). Games still use `cur.scorer`.
 
 ### Design review fixes (UI Designer)
 - Sync problems rows say why in plain words: "Why: This phone isn't allowed to save that. Ask your coach to check your team code. · Oct 14, 8:56 AM" (sign-in ran out / not allowed / already saved from another phone / couldn't read). The raw server text is behind a Details toggle.
