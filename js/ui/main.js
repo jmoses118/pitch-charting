@@ -60,10 +60,8 @@ function render(skipCallInput){const s=S();applyViewOnly(viewOnly());if(typeof r
   const wbOn=!$('wbCard').classList.contains('hide');$('wbTog').classList.toggle('hide',!wbOn);if(!wbOn)$('wbDet').open=false;
   renderModes(lk,showEntry);drawZone();fitZone();if(typeof paintFoulChips==='function')paintFoulChips();
   // log
-  const RL=RESULT_SHORT;
-  const line=(p,i)=>`<div><span class="n">${i+1}</span><span style="flex:1">${tab==='game'?H(pName(p.pitcherId).split(' ')[0])+' vs '+H(p.batter)+': ':''}${p.call?'<b>['+H(p.call)+']</b> ':''}${H(p.type||'')}${p.loc?' <span class="tag">'+H(locTxt(p.loc))+'</span>':''}${p.targets&&p.targets.length&&p.loc?(PC.hitSpot(p)?' ✓':' ✗'):''}</span><span>${p.result?RL[p.result]+(p.ip?' '+p.ip:''):(PC.isZone(p.loc)?'K':'B')}${p.end?' · <b>'+p.end+'</b>':''}</span>${p.result?`<span class="tag">${p.b}-${p.s}</span>`:''}</div>`;
-  if(tab==='game'&&g){$('logTitle').textContent='Game log (newest first)';$('log').innerHTML=g.pitches.map(line).reverse().join('')||'<div class="mut">No pitches yet</div>';}
-  if(tab==='bullpen'){const x=session();$('logTitle').textContent='Session log (newest first)';$('log').innerHTML=x?x.pitches.map(line).reverse().join(''):'<div class="mut">No pitches yet</div>';
+  if(tab==='game'&&g){$('logTitle').textContent='Game log (newest first)';$('log').innerHTML=g.pitches.map((p,i)=>pitchLine(p,i,'game')).reverse().join('')||'<div class="mut">No pitches yet</div>';}
+  if(tab==='bullpen'){const x=session();$('logTitle').textContent='Session log (newest first)';$('log').innerHTML=x?x.pitches.map((p,i)=>pitchLine(p,i,'bullpen')).reverse().join(''):'<div class="mut">No pitches yet</div>';
     const q=PC.summarize(x?x.pitches:[]);$('bpTitle').textContent='Bullpen '+(x?x.date:'');
     $('bpSum').textContent=`${q.n} pitches · ${fmt(q.strikePct)} strikes${q.compPct!=null?` · ${fmt(q.compPct)} competitive`:''}${q.wayOff?` · ${q.wayOff} way off`:''} · hit spot ${fmt(q.spotPct)} · `+Object.entries(q.byType).map(([k,v])=>`${k} ${v.n} (${fmt(v.strikePct)})`).join(', ');}
   if(tab==='setup'){renderCodes();renderPitchers();renderRoster();$('cTypes').innerHTML=s.customTypes.map((c,i)=>`<span class="tag" data-ct="${i}">${H(c.code)} = ${H(c.name)} ✕</span> `).join('')||'None yet';

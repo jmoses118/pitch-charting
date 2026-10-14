@@ -192,8 +192,8 @@ dialog::backdrop{background:rgba(0,0,0,.7)}
 .ball .souv{fill:var(--c-mark-souv);stroke:#1a1205;stroke-width:.35}
 .recentwrap{margin-top:var(--s4);padding-top:var(--s3);border-top:1px solid var(--c-line)}
 .recent{list-style:none;margin:0;padding:0}
-.recent li{display:grid;grid-template-columns:30px 1fr auto;gap:var(--s3);align-items:center;min-height:44px;padding:var(--s1) 0;border-bottom:1px solid var(--c-line)}
-.recent li:last-child{border-bottom:0}.recent li.empty{display:block;color:var(--c-text-2);font-size:var(--fs-sm)}
+.recent li{display:block;min-height:0;padding:0;border:0}
+.recent li:last-child{border-bottom:0}.recent li.empty{display:block;color:var(--c-text-2);font-size:var(--fs-sm);min-height:44px;padding:var(--s1) 0}
 .recent .badge{width:30px;height:30px;display:block}
 .recent .r-main{display:flex;flex-direction:column;line-height:1.25;min-width:0}.recent .r-main b{font-size:var(--fs-md)}
 .recent .r-loc{font-size:var(--fs-xs);white-space:nowrap}
@@ -432,3 +432,20 @@ body.coachmode .foulchips{top:4px;right:auto;box-shadow:var(--shadow-2)}
 body.onehand #resBtns button,body.onehand #ipBtns button{font-size:16px}
 body.viewonly #foulChips,body.viewonly #cSlot{display:none!important}
 #urHome button{min-height:48px}
+/* Edit a past pitch: the row is the tap target; "from video" is the corrected marker. */
+.plist,.rrow{width:100%;min-height:48px;margin:0;text-align:left;font-weight:600;font-size:var(--fs-sm);line-height:1.25;background:transparent;border:0;border-radius:0;border-bottom:1px solid var(--c-line);color:inherit;white-space:normal}
+.plist{display:flex;align-items:center;gap:8px;padding:6px 0}
+.plist .n{flex:none;width:26px;color:var(--c-text-3)}
+.plist-main{flex:1 1 auto;min-width:0}
+.plist-res{flex:0 1 auto;text-align:right}
+.rrow{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:var(--s3);align-items:center;padding:4px 0}
+.recent .badge{width:30px;height:30px;display:block}
+.fromvid{display:inline;color:var(--c-text-2);font-size:12px;font-weight:650}
+html[data-theme="field"] .plist,html[data-theme="field"] .rrow{border-width:0 0 1px;background:transparent}
+#editDlg[open]{display:flex;flex-direction:column;overflow:hidden;max-height:min(92vh,100dvh)}
+#editDlg form{display:flex;flex-direction:column;flex:1;min-height:0;margin:0}
+#editDlg .editscroll{overflow:auto;flex:1;min-height:0}
+#editZone{width:100%;height:auto;display:block;touch-action:manipulation}
+#editWay button,#editAct button,#editDlg .dlgfoot button{min-height:48px}
+#editDlg .dlgfoot{flex:none}
+#editDlg .dlgfoot button{flex:1}

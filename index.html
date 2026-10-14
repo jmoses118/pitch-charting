@@ -119,6 +119,7 @@
 <!-- STATS -->
 <section id="tab-stats" class="hide">
  <div class="card"><div class="row"><select id="sScope"></select></div><div class="row" style="margin-top:6px"><select id="sPitcher"></select></div><button id="sReport" class="hide" class="primary" style="width:100%;margin-top:8px">Session report</button></div>
+ <div class="card hide" id="pitchListCard"><div class="lbl">Pitches</div><div class="mut" id="pitchListNote">Tap a pitch to correct where it went.</div><div class="log" id="pitchList"></div></div>
  <div class="card" id="heatCard"><div class="row sp"><div class="lbl" style="margin:0">Zone heat map</div><div class="row" role="group" aria-label="Heat map view"><button id="hvI" aria-pressed="true" aria-label="Miss by intended target">Miss</button><button id="hvA" aria-pressed="false" aria-label="Where pitches landed">Landed</button></div></div>
   <div class="row wrap" id="hfChips" style="margin:8px 0;gap:6px" aria-live="polite"></div>
   <div class="row"><button id="hfOpen" style="flex:1">Filters</button><button id="hfReset">Reset</button></div>
@@ -227,6 +228,17 @@
  <div id="bandSub" class="mut"></div><div id="bandList" class="bandlist"></div>
  <div class="row dlgfoot"><button value="cancel" formnovalidate class="ghost" style="flex:1">Cancel</button><button value="ok" class="success" style="flex:2">✓ Save band</button></div></form></dialog>
 <nav aria-label="Sections"><button data-t="game" class="on"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M7.6 5.2c1.6 2 2.4 4.3 2.4 6.8s-.8 4.8-2.4 6.8M16.4 5.2c-1.6 2-2.4 4.3-2.4 6.8s.8 4.8 2.4 6.8"/></svg><span>Game</span></button><button data-t="bullpen"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8"/></svg><span>Bullpen</span></button><button data-t="stats"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg><span>Stats</span></button><button data-t="setup"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span>Setup</span></button></nav>
+<dialog id="editDlg" class="sheet" aria-labelledby="editT"><form method="dialog">
+ <div class="lbl" id="editT">Edit pitch</div>
+ <p class="mut" id="editSub"></p>
+ <div class="editscroll">
+  <svg id="editZone" viewBox="-14 -6 128 138" role="img" aria-label="Actual location"></svg>
+  <div id="editWay" class="way4"><button type="button" data-z="21">Way high</button><button type="button" data-z="22">Way low</button><button type="button" data-z="23">Way left</button><button type="button" data-z="24">Way right</button></div>
+  <div id="editAct" class="act2"><button type="button" data-z="31">In dirt</button><button type="button" data-z="32" aria-label="Over catcher/backstop">Over catcher</button></div>
+  <p class="mut" id="editPick"></p>
+ </div>
+ <div class="row dlgfoot"><button type="submit" id="editCancel" value="cancel" formnovalidate class="ghost">Cancel</button><button type="submit" id="editSave" value="ok" class="primary">Save</button></div>
+</form></dialog>
 <dialog id="xDlg" class="sheet" aria-labelledby="xT"><form method="dialog"><div class="lbl" id="xT">This pitch</div>
  <p class="mut">Optional. Cancel leaves wild pitch, passed ball and velocity as they were.</p>
  <div class="seg" role="group" aria-label="Wild pitch or passed ball"><button type="button" id="xWp">Wild pitch</button><button type="button" id="xPb">Passed ball</button><button type="button" id="xClr">Neither</button></div>

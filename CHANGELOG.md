@@ -34,6 +34,12 @@
 - The coach hint fits on one line. Portrait step labels (Pitch / Where / Result) have their own row.
 - The sync pill and Start game use white text on the green fill.
 - Cache: `te-pitch-v42`.
+### Edit pitch
+- **Tap a pitch in the list** (the game or bullpen log, the recent list, or Stats → Pitches after the game) to correct its **actual** location. The sheet is the full grid: zone, the ring, way off, In dirt, and Over catcher. Save writes that pitch. Cancel, Escape, and the backdrop write nothing.
+- Later pitches stay. The count, the result, and the called location stay. Miss scoring follows the corrected spot (`loc` and `actualLoc`).
+- The pitch is marked **edited**. The list shows “from video”. CSV appends an `edited` column (`1` or empty). An older file without that column still imports.
+- Only the scoring phone can save, including after the game. A view-only phone cannot.
+- The correction syncs with the pitch (`loc`, plus an invisible mark on `call_raw` so the flag comes back). No new database column. Cache: `te-pitch-v43`.
 
 ## v39 – Code Reviewer fixes
 ### Fixed

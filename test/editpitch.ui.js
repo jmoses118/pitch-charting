@@ -1,0 +1,50 @@
+// Edit a past pitch's actual location from the log (during the game) and from Stats (after).
+// Save keeps later pitches. Cancel, Escape, and the backdrop do not. A view-only phone cannot.
+// usage: node test/editpitch.ui.js <url>
+const {chromium}=require('playwright-core');const BASE=process.argv[2]||'http://localhost:8766/';let fails=0;
+const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};
+(async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});
+for(const [W,H] of [[375,667],[390,844],[430,932]]){const tag=`${W}x${H}`;
+  const c=await b.newContext({viewport:{width:W,height:H},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());await c.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));
+  const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));const ev=(f,a)=>p.evaluate(f,a);const wait=ms=>p.waitForTimeout(ms||200);
+  await p.goto(BASE);
+  await ev(()=>{const S=__app.store.real;const dev=S.sync.deviceId;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';
+    const pitch=(id,loc,result,b,s,ts)=>({id,pitcherId:'p_a',type:id==='e2'?'CH':'FB',loc,actualLoc:loc,calledLoc:loc,targets:[loc],result,b,s,abn:1,batter:'B1',hand:'R',ts,inning:1,outsBefore:0,slot:0});
+    S.games.push({id:'g_ed',date:'2026-10-14',opponent:'Storm',homeAway:'home',status:'active',started:1,scorer:dev,lineup:[{slot:1,name:'B1',num:'1',hand:'R'}],cur:{inning:1,outs:0,slot:0,b:1,s:2,abn:1},pitches:[pitch('e1',5,'ball',0,0,1),pitch('e2',8,'called',1,0,2),pitch('e3',7,'foul',1,1,3)]});
+    S.activeGame='g_ed';__app.store.save();__app.render();});
+  const snap=()=>ev(()=>__app.store.real.games[0].pitches.map(x=>({id:x.id,loc:x.loc,called:x.calledLoc,res:x.result,ed:!!x.edited,b:x.b,s:x.s})));
+  const cur=()=>ev(()=>{const c=__app.store.real.games[0].cur;return c.b+'-'+c.s+'-'+c.outs;});
+  await p.click('#log [data-edit="e1"]');await wait(300);
+  const measures=await ev(()=>{const h=el=>{const r=el.getBoundingClientRect();return Math.round(r.height);};
+    const cell=document.querySelector('#editZone [data-z="5"]').getBoundingClientRect();
+    return{cancel:h(document.getElementById('editCancel')),dirt:h(document.querySelector('#editAct [data-z="31"]')),way:h(document.querySelector('#editWay [data-z="21"]')),box:Math.round(cell.height),open:document.getElementById('editDlg').open};});
+  ok(measures.open&&measures.cancel>=48&&measures.dirt>=48&&measures.way>=48&&measures.box>=48,`${tag}: sheet open, Cancel ${measures.cancel}, dirt ${measures.dirt}, way ${measures.way}, box ${measures.box}`);
+  await p.click('#editZone [data-z="14"]');await wait(100);
+  ok(/14|ball/.test(await p.textContent('#editPick')),`${tag}: ring is a choice`);
+  await p.click('#editAct [data-z="31"]');await wait(100);
+  ok(/dirt/.test(await p.textContent('#editPick')),`${tag}: in dirt is a choice`);
+  const beforeCur=await cur();
+  await p.click('#editSave');await wait(250);
+  const saved=await snap();
+  ok(saved[0].loc===31&&saved[0].called===5&&saved[0].res==='ball'&&saved[0].ed&&saved[1].loc===8&&!saved[1].ed&&saved[2].loc===7&&saved.length===3&&(await cur())===beforeCur,`${tag}: dirt saved, later pitches and the count stay ${JSON.stringify(saved)}`);
+  ok(/from video/.test(await p.textContent('#log'))&&/from video/.test(await p.textContent('#recent')),`${tag}: from video shows in the log and the recent list`);
+  ok(await ev(()=>{const S=__app.store.real;const p=S.games[0].pitches.find(x=>x.id==='e1');const row=PC.pitchRow(p,{mode:'game',game_id:'g_ed'});return !!S.sync.queue.pitches.e1&&row.loc===31&&!('edited' in row)&&String(row.call_raw||'').endsWith(PC.EDITED_TAG);}),`${tag}: edit is queued like a pitch update`);
+  const before=await snap();
+  await p.click('#recent [data-edit="e2"]');await wait(200);await p.click('#editWay [data-z="21"]');await p.click('#editCancel');await wait(200);
+  ok(!await ev(()=>document.getElementById('editDlg').open)&&(JSON.stringify(await snap())===JSON.stringify(before)),`${tag}: Cancel writes nothing`);
+  await p.click('#log [data-edit="e2"]');await wait(200);await p.click('#editAct [data-z="32"]');await p.keyboard.press('Escape');await wait(200);
+  ok(!await ev(()=>document.getElementById('editDlg').open)&&(JSON.stringify(await snap())===JSON.stringify(before)),`${tag}: Escape writes nothing`);
+  await p.click('#log [data-edit="e2"]');await wait(200);await p.mouse.click(4,4);await wait(200);
+  ok(!await ev(()=>document.getElementById('editDlg').open)&&(JSON.stringify(await snap())===JSON.stringify(before)),`${tag}: backdrop writes nothing`);
+  await ev(()=>{__app.store.real.games[0].scorer='dev_other_phone';__app.render();});
+  await p.click('#log [data-edit="e1"]');await wait(200);
+  ok(!await ev(()=>document.getElementById('editDlg').open)&& (await snap())[0].loc===31,`${tag}: another phone cannot open the sheet`);
+  await ev(()=>{const S=__app.store.real;S.games[0].scorer=S.sync.deviceId;S.games[0].ended=Date.now();S.games[0].status='final';S.activeGame=null;__app.render();});
+  await p.click('nav [data-t="stats"]');await wait(200);await p.selectOption('#sScope','g_ed');await wait(200);
+  ok(await p.$('#pitchList [data-edit="e3"]'),`${tag}: Stats lists the game after it ends`);
+  await p.click('#pitchList [data-edit="e3"]');await wait(200);await p.click('#editAct [data-z="32"]');await p.click('#editSave');await wait(250);
+  const after=await ev(()=>__app.store.real.games[0].pitches.map(x=>({id:x.id,loc:x.loc,ed:!!x.edited})));
+  ok(after[2].loc===32&&after[2].ed&&after[0].loc===31&&after[1].loc===8&&/from video/.test(await p.textContent('#pitchList')),`${tag}: scorer can correct a pitch after the game ${JSON.stringify(after)}`);
+  ok(!errs.length,`${tag}: no page errors `+errs.join('|'));
+  await c.close();}
+await b.close();console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);})();

@@ -53,6 +53,8 @@ function renderStats(){const s=S();const sel=$('sScope').value||(s.activeGame||'
   const tbl=(o,lbl)=>`<tr><th>${lbl}</th><th>#</th><th>K%</th><th>Spot</th><th>Whiff</th><th>InPlay</th></tr>`+Object.entries(o).sort((a,b)=>b[1].n-a[1].n).map(([k,v])=>`<tr><td>${H(k)}</td><td>${v.n}</td><td>${fmt(v.strikePct)}</td><td>${fmt(v.spotPct)}</td><td>${v.whiff}</td><td>${v.inPlay}</td></tr>`).join('');
   $('sType').innerHTML=tbl(sum.byType,'Type');
   $('sShake').innerHTML=shakeHTML(P)||'<div class="lbl">Shake-offs</div><div class="mut">No shake-offs in this view.</div>';
+  const listed=P.filter(p=>!p.deleted);$('pitchListCard').classList.toggle('hide',!listed.length);
+  $('pitchList').innerHTML=listed.map((p,i)=>pitchLine(p,i,p.result||p.batter!=null?'game':'bullpen')).reverse().join('');
   $('sCall').innerHTML=Object.keys(sum.byCall).length?tbl(sum.byCall,'Call')+'<tr><td colspan=6 class="mut">Call → thrown</td></tr>'+Object.entries(sum.callVsThrown).sort((a,b)=>b[1].n-a[1].n).map(([k,v])=>`<tr><td>${H(k)}</td><td>${v.n}</td><td>${fmt(v.strikePct)}</td><td>${fmt(v.spotPct)}</td><td>${v.whiff}</td><td>${v.inPlay}</td></tr>`).join(''):'<tr><td class="mut">No called pitches logged</td></tr>';
   $('sRes').innerHTML='<tr><th>Result</th><th>#</th></tr>'+Object.entries(sum.byResult).map(([k,v])=>`<tr><td>${H(k)}</td><td>${v.n}</td></tr>`).join('');
   const mx=Math.max(1,...Object.values(sum.byLoc).map(v=>v.n));const lab={};for(const k in sum.byLoc)lab[k]=sum.byLoc[k].n+' · '+fmt(sum.byLoc[k].strikePct);

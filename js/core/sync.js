@@ -18,14 +18,19 @@ function rowSettings(r){const a=(Array.isArray(r.alerts)?r.alerts:[]).map(Number
 // shake-off flag: travels as a "⤺ " prefix on call_raw (works on today's schema); also as the shook column once
 // supabase/migrations/*_shake_off.sql is applied and sync.shakeCol is on
 const SHOOK_TAG='⤺ ';
+// Edited flag rides on the same pitch row as loc (today's schema, no new column). A word joiner sits at the
+// end of call_raw so the shook prefix stays at the front and an older phone still sees the shake-off.
+const EDITED_TAG='\u2060';
 function pitchRow(p,ctx){const row=pitchRow0(p,ctx);if(p.shook){row.call_raw=SHOOK_TAG+(p.callRaw||p.call||'');if(ctx.shakeCol)row.shook=true;}else if(ctx.shakeCol)row.shook=false;
+  if(p.edited)row.call_raw=(row.call_raw||'')+EDITED_TAG;
   // New chart columns exist only after 20261014180000_scoring_chart.sql. Until chartColumn is set, they stay on the phone.
   if(ctx.chartCol){row.called_loc=p.calledLoc==null?null:+p.calledLoc;row.actual_loc=p.actualLoc==null?(p.loc==null?null:+p.loc):+p.actualLoc;row.foul_time=p.foulTime||null;row.wp_pb=p.wpPb||null;row.velo=p.velo==null||p.velo===''?null:+p.velo;}
   return row;}
 function pitchRow0(p,ctx){return{id:p.id,mode:ctx.mode,game_id:ctx.game_id||null,session_id:ctx.session_id||null,pitcher_id:p.pitcherId||null,ts:p.ts||null,hand:p.hand||null,type:p.type||null,call:p.call||null,call_raw:p.callRaw||null,
   targets:p.targets||[],loc:p.loc==null?null:p.loc,result:p.result||null,ip:p.ip||null,end_event:p.end||null,inning:p.inning==null?null:p.inning,outs_before:p.outsBefore==null?null:p.outsBefore,slot:p.slot==null?null:p.slot,
   batter:p.batter==null?null:p.batter,batter_num:p.batterNum==null?null:String(p.batterNum),b:p.b==null?null:p.b,s:p.s==null?null:p.s,abn:p.abn==null?null:p.abn,first_pitch:p.firstPitch==null?null:!!p.firstPitch,no_pitch:!!p.noPitch,prev_hand:p.prevHand||null,bb:BB_TYPES.includes(p.bb)?p.bb:null,deleted:!!p.deleted};}
-function rowPitch(r){const p={id:r.id,ts:+r.ts||0,pitcherId:r.pitcher_id,hand:r.hand,type:r.type,call:r.call,callRaw:r.call_raw,targets:(Array.isArray(r.targets)?r.targets:[]).map(Number).filter(validSpot),loc:r.loc!=null&&validSpot(+r.loc)?+r.loc:null,result:r.result,ip:r.ip,end:r.end_event};if(BB_TYPES.includes(r.bb))p.bb=r.bb;if(r.shook===true||(typeof r.call_raw==='string'&&r.call_raw.startsWith(SHOOK_TAG))){p.shook=true;p.callRaw=typeof r.call_raw==='string'&&r.call_raw.startsWith(SHOOK_TAG)?r.call_raw.slice(SHOOK_TAG.length)||null:r.call_raw;}
+function rowPitch(r){let raw=r.call_raw,edited=false;if(typeof raw==='string'&&raw.endsWith(EDITED_TAG)){edited=true;raw=raw.slice(0,-EDITED_TAG.length);}
+  const p={id:r.id,ts:+r.ts||0,pitcherId:r.pitcher_id,hand:r.hand,type:r.type,call:r.call,callRaw:raw||null,targets:(Array.isArray(r.targets)?r.targets:[]).map(Number).filter(validSpot),loc:r.loc!=null&&validSpot(+r.loc)?+r.loc:null,result:r.result,ip:r.ip,end:r.end_event,edited:edited};if(BB_TYPES.includes(r.bb))p.bb=r.bb;if(r.shook===true||(typeof raw==='string'&&raw.startsWith(SHOOK_TAG))){p.shook=true;p.callRaw=typeof raw==='string'&&raw.startsWith(SHOOK_TAG)?raw.slice(SHOOK_TAG.length)||null:raw||null;}
   if(r.mode==='game')Object.assign(p,{inning:r.inning,outsBefore:r.outs_before,slot:r.slot,batter:r.batter,batterNum:r.batter_num,b:r.b,s:r.s,abn:r.abn,firstPitch:r.first_pitch,prevHand:r.prev_hand});else{p.b=0;p.s=0;}
   if(r.no_pitch)p.noPitch=true;p.mode=r.mode==='bullpen'?'bullpen':'game';
   if(r.called_loc!=null&&validSpot(+r.called_loc))p.calledLoc=+r.called_loc;if(r.actual_loc!=null&&validSpot(+r.actual_loc))p.actualLoc=+r.actual_loc;else if(p.loc!=null)p.actualLoc=p.loc;
@@ -128,5 +133,5 @@ function makeSync(store,cfg){const f=cfg.fetch||(typeof fetch!=='undefined'?fetc
       const a=st0.sync.role==='viewer'?{sent:0}:await api.push();const pe=st0.sync.lastError;const b=await api.pull(); // always pull, even if the push failed
       if((a.error||a.rejected)&&!b.error){st0.sync.lastError=pe;store.save();}return Object.assign({},b,a);}};
   return api;}
-Object.assign(PC,{SHOOK_TAG,SYNC_WHY,syncWhy,validSpot,scorerOfRow,quarantine,retryRejected,discardRejected,rejectedList,sinceOf,pullUrl,PAGE,TABLES,keyOf,TEAM_SETTINGS_ID,settingsRow,rowSettings,pitchRow,rowPitch,roleAllows,buildRows,gameStatus,newerThan,mergeRemote,makeSync});
+Object.assign(PC,{SHOOK_TAG,EDITED_TAG,SYNC_WHY,syncWhy,validSpot,scorerOfRow,quarantine,retryRejected,discardRejected,rejectedList,sinceOf,pullUrl,PAGE,TABLES,keyOf,TEAM_SETTINGS_ID,settingsRow,rowSettings,pitchRow,rowPitch,roleAllows,buildRows,gameStatus,newerThan,mergeRemote,makeSync});
 })(typeof window!=='undefined'?window:globalThis);

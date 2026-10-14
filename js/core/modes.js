@@ -19,6 +19,8 @@ function modeLock(st,tab,canGame){if(!canGame)return null;const g=activeGameOf(s
 // (box.scorer = that phone's device id). Every other phone views it read-only until it explicitly takes over scoring.
 const canScore=(box,dev)=>!box||!box.scorer||box.scorer===dev;
 const lockedBox=(box,dev)=>!!box&&!canScore(box,dev);
+// Edit a past pitch: the phone that owns scoring, including after the game ends. View-only codes cannot.
+function canEditBox(box,dev,role){if(role==='viewer'||role==='unknown')return false;return canScore(box,dev);}
 function claimScoring(box,dev){if(!box||!dev)return false;const was=box.scorer||null;box.scorer=dev;return was!==dev;}
 const SCORING_ELSEWHERE='👁 View only – another phone is scoring';
 const LOCK_MSG={game:'Game in progress — end or pause the game to start a bullpen',bullpen:'Bullpen in progress — end or pause the bullpen to start a game'};
@@ -26,5 +28,5 @@ const LOCK_MSG={game:'Game in progress — end or pause the game to start a bull
 const pausedGames=st=>(st.games||[]).filter(g=>gameInProgress(g)&&g.id!==st.activeGame).sort((a,b)=>(b.started||0)-(a.started||0));
 // paused bullpen sessions with pitches – resumable
 const pausedSessions=st=>(st.sessions||[]).filter(s=>s.paused&&s.id!==st.activeSession&&sessionOpen(s)).sort((a,b)=>(b.paused||0)-(a.paused||0));
-Object.assign(PC,{canScore,lockedBox,claimScoring,SCORING_ELSEWHERE,gameInProgress,sessionOpen,activeGameOf,activeSessionOf,modeLock,LOCK_MSG,pausedGames,pausedSessions});
+Object.assign(PC,{canScore,lockedBox,canEditBox,claimScoring,SCORING_ELSEWHERE,gameInProgress,sessionOpen,activeGameOf,activeSessionOf,modeLock,LOCK_MSG,pausedGames,pausedSessions});
 })(typeof window!=='undefined'?window:globalThis);

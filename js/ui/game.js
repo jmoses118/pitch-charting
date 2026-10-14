@@ -118,4 +118,33 @@ function placeScoreDock(){const open=!$('resSheet').classList.contains('hide');c
 $('resTog').onclick=()=>{D.sheet=true;render();};$('resClose').onclick=()=>{D.sheet=false;D.ip=false;D.foul=false;render();};
 $('wbTog').onclick=()=>{$('wbDet').open=!$('wbDet').open;};
 $('wbDet').addEventListener('toggle',()=>{const o=$('wbDet').open;document.body.classList.toggle('wbopen',o);$('wbTog').setAttribute('aria-expanded',String(o));});
+// Edit a past pitch's actual location. The list stays; later pitches are not undone.
+var editId=null,editLoc=null;
+function findPitch(id){const s=S();
+  for(const g of s.games||[]){const p=(g.pitches||[]).find(x=>x.id===id);if(p)return{p:p,box:g};}
+  for(const x of s.sessions||[]){const p=(x.pitches||[]).find(q=>q.id===id);if(p)return{p:p,box:x};}
+  return null;}
+function editAllowed(hit){return !!hit&&PC.canEditBox(hit.box,myDevice(),role());}
+function paintEdit(){const hit=findPitch(editId);if(!hit)return;const p=hit.p,th=pById(p.pitcherId);
+  zoneSVG($('editZone'),p.hand==='L'?'L':(p.hand==='N'?'N':'R'),{orient:true,compact:true,throws:th&&th.throws?th.throws:'R'});
+  if(editLoc!=null&&editLoc<=18){const e=$('editZone').querySelector('[data-z="'+editLoc+'"]');if(e)e.classList.add('za');}
+  document.querySelectorAll('#editWay [data-z],#editAct [data-z]').forEach(b=>b.classList.toggle('sel',+b.dataset.z===editLoc));
+  $('editPick').textContent=editLoc!=null?'Actual location: '+locTxt(editLoc):'Tap where it actually went';}
+function openEdit(id){const hit=findPitch(id);if(!hit)return;if(!editAllowed(hit))return toast('Only the scoring phone can change a pitch.');
+  editId=id;editLoc=hit.p.loc!=null?hit.p.loc:(hit.p.actualLoc!=null?hit.p.actualLoc:null);const p=hit.p;
+  const res=p.result?(RESULT_SHORT[p.result]||p.result):'Logged';const who=String(pName(p.pitcherId)||'').split(' ')[0];
+  $('editSub').textContent=who+' · '+res+(p.b!=null&&p.s!=null?' · '+p.b+'-'+p.s:'')+'. Later pitches stay.';
+  paintEdit();openSheet($('editDlg'));}
+function pickEdit(z){z=+z;if(!PC.GRID_XY[z])return;editLoc=z;paintEdit();}
+function onPitchTap(e){const b=e.target.closest('[data-edit]');if(b)openEdit(b.dataset.edit);}
+$('log').addEventListener('click',onPitchTap);$('recent').addEventListener('click',onPitchTap);$('pitchList').addEventListener('click',onPitchTap);
+$('editZone').addEventListener('click',e=>{const svg=$('editZone');const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const m=svg.getScreenCTM();if(!m)return;const p=pt.matrixTransform(m.inverse());const z=zoneOf(p.x,p.y);if(z)pickEdit(z);});
+$('editWay').addEventListener('click',e=>{const b=e.target.closest('[data-z]');if(b)pickEdit(+b.dataset.z);});
+$('editAct').addEventListener('click',e=>{const b=e.target.closest('[data-z]');if(b)pickEdit(+b.dataset.z);});
+$('editDlg').addEventListener('close',()=>{const id=editId;editId=null;if($('editDlg').returnValue!=='ok')return;const hit=findPitch(id);
+  if(!hit||!editAllowed(hit))return toast('Only the scoring phone can change a pitch.');if(editLoc==null)return toast('Tap where it actually went');
+  const n=hit.box.pitches.length,prev=hit.p.loc,prevAct=hit.p.actualLoc,was=!!hit.p.edited;
+  if(!PC.editActual(hit.p,editLoc)||hit.box.pitches.length!==n)return;
+  if(hit.p.loc===prev&&hit.p.actualLoc===prevAct&&!!hit.p.edited===was)return;
+  dirty('pitches',hit.p.id);save();render();toast('Location updated');});
 loadRedo();
