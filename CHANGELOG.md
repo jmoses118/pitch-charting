@@ -1,5 +1,9 @@
 # Changelog
 
+## Hardening – one chart field map
+### Changed
+- Sync and CSV both read the called spot, the actual spot, foul timing, wild pitch / passed ball, and velocity from `PC.chartOf`. CSV still keeps a raw velocity, including a non-numeric note. Sync still coerces velocity with `+`. Cache: `te-pitch-v50`.
+
 ## v48 – One scoring flow
 ### Changed
 - **One state machine** (`js/core/flow.js`) for portrait Game, the landscape coach screen, and Bullpen. Game steps are pitch type, called location, actual location, then the result. Bullpen stops after the actual location and saves. There is no ball/strike step in the pen.

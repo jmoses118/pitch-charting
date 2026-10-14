@@ -24,7 +24,7 @@ const EDITED_TAG='\u2060';
 function pitchRow(p,ctx){const row=pitchRow0(p,ctx);if(p.shook){row.call_raw=SHOOK_TAG+(p.callRaw||p.call||'');if(ctx.shakeCol)row.shook=true;}else if(ctx.shakeCol)row.shook=false;
   if(p.edited)row.call_raw=(row.call_raw||'')+EDITED_TAG;
   // New chart columns exist only after 20261014180000_scoring_chart.sql. Until chartColumn is set, they stay on the phone.
-  if(ctx.chartCol){row.called_loc=p.calledLoc==null?null:+p.calledLoc;row.actual_loc=p.actualLoc==null?(p.loc==null?null:+p.loc):+p.actualLoc;row.foul_time=p.foulTime||null;row.wp_pb=p.wpPb||null;row.velo=p.velo==null||p.velo===''?null:+p.velo;}
+  if(ctx.chartCol){const c=PC.chartOf(p);row.called_loc=c.calledLoc==null?null:+c.calledLoc;row.actual_loc=c.actualLoc==null?null:+c.actualLoc;row.foul_time=c.foulTime;row.wp_pb=c.wpPb;row.velo=c.velo==null?null:+c.velo;}
   return row;}
 function pitchRow0(p,ctx){return{id:p.id,mode:ctx.mode,game_id:ctx.game_id||null,session_id:ctx.session_id||null,pitcher_id:p.pitcherId||null,ts:p.ts||null,hand:p.hand||null,type:p.type||null,call:p.call||null,call_raw:p.callRaw||null,
   targets:p.targets||[],loc:p.loc==null?null:p.loc,result:p.result||null,ip:p.ip||null,end_event:p.end||null,inning:p.inning==null?null:p.inning,outs_before:p.outsBefore==null?null:p.outsBefore,slot:p.slot==null?null:p.slot,

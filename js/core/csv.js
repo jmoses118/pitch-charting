@@ -19,7 +19,10 @@ function parseCSV(txt){const rows=[];let row=[],f='',q=false;for(let i=0;i<txt.l
 function calledTypeOf(p){if(!p)return '';if(p.calledType)return String(p.calledType);
   if(p.call&&typeof PC.parseCall==='function'){const parsed=PC.parseCall(p.call,p.hand||'R','R',[]);if(parsed&&parsed.type)return parsed.type;}
   if(!p.shook&&p.type)return String(p.type);return '';}
-function csvChart(p){p=p||{};return{called_location:p.calledLoc!=null?p.calledLoc:'',actual_location:p.actualLoc!=null?p.actualLoc:(p.loc!=null?p.loc:''),foul_time:p.foulTime||'',wp_pb:p.wpPb||'',velocity:p.velo!=null&&p.velo!==''?p.velo:'',called_type:calledTypeOf(p),shook:p.shook?1:'',from_video:p.edited?1:''};}
+// Called spot, actual spot (falls back to loc), foul timing, wild pitch / passed ball, and velocity.
+// Velocity stays raw here. Sync coerces it; CSV keeps a numeric string and a non-numeric note.
+function chartOf(p){p=p||{};return{calledLoc:p.calledLoc==null?null:p.calledLoc,actualLoc:p.actualLoc==null?(p.loc==null?null:p.loc):p.actualLoc,foulTime:p.foulTime||null,wpPb:p.wpPb||null,velo:p.velo==null||p.velo===''?null:p.velo};}
+function csvChart(p){const c=chartOf(p);return{called_location:c.calledLoc==null?'':c.calledLoc,actual_location:c.actualLoc==null?'':c.actualLoc,foul_time:c.foulTime||'',wp_pb:c.wpPb||'',velocity:c.velo==null?'':c.velo,called_type:calledTypeOf(p),shook:p.shook?1:'',from_video:p.edited?1:''};}
 // Re-import: called_type sets calledType; 1 / true / yes sets shook. from_video does the same for a corrected pitch. An older file's edited column still counts. Empty or 0 leaves them unset.
 function csvFlag(v){return /^(1|true|yes)$/i.test(String(v==null?'':v).trim());}
 function csvApply(base,r){base=base||{};if(r&&r.called_type)base.calledType=String(r.called_type).trim();if(r&&csvFlag(r.shook))base.shook=true;if(r&&(csvFlag(r.from_video)||csvFlag(r.edited)))base.edited=true;return base;}
@@ -29,5 +32,5 @@ function csvPitcherFile(pitcher,date){const raw=pitcher&&pitcher.name;const firs
   const num=String(pitcher&&pitcher.num!=null?pitcher.num:'').replace(/\D/g,'');const parts=['pitches',csvToken(first)||'pitcher'];if(num)parts.push(num);const d=csvToken(date);if(d)parts.push(d);return parts.join('-')+'.csv';}
 function csvGameFile(g){return 'game-'+(csvToken(g&&g.date)||'game')+'-'+(csvToken(g&&g.opponent)||'game')+'.csv';}
 function csvScopeFile(scope){return 'pitches-'+(csvToken(scope)||'export')+'.csv';}
-Object.assign(PC,{CSV_COLS,esc,toCSV,parseCSV,filterPitcherDate,calledTypeOf,csvChart,csvApply,csvPitcherFile,csvGameFile,csvScopeFile});
+Object.assign(PC,{CSV_COLS,esc,toCSV,parseCSV,filterPitcherDate,calledTypeOf,chartOf,csvChart,csvApply,csvPitcherFile,csvGameFile,csvScopeFile});
 })(typeof window!=='undefined'?window:globalThis);

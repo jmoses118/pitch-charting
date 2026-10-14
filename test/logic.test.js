@@ -624,6 +624,8 @@ test('chart fields: sync coerces velocity, CSV keeps the raw value, and actual f
   assert.equal(PC.csvChart({calledLoc:11,actualLoc:14,loc:31}).actual_location,14);
   assert.equal(PC.pitchRow({id:'q',calledLoc:11,actualLoc:14,loc:31},{mode:'game',chartCol:true}).actual_loc,14);
   assert.equal('called_loc' in PC.pitchRow({id:'n',calledLoc:8},{mode:'game'}),false);
+  const shared=PC.chartOf({calledLoc:'8',loc:31,velo:'64',foulTime:'early',wpPb:'wp'});
+  assert.equal(shared.calledLoc,'8');assert.equal(shared.actualLoc,31);assert.equal(shared.velo,'64');assert.equal(shared.foulTime,'early');assert.equal(shared.wpPb,'wp');
 });
 test('chart columns stay off the wire until chartCol is set, then round-trip including in dirt',()=>{const st=coachStore(),s=st.real;
   s.sessions.push({id:'s1',date:'d',pitches:[]});
