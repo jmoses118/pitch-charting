@@ -3,14 +3,15 @@
 Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase sync, built for iPhone Safari. Each rule below has an ID so tests and reviews can cite it. "Must" means required for v1.
 
 ## FLOW: one state machine
-- **FLOW-1** Every scoring screen uses one shared pitch-entry state machine: portrait Game, landscape coach Game, Bullpen, and the future overlay view. No screen has its own step logic. This replaces both `bullpenStep`/`bullpenTap` in `js/core/game.js` and the game steps in the UI scripts. A `js/core/flow.js` may already exist on the `fix/redesign-bugs` branch; build on it.
+- **FLOW-1** Every scoring screen uses one shared pitch-entry state machine: portrait Game, landscape coach Game, Bullpen, and any later view. No screen has its own step logic. This replaces both `bullpenStep`/`bullpenTap` in `js/core/game.js` and the game steps in the UI scripts. A `js/core/flow.js` may already exist on the `fix/redesign-bugs` branch; build on it.
 - **FLOW-2 (Game order)** A game pitch goes through these steps in order: 1) call the pitch type; 2) called location; 3) actual location (zone, off-grid ring, dirt, or backstop); 4) result (ball, strike, foul, in play, and so on).
 - **FLOW-3** The called location is placed automatically from the wristband aim. The user can override it by hand.
 - **FLOW-4** The result menu opens only after the actual-location tap. It never covers the zone before that tap.
 - **FLOW-5** A game pitch cannot be saved without an actual location.
 - **FLOW-6 (Bullpen order)** A bullpen pitch goes: call the pitch type, then called location (automatic plus override, per FLOW-3), then actual location, then save. Bullpen has no ball/strike result (no `bpResult` default or stamp).
 - **FLOW-6a** As part of the build, a migration deletes every saved bullpen result (`bpResult` and similar), both locally and in Supabase.
-- **FLOW-7** A bullpen pitch is a success when it hits its spot: the actual location matches the called one. For example, a curve or change aimed at the bottom row that lands in that box is a success. Bullpen stats show hit-spot %, not strike %. The low-pitch bonus stays alongside it: a CH, drop or drop curve landing in 13, 14 or 18 counts as a good pitch.
+- **FLOW-7** A bullpen pitch is a success when it hits its spot: the actual location matches the called one. For example, a curve or change aimed at the bottom row that lands in that box is a success. Bullpen stats show hit-spot %, not strike %. The low-pitch bonus stays alongside it. FLOW-7a says when that bonus applies.
+- **FLOW-7a** The bullpen low-pitch bonus applies only when the pitch was called in 7, 8, 9, 13, 14 or 18 and lands in 13, 14 or 18.
 - **FLOW-8** Bullpen starts with no batter. LHB/RHB is available through an optional setting.
 - **FLOW-9 (optional, any mode)** A pitch's location can be edited later, for example after checking video. Only the scoring phone can make that edit.
 - **FLOW-10 (optional)** Shake-off: the user records the shake-off and picks the new pitch. It must be available on both the portrait and landscape Game screens.
@@ -23,6 +24,8 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
 - **RULE-3** Changeup penalties are based on the called pitch type. After a shake-off, the called type is the final pitch called, which is the one she threw.
 - **RULE-3a** Dirt (box 31), the way-off boxes (21–24) and the backstop are actual locations only, never called targets. No pitch is called to hit the ground. The bottom row (13, 14, 18), just above the dirt, is the lowest allowed aim.
 - **RULE-3b** The ring boxes just outside the zone (11–18) remain valid called targets.
+- **RULE-3c** A CH, drop or drop curve called low (7, 8, 9, 13, 14, 18) that lands in the dirt (31) counts as a reduced-severity miss, not a full way-off miss.
+- **RULE-3d** After a shake-off, the called location is the location re-signaled with the final pitch. If none was re-signaled, the original box stands.
 - **RULE-4** One shared location component and one location validator are used everywhere: scoring, editing, sync, and CSV import.
 - **RULE-5** Only one phone can score a game or bullpen session. Every other phone sees it live and read-only.
 - **RULE-6** Undo and Redo cover both the pitch and its location.
@@ -50,7 +53,8 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | FLOW-1 | unit: the same `flow` transitions drive the game and bullpen screens; UI: portrait, landscape and bullpen screens reach identical states |
 | FLOW-2, FLOW-4, FLOW-5 | unit: step order and save rejected without an actual location; UI: result menu hidden until the actual tap |
 | FLOW-3 | unit: wristband aim becomes the called box; an override replaces it |
-| FLOW-6, FLOW-7 | unit: bullpen pitch saves with no result; hit-spot % math including a bottom-row hit; low-pitch bonus for CH/DR/DC in 13/14/18 |
+| FLOW-6, FLOW-7 | unit: bullpen pitch saves with no result; hit-spot % math including a bottom-row hit |
+| FLOW-7a | unit: low-pitch bonus only when the pitch was called in 7, 8, 9, 13, 14 or 18 and lands in 13, 14 or 18 |
 | FLOW-6a | unit: migration removes `bpResult` from stored sessions and pitches; SQL migration test clears the Supabase rows |
 | FLOW-8 | unit: new session has no batter; UI: LHB/RHB shown only with the setting on |
 | FLOW-9 | `editpitch.ui.js`: edit is saved on the scoring phone and refused on a viewer phone |
@@ -58,6 +62,8 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | FLOW-11, FLOW-12 | unit: `cleanVelo`, `cleanFoul`, `cleanFlag`; UI: the optional detail does not block saving |
 | RULE-1, RULE-2, RULE-3 | unit: changeup called-target validation, actual location unrestricted, penalty uses the final called type after a shake-off |
 | RULE-3a | unit: validator rejects 31, 32 and 21–24 as called targets and accepts them as actual locations |
+| RULE-3c | unit: a CH, drop or drop curve called low that lands in 31 is a miss below way-off severity |
+| RULE-3d | unit: after a shake-off the called location is the re-signaled box, or the original box when none was re-signaled |
 | RULE-4 | unit: scoring, edit, sync and CSV import call the same validator with the same inputs and get the same results |
 | RULE-5 | `lock.ui.js` + `live.sync.js`: a second phone is read-only and sees pitches live |
 | RULE-6, RULE-7 | unit: redo/undo state; UI: Cancel on every popup leaves the state unchanged |
