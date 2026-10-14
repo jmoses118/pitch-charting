@@ -1,5 +1,9 @@
 # Changelog
 
+## Hardening – one aim and one landing
+### Changed
+- The recent list, the game log, Stats, and the bullpen last line use `PC.aimLabel` and `PC.landedLabel`. A saved pitch shows its called box (`calledLoc`, or every target when an older pitch has none) and where it landed (`actualLoc`, or `loc`). CSV `call_target` still lists every target. Cache: `te-pitch-v53`.
+
 ## v48 – One scoring flow
 ### Changed
 - **One state machine** (`js/core/flow.js`) for portrait Game, the landscape coach screen, and Bullpen. Game steps are pitch type, called location, actual location, then the result. Bullpen stops after the actual location and saves. There is no ball/strike step in the pen.

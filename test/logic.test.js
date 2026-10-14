@@ -445,6 +445,14 @@ test("change-up targets: only 4, 7, 8, 9, 13, 14, 18; high CH calls (CH H+, CH H
   assert.ok(PC.pitchMiss({type:'CH',targets:[2],loc:2}).badAim);assert.ok(!PC.pitchMiss({type:'CH',targets:[8],loc:8}).badAim);
   const sh={rows:[['CH H+']],aims:{'CH H+':2}};assert.equal(PC.bandAim(sh,PC.parseCall('CH H+','R','R')),null);sh.aims['CH H+']=8;assert.equal(PC.bandAim(sh,PC.parseCall('CH H+','R','R')),8);
   assert.equal(PC.pitchMiss({type:'CH',targets:[8],loc:2}).chUp,true);}); // the CH-up miss rule still applies
+test('aimLabel and landedLabel use one called box and one landing',()=>{
+  const many={targets:[11,14],calledLoc:14,loc:9,actualLoc:9};
+  assert.equal(PC.aimLabel(many),'14');assert.equal(PC.landedLabel(many),'@9');
+  const old={targets:[11,14],loc:9};assert.equal(PC.aimLabel(old),'11/14');assert.equal(PC.landedLabel(old),'@9');
+  const dirt={targets:[31],calledLoc:31,loc:31,actualLoc:31};assert.equal(PC.aimLabel(dirt),'31');assert.equal(PC.landedLabel(dirt),'in dirt');
+  assert.equal(PC.landedLabel({loc:21}),'way high');assert.equal(PC.aimLabel({}),'');assert.equal(PC.landedLabel({}),'');
+  assert.equal(PC.landedLabel({actualLoc:12,loc:5}),'@12');
+});
 test('hitSpot uses pitchMiss: Stats Spot% and the report agree, a CH up never counts as a hit',()=>{assert.equal(PC.hitSpot({type:'CH',targets:[2],loc:2}),false);assert.equal(PC.hitSpot({type:'FB',targets:[11],loc:11}),true);assert.equal(PC.hitSpot({type:'FB',targets:[],loc:5}),false);
   const P=[{type:'CH',targets:[2],loc:2},{type:'FB',targets:[4],loc:4},{type:'CH',targets:[8],loc:8}];assert.equal(PC.summarize(P).spot,PC.sessionReport(P).hits);});
 test('localDate: 9:30 PM ET stays on the same day (UTC would roll to tomorrow)',()=>{const old=process.env.TZ;process.env.TZ='America/New_York';try{const ts=Date.parse('2026-10-16T21:30:00-04:00');assert.equal(PC.localDate(ts),'2026-10-16');assert.notEqual(new Date(ts).toISOString().slice(0,10),'2026-10-16');}finally{process.env.TZ=old;}});

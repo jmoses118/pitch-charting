@@ -173,6 +173,11 @@ const isK=p=>p.end==='K'||p.end==='K-D3';
 const isHard=p=>p.result==='inplay'&&(p.bb==='LD'||['2B','3B','HR'].includes(p.ip));
 function shakeLine(P){const n=P.length;return{n,strikePct:pct(P.filter(p=>p.result&&isStrike(p.result)).length,n),balls:P.filter(p=>p.result==='ball').length,
   hits:P.filter(p=>p.result==='inplay'&&HITS.includes(p.ip)).length,hard:P.filter(isHard).length,k:P.filter(isK).length};}
+// One aim and one landing for the recent list, the game log, Stats, and the bullpen last line.
+// calledLoc wins when it is set (the box nearest the landing when the call named several). Otherwise every target is shown.
+// The landing is actualLoc, then loc. call_target in CSV still lists every target so a multi-spot call round-trips.
+function aimLabel(p){if(!p)return '';if(p.calledLoc!=null&&p.calledLoc!=='')return String(+p.calledLoc);const t=(Array.isArray(p.targets)?p.targets:[]).map(z=>+z).filter(z=>Number.isFinite(z));return t.length?t.join('/'):'';}
+function landedLabel(p){if(!p)return '';const raw=p.actualLoc!=null&&p.actualLoc!==''?p.actualLoc:(p.loc!=null&&p.loc!==''?p.loc:null);if(raw==null)return '';const z=+raw;if(!Number.isFinite(z))return '';if(PC.isWay(z))return PC.WAY[z];if(PC.isActualOnly(z))return PC.ACTUAL_ONLY[z];return '@'+z;}
 function outcomeOf(p){if(!p)return '';if(p.result==='inplay')return (p.ip?p.ip:'In play')+(p.bb?' ('+p.bb+')':'');const r={ball:'Ball',called:'Called strike',swinging:'Swinging strike',foul:'Foul',foultip:'Foul tip',hbp:'HBP',kd3:'K – reached',kd3out:'K – thrown out'}[p.result]||p.result||'';return r+(isK(p)&&!/^K/.test(r)?' · K':'');}
 function shakeoffs(pitches){const P=(pitches||[]).filter(p=>!p.deleted&&countsAsPitch(p));const byT=P.slice().sort((a,b)=>(a.ts||0)-(b.ts||0));
   const prevOf=p=>{const q=byT[byT.indexOf(p)-1];return q&&p.abn!=null&&q.abn===p.abn?q:null;}; // pitch before it in the same at-bat
@@ -180,5 +185,5 @@ function shakeoffs(pitches){const P=(pitches||[]).filter(p=>!p.deleted&&countsAs
   return{n:S.length,shook:shakeLine(S),followed:shakeLine(F),
     list:S.map(p=>{const q=prevOf(p);return{id:p.id,called:p.call||p.callRaw||'?',thrown:(p.type||'?')+(p.loc!=null?' '+p.loc:''),count:(p.b!=null&&p.s!=null)?`${p.b}-${p.s}`:'',
       prev:q?`${q.type||'?'} · ${outcomeOf(q)}`:'',outcome:outcomeOf(p),inning:p.inning,batter:p.batter||''};})};}
-Object.assign(PC,{shakeoffs,shakeLine,isHard,heatSummary,strikeOf,hitSpot,MISS_DIRS,topDir,bestWeak,pitchMark,MARK_LABEL,recentPitches,heatItems,HEAT_KEYS,heatFilter,heatData,CH_MIN_SEV,GOOD_MAX_SEV,isGoodSev,wasteAim,isBullpenPitch,WAY_SEV,LOW_RING,LOW_TYPES,lowGood,adjSev,chUp,missData,MISS_SCALE,missColor,VIRIDIS,heatColor,kCredit,summarize,pitchMiss,grpStats,TYPE_NAME,FIX,sessionReport,typeFeedback,COUNTS,countStats,trendPoints});
+Object.assign(PC,{shakeoffs,shakeLine,isHard,heatSummary,strikeOf,hitSpot,aimLabel,landedLabel,MISS_DIRS,topDir,bestWeak,pitchMark,MARK_LABEL,recentPitches,heatItems,HEAT_KEYS,heatFilter,heatData,CH_MIN_SEV,GOOD_MAX_SEV,isGoodSev,wasteAim,isBullpenPitch,WAY_SEV,LOW_RING,LOW_TYPES,lowGood,adjSev,chUp,missData,MISS_SCALE,missColor,VIRIDIS,heatColor,kCredit,summarize,pitchMiss,grpStats,TYPE_NAME,FIX,sessionReport,typeFeedback,COUNTS,countStats,trendPoints});
 })(typeof window!=='undefined'?window:globalThis);
