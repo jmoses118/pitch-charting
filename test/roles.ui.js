@@ -4,7 +4,7 @@ const H=c=>({apikey:CFG.key,Authorization:'Bearer '+CFG.key,'Content-Type':'appl
 (async()=>{const mk=async(a)=>JSON.parse(await (await fetch(CFG.url+'/rest/v1/rpc/coach_create_code',{method:'POST',headers:H(TEST_COACH),body:JSON.stringify(a)})).text());
   const pcode=await mk({p_role:'player',p_pitcher_id:'p_za',p_label:'ZA'}),vcode=await mk({p_role:'viewer',p_label:'V2'});
   const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});const errs=[];
-  for(const [name,code] of [['player',pcode],['viewer',vcode],['coach',TEST_COACH]]){const c=await b.newContext({viewport:{width:390,height:844},deviceScaleFactor:2});const p=await c.newPage();p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.dismiss());
+  for(const [name,code] of [['player',pcode],['viewer',vcode],['coach',TEST_COACH]]){const c=await b.newContext({viewport:{width:390,height:844},deviceScaleFactor:2});const p=await c.newPage();await p.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.dismiss());
     await p.goto(BASE);await p.click('nav [data-t="setup"]');await p.fill('#teamCode',code);await p.click('#teamSave');await p.waitForTimeout(4500);
     const tabs=await p.$$eval('nav button:not(.hide)',x=>x.map(e=>e.dataset.t));const vis=async s=>p.isVisible(s);
     console.log(name,'tabs',tabs.join(','),'| +P',await vis('#addPQuick'),'| pitchers card',await vis('#pCard'),'| codes card',await vis('#codesCard'),'| pitcher options',await p.$$eval('#pitcher option',x=>x.map(e=>e.textContent).join('/')),'|',(await p.textContent('#roleMsg')));

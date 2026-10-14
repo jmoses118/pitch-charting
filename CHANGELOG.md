@@ -1,5 +1,28 @@
 # Changelog
 
+## v37 – landscape coach screen (redesign)
+### Added
+- **Landscape coach game screen** (844x390): the whole wristband grid (rows 1–7 × cols 01–08, cells 48px or larger, selected cell royal), the strike zone and a docked results column on one screen. The status box shows the spoken call big ("3-05 Fb In").
+- Per-pitch flow: tap the call (aim mapped automatically), tap where it went, tap the result. ✎ Aim edits the aim; a long-press on the zone sets it.
+- On-screen **saved** confirmation in the status strip (iPhone can't vibrate); Undo always visible; Same button.
+- **One-time band setup** for cells that have no zone (9 on Wristband 1). Opens from the game menu or Setup.
+- **Field (light) and Night palettes** in Thunder Elite colours, plus Auto (night 19:00–07:00). Result colours are colour-blind safe (Okabe-Ito). There's also a Mirror option.
+- Side-retired card; ⋯ Game menu for rarely used controls (outs ±, next inning, IBB, K-D3, band setup, theme, pause, end).
+- A rotate prompt in portrait, with a "Chart in portrait instead" fallback.
+### Changed
+- Bullpen (portrait): the pitch type stays selected between pitches, a "Last:" line shows after each pitch, and a bottom pad holds the type and way buttons plus Undo, Pause and End.
+### Design review fixes (UI Designer, PASS WITH CHANGES)
+- "Keep charting" on the side-retired card is now readable (white text, 2px light border, >10:1).
+- The status hint is always one line ("Tap where it went"), so the zone no longer jumps after a band tap. The status box has a fixed height, and the band/results stay clear of the iPhone home bar (sizing counts the grid lines and the safe-area insets).
+- ⋯ Game is 44px+ tall. The game menu is a 3-column grid in landscape, with Cancel on screen and End game at the top, away from Cancel. The Cancel/Save footer in band setup stays visible (sticky).
+- Narrow phones (under 700px wide, e.g. iPhone SE): row headers 20px (still shown), results 46px wide, band cells 44px, a compact status, and ⋯ as a 44×44 icon.
+- Bullpen: Way buttons are 48px tall, SC is on the pad (types wrap), and the "✓ FB 3 → 2" confirmation shows above the zone instead of on it.
+- Band setup and the in-play spray say "saved on this phone".
+- **Heads-up: the whole app changes look.** v37 uses the light Field palette everywhere by default. Switch it in Setup → Display (☀ Field / ☾ Night buttons) or in the game menu.
+### Notes
+- Band aims and spray locations are stored on the device only. The Supabase schema is unchanged.
+- At 667x375 (iPhone SE landscape) band and zone cells are about 40px. 48px everywhere doesn't fit there.
+
 ## v36 – header that never truncates the pitcher
 ### Fixed
 - **Pitcher name cut off** ("Avei") on the Game tab with no game, because it shared a row with the workload counts and the sync chip.

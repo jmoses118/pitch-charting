@@ -1,7 +1,7 @@
 // Before/after UI screenshots at 390x844 (test data only, Supabase blocked, no codes). usage: node test/demo.ui.js <url> <before|after>
 const {chromium}=require('playwright-core');const BASE=process.argv[2]||'http://localhost:8766/';const PRE=process.argv[3]||'after';const OUT='/workspace/pitch-charting-app/test/demo-ui-v2/';require('fs').mkdirSync(OUT,{recursive:true});
 (async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});const c=await b.newContext({viewport:{width:390,height:844},deviceScaleFactor:3,colorScheme:'dark',isMobile:true,hasTouch:true});
-await c.route(/supabase\.co/,r=>r.abort());const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());
+await c.route(/supabase\.co/,r=>r.abort());await c.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());
 const shot=async n=>{await p.evaluate(()=>{const i=document.getElementById('teamCode');if(i)i.value='';});await p.waitForTimeout(300);await p.screenshot({path:OUT+PRE+'-'+n+'.png'});};
 await p.goto(BASE);
 await p.evaluate(()=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'},{id:'p_r',name:'Reese',num:'7',throws:'R'},{id:'p_k',name:'Kenzie',num:'12',throws:'L'}];S.curPitcher='p_a';

@@ -38,3 +38,6 @@ UI action (js/ui) → `store.update()` mutates state → saved to `localStorage`
 - Helpers resolve the request's `x-team-code` header: `private.req_team()` (coach), `req_team_any()` (any valid code), `req_role()`, `req_pitcher()`, `req_pitchers()`.
 - RLS: coach full read/write; viewer read-only; player reads her own games/pitches and writes only her own bullpen sessions/pitches; pcoach reads/writes sessions, bullpen pitches and notes for her `pitcher_ids`; `call_sheets` and `team_settings` coach-only. Trigger `set_charted_by` tags pcoach-charted pitches.
 - RPCs: `whoami`, `coach_create_code(p_role, p_pitcher_id, p_label, p_pitcher_ids)`, list/revoke codes (anon only).
+
+## js/ui/coach.js (v37)
+Loads after setup.js and before main.js. It holds the theme/mirror prefs, the landscape coach render (`renderModes`), the game menu, band setup (`openBandSetup`, which saves `sheet.aims`), the rotate prompt and the bullpen pad. Core helpers in calls.js: `cellCode`, `unmappedCells`, `bandAim`, `bandSetupDone`.

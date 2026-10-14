@@ -1,4 +1,4 @@
-const {chromium}=require('playwright-core');const BASE=process.argv[2],SHOT=process.argv[3];(async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});const c=await b.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,colorScheme:'dark'});const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());
+const {chromium}=require('playwright-core');const BASE=process.argv[2],SHOT=process.argv[3];(async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});const c=await b.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,colorScheme:'dark'});const p=await c.newPage();await p.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());
 await p.goto(BASE);
 // bullpen defaults + in-screen test toggle
 await p.click('nav [data-t="bullpen"]');console.log('default batter None selected:',await p.$eval('#hN',e=>e.classList.contains('sel')),'|',await p.textContent('#bpTest'));

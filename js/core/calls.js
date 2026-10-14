@@ -51,5 +51,13 @@ function defaultCallSheet(){return{id:'cs_wristband1',name:'Wristband 1',pitcher
 // "3-05" / "3 5" / "35" -> {r:2,c:4} (0-based) or null
 function parseCellRef(s,sheet){const m=String(s||'').trim().match(/^(\d{1,2})\s*[-\s.,/]\s*(\d{1,2})$/)||String(s||'').trim().match(/^(\d)(\d{1,2})$/);if(!m)return null;
   const r=+m[1]-1,c=+m[2]-1;if(!sheet||r<0||c<0||r>=sheet.rows.length||c>=(sheet.rows[r]||[]).length)return null;return{r,c,text:sheet.rows[r][c]};}
-Object.assign(PC,{BASE_TYPES,ALIAS,normType,CALL_SUFFIX,parseCall,WRISTBAND_1,sheetCols,defaultCallSheet,parseCellRef});
+// spoken cell code as the catcher hears it: row-col, e.g. "3-05"
+const cellCode=(sheet,r,c)=>`${r+1}-${(sheet&&sheet.cols&&sheet.cols[c])||String(c+1).padStart(2,'0')}`;
+// band setup: cells with a pitch type but no spot, grouped by normalized call (identical texts share one aim)
+function unmappedCells(sheet,custom){const g={};((sheet&&sheet.rows)||[]).forEach((row,r)=>(row||[]).forEach((t,c)=>{const p=parseCall(t,'R','R',custom);
+  if(p&&!p.targets.length)(g[p.norm]=g[p.norm]||{norm:p.norm,type:p.type,text:String(t).trim(),cells:[]}).cells.push(cellCode(sheet,r,c));}));return Object.values(g);}
+// aim chosen in band setup for an unmapped call (sheet.aims[norm] = zone, 0 = "no spot"); null when none
+function bandAim(sheet,parsed){if(!parsed||parsed.targets.length||!sheet||!sheet.aims)return null;const v=+sheet.aims[parsed.norm];return v>0?v:null;}
+const bandSetupDone=(sheet,custom)=>unmappedCells(sheet,custom).every(u=>!!sheet.aims&&u.norm in sheet.aims);
+Object.assign(PC,{BASE_TYPES,ALIAS,normType,CALL_SUFFIX,parseCall,WRISTBAND_1,sheetCols,defaultCallSheet,parseCellRef,cellCode,unmappedCells,bandAim,bandSetupDone});
 })(typeof window!=='undefined'?window:globalThis);

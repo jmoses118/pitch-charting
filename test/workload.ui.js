@@ -3,7 +3,7 @@ const {chromium}=require('playwright-core');const BASE=process.argv[2]||'http://
 fs.mkdirSync(OUT,{recursive:true});fs.readdirSync(OUT).forEach(f=>fs.unlinkSync(OUT+f));let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};
 (async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});const c=await b.newContext({viewport:{width:390,height:844},deviceScaleFactor:3,colorScheme:'dark',isMobile:true,hasTouch:true});
 let net=0;await c.route(/supabase\.co/,r=>{net++;r.abort();});await c.addInitScript(()=>{window.__vib=[];navigator.vibrate=p=>{window.__vib.push(p);return true;};});
-const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());let N=0;
+const p=await c.newPage();await p.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());let N=0;
 const shot=async(name)=>{await p.evaluate(()=>{const i=document.getElementById('teamCode');if(i)i.value='';document.querySelectorAll('#codesList small').forEach(s=>s.textContent='••••');});await p.waitForTimeout(250);await p.screenshot({path:OUT+String(++N).padStart(2,'0')+'-'+name+'.png'});};
 const asRole=r=>p.evaluate(r=>{const y=__app.store.real.sync;y.teamCode='TE-XXXXX-XXXXX-XXXXX-XXXXX';y.teamId='t';y.role=r;y.pitcherIds=[];y.pitcherId=r==='player'?'p_woods':null;__app.store.save();__app.render();},r);
 await p.goto(BASE);
