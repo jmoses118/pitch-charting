@@ -360,3 +360,12 @@ body.viewonly #cRes{display:flex!important;flex-direction:column;justify-content
 body.viewonly #cRes .cro{flex:0 0 auto}
 #cmRo.cmro{display:flex}#cmRo.cmro.hide{display:none}
 .cmenu-g button:disabled{opacity:.4}
+
+/* shake-off (v39) */
+.shakebar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;margin-bottom:8px;border:1px solid #B983FF;border-radius:10px;background:rgba(185,131,255,.14);font-size:14px;font-weight:600}
+.shakebar.hide{display:none}.shakebar button{min-height:44px;flex-shrink:0}
+#cRes button.shk,#cRes button.shkx{border-color:#B983FF}
+.shktbl{width:100%;font-size:13px;border-collapse:collapse}.shktbl td,.shktbl th{padding:3px 4px;text-align:right}.shktbl td:first-child{text-align:left}
+.shklist{margin:6px 0 10px;padding-left:20px;font-size:13px;line-height:1.45}
+.shakerow{display:flex;justify-content:flex-end;margin:4px 0}.shakerow #shakeBtn{min-height:44px;border-color:#B983FF}
+.shakerow.hide{display:none}

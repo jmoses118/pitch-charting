@@ -75,3 +75,8 @@ Change-up aims: in ✎ Aim mode, boxes a change-up can't be aimed at become dash
 - Coach landscape: the result column becomes "👁 Scoring on another phone / View only / **Take over scoring**".
 - ⋯ Game menu on a view-only phone: amber note "👁 Scoring on another phone · view only. Game changes are off here." + **Take over scoring** on top; game-changing items greyed (disabled); Band setup, Display and Mirror stay active.
 - Takeover popup: title "Take over scoring?", body "Another phone is scoring this. Only take over if that phone died or the coach handed it to you. That phone will switch to view only.", buttons Cancel (focused) and **Take over scoring**.
+
+## Shake-off (v39)
+- Portrait: "⤺ Shake-off" (≥44px, violet outline) right-aligned under the entry steps; enabled once a wristband call is made. Tapping shows a violet bar "⤺ Shook off CH7 → tap the pitch she threw" (then "→ threw FB") with **Cancel**.
+- Coach landscape: "⤺ Shake-off" button after Aim/Undo/Same. Tapping swaps the result column for the thrown-type picker (FB, CH, CB…) + "✕ Cancel"; the call line reads "⤺ CH7 → ?" then "⤺ CH7 → FB". After a type, results return and the button becomes "✕ Shake" (cancel).
+- Stats: a "Shake-offs · Name #: N" card (not hidden in More tables) with a Shook off / Followed call table (#, Str%, H, Hard, K, Ball) and a list "Called CH8 → threw FB 5 · 0-2 · after CH · Foul · 2B (LD)".

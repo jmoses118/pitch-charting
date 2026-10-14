@@ -39,7 +39,7 @@ const oneHand=()=>S().oneHand!==false;
 function advance(step){if(!oneHand())return;if(document.body.classList.contains('entrymode')){if(scrollY)scrollTo(0,0);return;} // one-screen entry: everything is already in view
   const el=step==='loc'?$('zone'):step==='result'?$('resBtns'):($('wbCard')&&!$('wbCard').classList.contains('hide')?$('wbCard'):$('types'));if(el&&el.scrollIntoView)setTimeout(()=>el.scrollIntoView({behavior:'auto',block:step==='result'?'end':'start'}),30);}
 function pcCheck(pid,before,after){ensureSettings();const th=S().settings.alerts;const a=PC.alertLevel(before,th),b=PC.alertLevel(after,th);if(b.lvl>a.lvl){buzz([220,90,220]);toast(`⚠️ ${pName(pid)} has thrown ${after} pitches (alert at ${b.at})`);}}
-function resetDraft(){D.cell=null;D.bb=null;D.sheet=false;D.aim=null;D.aimEdit=false;D.spray=null;Object.assign(D,{type:null,callTxt:'',parsed:null,target:null,loc:null,ip:false});$('callTxt').value='';}
+function resetDraft(){D.shook=null;D.cell=null;D.bb=null;D.sheet=false;D.aim=null;D.aimEdit=false;D.spray=null;Object.assign(D,{type:null,callTxt:'',parsed:null,target:null,loc:null,ip:false});$('callTxt').value='';}
 // ---------- zone ----------
 const ZX0=20,ZY0=24,CW=20,CHh=24;
 const QUAD={11:'M0 0H40V24H20V48H0Z',12:'M60 0H100V48H80V24H60Z',13:'M0 72H20V96H40V120H0Z',14:'M100 72V120H60V96H80V72Z',15:'M40 0H60V24H40Z',16:'M0 48H20V72H0Z',17:'M80 48H100V72H80Z',18:'M40 96H60V120H40Z'};
@@ -66,7 +66,7 @@ function zoneSVG(svg,hand,o={}){let h='';svg.setAttribute('viewBox',o.orient?ORI
   else h+=hand==='N'?`<text class="side" style="fill:#8b949e;font-size:5px" x="50" y="${ly}">${gl?`No batter · glove / arm side (${o.throws}HP)`:'No batter · in/away shown as RHB'}</text>`:`<text class="side" style="fill:#5b8cff;font-size:5.5px" x="${inRight?88:12}" y="${ly}">${hand==='L'?'LHB':'RHB'} ${inRight?'▶':'◀'}</text><text class="side" x="${inRight?12:88}" y="${ly}" style="opacity:.5">${inRight?'LHB side':'RHB side'}</text>`;
   }
   svg.innerHTML=h+(o.extra||'');}
-function drawZone(){const hand=curHand();let ex='';const tset=D.aim?[D.aim]:D.parsed&&D.parsed.targets.length?D.parsed.targets:(D.target?[D.target]:[]);
+function drawZone(){const hand=curHand();let ex='';const tset=D.shook?aimSet():D.aim?[D.aim]:D.parsed&&D.parsed.targets.length?D.parsed.targets:(D.target?[D.target]:[]);
   const lab={};tset.forEach(z=>lab[z]='TARGET');
   const items=renderRecent();zoneSVG($('zone'),hand,{labels:lab,throws:throwsOf(),orient:true,compact:true,extra:ballsSVG(items,throwsOf())});
   tset.forEach(z=>{const e=$('zone').querySelector(`[data-z="${z}"]`);e&&e.classList.add('zt');});
@@ -132,9 +132,10 @@ $('batTog').onclick=()=>openSheet($('batDlg'));$('bpTest').onclick=()=>toggleTes
 function setHand(h){if(tab==='game'&&game()){game().cur.hand=h;dirty('games',game().id);save();}else bpHand=h;if(D.callTxt)D.parsed=PC.parseCall(D.callTxt,h,throwsOf(),S().customTypes);render();}
 // ---------- record building ----------
 // the planned spot(s) for the pitch in progress: ✎ Aim / band-setup aim, else the call's own spot, else a tapped target
-function aimSet(){if(D.aim)return[D.aim];if(!callOn)return[];return D.parsed&&D.parsed.targets.length?D.parsed.targets:(D.target?[D.target]:[]);}
-function baseRec(){return{id:PC.uuid(),ts:Date.now(),pitcherId:curPitcherId(),hand:curHand(),type:D.type||(D.parsed&&D.parsed.type)||null,
-  call:callOn&&D.parsed?D.parsed.norm:null,callRaw:callOn&&D.callTxt?D.callTxt:null,targets:aimSet(),loc:D.loc||null};}
+function aimSet(){if(D.shook)return D.aim?[D.aim]:[]; // shake-off: only her own chosen aim, never the coach's
+  if(D.aim)return[D.aim];if(!callOn)return[];return D.parsed&&D.parsed.targets.length?D.parsed.targets:(D.target?[D.target]:[]);}
+function baseRec(){return{id:PC.uuid(),ts:Date.now(),pitcherId:curPitcherId(),hand:curHand(),type:D.shook?D.type||null:D.type||(D.parsed&&D.parsed.type)||null,
+  call:D.shook?D.shook.norm:callOn&&D.parsed?D.parsed.norm:null,callRaw:D.shook?D.shook.raw:callOn&&D.callTxt?D.callTxt:null,targets:aimSet(),loc:D.loc||null,...(D.shook?{shook:true}:{})};}
 // ---------- test mode ----------
 function toggleTest(){if(store.isTest){if(!confirm('Exit test mode? Everything from this test is discarded.'))return;store.exitTest();resetDraft();toast('Test data cleared');}
   else{store.enterTest();resetDraft();toast('TEST MODE – nothing is saved');}render();}
@@ -142,7 +143,7 @@ $('testBtn').onclick=toggleTest;$('exitTest2').onclick=toggleTest;
 // ---------- cloud sync ----------
 const CFG=window.PC_CONFIG||{};const sync=CFG.url&&CFG.key?PC.makeSync(store,{url:CFG.url,key:CFG.key}):null;let syncT=null,syncing=false;
 // Scoring lock: the live game / bullpen session on screen is scored only from the phone that owns it (PC.canScore)
-store.real.sync.scorerCol=!!CFG.scorerColumn; // true only after supabase/migrations/*_scoring_lock.sql is applied
+store.real.sync.scorerCol=!!CFG.scorerColumn; store.real.sync.shakeCol=!!CFG.shakeColumn; // true only after *_shake_off.sql is applied // true only after supabase/migrations/*_scoring_lock.sql is applied
 const myDevice=()=>store.real.sync.deviceId;
 function liveBox(){if(tab==='game'){const g=game();return PC.gameInProgress(g)?g:null;}return tab==='bullpen'?session():null;}
 const viewOnly=()=>PC.lockedBox(liveBox(),myDevice());
@@ -184,3 +185,19 @@ function fitZone(){const z=$('zone'),w=z.parentElement;if($('entry').classList.c
   z.style.height=h+'px';const m=z.getScreenCTM(),r=w.getBoundingClientRect();if(!m)return;const bs=$('batTog').style;
   bs.left=(-13*m.a+m.e-r.left)+'px';bs.top=(124*m.d+m.f-r.top)+'px';bs.width=(43*m.a)+'px';}
 addEventListener('resize',()=>fitZone());
+
+// ---------- shake-off (game): she shook off the coach's call and threw her own pitch ----------
+// D.shook keeps the coach's call (type + aim); she then picks the type thrown, and the pitch is scored against
+// her own aim (unknown = no aim). Cancel restores the call; after recording, Undo removes the pitch as usual.
+function shakeOff(){if(scoreGuard())return;if(tab!=='game'||!game()||D.shook)return;if(!D.parsed)return toast('Tap the wristband call first');
+  D.shook={norm:D.parsed.norm,raw:D.callTxt||D.parsed.norm,type:D.parsed.type,targets:aimSet(),prevType:D.type,prevAim:D.aim};D.type=null;D.aim=null;D.aimEdit=false;D.ip=false;buzz(15);render();toast(`Shook off ${D.shook.norm} – tap the pitch she threw`);}
+function cancelShake(){if(!D.shook)return;D.type=D.shook.prevType;D.aim=D.shook.prevAim;D.shook=null;render();toast('Shake-off canceled');}
+function renderShake(){const g=tab==='game'&&!!game()&&role()==='coach';$('shakeBtn').parentNode.classList.toggle('hide',!g||!D.parsed||!!D.shook);$('shakeBtn').classList.toggle('hide',!g);$('shakeBtn').disabled=!D.parsed||!!D.shook; // row shows only while a call is up (keeps the zone above the tab bar on small phones)
+  $('shakeBar').classList.toggle('hide',!g||!D.shook);if(D.shook)$('shakeTxt').textContent=`⤺ Shook off ${D.shook.norm} → ${D.type?'threw '+D.type:'tap the pitch she threw'}`;}
+$('shakeBtn').onclick=shakeOff;$('shakeCancel').onclick=cancelShake;
+// Shake-offs section (Stats + report): per pitcher, shake-off results vs pitches that followed the call, and each shake-off
+function shakeHTML(P){const ids=[...new Set(P.filter(p=>p.shook&&!p.deleted).map(p=>p.pitcherId))];if(!ids.length)return '';
+  const row=(k,x)=>`<tr><td>${k}</td><td>${x.n}</td><td>${fmt(x.strikePct)}</td><td>${x.hits}</td><td>${x.hard}</td><td>${x.k}</td><td>${x.balls}</td></tr>`;
+  return ids.map(id=>{const r=PC.shakeoffs(P.filter(p=>p.pitcherId===id));return `<div class="shk"><div class="lbl">Shake-offs · ${H(pName(id))}: ${r.n}</div>
+  <table class="shktbl"><tr><th></th><th>#</th><th>Str%</th><th>H</th><th title="Line drive or extra-base hit">Hard</th><th>K</th><th>Ball</th></tr>${row('Shook off',r.shook)}${row('Followed call',r.followed)}</table>
+  <ol class="shklist">${r.list.map(x=>`<li><b>Called ${H(x.called)}</b> → threw <b>${H(x.thrown)}</b>${x.count?` · ${H(x.count)}`:''}${x.prev?` · after ${H(x.prev)}`:''} · <b>${H(x.outcome||'–')}</b></li>`).join('')}</ol></div>`;}).join('');}

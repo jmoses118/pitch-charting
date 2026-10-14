@@ -56,8 +56,10 @@
 <section id="entry" class="hide">
  <div id="roBar" class="robar" role="status"><span>👁 Scoring on another phone · view only</span><button id="roTake" type="button">Take over scoring</button></div>
  <div class="entrybar">
+  <div id="shakeBar" class="shakebar hide" role="status"><span id="shakeTxt"></span><button id="shakeCancel" type="button">Cancel</button></div>
   <div id="types" class="chips" role="group" aria-label="Pitch type"></div>
   <div class="stepline"><ol id="steps" class="steps" aria-label="Pitch entry steps"><li></li><li></li><li></li></ol><button id="wbTog" class="mini hide" aria-expanded="false" aria-controls="wbCard">Band</button><button id="resTog" class="mini hide" aria-controls="resSheet">Result</button></div>
+  <div class="shakerow"><button id="shakeBtn" class="mini hide" type="button" aria-label="Shake-off: she shook off the call">⤺ Shake-off</button></div>
   <div class="phase" id="phase"></div>
  </div>
  <div class="zonewrap"><div id="zoneNote" class="zonenote hide" role="status"></div><svg id="zone" viewBox="-14 -6 128 138"></svg>
@@ -116,6 +118,7 @@
  <div class="card" id="sTrendCard"><div class="row sp"><div class="lbl" style="margin:0">Season trends</div><select id="tMode" style="max-width:45%"><option value="all">Games + bullpen</option><option value="game">Games</option><option value="bullpen">Bullpen</option></select></div>
   <div class="row wrap" id="tMetrics" style="gap:6px;margin-top:6px"></div><svg id="tChart" viewBox="0 0 320 170" style="width:100%;display:block;margin-top:6px"></svg><div class="mut" id="tNote" style="font-size:12px"></div></div>
  <div class="card" id="sCountCard"><div class="lbl">By count (games)</div><div class="row wrap" id="cTop" style="gap:6px"></div><div style="overflow-x:auto"><table id="cTbl" style="font-size:12px"></table></div><div id="c02" class="mut" style="margin-top:6px"></div></div>
+ <div class="card" id="sShakeCard"><div id="sShake"></div></div>
  <details class="card disc" id="sMore"><summary>More tables <span class="mut">per pitcher, type, location, calls, results</span></summary><div class="discbody">
  <div class="sub"><div class="lbl">Per pitcher</div><table id="sPit"></table></div>
  <div class="sub"><div class="lbl">By pitch type</div><table id="sType"></table></div>

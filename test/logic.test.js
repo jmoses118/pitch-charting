@@ -448,3 +448,22 @@ test('syncWhy: plain-words reason per status (raw text never needed)',()=>{asser
   assert.equal(PC.syncWhy({status:403,error:'new row violates row-level security'}),"This phone isn't allowed to save that. Ask your coach to check your team code.");
   assert.equal(PC.syncWhy({status:409}),'This was already saved from another phone. Usually safe to Discard.');assert.equal(PC.syncWhy({status:400,error:'duplicate key value violates unique constraint "games_pkey"'}),PC.SYNC_WHY.dup);
   for(const s of [400,404,422])assert.equal(PC.syncWhy({status:s,error:'x'}),"The server couldn't read this change. Try Retry; if it fails again, Discard.");});
+
+test('shake-off: summary per pitcher – shook vs followed, hard contact, K, prev pitch in the at-bat',()=>{
+  const P=[{id:'a',ts:1,abn:1,b:0,s:1,type:'CH',call:'CH8',loc:8,result:'foul'},
+    {id:'b',ts:2,abn:1,b:0,s:2,type:'FB',call:'CH8',shook:true,loc:5,result:'inplay',ip:'2B',bb:'LD'},
+    {id:'c',ts:3,abn:2,b:0,s:0,type:'FB',call:'FB3',loc:3,result:'called'},
+    {id:'d',ts:4,abn:2,b:0,s:1,type:'DR',call:'FB3',shook:true,loc:7,result:'swinging',end:'K'}];
+  const r=PC.shakeoffs(P);assert.equal(r.n,2);assert.equal(r.shook.hits,1);assert.equal(r.shook.hard,1);assert.equal(r.shook.k,1);assert.equal(r.followed.n,2);assert.equal(r.followed.hits,0);
+  assert.deepEqual(r.list[0],{id:'b',called:'CH8',thrown:'FB 5',count:'0-2',prev:'CH · Foul',outcome:'2B (LD)',inning:undefined,batter:''});
+  assert.equal(r.list[1].prev,'FB · Called strike');assert.match(r.list[1].outcome,/Swinging strike · K/);});
+test('shake-off scoring: hit spot uses her own aim only; unknown aim = no aim (never the coach call)',()=>{
+  assert.equal(PC.hitSpot({type:'FB',call:'CH8',shook:true,targets:[],loc:8}),false);assert.equal(PC.summarize([{type:'FB',call:'CH8',shook:true,targets:[],loc:8,result:'called'}]).spotN,0,'no aim = left out of hit-spot %');
+  assert.equal(PC.pitchMiss({type:'FB',call:'CH8',shook:true,targets:[],loc:8}),null);
+  assert.ok(PC.pitchMiss({type:'FB',call:'CH8',shook:true,targets:[5],loc:5}));});
+test('shake-off syncs on today\'s schema (call_raw tag) and via the shook column once enabled',()=>{const st=coachStore(),s=st.real;
+  s.sessions.push({id:'s1',date:'d',pitches:[]});s.games.push({id:'g',date:'d',opponent:'o',homeAway:'home',lineup:[],cur:{},pitches:[{id:'p1',ts:1,type:'FB',call:'CH8',callRaw:'CH 8',shook:true,targets:[],loc:5,result:'foul'}]});s.sync.queue.pitches.p1=1;
+  let row=PC.buildRows(s).rows.pitches[0];assert.equal(row.call_raw,PC.SHOOK_TAG+'CH 8');assert.equal('shook' in row,false);assert.equal(row.call,'CH8');
+  const back=PC.rowPitch(row);assert.equal(back.shook,true);assert.equal(back.callRaw,'CH 8');
+  s.sync.shakeCol=true;row=PC.buildRows(s).rows.pitches[0];assert.equal(row.shook,true);
+  assert.equal(PC.rowPitch({id:'x',call_raw:'FB 3',shook:false}).shook,undefined);});

@@ -41,3 +41,9 @@ Game strike % follows GameChanger (balls vs called/swinging/foul/in play etc.); 
 ## Strikeouts
 - **K credit**: if the pitcher is replaced with 2 strikes and the reliever finishes the K, the K goes to the pitcher who threw strike 2 (official rule). Pitch counts stay with whoever threw each pitch.
 - **Dropped 3rd strike**: `kd3` (batter reaches) and `kd3out` (thrown out) both count as a K for the pitcher; reached D3 records no out.
+
+## Shake-offs (v39)
+- A **shake-off** pitch is one where the pitcher shook off the coach's call and threw her own choice. It is stored as `shook: true`; `call` / `callRaw` keep the coach's call (type + aim from the wristband) and `type`, `loc`, `result` are what she actually threw.
+- **Hit spot:** a shake-off pitch is scored against **her own chosen location** (`targets`, set with ✎ Aim if the coach knows it) versus where it actually landed. The coach's called aim is **never** used. If her aim is unknown, `targets` is empty: the pitch has **no aim** and is left out of hit-spot %, the intended heat map and miss severity (it still counts for strikes, balls, K and contact).
+- **Shake-offs section** (`PC.shakeoffs`): per pitcher – count; shake-off pitches vs pitches that followed the call (called, not shaken off): strike %, hits allowed (1B/2B/3B/HR), **hard contact** (line drive or extra-base hit), K, balls; and each shake-off with called vs thrown, the count, the previous pitch in that at-bat and its result, and the outcome.
+- Call → thrown in Stats marks these as `CH8 ⤺ shook → FB5`.

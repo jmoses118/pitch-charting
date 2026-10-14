@@ -41,3 +41,6 @@ Coaches create codes in Setup → Access codes (`coach_create_code` RPC). Codes 
 
 ### One scoring phone
 A live game or bullpen is scored only from the phone that started it. Other phones can watch it live (view only). If the scoring phone dies, tap **Take over scoring** and confirm.
+
+### Shake-offs
+If she shakes off your call, tap **⤺ Shake-off** (portrait or the landscape coach screen), pick the pitch she threw, then where and the result as usual. Stats shows a Shake-offs card per pitcher: how her shake-offs did vs pitches that followed the call, and each one with the count and the pitch before it.

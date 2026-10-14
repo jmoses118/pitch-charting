@@ -12,6 +12,14 @@
 - **Setup → Sync problems:** see changes the server refused, then retry or discard each one (Cancel changes nothing).
 - **Faster sync:** pull downloads only what changed since the last sync, with keyset paging.
 - CI runs the browser smoke and XSS tests on every PR.
+### Shake-off (Jim)
+- New **⤺ Shake-off** button in the Game pitch flow (portrait) and on the landscape coach screen next to Aim/Undo/Same: records the coach's call as shaken off, then the pitch type she actually threw, where it went and the result, linked to the call. Cancel and Undo supported.
+- Stats gets a **Shake-offs** card per pitcher (also in the bullpen report when present): count, shook vs followed-call results (strike %, hits, hard contact, K, balls), and each shake-off with called vs thrown, count, previous pitch and outcome.
+- Scoring: a shake-off pitch is scored against her own aim; unknown = no aim (SCORING.md).
+- Sync works on today's schema (call_raw tag). Optional migration `20261014140000_shake_off.sql` (`pitches.shook`) – **not applied**.
+- Bullpen: not included (no wristband call in bullpen).
+- History check: "shake" never appeared in any commit or PR (#1–#12), so this is new, not a restore.
+
 ### Scoring lock (Jim)
 - A live game or bullpen session can be scored only from the phone that started it; other phones see the live count and pitches read only, with a "Scoring on another phone" note.
 - **Take over scoring** (with confirm and Cancel) moves scoring to this phone when the scoring phone dies.
