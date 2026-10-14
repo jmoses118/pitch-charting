@@ -35,3 +35,12 @@ The app is used on an iPhone, one-handed, in a dugout, often in direct sun. It i
 - **Taps are unaffected:** every graphic is `pointer-events:none`, so the 48px+ zone boxes take taps exactly as before. Everything is inline SVG and works offline.
 - **Recent-pitch list** under the zone shows the current at-bat (or the last one right after it ends) or the last 10 of the session, newest first, each with a badge, result, pitch type and aim → landed.
 - The **heat-map drill-down** uses the same softballs; the number is how many landed in that box.
+
+## One-screen entry (v34)
+Rule: on a 390×844 phone (and 375×667 for an SE), everything needed to log a pitch is visible without scrolling. `test/fit.ui.js` checks this.
+- **Order** (`body.entrymode`, flex `order`): slim header → sticky entry bar (pitch chips + step line) → zone → way-off row → [secondary cards: recent pitches, session/game controls, call sheet, log].
+- **Slim header:** pitcher select, `.wlmini` workload counts (colored at the warn/limit levels) and the sync chip in compact form (`☁ ✓`, `☁ 3` pending, `☁ !` error). The brand row hides while charting.
+- **Pitch chips** (`.chips`): 44px pill buttons (48px in one-hand mode, 42px on short screens), abbreviations only with the full name as the label. The row scrolls sideways and has no visible scrollbar.
+- **Step line** (`.stepline`): a 2px three-segment progress line plus `button.mini` actions (Band, Result). The hint text is one ellipsized line and is hidden under 720px tall.
+- **Zone sizing** (`fitZone()`): height = viewport − zone top − tab bar − way row, clamped so a strike-zone box is ≥ `ZONE_MIN_BOX` (48px). The `.zseg` batter control is placed in viewBox space (−13…30, 124+), which is clear of every tap box.
+- **Bottom sheets** (`.bsheet`, `body.wbopen #wbCard`): fixed to the bottom over the tab bar (z-index above `nav`), with a grab handle and a close button. The result sheet uses 56px buttons in 3 columns (64px in one-hand mode).

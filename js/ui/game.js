@@ -4,7 +4,7 @@
 // ---- wristband call sheet (game, coach) ----
 const sheets=()=>(S().callSheets||[]).filter(x=>!x.deleted);
 function curSheet(){const l=sheets();const p=curPitcherId();return l.find(x=>x.id===S().activeSheet)||l.find(x=>p&&x.pitcherId===p)||l[0]||null;}
-function callCell(r,c){const sh=curSheet();if(!sh)return;const t=(sh.rows[r]||[])[c];if(t==null||!String(t).trim())return toast('Empty box');
+function callCell(r,c){const sh=curSheet();if(!sh)return;$('wbDet').open=false;const t=(sh.rows[r]||[])[c];if(t==null||!String(t).trim())return toast('Empty box');
   if(!callOn){callOn=true;S().callOn=true;save();}D.type=null;setCall(String(t));D.cell={sheet:sh.id,r,c};if(D.parsed)D.type=D.parsed.type;else toast(`Can't read "${t}"`);setTimeout(()=>advance('loc'),0);
   $('wbMsg').textContent=`${r+1}-${sh.cols[c]||c+1}: ${t}`+(D.parsed?(D.parsed.targets.length?` → zone ${D.parsed.targets.join('/')}`:' → no spot, tap target'):' (not understood)');render();}
 $('wbTbl').addEventListener('click',e=>{const b=e.target.closest('button[data-r]');if(b)callCell(+b.dataset.r,+b.dataset.c);});
@@ -80,5 +80,7 @@ $('gStart').onclick=()=>{if(canGame()&&PC.sessionOpen(session()))return toast(PC
   let g=schedId&&S().games.find(x=>x.id===schedId);
   if(g){Object.assign(g,fields);g.pitches=g.pitches||[];}else{g=Object.assign({id:'g_'+PC.uid(),pitches:[]},fields);S().games.push(g);}
   schedId=null;$('newGameLbl').textContent='New game';S().activeGame=g.id;dirty('games',g.id);blankLineup();save();resetDraft();render();toast('Game on! Pick your pitcher up top.');};
-// remember whether the coach keeps the wristband open (UI preference only, this phone)
-{const k='te_ui_wb_open',d=$('wbDet');try{if(storage&&storage.getItem(k)==='0')d.open=false;}catch(e){}d.addEventListener('toggle',()=>{try{storage&&storage.setItem(k,d.open?'1':'0');}catch(e){}});}
+// result picker = bottom sheet over the tab bar; wristband = toggle sheet (one tap away, never pushes the zone)
+$('resTog').onclick=()=>{D.sheet=true;render();};$('resClose').onclick=()=>{D.sheet=false;D.ip=false;render();};
+$('wbTog').onclick=()=>{$('wbDet').open=!$('wbDet').open;};
+$('wbDet').addEventListener('toggle',()=>{const o=$('wbDet').open;document.body.classList.toggle('wbopen',o);$('wbTog').setAttribute('aria-expanded',String(o));});

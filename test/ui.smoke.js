@@ -3,13 +3,15 @@ const {chromium}=require('playwright-core');
 const errs=[];pg.on('pageerror',e=>errs.push(e.message));
 await pg.goto('http://localhost:'+process.argv[2]+'/');
 await pg.fill('#gOpp','Lightning');await pg.click('#gStart');
+// result picker is a bottom sheet (v34): open it with the Result button when no location was tapped
+const openRes=async()=>{if(await pg.isHidden('#resSheet'))await pg.click('#resTog');};
 const tap=async z=>{const s=`#zone [data-z="${z}"]`;await pg.$eval(s,e=>e.scrollIntoView({block:"center"}));await pg.click(s,{force:true});};
-await pg.click('#types [data-c="FB"]');await tap(3);await pg.click('[data-r="called"]');
-await pg.click('[data-r="foul"]');await pg.click('[data-r="foul"]');await pg.click('[data-r="foul"]');
+await pg.click('#types [data-c="FB"]');await tap(3);await openRes();await pg.click('[data-r=\"called\"]');
+await openRes();await pg.click('[data-r=\"foul\"]');await openRes();await pg.click('[data-r=\"foul\"]');await openRes();await pg.click('[data-r=\"foul\"]');
 let cnt=await pg.textContent('#cnt'),pc=await pg.textContent('#pc');console.log('after K,F,F,F count',cnt,'pc',pc);
 if(cnt!=='0-2'||pc!=='4')throw 'count';
-await pg.click('[data-r="swinging"]');console.log('after K3 count',await pg.textContent('#cnt'),'outs',await pg.$$eval('#outs .on',x=>x.length));
-{const h=await pg.isVisible('[data-r="kd3"]');console.log('K-D3 button hidden at 0-0:',!h);if(h)throw 'kd3 visible at 0-0';}await pg.click('#undo');{const v=await pg.isVisible('[data-r="kd3"]');console.log('K-D3 button shown at 2 strikes:',v);if(!v)throw 'kd3 hidden at 2 strikes';}await pg.click('[data-r="kd3"]');const o2=await pg.$$eval('#outs .on',x=>x.length);console.log('after K-D3 outs',o2,'count',await pg.textContent('#cnt'));if(o2!==0)throw 'kd3';await pg.click('#undo');console.log('after undo',await pg.textContent('#cnt'),await pg.textContent('#pc'));
+await openRes();await pg.click('[data-r=\"swinging\"]');console.log('after K3 count',await pg.textContent('#cnt'),'outs',await pg.$$eval('#outs .on',x=>x.length));
+{const h=(await openRes(),await pg.isVisible('[data-r=\"kd3\"]'));console.log('K-D3 button hidden at 0-0:',!h);if(h)throw 'kd3 visible at 0-0';}await pg.click('#undo');{const v=(await openRes(),await pg.isVisible('[data-r=\"kd3\"]'));console.log('K-D3 button shown at 2 strikes:',v);if(!v)throw 'kd3 hidden at 2 strikes';}await openRes();await pg.click('[data-r=\"kd3\"]');const o2=await pg.$$eval('#outs .on',x=>x.length);console.log('after K-D3 outs',o2,'count',await pg.textContent('#cnt'));if(o2!==0)throw 'kd3';await pg.click('#undo');console.log('after undo',await pg.textContent('#cnt'),await pg.textContent('#pc'));
 await pg.screenshot({path:'/workspace/pitch-charting-app/test/shot-game.png',fullPage:true});
 // bullpen with call
 await pg.click('#gPause'); // a game in progress locks the bullpen (modes are exclusive)

@@ -28,6 +28,8 @@ function workload(st,pid,today){const wk=weekendRange(today);const z=()=>({game:
   (st.sessions||[]).forEach(s=>(s.pitches||[]).forEach(p=>{if((p.pitcherId||s.pitcherId)===pid&&!p.deleted&&countsAsPitch(p))add('bullpen',p,s);}));
   return r;}
 const workloadText=w=>`Today: ${w.today.game} game + ${w.today.bullpen} bullpen · ${w.wk.current?'Weekend':'Last weekend'}: ${w.weekend.game} game + ${w.weekend.bullpen} bullpen`;
+// compact header form, e.g. "Today 0 · Wknd 12" (game + bullpen pitches)
+const workloadShort=w=>`Today ${w.today.game+w.today.bullpen} · Wknd ${w.weekend.game+w.weekend.bullpen}`;
 // optional coach-set soft limits (game + bullpen combined). null = off
 const DEFAULT_LIMITS={day:null,weekend:null};
 const LIMIT_WARN=0.85; // "approaching" from 85% of a limit
@@ -36,5 +38,5 @@ function workloadAlert(w,limits){const L=limits||{};const d=w.today.game+w.today
   const day={n:d,limit:L.day||null,lvl:limitLevel(d,L.day)},weekend={n:k,limit:L.weekend||null,lvl:w.wk.current?limitLevel(k,L.weekend):-1};
   return{lvl:Math.max(day.lvl,weekend.lvl),day,weekend};}
 const cleanLimit=v=>{const n=parseInt(v,10);return Number.isInteger(n)&&n>0&&n<1000?n:null;};
-Object.assign(PC,{DEFAULT_ALERTS,DEFAULT_REST,restDays,lastOuting,addDays,restInfo,alertLevel,localDate,weekendRange,pitchDay,workload,workloadText,DEFAULT_LIMITS,LIMIT_WARN,limitLevel,workloadAlert,cleanLimit});
+Object.assign(PC,{DEFAULT_ALERTS,DEFAULT_REST,restDays,lastOuting,addDays,restInfo,alertLevel,localDate,weekendRange,pitchDay,workload,workloadText,workloadShort,DEFAULT_LIMITS,LIMIT_WARN,limitLevel,workloadAlert,cleanLimit});
 })(typeof window!=='undefined'?window:globalThis);
