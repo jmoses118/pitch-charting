@@ -50,7 +50,10 @@ function heatColor(n,max){if(!n||!max)return null;const t=Math.min(1,n/max);cons
 function kCredit(all){const m=new Map();(all||[]).forEach((p,i)=>{if(!p||(p.end!=='K'&&p.end!=='K-D3'))return;let by=p.pitcherId;
   if(p.abn!=null&&p.s===2){let s=p.s;for(let j=i-1;j>=0;j--){const q=all[j];if(!q||q.abn!==p.abn||q.inning!==p.inning||q.slot!==p.slot||q.s>s||q.end)break;s=q.s;if(q.s<2&&!q.noPitch){by=q.pitcherId;break;}}}
   m.set(p,by);});return m;}
-function summarize(pitches,opt){const P=pitches.filter(countsAsPitch);const strikeOf=p=>p.result?isStrike(p.result):isZone(p.loc);
+// strike = the umpire's result when there is one (game); a bullpen pitch has no result, so it's a strike when it lands in the zone.
+// Single source for Game count stats, Stats and the per-pitch report so they always agree.
+const strikeOf=p=>p.result?isStrike(p.result):isZone(p.loc);
+function summarize(pitches,opt){const P=pitches.filter(countsAsPitch);
   const fp=P.filter(p=>p.firstPitch!==undefined?p.firstPitch:(p.b===0&&p.s===0));
   const called=P.filter(p=>p.targets&&p.targets.length&&p.loc!=null);
   const group=(keyf)=>{const o={};P.forEach(p=>{const k=keyf(p);if(k==null)return;(o[k]=o[k]||[]).push(p);});
@@ -80,10 +83,10 @@ function pitchMark(p,throws){if(!p||p.loc==null)return null;const m=pitchMiss(p,
 const MARK_LABEL={good:'On target',miss:'Missed',souvenir:'Souvenir'};
 // last n pitches of the current at-bat (game) or session (bullpen), numbered in sequence (1 = first of the at-bat / session)
 function recentPitches(list,n){const all=(list||[]).filter(p=>!p.deleted&&!p.noPitch).map((p,i)=>({p,no:i+1}));return n?all.slice(-n):all;}
-function grpStats(list,thr){thr=thr||(()=>null);const c=list.map(p=>({p,m:pitchMiss(p,thr(p))})).filter(x=>x.m);const good=c.filter(x=>x.m.good).length;
+function grpStats(list,thr){thr=thr||(()=>null);list=list.filter(countsAsPitch);const c=list.map(p=>({p,m:pitchMiss(p,thr(p))})).filter(x=>x.m);const good=c.filter(x=>x.m.good).length;
   // strike % = strikes / pitches aimed in the zone (or with no spot); waste pitches are reported on their own
   // raw strike % (all pitches) stays visible; feedback uses competitive % = (strikes + ring balls) / all
-  const strikes=list.filter(p=>isZone(p.loc)).length;const comp=list.filter(p=>isCompetitive(p.loc)).length;const wl=c.filter(x=>x.m.waste);
+  const strikes=list.filter(strikeOf).length;const comp=list.filter(p=>isCompetitive(p.loc)).length;const wl=c.filter(x=>x.m.waste);
   return{n:list.length,strikes,strikePct:pct(strikes,list.length),comp,compPct:pct(comp,list.length),wayOff:list.filter(p=>isWay(p.loc)).length,waste:{n:wl.length,good:wl.filter(x=>x.m.good).length},called:c.length,good,goodPct:pct(good,c.length),
     avgMiss:c.length?Math.round(10*c.reduce((a,x)=>a+x.m.sev,0)/c.length)/10:null,mm:c.filter(x=>x.m.mm).length,
     hits:c.filter(x=>x.m.d===0&&!x.m.chUp).length,chUp:c.filter(x=>x.m.chUp).length,
@@ -137,10 +140,10 @@ function typeFeedback(t,g,best,weak){const nm=TYPE_NAME[t]||t,out=[];
 // ---------- count-based charts (game pitches carry the count before each pitch) ----------
 const COUNTS=['0-0','1-0','0-1','2-0','1-1','0-2','3-0','2-1','1-2','3-1','2-2','3-2'];
 function countStats(pitches){const P=(pitches||[]).filter(p=>countsAsPitch(p)&&p.b!=null&&p.s!=null&&p.abn!=null);const by={};COUNTS.forEach(c=>by[c]={n:0,strikes:0,called:0,good:0,types:{}});
-  P.forEach(p=>{const k=p.b+'-'+p.s;const c=by[k];if(!c)return;c.n++;const st=p.result?isStrike(p.result):isZone(p.loc);if(st)c.strikes++;const t=p.type||'?';c.types[t]=(c.types[t]||0)+1;
+  P.forEach(p=>{const k=p.b+'-'+p.s;const c=by[k];if(!c)return;c.n++;const st=strikeOf(p);if(st)c.strikes++;const t=p.type||'?';c.types[t]=(c.types[t]||0)+1;
     const m=pitchMiss(p);if(m){c.called++;if(m.good)c.good++;}});
   COUNTS.forEach(k=>{const c=by[k];c.strikePct=pct(c.strikes,c.n);c.goodPct=pct(c.good,c.called);});
-  const fp=P.filter(p=>p.b===0&&p.s===0);const fps=fp.filter(p=>p.result?isStrike(p.result):isZone(p.loc)).length;
+  const fp=P.filter(p=>p.b===0&&p.s===0);const fps=fp.filter(strikeOf).length;
   // 0-2 outcomes: every at-bat that reached 0-2, how it ended
   const abs=[];let cur=null;P.forEach(p=>{if(!cur||cur.done||cur.abn!==p.abn){cur={abn:p.abn,done:false,list:[]};abs.push(cur);}cur.list.push(p);if(p.end)cur.done=true;});const o2={n:0,K:0,BB:0,HBP:0,inPlay:0,hit:0,out:0,open:0};
   abs.map(x=>x.list).forEach(a=>{if(!a.some(p=>p.b===0&&p.s===2))return;o2.n++;const e=a.find(p=>p.end);if(!e){o2.open++;return;}
@@ -151,5 +154,5 @@ function trendPoints(st,pid,mode){const out=[];const add=(kind,box,date)=>{const
     out.push({kind,id:box.id,date:date||'',ts:P[0].ts||0,n:P.length,compPct:g.compPct,goodPct:g.goodPct,strikePct:kind==='game'?summarize(P).strikePct:g.strikePct,mm:g.mm,label:kind==='game'?('vs '+(box.opponent||'?')):'Bullpen'});};
   if(mode!=='bullpen')(st.games||[]).forEach(g=>add('game',g,g.date));if(mode!=='game')(st.sessions||[]).forEach(s=>add('bullpen',s,s.date));
   return out.sort((a,b)=>(a.date||'').localeCompare(b.date||'')||a.ts-b.ts);}
-Object.assign(PC,{pitchMark,MARK_LABEL,recentPitches,heatItems,HEAT_KEYS,heatFilter,heatData,CH_MIN_SEV,GOOD_MAX_SEV,isGoodSev,wasteAim,isBullpenPitch,WAY_SEV,LOW_RING,LOW_TYPES,lowGood,adjSev,chUp,missData,MISS_SCALE,missColor,VIRIDIS,heatColor,kCredit,summarize,pitchMiss,grpStats,TYPE_NAME,FIX,sessionReport,typeFeedback,COUNTS,countStats,trendPoints});
+Object.assign(PC,{strikeOf,pitchMark,MARK_LABEL,recentPitches,heatItems,HEAT_KEYS,heatFilter,heatData,CH_MIN_SEV,GOOD_MAX_SEV,isGoodSev,wasteAim,isBullpenPitch,WAY_SEV,LOW_RING,LOW_TYPES,lowGood,adjSev,chUp,missData,MISS_SCALE,missColor,VIRIDIS,heatColor,kCredit,summarize,pitchMiss,grpStats,TYPE_NAME,FIX,sessionReport,typeFeedback,COUNTS,countStats,trendPoints});
 })(typeof window!=='undefined'?window:globalThis);

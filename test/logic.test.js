@@ -368,3 +368,17 @@ test('band setup: cell codes, unmapped cells grouped by call, chosen aims', () =
   assert.equal(PC.bandAim(sh, PC.parseCall('SRW', 'R', 'R')), null); // "no spot"
   assert.equal(PC.bandAim(sh, PC.parseCall('Fb In', 'R', 'R')), null); // already mapped: text wins
 });
+
+test('report strikes follow the umpire result in games, the zone in the bullpen (Oct 14 bug)', () => {
+  const g = [ { type: 'FB', loc: 11, result: 'called', abn: 1, inning: 1, targets: [] },  // called strike off the plate
+              { type: 'FB', loc: 5, result: 'ball', abn: 1, inning: 1, targets: [] },     // ball in the zone (umpire said ball)
+              { type: 'FB', loc: 12, result: 'foul', abn: 1, inning: 1, targets: [3] },
+              { type: 'FB', loc: null, noPitch: true, result: null, abn: 2, inning: 1 } ]; // IBB: not a pitch
+  const r = PC.sessionReport(g, {});
+  assert.equal(r.types.FB.stats.n, 3);
+  assert.equal(r.types.FB.stats.strikes, 2);
+  assert.equal(r.types.FB.stats.called, 1);
+  assert.equal(PC.summarize(g).strikes, r.types.FB.stats.strikes); // Stats and report agree
+  const bp = [ { type: 'FB', loc: 5, targets: [5] }, { type: 'FB', loc: 11, targets: [5] } ];
+  assert.equal(PC.sessionReport(bp, {}).types.FB.stats.strikes, 1); // bullpen: no result → zone decides
+});

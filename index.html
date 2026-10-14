@@ -59,7 +59,7 @@
   <div class="stepline"><ol id="steps" class="steps" aria-label="Pitch entry steps"><li></li><li></li><li></li></ol><button id="wbTog" class="mini hide" aria-expanded="false" aria-controls="wbCard">Band</button><button id="resTog" class="mini hide" aria-controls="resSheet">Result</button></div>
   <div class="phase" id="phase"></div>
  </div>
- <div class="zonewrap"><svg id="zone" viewBox="-14 -6 128 138"></svg>
+ <div class="zonewrap"><div id="zoneNote" class="zonenote hide" role="status"></div><svg id="zone" viewBox="-14 -6 128 138"></svg>
   <button id="batTog" class="zchip" aria-haspopup="dialog" aria-controls="batDlg"></button></div>
  <div id="wayBtns" class="way4"><button data-z="21">Way high</button><button data-z="22">Way low</button><button data-z="23">Way left</button><button data-z="24">Way right</button></div>
  <div id="bpPad" class="bpad hide" aria-label="Bullpen pad"><div class="lbl padlbl">Pitch (sticky – repeats last)</div><div id="padTypes"></div><div class="lbl padlbl">Way off</div><div id="padWay"></div>
@@ -109,7 +109,7 @@
   <svg id="hMap" viewBox="-14 -6 128 138" role="img" aria-labelledby="hSummary" style="width:100%;max-width:380px;display:block;margin:auto"></svg>
   <div id="hEmpty" class="mut hide" style="text-align:center;padding:24px 8px">No pitches match these filters.<br><button id="hfReset2" style="margin-top:8px">Reset filters</button></div>
   <div id="hLegend" style="margin-top:8px"></div><div class="mut" style="font-size:12px;margin-top:4px">Tap a colored box to see where those pitches went.</div></div>
- <div class="card" id="sTypesCard"><div class="lbl">Each pitch (aimed spots)</div><div id="sTypes"></div></div>
+ <div class="card" id="sTypesCard"><div class="lbl">Each pitch type</div><div class="mut" id="sTypesNote" style="font-size:12px;margin:-2px 0 6px">Strikes count every pitch. On target counts only pitches with an aim.</div><div id="sTypes"></div></div>
  <div class="card"><div class="stats" id="sGrid"></div></div>
  <div id="sNote"></div>
  <div class="card" id="sTrendCard"><div class="row sp"><div class="lbl" style="margin:0">Season trends</div><select id="tMode" style="max-width:45%"><option value="all">Games + bullpen</option><option value="game">Games</option><option value="bullpen">Bullpen</option></select></div>

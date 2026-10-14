@@ -334,3 +334,7 @@ body.padmode main{padding-bottom:calc(var(--pad-h,0px) + 12px)}
 body.padmode #flash{top:56px;font-size:16px;padding:8px 16px;transform:translate(-50%,0) scale(.92)}body.padmode #flash.on{transform:translate(-50%,0) scale(1)}
 .thseg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}.thseg button{min-height:44px;font-weight:800}.thseg button.on{background:var(--c-royal);color:#fff;border-color:var(--c-royal)}
 .coach.compact .cres button{font-size:12px}
+
+/* finished at-bat shown faded with a note (bug: 0-0 next to old balls looked like a stuck count) */
+.zonenote{position:absolute;top:2px;left:50%;transform:translateX(-50%);z-index:2;max-width:94%;background:var(--c-surface,#161b22);color:var(--c-text);border:1px solid var(--c-line);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+#zone.lastab .ball{opacity:.5}

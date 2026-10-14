@@ -23,3 +23,6 @@ Check no codes leaked: `grep -rqF "$PC_TEST_COACH" .` must find nothing.
 `coach.ui.js` checks the landscape coach screen at 844x390 (cells at least 48px) and 667x375 (at least 40px). It covers the flow, ✎ Aim, long-press, in play + spray, Undo, Same, band setup cancel/save, the side-retired card, theme, mirror and the portrait rotate prompt. With `SHOT_DIR` set it saves screenshots. `test/lib/audit.js` holds the shared clipping/overlap audit used by layout.ui.js and coach.ui.js.
 
 coach.ui.js also checks: Keep charting contrast (≥10:1), no zone/status shift after band and zone taps, simulated iPhone safe-area insets (47/47/21), game menu fit/3-col/End away from Cancel, sticky band-setup footer, ⋯ ≥44px, row headers kept, and in the bullpen pad Way buttons ≥48 tall, all types incl. SC, and a confirmation that doesn't cover the zone.
+
+## agree.ui.js (v38)
+Replays Jim's Oct 14 test-mode sequence: 3 band-called pitches in landscape, then 3 no-aim pitches in portrait. Checks that Game (PITCHES, count, outs, last-at-bat note), the heat map (Landed counts all 6, Miss says 3 of 6 aimed and the rest are left out, kid-clear labels) and the per-pitch report (thrown, aimed, result-based strike %) agree. `SHOT_DIR` + `SHOT_PREFIX` save the before/after screenshots. The unit test `report strikes follow the umpire result` covers `PC.strikeOf`.

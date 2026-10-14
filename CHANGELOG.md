@@ -1,5 +1,16 @@
 # Changelog
 
+## v38 – Game, heat map and report always agree (Jim's test-mode bug)
+### Fixed
+- **"Count stuck at 0-0" after 6 pitches.** The count was right (two at-bats had finished), but the zone kept showing the last batter's balls with no label. The zone now says "Last batter: 3 pitches · single · next batter starts 0-0" and fades those balls until the next pitch.
+- **Heat map Miss summary was confusing** ("3 pitches … 3 had no intended spot"). It now reads "Showing 3 of 6 pitches (the ones with an aim). Box = where she aimed · color = how far off. 3 with no aim aren't shown – see Landed." Landed counts every pitch: "6 pitches · where they landed".
+- **"✓1.0" boxes** looked like a score or a hit. Boxes (heat map and bullpen report) now say "Hit spot", "Close" (1 box off, still on target) or "2 off" / "3 off" / "4 off" in whole boxes, plus "1 pitch" / "3 pitches". Legend: "Number = how many boxes she missed by. 'Close' = 1 box off – still on target."
+- **Per-pitch report strike %** used where the ball landed, not the umpire's call, so it could disagree with the Game count and Stats. Game pitches now use the result (one shared `PC.strikeOf`); bullpen pitches, which have no result, still use the zone. Intentional walks are no longer counted as thrown.
+- Report labels: "On target 2 of 2 aimed"; the card is titled "Each pitch type" with the note "Strikes count every pitch. On target counts only pitches with an aim."
+- Miss labels never say "1 off" (an average of 1.33 shows "2 off", since 1 box off is "Close"); the color-scale caption says "boxes off"; the player (kid) Miss view uses the same "Showing N of M pitches…" summary.
+### Notes
+- The red frame on every screen in test mode is intentional (TEST MODE – NOT SAVED); it isn't an error.
+
 ## v37 – landscape coach screen (redesign)
 ### Added
 - **Landscape coach game screen** (844x390): the whole wristband grid (rows 1–7 × cols 01–08, cells 48px or larger, selected cell royal), the strike zone and a docked results column on one screen. The status box shows the spoken call big ("3-05 Fb In").
