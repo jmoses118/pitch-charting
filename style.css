@@ -393,7 +393,8 @@ body.viewonly #cRes .cro{flex:0 0 auto}
 .act2 button,.cact button{min-height:48px;font-size:11px;font-weight:800;line-height:1.1;padding:2px 4px;background:var(--c-way);border-color:var(--c-way-line);color:var(--c-danger-text)}
 .act2 button.sel,.cact button.sel{background:var(--c-danger);border-color:var(--c-danger);color:#fff}
 body.entrymode #actBtns button{min-height:48px;height:auto;white-space:normal}
-@media (max-height:720px){body.entrymode:not(.padmode) #locRow{position:fixed;left:0;right:0;bottom:calc(69px + env(safe-area-inset-bottom));z-index:4;margin:0;padding:4px 12px 4px;background:var(--c-bg)}}
+@media (max-height:720px){body.entrymode:not(.padmode) #locRow{position:fixed;left:0;right:0;bottom:calc(69px + env(safe-area-inset-bottom));z-index:4;margin:0;padding:4px 12px 4px;background:var(--c-bg)}
+  body.entrymode:not(.padmode){padding-bottom:calc(156px + env(safe-area-inset-bottom))}}
 body.padmode #actBtns button{min-height:48px;height:auto}
 .cact{display:grid;grid-template-columns:1fr 1fr;gap:4px}
 .crcol{display:flex;flex-direction:column;gap:4px;align-self:stretch;height:100%;min-height:0}

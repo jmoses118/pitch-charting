@@ -39,7 +39,9 @@
 - Later pitches stay. The count, the result, and the called location stay. Miss scoring follows the corrected spot (`loc` and `actualLoc`).
 - The pitch is marked **edited**. The list shows “from video”. CSV appends an `edited` column (`1` or empty). An older file without that column still imports.
 - Only the scoring phone can save, including after the game. A view-only phone cannot.
-- The correction syncs with the pitch (`loc`, plus an invisible mark on `call_raw` so the flag comes back). No new database column. Cache: `te-pitch-v43`.
+- The correction syncs with the pitch (`loc`, plus an invisible mark on `call_raw` so the flag comes back). No new database column.
+- Stats → Pitches lists the pitches only when one game or one session is selected, so Everything still shows the heat map.
+- On a short phone the log sits above the location row, so each pitch stays tappable. Cache: `te-pitch-v44`.
 
 ## v39 – Code Reviewer fixes
 ### Fixed
