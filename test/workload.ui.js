@@ -17,7 +17,7 @@ const wl=()=>p.textContent('#wlMsg');const wk=await p.evaluate(()=>PC.weekendRan
 ok(/^Today: 40 game \+ 15 bullpen · /.test(await wl()),'today line on pitcher select: '+await wl());
 ok(new RegExp((wk?'Weekend':'Last weekend')+': '+(wk?'40 game \\+ 15':'\\d+ game \\+ \\d+')+' bullpen$').test(await wl()),'weekend line');
 ok(!(await p.isVisible('#restMsg')),'rest-day guide off by default');ok(!(await p.isVisible('#pcAlert')),'no alert without limits');
-await p.click('nav [data-t="setup"]');await p.waitForTimeout(150);ok(!(await p.isVisible('#restTbl')),'rest table hidden by default');
+await p.click('nav [data-t="setup"]');await p.evaluate(()=>document.querySelectorAll('details').forEach(d=>d.open=true));await p.waitForTimeout(150);ok(!(await p.isVisible('#restTbl')),'rest table hidden by default');
 await p.fill('#limDay','60');await p.dispatchEvent('#limDay','change');await p.fill('#limWk','150');await p.dispatchEvent('#limWk','change');
 ok(await p.evaluate(()=>JSON.stringify(__app.store.state.settings.limits))==='{"day":60,"weekend":150}','limits saved');
 ok(await p.evaluate(()=>!!__app.store.real.sync.queue.team_settings.team),'limits queued for team_settings sync');
@@ -33,6 +33,6 @@ await p.evaluate(()=>{__app.render();});const v1=await p.evaluate(()=>window.__v
 await p.click('nav [data-t="game"]');await p.evaluate(()=>{__app.store.real.activeGame='g_wl';__app.store.save();__app.render();});await p.waitForTimeout(200);
 ok(await p.isVisible('#wlMsg')&&await p.isVisible('#gameHead'),'workload line in the game header');ok(/today 60\/60/.test(await p.textContent('#pcAlert')),'game banner shows daily limit');
 await p.evaluate(()=>scrollTo(0,0));await shot('game-header');
-await asRole('viewer');await p.click('nav [data-t="setup"]');await p.waitForTimeout(100);ok(!(await p.isVisible('#alertCard')),'only coaches edit limits');
+await asRole('viewer');await p.click('nav [data-t="setup"]');await p.evaluate(()=>document.querySelectorAll('details').forEach(d=>d.open=true));await p.waitForTimeout(100);ok(!(await p.isVisible('#alertCard')),'only coaches edit limits');
 ok(errs.length===0,'no page errors '+errs.join(' | '));
 console.log(fails?fails+' FAILED':'ALL PASS');await b.close();process.exit(fails?1:0);})();

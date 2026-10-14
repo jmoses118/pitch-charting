@@ -12,6 +12,6 @@ jobs:
         with:
           node-version: 20
       - name: Syntax check
-        run: for f in logic.js app.js sw.js js/core/*.js; do node --check "$f"; done
+        run: for f in logic.js sw.js js/core/*.js js/ui/*.js; do node --check "$f"; done
       - name: Unit tests
         run: node --test test/logic.test.js

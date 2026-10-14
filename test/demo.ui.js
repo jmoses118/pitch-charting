@@ -1,0 +1,23 @@
+// Before/after UI screenshots at 390x844 (test data only, Supabase blocked, no codes). usage: node test/demo.ui.js <url> <before|after>
+const {chromium}=require('playwright-core');const BASE=process.argv[2]||'http://localhost:8766/';const PRE=process.argv[3]||'after';const OUT='/workspace/pitch-charting-app/test/demo-ui-v2/';require('fs').mkdirSync(OUT,{recursive:true});
+(async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});const c=await b.newContext({viewport:{width:390,height:844},deviceScaleFactor:3,colorScheme:'dark',isMobile:true,hasTouch:true});
+await c.route(/supabase\.co/,r=>r.abort());const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());
+const shot=async n=>{await p.evaluate(()=>{const i=document.getElementById('teamCode');if(i)i.value='';});await p.waitForTimeout(300);await p.screenshot({path:OUT+PRE+'-'+n+'.png'});};
+await p.goto(BASE);
+await p.evaluate(()=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'},{id:'p_r',name:'Reese',num:'7',throws:'R'},{id:'p_k',name:'Kenzie',num:'12',throws:'L'}];S.curPitcher='p_a';
+  let k=11;const rnd=()=>((k=k*16807%2147483647)/2147483647);const T=['FB','FB','CH','DC','DR'];const now=Date.now();
+  // finished bullpen for the report / stats
+  const s={id:'s_demo',date:PC.localDate(now),pitcherId:'p_a',started:now-9e6,pitches:[]};for(let i=0;i<32;i++){const t=[1,3,7,9,8][Math.floor(rnd()*5)];const r=rnd();const loc=r<.55?t:r<.8?[2,4,6,8,13,18,14][Math.floor(rnd()*7)]:r<.95?5:21;s.pitches.push({id:crypto.randomUUID(),ts:now-9e6+i*30000,pitcherId:'p_a',type:T[Math.floor(rnd()*5)],targets:[t],loc,hand:'N',b:0,s:0});}S.sessions.push(s);
+  // game in progress
+  const g={id:'g_demo',date:PC.localDate(now),opponent:'Storm',event:'Fall Classic',homeAway:'away',status:'active',started:now-3e6,lineup:Array.from({length:9},(_,i)=>({slot:i+1,name:'Batter '+(i+1),num:String(i+3),hand:i%3?'R':'L'})),pitches:[],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:0}};const cur=g.cur;
+  const R=['ball','called','swinging','foul','ball','inplay'];for(let i=0;i<34;i++){let res=R[Math.floor(rnd()*R.length)];const ip=res==='inplay'?(rnd()<.6?'out':'1B'):null;const t=[1,3,7,9][Math.floor(rnd()*4)];
+    const r={id:crypto.randomUUID(),ts:now-3e6+i*40000,pitcherId:'p_a',type:T[Math.floor(rnd()*5)],targets:[t],loc:rnd()<.6?t:[2,4,6,8,5][Math.floor(rnd()*5)],result:res,ip,inning:cur.inning,outsBefore:cur.outs,slot:cur.slot,batter:g.lineup[cur.slot].name,batterNum:g.lineup[cur.slot].num,b:cur.b,s:cur.s,abn:cur.abn,firstPitch:!cur.b&&!cur.s};
+    const o=PC.applyPitch(cur,res,ip);r.end=o.end;g.pitches.push(r);cur.b=o.b;cur.s=o.s;if(o.end){cur.outs+=o.outs;cur.b=0;cur.s=0;cur.abn++;cur.slot=(cur.slot+1)%9;if(cur.outs>=3){cur.outs=0;cur.inning++;}}}
+  S.games.push(g);S.activeGame='g_demo';__app.store.save();__app.render();});
+await p.click('nav [data-t="game"]');await p.evaluate(()=>scrollTo(0,0));await shot('game');
+await p.evaluate(()=>{__app.store.real.activeGame=null;__app.store.save();__app.render();});// pause so the bullpen is free
+await p.click('nav [data-t="bullpen"]');await p.evaluate(()=>{const S=__app.store.real;const s=S.sessions[0];const x={id:'s_live',date:s.date,pitcherId:'p_a',started:Date.now(),pitches:s.pitches.slice(0,9).map(q=>Object.assign({},q,{id:crypto.randomUUID()}))};S.sessions.push(x);S.activeSession='s_live';__app.store.save();__app.render();scrollTo(0,0);});await shot('bullpen');
+await p.click('#bpEnd');await p.waitForTimeout(500);await shot('report');await p.evaluate(()=>document.getElementById('rDlg').close());
+await p.click('nav [data-t="stats"]');await p.evaluate(()=>scrollTo(0,0));await shot('stats');
+await p.click('nav [data-t="setup"]');await p.evaluate(()=>scrollTo(0,0));await shot('setup');
+console.log('errors',errs);await b.close();process.exit(errs.length?1:0);})();

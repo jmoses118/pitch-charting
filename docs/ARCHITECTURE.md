@@ -4,11 +4,11 @@
 | Path | Role |
 |---|---|
 | `index.html` | Markup for every view (Game, Bullpen, Stats, Setup) and script tags |
-| `style.css` | Styles (mobile first) |
+| `style.css` | Design tokens (CSS custom properties) + components; see [DESIGN.md](DESIGN.md) |
 | `config.js` | `window.PC_CONFIG`: Supabase URL + publishable key |
 | `js/core/*.js` | Pure logic modules (no DOM), shared by browser and node tests |
 | `logic.js` | Node entry point: loads the core modules in order and exports `PC` |
-| `app.js` | UI: rendering, event handlers, roles/visibility, sync wiring |
+| `js/ui/*.js` | UI views (classic scripts sharing one global scope, loaded in order): `shared` (DOM helpers, store, roles, zone component, call entry, banners, sync), `game`, `bullpen`, `report` (shared report / drill-down / notes components), `stats`, `setup`, `main` (render loop, nav, startup) |
 | `sw.js` | Service worker: offline cache (`te-pitch-vNN`), network-first app files |
 | `supabase/migrations/` | SQL migrations, identical to what is applied in Supabase |
 
@@ -26,7 +26,7 @@ Each module is an IIFE that reads dependencies from the shared `PC` namespace (`
 9. **store.js** – default state, `localStorage` load/save + migrations (`ensureSync`), notes.
 
 ## Data flow
-UI action → `store.update()` mutates state → saved to `localStorage` → marked dirty → `makeSync` pushes changed rows (filtered by `roleAllows`) via PostgREST with the access code in the `x-team-code` header → periodic pull merges remote rows (`mergeRemote`, newest `updated_at` wins). Test mode skips sync entirely.
+UI action (js/ui) → `store.update()` mutates state → saved to `localStorage` → marked dirty → `makeSync` pushes changed rows (filtered by `roleAllows`) via PostgREST with the access code in the `x-team-code` header → periodic pull merges remote rows (`mergeRemote`, newest `updated_at` wins). Test mode skips sync entirely.
 
 ## Service worker
 `sw.js` precaches the file list `F` under cache `te-pitch-vNN`; bump the version when any app file changes. App files are fetched network-first so updates land on the next load; offline falls back to cache.
