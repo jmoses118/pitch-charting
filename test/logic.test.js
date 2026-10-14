@@ -82,12 +82,17 @@ test('Avery ace tag removed: old phones migrated, cloud pull clears note',async(
   const st=PC.makeStore(m);const w=st.state.pitchers.find(p=>p.id==='p_woods');assert.equal(w.note,undefined);assert.equal(w.num,'45');assert.equal(w.throws,'L');
   w.note='ace';st.real.sync.queue.pitchers={};PC.mergeRemote(st.real,{pitchers:[{id:'p_woods',name:'Avery',num:'45',throws:'L',archived:false,note:null}]});assert.equal(w.note,undefined);
   assert.ok(!JSON.stringify(PC.defaultState()).includes('ace'));});
-test('bullpen flow: type -> intended -> actual -> log, then reset',()=>{let d={type:null,target:null,callTargets:[]};
-  assert.equal(PC.bullpenStep(d),'type');assert.equal(PC.bullpenTap(d,5).action,'need_type');
-  d.type='FB';assert.equal(PC.bullpenStep(d),'target');let r=PC.bullpenTap(d,3);assert.equal(r.action,'target');d=r.draft;assert.equal(d.target,3);
-  assert.equal(PC.bullpenStep(d),'actual');r=PC.bullpenTap(d,6);assert.equal(r.action,'log');assert.deepEqual(r.targets,[3]);assert.equal(r.draft.loc,6);});
-test('bullpen flow: call sheet spot counts as intended (skips step 2)',()=>{const c=PC.parseCall('CHG 7','R');const r=PC.bullpenTap({type:c.type,target:null,callTargets:c.targets},7);assert.equal(r.action,'log');assert.deepEqual(r.targets,[7]);
-  const w=PC.parseCall('FB','R');assert.equal(PC.bullpenTap({type:'FB',callTargets:w.targets},2).action,'target');});
+test('bullpen flow: type -> intended -> actual -> log, then reset',()=>{
+  let d={mode:'bullpen'};assert.equal(PC.scoreStep(d),'type');assert.equal(PC.scoreTap(d,5).reason,'need_type');
+  d=PC.scoreApply(d,{op:'call',type:'FB',called:[]}).draft;assert.equal(PC.scoreStep(d),'called');
+  let r=PC.scoreTap(d,3);assert.equal(r.step,'actual');assert.deepEqual(r.draft.called,[3]);
+  r=PC.scoreTap(r.draft,6);assert.equal(r.step,'done');assert.deepEqual(r.draft.called,[3]);assert.equal(r.draft.actual,6);
+  const row=PC.scoreCommit(r.draft);assert.deepEqual(row.targets,[3]);assert.equal(row.loc,6);});
+test('bullpen flow: call sheet spot counts as intended (skips step 2)',()=>{const c=PC.parseCall('CHG 7','R');
+  const placed=PC.scoreApply({mode:'bullpen'},{op:'call',type:c.type,called:c.targets});assert.equal(placed.step,'actual');
+  const r=PC.scoreTap(placed.draft,7);assert.equal(r.step,'done');assert.deepEqual(PC.scoreCommit(r.draft).targets,[7]);
+  const w=PC.parseCall('FB','R');const bare=PC.scoreApply({mode:'bullpen'},{op:'call',type:'FB',called:w.targets});
+  assert.equal(bare.step,'called');assert.equal(PC.scoreTap(bare.draft,2).step,'actual');});
 test('hit-spot counts tapped intended spots without a call; old called data still counts',()=>{const s=PC.summarize([{type:'FB',targets:[3],loc:3},{type:'FB',targets:[3],loc:6},{type:'CH',call:'CH7',targets:[7],loc:7},{type:'DR',targets:[],loc:8}]);
   assert.equal(s.spotN,3);assert.equal(s.spot,2);assert.equal(s.byType.FB.spotPct,50);assert.equal(s.byType.CH.spotPct,100);assert.equal(s.n,4);});
 // ---------- roles ----------
@@ -429,19 +434,21 @@ test('scoring lock for sessions: device_id until the scorer column migration is 
   PC.mergeRemote(s,{sessions:[{id:'s1',date:'2026-10-13',device_id:'C',scorer:'D',updated_at:'2026-10-14T12:00:00Z'}]});assert.equal(s.sessions[0].scorer,'D');});
 test('rowPitch keeps every valid spot (zone, ring, way off 21-24) and drops junk',()=>{const p=PC.rowPitch({id:'a',mode:'bullpen',targets:[3,11,21,24,10,19,25,0,'x'],loc:22});assert.deepEqual(p.targets,[3,11,21,24]);assert.equal(p.loc,22);assert.equal(PC.rowPitch({id:'b',mode:'bullpen',loc:19}).loc,null);});
 test('game zone tap: a call with no spot aims first; the cell above box 3 is zone 12',()=>{
-  const ch={aimEdit:false,shook:false,called:true,type:'CH',targets:[]};
-  assert.equal(PC.gameZoneAction(ch,12).action,'bad_target');assert.equal(PC.gameZoneAction(ch,3).action,'bad_target');
-  assert.deepEqual(PC.gameZoneAction(ch,8),{action:'aim',z:8});assert.deepEqual(PC.gameZoneAction(ch,31),{action:'aim',z:31});assert.deepEqual(PC.gameZoneAction(ch,21),{action:'aim',z:21});
-  assert.deepEqual(PC.gameZoneAction(Object.assign({},ch,{targets:[8]}),12),{action:'loc',z:12});
-  assert.deepEqual(PC.gameZoneAction({aimEdit:false,shook:false,called:true,type:'FB',targets:[6]},12),{action:'loc',z:12});
-  assert.deepEqual(PC.gameZoneAction({aimEdit:true,shook:false,called:true,type:'FB',targets:[6]},12),{action:'aim',z:12});
-  assert.deepEqual(PC.gameZoneAction({aimEdit:false,shook:true,called:true,type:'CH',targets:[]},8),{action:'aim',z:8});
+  const ch={mode:'game',type:'CH',called:[]};
+  assert.equal(PC.scoreTap(ch,12).reason,'bad_target');assert.equal(PC.scoreTap(ch,3).reason,'bad_target');
+  const aim8=PC.scoreTap(ch,8);assert.equal(aim8.op,'called');assert.deepEqual(aim8.draft.called,[8]);
+  const aim31=PC.scoreTap(ch,31);assert.equal(aim31.op,'called');assert.deepEqual(aim31.draft.called,[31]);
+  const aim21=PC.scoreTap(ch,21);assert.equal(aim21.op,'called');assert.deepEqual(aim21.draft.called,[21]);
+  const loc=PC.scoreTap({mode:'game',type:'CH',called:[8]},12);assert.equal(loc.op,'actual');assert.equal(loc.draft.actual,12);
+  const fb=PC.scoreTap({mode:'game',type:'FB',called:[6]},12);assert.equal(fb.op,'actual');assert.equal(fb.draft.actual,12);
+  const edit=PC.scoreTap({mode:'game',type:'FB',called:[6],aimEdit:true},12);assert.equal(edit.op,'called');assert.deepEqual(edit.draft.called,[12]);
+  const shook=PC.scoreTap({mode:'game',type:'CH',called:[],shook:{type:'FB',called:[]}},8);assert.equal(shook.op,'called');assert.deepEqual(shook.draft.called,[8]);
   const bare={type:null,targets:[],loc:5};const rep=PC.sessionReport([bare,{type:'CH',targets:[8],loc:31,result:'ball'}]);
   assert.ok(rep.types['?']);assert.equal(rep.types.CH.stats.called,1);assert.ok(!rep.types.CH.feedback.join(' ').includes('no spot'));});
 test("change-up targets: only 4, 7, 8, 9, 13, 14, 18; high CH calls (CH H+, CH H, CH 2) get no spot and are flagged",()=>{assert.deepEqual(PC.CH_TARGETS,[4,7,8,9,13,14,18]);assert.deepEqual(PC.aimOpts('CH'),[4,7,8,9,13,14,18]);assert.equal(PC.aimOpts('FB').length,17);
   for(const c of ['CH H+','CH H','CH 2','CH15']){const p=PC.parseCall(c,'R','R');assert.equal(p.type,'CH');assert.deepEqual(p.targets,[]);assert.ok(p.chHigh,c);}
   for(const [c,z] of [['CH7',7],['CHG 9',9],['CH L',8],['CH13',13]]){const p=PC.parseCall(c,'R','R');assert.deepEqual(p.targets,[z]);assert.ok(!p.chHigh);}
-  assert.equal(PC.bullpenTap({type:'CH'},2).action,'bad_target');assert.equal(PC.bullpenTap({type:'CH'},8).action,'target');assert.equal(PC.bullpenTap({type:'FB'},2).action,'target');
+  assert.equal(PC.scoreTap({mode:'bullpen',type:'CH',called:[]},2).reason,'bad_target');assert.equal(PC.scoreTap({mode:'bullpen',type:'CH',called:[]},8).op,'called');assert.equal(PC.scoreTap({mode:'bullpen',type:'FB',called:[]},2).op,'called');
   assert.ok(PC.pitchMiss({type:'CH',targets:[2],loc:2}).badAim);assert.ok(!PC.pitchMiss({type:'CH',targets:[8],loc:8}).badAim);
   const sh={rows:[['CH H+']],aims:{'CH H+':2}};assert.equal(PC.bandAim(sh,PC.parseCall('CH H+','R','R')),null);sh.aims['CH H+']=8;assert.equal(PC.bandAim(sh,PC.parseCall('CH H+','R','R')),8);
   assert.equal(PC.pitchMiss({type:'CH',targets:[8],loc:2}).chUp,true);}); // the CH-up miss rule still applies
@@ -486,11 +493,11 @@ test('actual location: dirt and backstop can be the called spot; band setup stil
   assert.equal(PC.isCompetitive(31),false);assert.equal(PC.isCompetitive(32),false);assert.equal(PC.isActualOnly(31),true);
   assert.equal(PC.canAim('CH',2),false);assert.equal(PC.canAim('CH',8),true);assert.equal(PC.canAim('FB',31),false);assert.equal(PC.canAim('CH',18),true);
   assert.equal(PC.validCalled('CH',31),true);assert.equal(PC.validCalled('FB',21),true);assert.equal(PC.validCalled('CH',12),false);
-  assert.equal(PC.bullpenTap({type:'CH'},31).action,'target');assert.equal(PC.bullpenTap({type:'FB'},32).action,'target');
-  assert.equal(PC.bullpenTap({type:'CH'},21).action,'target');
-  const aimed=PC.bullpenTap({type:'CH'},8);assert.equal(aimed.action,'target');
-  assert.equal(PC.bullpenTap(aimed.draft,1).action,'log');assert.equal(PC.bullpenTap(aimed.draft,31).action,'log');
-  assert.equal(PC.bullpenTap(aimed.draft,31).draft.loc,31);
+  assert.equal(PC.scoreTap({mode:'bullpen',type:'CH',called:[]},31).op,'called');assert.equal(PC.scoreTap({mode:'bullpen',type:'FB',called:[]},32).op,'called');
+  assert.equal(PC.scoreTap({mode:'bullpen',type:'CH',called:[]},21).op,'called');
+  const aimed=PC.scoreTap({mode:'bullpen',type:'CH',called:[]},8);assert.equal(aimed.op,'called');
+  assert.equal(PC.scoreTap(aimed.draft,1).step,'done');assert.equal(PC.scoreTap(aimed.draft,31).step,'done');
+  assert.equal(PC.scoreTap(aimed.draft,31).draft.actual,31);
   assert.equal(PC.chUp?PC.chUp({type:'CH',loc:32}):false,false);
 });
 test('scoring flow: game requires a result, bullpen saves on the actual spot',()=>{
@@ -567,6 +574,9 @@ test('FLOW-3: wristband aim becomes the called box; an override replaces it',()=
   assert.deepEqual(fromBand.draft.called,[8]);
   assert.deepEqual(PC.scoreApply(fromBand.draft,{op:'called',z:14}).draft.called,[14]);
 });
+test('FLOW-1: screens do not keep a second step machine',()=>{const fs=require('fs'),path=require('path');const banned=/bullpenStep|bullpenTap|gameZoneAction|zoneDraft/;
+  for(const dir of ['js/core','js/ui'])for(const f of fs.readdirSync(path.join(__dirname,'..',dir))){if(!f.endsWith('.js'))continue;
+    assert.ok(!banned.test(fs.readFileSync(path.join(__dirname,'..',dir,f),'utf8')),f);}});
 test('in dirt and over the catcher score as way off and still count as landed',()=>{
   const m=PC.pitchMiss({type:'FB',targets:[8],loc:31});assert.equal(m.sev,PC.MAX_MISS-1);assert.equal(PC.chUp({type:'CH',loc:32}),false);
   const items=[{p:{type:'FB',targets:[8],loc:31}},{p:{type:'FB',targets:[8],loc:5}}];

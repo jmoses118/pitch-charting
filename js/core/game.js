@@ -1,4 +1,5 @@
-/* Thunder Elite pitch charting – game.js: Count logic (GameChanger aligned), results, batted-ball types, bullpen entry steps.
+/* Thunder Elite pitch charting – game.js: Count logic (GameChanger aligned), results, batted-ball types.
+   Pitch entry steps live in flow.js. Portrait, coach and bullpen call that machine directly.
    Pure logic (no DOM). Loads in the browser (window.PC) and in node (see logic.js). */
 (function(root){
 'use strict';
@@ -26,25 +27,6 @@ function applyPitch(cnt,result,ip){let b=cnt.b,s=cnt.s,end=null,outs=0;
 // awarded without pitches (records with noPitch) are not pitches.
 const countsAsPitch=p=>!p.noPitch;
 const pitchCount=(pitches,pid)=>pitches.filter(p=>countsAsPitch(p)&&(pid==null||p.pitcherId===pid)).length;
-// ---------- Stats ----------
-// Thin wrappers over the scoring state machine (js/core/flow.js). Portrait, coach and bullpen call that machine directly.
-// These keep the older action names so a zone tap still reads as aim / loc / target / log.
-function zoneDraft(d){d=d||{};let called=[];
-  if(Array.isArray(d.targets)&&d.targets.length)called=d.targets.map(Number);
-  else if(Array.isArray(d.callTargets)&&d.callTargets.length)called=d.callTargets.map(Number);
-  else if(d.target)called=[+d.target];
-  else if(Array.isArray(d.called)&&d.called.length)called=d.called.map(Number);
-  const shook=d.shook&&typeof d.shook==='object'?d.shook:(d.shook?{type:d.type||null,called:[]}:null);
-  return{mode:d.mode==='game'?'game':'bullpen',type:d.type||null,called,actual:d.loc==null?(d.actual==null?null:d.actual):d.loc,aimEdit:!!d.aimEdit,shook,result:d.result||null};}
-function bullpenStep(d){const st=PC.scoreStep(Object.assign(zoneDraft(d),{mode:'bullpen'}));return st==='type'?'type':st==='called'?'target':'actual';}
-function bullpenTap(d,z){const r=PC.scoreTap(Object.assign(zoneDraft(d),{mode:'bullpen'}),z);
-  if(!r.ok)return{action:r.reason==='need_type'?'need_type':r.reason==='bad_target'?'bad_target':(r.reason||'bad_target'),draft:d};
-  const nd=r.draft,one=nd.called.length===1?nd.called[0]:null;
-  if(r.op==='called')return{action:'target',draft:Object.assign({},d,{type:nd.type,target:one,called:nd.called.slice()})};
-  return{action:'log',draft:Object.assign({},d,{loc:nd.actual,target:one!=null?one:d.target,called:nd.called.slice()}),targets:nd.called.slice()};}
-function gameZoneAction(d,z){const r=PC.scoreTap(Object.assign(zoneDraft(d),{mode:'game'}),z);
-  if(!r.ok){if(r.reason==='bad_target')return{action:'bad_target'};if(r.reason==='need_called')return{action:'need_aim'};if(r.reason==='need_type')return{action:'need_type'};return{action:r.reason||'bad_target'};}
-  if(r.op==='called')return{action:'aim',z:+z};return{action:'loc',z:+z};}
 // Redo holds undone location taps and pitches. A new logged pitch clears it. Cap is the newest 10.
 const REDO_MAX=10;
 const FOUL_TIMES={early:'Early',ontime:'On time',late:'Late'};
@@ -67,5 +49,5 @@ function editActual(pitch,loc){loc=+loc;if(!pitch||!PC.GRID_XY[loc])return false
 function revertEdit(pitch,snap){if(!pitch||!snap)return false;const was=!!pitch.edited,called=pitch.calledLoc==null?null:pitch.calledLoc;const nextCalled=snap.calledLoc==null?null:snap.calledLoc;
   const same=pitch.loc===snap.loc&&pitch.actualLoc===snap.actualLoc&&called===nextCalled&&was===!!snap.edited;pitch.loc=snap.loc;pitch.actualLoc=snap.actualLoc;
   if(nextCalled==null)delete pitch.calledLoc;else pitch.calledLoc=nextCalled;if(snap.edited)pitch.edited=true;else delete pitch.edited;return !same;}
-Object.assign(PC,{BB_TYPES,BB_NAME,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,bullpenStep,bullpenTap,gameZoneAction,REDO_MAX,FOUL_TIMES,redoPush,redoPop,redoState,cleanFoul,cleanFlag,cleanVelo,bullpenResult,editActual,revertEdit});
+Object.assign(PC,{BB_TYPES,BB_NAME,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,REDO_MAX,FOUL_TIMES,redoPush,redoPop,redoState,cleanFoul,cleanFlag,cleanVelo,bullpenResult,editActual,revertEdit});
 })(typeof window!=='undefined'?window:globalThis);
