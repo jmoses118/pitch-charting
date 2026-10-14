@@ -43,19 +43,22 @@ for(const [W,H] of [[375,667],[390,844],[430,932]]){const tag=`${W}x${H}`;
   ok(JSON.stringify(row)===JSON.stringify({type:'CH',targets:[8],loc:12,calledLoc:8,result:'ball'}),'coach: saved '+JSON.stringify(row));
   await p.screenshot({path:`${SHOT}/flow-coach-saved.png`});
   ok(!errs.length,'coach: no page errors '+errs.join('|'));await c.close();}
-{const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());await c.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));
+for(const [W,H] of [[375,667],[390,844],[430,932]]){const tag=`${W}x${H}`;
+  const c=await b.newContext({viewport:{width:W,height:H},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());await c.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));
   const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));const ev=f=>p.evaluate(f);
   await p.goto(BASE);await p.click('nav [data-t="bullpen"]');await p.waitForTimeout(200);
+  const steps=await ev(()=>[...document.getElementById('steps').children].map(li=>li.textContent));
+  ok(steps.length===3&&steps.join(',')==='Pitch,Aim,Landed',`${tag} bullpen: three steps, no result`);
   await p.click('#types [data-c="CH"]');await p.click('#actBtns [data-z="31"]');await p.waitForTimeout(100);
-  ok(await ev(()=>D.called[0]===31&&D.loc==null&&(__app.store.state.sessions.at(-1)?.pitches.length||0)===0),'bullpen: dirt aim does not save yet');
+  ok(await ev(()=>D.called[0]===31&&D.loc==null&&(__app.store.state.sessions.at(-1)?.pitches.length||0)===0)&&await ev(()=>document.getElementById('resSheet').classList.contains('hide')),`${tag} bullpen: dirt aim does not save and does not open a result sheet`);
   await p.click('#actBtns [data-z="31"]');await p.waitForTimeout(200);
   const row=await ev(()=>{const x=(__app.store.state.sessions.at(-1)||{pitches:[]}).pitches.at(-1);return x&&{type:x.type,targets:x.targets,loc:x.loc,result:x.result==null,hit:PC.hitSpot(x)};});
-  ok(JSON.stringify(row)===JSON.stringify({type:'CH',targets:[31],loc:31,result:true,hit:true}),'bullpen: dirt on dirt is a hit and has no ball/strike '+JSON.stringify(row));
+  ok(JSON.stringify(row)===JSON.stringify({type:'CH',targets:[31],loc:31,result:true,hit:true}),`${tag} bullpen: dirt on dirt is a hit and has no ball/strike ${JSON.stringify(row)}`);
   const sum=await p.textContent('#bpSum');
-  ok(/hit spot/i.test(sum)&&!/strike/i.test(sum),'bullpen line leads with hit spot, not strike % ('+sum+')');
+  ok(/hit spot/i.test(sum)&&!/strike/i.test(sum),`${tag} bullpen line leads with hit spot, not strike % (${sum})`);
   await p.click('nav [data-t="stats"]');await p.waitForTimeout(200);await p.selectOption('#sScope','bullpen');await p.waitForTimeout(150);
   const grid=await p.textContent('#sGrid');
-  ok(/Hit spot %/.test(grid)&&!/Strike %/.test(grid),'bullpen stats show hit-spot %, not strike % ('+grid+')');
-  await p.screenshot({path:`${SHOT}/flow-bullpen-hit.png`});
-  ok(!errs.length,'bullpen: no page errors '+errs.join('|'));await c.close();}
+  ok(/Hit spot %/.test(grid)&&!/Strike %/.test(grid),`${tag} bullpen stats show hit-spot %, not strike %`);
+  if(W===390)await p.screenshot({path:`${SHOT}/flow-bullpen-hit.png`});
+  ok(!errs.length,`${tag} bullpen: no page errors ${errs.join('|')}`);await c.close();}
 await b.close();console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);})().catch(e=>{console.error(e);process.exit(1);});
