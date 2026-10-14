@@ -59,7 +59,7 @@ function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,h
     return `<button data-z="${z}" class="${z<10?'zi':'zr'}${isA?' aim':''}${isA&&D.aimEdit?' editing':''}${D.aimEdit&&!PC.targetOk(D.type,z)?' noaim':''}${isL?' act':''}" ${lab?'':'aria-hidden="true" tabindex="-1"'} aria-label="${lab?'Zone '+z+(isA?', aim':'')+(isL?', landed':''):''}">${lab?`<span>${z}</span>${isA?'<small>AIM</small>':''}`:''}</button>`;}).join('')).join('');
   $('cZone').classList.toggle('editing',!!D.aimEdit);
   // results (or in-play outcomes)
-  const two=c.s===2;$('cRes').innerHTML=(D.ip?IP_BTNS.map(([v,l])=>`<button data-ip="${v}" class="${/^(out|1B|2B|3B|HR)$/.test(v)?'b-ip':''}">${l}</button>`).join('')+'<button data-cx="back">← Back</button>':
+  const two=c.s===2;if(viewOnly())$('cRes').innerHTML=`<div class="cro" role="status"><b>👁 Scoring on another phone</b><span>View only</span><button data-cx="take">Take over scoring</button></div>`;else $('cRes').innerHTML=(D.ip?IP_BTNS.map(([v,l])=>`<button data-ip="${v}" class="${/^(out|1B|2B|3B|HR)$/.test(v)?'b-ip':''}">${l}</button>`).join('')+'<button data-cx="back">← Back</button>':
     RES_BTNS.map(([v,l,k])=>`<button data-r="${v}" class="${k}${D.parsed?'':' soft'}">${l}</button>`).join('')+`<button data-cx="aim" class="${D.aimEdit?'on':''}" aria-pressed="${!!D.aimEdit}" ${D.parsed?'':'disabled'}>✎ Aim</button>`)+
     `<button data-cx="undo" aria-label="Undo last pitch">↶<small>Undo</small></button>`+(D.ip?'':`<button data-cx="same" aria-label="Same call as last pitch" ${lastCell?'':'disabled'}>⟳<small>Same</small></button>`);
   // side retired card
@@ -72,14 +72,14 @@ function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,h
 $('cBand').addEventListener('click',e=>{const b=e.target.closest('button[data-r]');if(b&&!b.disabled){sideCard=null;cMsg=null;callCell(+b.dataset.r,+b.dataset.c);}});
 let lpT=null,lpDone=false; // long-press (≥400 ms) on a zone cell sets the aim directly
 const zoneBtn=e=>e.target.closest('#cZone button[data-z]');
-$('cZone').addEventListener('pointerdown',e=>{const b=zoneBtn(e);if(!b)return;lpDone=false;clearTimeout(lpT);lpT=setTimeout(()=>{if(!D.parsed)return;lpDone=true;if(!PC.targetOk(D.type,+b.dataset.z)){coachMsg(PC.CH_AIM_MSG,'warn');return;}D.aim=+b.dataset.z;D.aimEdit=false;buzz(15);render();coachMsg('✎ Aim → '+b.dataset.z);},400);});
+$('cZone').addEventListener('pointerdown',e=>{const b=zoneBtn(e);if(!b)return;lpDone=false;clearTimeout(lpT);lpT=setTimeout(()=>{if(!D.parsed)return;lpDone=true;if(!PC.targetOk(D.type,+b.dataset.z)){coachMsg($('coach').classList.contains('compact')?PC.CH_AIM_TINY:PC.CH_AIM_SHORT,'warn');return;}D.aim=+b.dataset.z;D.aimEdit=false;buzz(15);render();coachMsg('✎ Aim → '+b.dataset.z);},400);});
 ['pointerup','pointerleave','pointercancel'].forEach(t=>$('cZone').addEventListener(t,()=>clearTimeout(lpT)));
 $('cZone').addEventListener('click',e=>{const b=zoneBtn(e);if(!b)return;if(lpDone){lpDone=false;return;}const z=+b.dataset.z;sideCard=null;
-  if(D.aimEdit){if(!PC.targetOk(D.type,z)){coachMsg(PC.CH_AIM_MSG,'warn');return;}D.aim=z;D.aimEdit=false;render();return;}D.loc=D.loc===z?null:z;render();});
+  if(D.aimEdit){if(!PC.targetOk(D.type,z)){coachMsg($('coach').classList.contains('compact')?PC.CH_AIM_TINY:PC.CH_AIM_SHORT,'warn');return;}D.aim=z;D.aimEdit=false;render();return;}D.loc=D.loc===z?null:z;render();});
 $('cRes').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;sideCard=null;
   if(b.dataset.r){if(b.dataset.r==='inplay'){D.ip=true;render();return;}recordGame(b.dataset.r);return;}
   if(b.dataset.ip){recordGame('inplay',b.dataset.ip);return;}
-  const x=b.dataset.cx;if(x==='back'){D.ip=false;D.spray=null;render();}else if(x==='aim'){D.aimEdit=!D.aimEdit;render();}else if(x==='undo')undoLast();else if(x==='same'&&lastCell)callCell(lastCell.r,lastCell.c);});
+  const x=b.dataset.cx;if(x==='take')return openTakeover();if(x==='back'){D.ip=false;D.spray=null;render();}else if(x==='aim'){D.aimEdit=!D.aimEdit;render();}else if(x==='undo')undoLast();else if(x==='same'&&lastCell)callCell(lastCell.r,lastCell.c);});
 $('cSpray').addEventListener('click',e=>{const r=$('cSpray').getBoundingClientRect();D.spray=[+((e.clientX-r.left)/r.width).toFixed(3),+((e.clientY-r.top)/r.height).toFixed(3)];renderCoach();});
 $('cSideUndo').onclick=()=>{sideCard=null;undoLast();};$('cSidePause').onclick=()=>{sideCard=null;pauseGame();};$('cSideOk').onclick=()=>{sideCard=null;render();};
 // game menu (⋯): the rarely used controls live here, off the charting screen
@@ -94,7 +94,10 @@ $('cmMirror').onclick=()=>{PREF.set('mirror',PREF.get('mirror','0')==='1'?'0':'1
 let bandSheetId=null;
 function openBandSetup(id){const sh=id?sheets().find(x=>x.id===id):curSheet();bandSheetId=sh&&sh.id;if(!sh)return toast('Add a call sheet first');const u=PC.unmappedCells(sh,S().customTypes);const total=sh.rows.reduce((n,r)=>n+r.filter(t=>String(t||'').trim()).length,0);
   $('bandT').textContent='Band setup · '+sh.name;$('bandSub').textContent=u.length?`${total-u.reduce((n,x)=>n+x.cells.length,0)} of ${total} cells already map from the call text. These have a pitch type but no spot – pick an aim once (same text shares one choice). Saved on this phone.`:'Every cell already maps to a spot.';
-  $('bandList').innerHTML=u.map(x=>{const v=sh.aims&&x.norm in sh.aims?+sh.aims[x.norm]:'';return `<div class="bandrow"><div class="bandcells"><b>${x.cells.map(H).join(', ')}</b> <span class="tag">${H(x.text)}</span></div>
+  // a saved aim this pitch type can't use (e.g. an old high change-up aim) is flagged on its row, never dropped silently
+  const was=x=>{const v=sh.aims&&x.norm in sh.aims?+sh.aims[x.norm]:null;return v>0&&!PC.targetOk(x.type,v)?v:null;};const nBad=u.filter(was).length;
+  if(nBad)$('bandSub').textContent+=` ${nBad} change-up aim${nBad===1?' needs':'s need'} a new low box.`;
+  $('bandList').innerHTML=u.map(x=>{const old=was(x);const v=sh.aims&&x.norm in sh.aims&&!old?+sh.aims[x.norm]:'';return `<div class="bandrow${old?' bandbad':''}"><div class="bandcells"><b>${x.cells.map(H).join(', ')}</b> <span class="tag">${H(x.text)}</span>${x.type==='CH'?`<div class="mut bandnote">${H(PC.CH_BAND_NOTE)}</div>`:''}${old?`<div class="bandwas">Was zone ${old} – change-ups can't aim high. Pick a low box.</div>`:''}</div>
     <label class="bandsel">Aim <select data-norm="${H(x.norm)}" aria-label="Aim for ${H(x.text)}"><option value="" ${v===''?'selected':''}>Pick…</option><option value="0" ${v===0?'selected':''}>No spot</option>${PC.aimOpts(x.type).map(z=>`<option value="${z}" ${v===z?'selected':''}>Zone ${z}</option>`).join('')}</select></label></div>`;}).join('');
   openSheet($('bandDlg'));}
 $('bandDlg').addEventListener('close',()=>{if($('bandDlg').returnValue!=='ok')return;const sh=sheets().find(x=>x.id===bandSheetId);if(!sh)return;sh.aims=Object.assign({},sh.aims);

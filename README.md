@@ -38,3 +38,6 @@ Coaches create codes in Setup → Access codes (`coach_create_code` RPC). Codes 
 - Each PR: clear description, tests run listed, docs/CHANGELOG updated, CI green before merge.
 - Merging to `main` deploys GitHub Pages automatically. Bump the cache name in `sw.js` whenever app files change so phones pick up the update.
 - Database changes: add a file to `supabase/migrations/` (timestamp_name.sql) matching what is applied to the Supabase project.
+
+### One scoring phone
+A live game or bullpen is scored only from the phone that started it. Other phones can watch it live (view only). If the scoring phone dies, tap **Take over scoring** and confirm.

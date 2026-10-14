@@ -90,17 +90,24 @@ function rejWhat(r){const s=store.real;if(r.table==='pitches'){let hit=null;s.ga
   if(r.table==='games'){const g=s.games.find(x=>x.id===r.id);return g?`${g.date||''} vs ${g.opponent||'?'}`:'';}
   if(r.table==='sessions'){const x=s.sessions.find(y=>y.id===r.id);return x?`${x.date||''} · ${x.pitches.length} pitch${x.pitches.length===1?'':'es'}`:'';}
   if(r.table==='pitchers'){return PC.pitcherLabel(s.pitchers.find(p=>p.id===r.id));}return '';}
-const rejWhen=t=>{const d=new Date(t);return d.toLocaleDateString([], {month:'short',day:'numeric'})+' '+d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});};
+const rejWhen=t=>{const d=new Date(t);return d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+', '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});};
+// toast with an Undo button (about 6 s); used after discarding sync problems
+function undoToast(text,undo){let e=$('undoToast');if(!e){e=document.createElement('div');e.id='undoToast';e.setAttribute('role','status');document.body.appendChild(e);}
+  e.innerHTML=`<span>${H(text)}</span><button type="button">Undo</button>`;e.classList.add('on');clearTimeout(undoToast.t);const hide=()=>e.classList.remove('on');
+  e.querySelector('button').onclick=()=>{clearTimeout(undoToast.t);hide();undo();};undoToast.t=setTimeout(hide,6000);}
 function renderRejBtn(){const b=$('rejBtn');if(!b)return;const n=store.isTest?0:PC.rejectedList(store.real).length;b.classList.toggle('hide',!n);b.textContent=`⚠ Sync problems (${n}) – view`;}
 function openRejected(){const L=PC.rejectedList(store.real);
   $('rejList').innerHTML=L.length?L.map(r=>`<div class="rejrow" data-key="${H(r.key)}"><div><b>${H(REJ_KIND[r.table]||r.table)}</b> <span class="mut">${H(rejWhat(r))}</span></div>
-    <div class="mut rejerr">Server said ${H(String(r.status))}${r.error?': '+H(r.error.slice(0,120)):''} · ${H(rejWhen(r.at))}</div>
+    <div class="rejwhy">Why: ${H(PC.syncWhy(r))} · ${H(rejWhen(r.at))}</div>
+    <details class="rejdet"><summary>Details</summary><div class="mut rejerr">${H(String(r.status))}${r.error?' · '+H(r.error.slice(0,160)):''}</div></details>
     <div class="seg rejseg" role="radiogroup" aria-label="What to do with this change">${[['keep','Keep'],['retry','Retry'],['discard','Discard']].map(([v,l])=>`<button type="button" role="radio" data-act="${v}" aria-checked="${v==='keep'}" class="${v==='keep'?'on':''}">${l}</button>`).join('')}</div></div>`).join('')
     +`<button type="button" id="rejAllRetry" class="ghost" style="width:100%">Retry all</button>`:'<div class="mut">No sync problems.</div>';
   openSheet($('rejDlg'));}
 $('rejBtn').onclick=openRejected;
 $('rejList').addEventListener('click',e=>{if(e.target.id==='rejAllRetry'){$('rejList').querySelectorAll('.rejrow').forEach(row=>setRejAct(row,'retry'));return;}const b=e.target.closest('[data-act]');if(b)setRejAct(b.closest('.rejrow'),b.dataset.act);});
 function setRejAct(row,act){row.dataset.act=act;row.querySelectorAll('[data-act]').forEach(x=>{const on=x.dataset.act===act;x.classList.toggle('on',on);x.setAttribute('aria-checked',on);});}
-$('rejDlg').addEventListener('close',()=>{if($('rejDlg').returnValue!=='ok')return;let re=0,dc=0;
-  $('rejList').querySelectorAll('.rejrow').forEach(row=>{const k=row.dataset.key,a=row.dataset.act;if(a==='retry'&&PC.retryRejected(store.real,k))re++;if(a==='discard'&&PC.discardRejected(store.real,k))dc++;});
-  store.save();render();if(re||dc)toast(`${re?re+' to retry':''}${re&&dc?' · ':''}${dc?dc+' discarded':''}`);if(re)doSync(true);});
+$('rejDlg').addEventListener('close',()=>{if($('rejDlg').returnValue!=='ok')return;let re=0;const gone={};
+  $('rejList').querySelectorAll('.rejrow').forEach(row=>{const k=row.dataset.key,a=row.dataset.act;if(a==='retry'&&PC.retryRejected(store.real,k))re++;if(a==='discard'){const r=store.real.sync.rejected[k];if(PC.discardRejected(store.real,k))gone[k]=r;}});
+  const dc=Object.keys(gone).length;store.save();render();
+  if(dc)undoToast(`${dc} change${dc===1?'':'s'} discarded${re?` · ${re} to retry`:''}`,()=>{Object.assign(store.real.sync.rejected=store.real.sync.rejected||{},gone);store.save();render();toast('Discard undone');});else if(re)toast(`${re} to retry`);
+  if(re)doSync(true);});

@@ -66,6 +66,11 @@ Landscape only (`(orientation: landscape) and (max-height: 500px)`). The grid is
 Review fixes (v37): `.cs-hint` is a fixed single line (ellipsis), `.cstatus` has a fixed height (`--sth`), and `sizeCoach()` caps the zone by height and counts the 1.5px grid lines. Under 700px width `.coach.compact` uses `--rh` 20, `--res` 98, band 44, a compact status and a ⋯ icon. Elements marked `data-ellipsis` may truncate on purpose (the layout audit skips them).
 
 ## Sync problems dialog (v39)
-Setup → Cloud sync shows a red "⚠ Sync problems (N) – view" button only when the server refused changes. The bottom sheet lists each change in plain words (what: first name, pitch, where; why: "Server said 403 …"; when). Each row has a Keep / Retry / Discard segmented control (44px, Discard turns red). "Retry all" sets every row to Retry. The Cancel / Apply footer is sticky, and nothing changes until Apply.
+Setup → Cloud sync shows a red "⚠ Sync problems (N) – view" button only when the server refused changes. The bottom sheet lists each change in plain words: what (first name, pitch, where) and "Why: <sentence> · Oct 14, 8:56 AM" from `PC.syncWhy` (401 sign-in ran out, 403 not allowed, 409/duplicate already saved, other 4xx couldn't read). The raw server text is behind a closed "Details" toggle. Each row has a Keep / Retry / Discard segmented control (44px; Discard has red text and outline, and turns solid red when picked). After Apply, discards get a 6-second "N change(s) discarded · Undo" toast. "Retry all" sets every row to Retry. The Cancel / Apply footer is sticky, and nothing changes until Apply.
 
-Change-up aims: in ✎ Aim mode the coach zone fades the boxes a change-up can't be aimed at (30% opacity), and a tap there shows a yellow warning in the status strip.
+Change-up aims: in ✎ Aim mode, boxes a change-up can't be aimed at become dashed outlines with no fill and #5B6472 numbers. A tap there shows a short yellow warning in the status strip ("Change-up: aim low", or "CH: aim low" under 700px). The bullpen toast keeps the full list. Band setup shows "Change-ups aim low: 4, 7, 8, 9, 13, 14 or 18." under change-up rows and flags an old high aim with a yellow left border.
+
+## Scoring lock (v39)
+- View-only phone, portrait: amber bar at the top of entry – "👁 Scoring on another phone · view only" + **Take over scoring** (≥44px). Scoring controls hidden; count, zone and recent pitches stay visible.
+- Coach landscape: the result column becomes "👁 Scoring on another phone / View only / **Take over scoring**".
+- Takeover popup: title "Take over scoring?", body "Another phone is scoring this. Only take over if that phone died or the coach handed it to you. That phone will switch to view only.", buttons Cancel (focused) and **Take over scoring**.

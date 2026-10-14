@@ -54,6 +54,7 @@
 </section>
 <!-- shared entry (game + bullpen) -->
 <section id="entry" class="hide">
+ <div id="roBar" class="robar" role="status"><span>👁 Scoring on another phone · view only</span><button id="roTake" type="button">Take over scoring</button></div>
  <div class="entrybar">
   <div id="types" class="chips" role="group" aria-label="Pitch type"></div>
   <div class="stepline"><ol id="steps" class="steps" aria-label="Pitch entry steps"><li></li><li></li><li></li></ol><button id="wbTog" class="mini hide" aria-expanded="false" aria-controls="wbCard">Band</button><button id="resTog" class="mini hide" aria-controls="resSheet">Result</button></div>
@@ -189,8 +190,11 @@
  <button type="button" id="cmKd3">K – reached (D3)</button><button type="button" id="cmKd3o">K – D3 thrown out</button><button type="button" id="cmBand">Band setup</button><button type="button" id="cmTheme"></button><button type="button" id="cmMirror"></button>
  <button type="button" id="cmPause">❚❚ Pause game</button></div>
  <div class="dlgfoot"><button value="cancel" formnovalidate class="ghost" style="width:100%">Cancel</button></div></form></dialog>
+<dialog id="takeDlg" class="sheet" aria-labelledby="takeT"><form method="dialog"><div class="lbl" id="takeT">Take over scoring?</div>
+ <p class="mut" id="takeTxt">Another phone is scoring this. Only take over if that phone died or the coach handed it to you. That phone will switch to view only.</p>
+ <div class="dlgfoot"><button value="cancel" id="takeCancel">Cancel</button><button value="ok" id="takeOk" class="primary">Take over scoring</button></div></form></dialog>
 <dialog id="rejDlg" class="sheet" aria-labelledby="rejT"><form method="dialog"><div class="lbl" id="rejT">Sync problems</div>
- <div class="mut" id="rejSub" style="margin-bottom:8px">The server refused these changes, so they are saved on this phone only. Choose Retry to send again or Discard to drop the change. Nothing happens until you tap Apply.</div>
+ <div class="mut" id="rejSub" style="margin-bottom:8px">These changes didn't reach the cloud. They're safe on this phone. Pick Retry or Discard for each, then tap Apply.</div>
  <div id="rejList" class="rejlist"></div>
  <div class="row dlgfoot"><button value="cancel" formnovalidate class="ghost" style="flex:1">Cancel</button><button value="ok" id="rejApply" class="primary" style="flex:2">Apply</button></div></form></dialog>
 <dialog id="bandDlg" class="sheet" aria-labelledby="bandT"><form method="dialog"><div class="row sp"><div class="lbl" id="bandT">Band setup</div><span class="tag">one time</span></div>

@@ -289,7 +289,7 @@ html[data-theme="night"] .cstatus{background:#0D121B;border:1px solid #34445E;bo
 .cs-aim{font-size:14px;color:#9DB2FF;font-weight:800}.cs-none{color:#7D8AA0;font-size:18px}
 .cs-hint{font-size:13px;color:#EEF2F8;display:block;height:1.4em;line-height:1.4em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cs-hint .cs-n{margin-right:6px;vertical-align:1px}
 .cs-n{display:inline-grid;place-items:center;min-width:18px;height:18px;border-radius:5px;background:#9DB2FF;color:#0B0F17;font-size:11px;font-weight:900}
-.cs-hint.msg{font-weight:800}.cs-hint.msg.ok{color:#7EE2A0}.cs-hint.msg.warn{color:#FFD27A}
+.cs-hint.msg{font-weight:800}.cs-hint.msg.ok{color:#7EE2A0}.cs-hint.msg.warn{color:#FFD27A;font-size:12px}
 .cs-net{font-size:11px;color:#A9B4C6}
 .cs-ip{font-size:11.5px;font-weight:700;color:#EEF2F8;line-height:1.25}
 #cSpray{width:100%;height:auto;display:block;cursor:crosshair}.sp-fair{fill:#DCEFE6}.sp-inf{fill:#F6DDB0}#cSprayDot{fill:#1C1C1C;stroke:#fff;stroke-width:2}
@@ -338,5 +338,23 @@ body.padmode #flash{top:56px;font-size:16px;padding:8px 16px;transform:translate
 /* finished at-bat shown faded with a note (bug: 0-0 next to old balls looked like a stuck count) */
 .zonenote{position:absolute;top:2px;left:50%;transform:translateX(-50%);z-index:2;max-width:94%;background:var(--c-surface,#161b22);color:var(--c-text);border:1px solid var(--c-line);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
 #zone.lastab .ball{opacity:.5}
-#cZone button.noaim{opacity:.3}
+#cZone button.noaim{opacity:1;background:transparent!important;border:1.5px dashed #8A94A6!important}#cZone button.noaim span{color:#5B6472}
 .rejlist{display:grid;gap:10px}.rejrow{border-top:1px solid var(--c-line);padding-top:8px;display:grid;gap:4px}.rejerr{font-size:12px;word-break:break-word}.rejseg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.rejseg button{min-height:44px;font-weight:700}.rejseg button.on{background:var(--c-royal);color:#fff;border-color:var(--c-royal)}.rejseg button[data-act=discard].on{background:var(--c-danger);border-color:var(--c-danger)}
+.rejwhy{font-size:13px;line-height:1.35}.rejdet summary{font-size:12px;color:var(--c-text-2,#5B6472);min-height:32px;display:flex;align-items:center;cursor:pointer}
+.rejseg button[data-act=discard]:not(.on){color:var(--c-danger);border-color:var(--c-danger)}
+#undoToast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:10000;display:none;align-items:center;gap:12px;background:#1C1C1C;color:#fff;border-radius:12px;padding:6px 6px 6px 14px;font-weight:700;box-shadow:var(--shadow-2);max-width:92vw}
+#undoToast.on{display:flex}#undoToast button{min-height:44px;background:transparent;color:#9DB2FF;border:1.5px solid #9DB2FF;font-weight:800}
+.bandnote{font-size:12px;margin-top:2px}.bandrow.bandbad{border-left:4px solid #E0A100;padding-left:8px}.bandwas{font-size:12px;font-weight:700;color:var(--c-text);margin-top:2px}
+.cs-foot .cmenu{flex-shrink:0}
+
+/* scoring lock (v39): view-only phones see the live count/pitches but no scoring controls */
+.robar{display:none;align-items:center;gap:8px;justify-content:space-between;padding:8px 10px;margin-bottom:8px;border:1px solid #FFD27A;border-radius:10px;background:rgba(255,210,122,.12);font-size:14px;font-weight:600}
+.robar button{min-height:44px;flex-shrink:0}
+body.viewonly .robar{display:flex}
+body.viewonly #types,body.viewonly #steps,body.viewonly #wayBtns,body.viewonly #bpPad,body.viewonly #resTog,body.viewonly #resSheet,body.viewonly #undo,body.viewonly #wbTog,body.viewonly #batTog{display:none!important}
+body.viewonly #zone,body.viewonly #cZone,body.viewonly #cBand{pointer-events:none}
+#cRes .cro{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;align-items:stretch;text-align:center;font-size:13px;padding:6px 2px}
+#cRes .cro span{color:#9AA3B2}
+#cRes .cro button{min-height:44px;font-weight:700}
+body.viewonly #cRes{display:flex!important;flex-direction:column;justify-content:center;align-items:stretch}
+body.viewonly #cRes .cro{flex:0 0 auto}

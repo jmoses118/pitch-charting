@@ -410,11 +410,21 @@ test('pull: incremental since last updated_at (2-min overlap) with keyset paging
 test('sessions: last writer wins by updated_at for every field',()=>{const st=coachStore(),s=st.real;s.sessions.push({id:'s1',date:'2026-10-13',pitcherId:'p_woods',pitches:[],_u:'2026-10-14T10:00:00Z'});
   PC.mergeRemote(s,{sessions:[{id:'s1',date:'2026-10-14',pitcher_id:'p_crich',updated_at:'2026-10-14T11:00:00Z'}]});assert.equal(s.sessions[0].date,'2026-10-14');assert.equal(s.sessions[0].pitcherId,'p_crich');
   PC.mergeRemote(s,{sessions:[{id:'s1',date:'2026-10-01',pitcher_id:'p_woods',updated_at:'2026-10-14T09:00:00Z'}]});assert.equal(s.sessions[0].date,'2026-10-14');});
-test('live game: a phone that has seen fewer pitches never rolls the count back',()=>{const st=coachStore(),s=st.real;const P=n=>Array.from({length:n},(_,i)=>({id:'x'+i,ts:i}));
-  s.games.push({id:'g',pitches:P(5),cur:{inning:2,outs:1,slot:3,b:2,s:1,abn:7}});
-  PC.mergeRemote(s,{games:[{id:'g',date:'d',opponent:'o',home_away:'home',cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:1,pn:2},updated_at:'2026-10-14T12:00:00Z'}]});assert.equal(s.games[0].cur.abn,7);
-  PC.mergeRemote(s,{games:[{id:'g',date:'d',opponent:'o',home_away:'home',cur:{inning:2,outs:2,slot:4,b:0,s:0,abn:8,pn:6},updated_at:'2026-10-14T12:01:00Z'}]});assert.equal(s.games[0].cur.abn,8);
-  const rows=PC.buildRows((()=>{s.sync.queue.games.g=1;return s;})()).rows.games;assert.equal(rows[0].cur.pn,5);});
+test('scoring lock: only the starting phone scores; others view; take over moves the lock',()=>{
+  assert.ok(PC.canScore(null,'A'));assert.ok(PC.canScore({},'A'),'legacy box with no owner stays open');
+  const g={id:'g',scorer:'A'};assert.ok(PC.canScore(g,'A'));assert.ok(!PC.canScore(g,'B'));assert.ok(PC.lockedBox(g,'B'));assert.ok(!PC.lockedBox(g,'A'));
+  assert.equal(PC.claimScoring(g,'B'),true);assert.equal(g.scorer,'B');assert.ok(PC.lockedBox(g,'A'));assert.equal(PC.claimScoring(g,'B'),false);assert.equal(PC.claimScoring(g,''),false);});
+test('scoring lock syncs: games carry cur.scorer (no schema change), the count is plain last-writer, no pn field',()=>{const st=coachStore(),s=st.real;
+  s.games.push({id:'g',date:'d',opponent:'o',homeAway:'home',lineup:[],pitches:[],cur:{inning:2,outs:1,slot:3,b:2,s:1,abn:7},scorer:'A'});s.sync.queue.games.g=1;
+  const row=PC.buildRows(s).rows.games[0];assert.equal(row.cur.scorer,'A');assert.equal(row.cur.pn,undefined);delete s.sync.queue.games.g;
+  PC.mergeRemote(s,{games:[{id:'g',date:'d',opponent:'o',home_away:'home',cur:{inning:3,outs:0,slot:0,b:0,s:0,abn:9,scorer:'B'},updated_at:'2026-10-14T12:00:00Z'}]});
+  assert.equal(s.games[0].scorer,'B','takeover on another phone arrives');assert.equal(s.games[0].cur.abn,9);});
+test('scoring lock for sessions: device_id until the scorer column migration is applied, then the scorer column',()=>{const st=coachStore(),s=st.real;
+  s.sessions.push({id:'s1',date:'2026-10-13',pitches:[],scorer:'A'});s.sync.queue.sessions.s1=1;
+  assert.equal('scorer' in PC.buildRows(s).rows.sessions[0],false,'column not sent while the migration is unapplied');
+  s.sync.scorerCol=true;assert.equal(PC.buildRows(s).rows.sessions[0].scorer,'A');delete s.sync.queue.sessions.s1;
+  PC.mergeRemote(s,{sessions:[{id:'s1',date:'2026-10-13',device_id:'C',updated_at:'2026-10-14T11:00:00Z'}]});assert.equal(s.sessions[0].scorer,'C');
+  PC.mergeRemote(s,{sessions:[{id:'s1',date:'2026-10-13',device_id:'C',scorer:'D',updated_at:'2026-10-14T12:00:00Z'}]});assert.equal(s.sessions[0].scorer,'D');});
 test('rowPitch keeps every valid spot (zone, ring, way off 21-24) and drops junk',()=>{const p=PC.rowPitch({id:'a',mode:'bullpen',targets:[3,11,21,24,10,19,25,0,'x'],loc:22});assert.deepEqual(p.targets,[3,11,21,24]);assert.equal(p.loc,22);assert.equal(PC.rowPitch({id:'b',mode:'bullpen',loc:19}).loc,null);});
 test("change-up targets: only 4, 7, 8, 9, 13, 14, 18; high CH calls (CH H+, CH H, CH 2) get no spot and are flagged",()=>{assert.deepEqual(PC.CH_TARGETS,[4,7,8,9,13,14,18]);assert.deepEqual(PC.aimOpts('CH'),[4,7,8,9,13,14,18]);assert.equal(PC.aimOpts('FB').length,17);
   for(const c of ['CH H+','CH H','CH 2','CH15']){const p=PC.parseCall(c,'R','R');assert.equal(p.type,'CH');assert.deepEqual(p.targets,[]);assert.ok(p.chHigh,c);}
@@ -434,3 +444,7 @@ test('heatSummary (Miss / Landed) accounts for every pitch: no-aim and souvenir 
 test('miss directions: one list, topDir, bestWeak',()=>{assert.deepEqual(PC.MISS_DIRS,['up','down','in','away','glove side','arm side']);assert.deepEqual(PC.topDir({up:1,away:3}),['away',3]);
   const r=PC.bestWeak([{goodPct:90,avgMiss:.5},{goodPct:40,avgMiss:2}]);assert.equal(r.best.goodPct,90);assert.equal(r.weakest.goodPct,40);assert.equal(PC.bestWeak([{goodPct:90,avgMiss:.5}]).weakest,null);
   assert.equal(PC.isMiddleMiss,undefined);});
+test('syncWhy: plain-words reason per status (raw text never needed)',()=>{assert.equal(PC.syncWhy({status:401,error:'JWT expired'}),'Your sign-in ran out. Tap Retry – it will send after you sign in again.');
+  assert.equal(PC.syncWhy({status:403,error:'new row violates row-level security'}),"This phone isn't allowed to save that. Ask your coach to check your team code.");
+  assert.equal(PC.syncWhy({status:409}),'This was already saved from another phone. Usually safe to Discard.');assert.equal(PC.syncWhy({status:400,error:'duplicate key value violates unique constraint "games_pkey"'}),PC.SYNC_WHY.dup);
+  for(const s of [400,404,422])assert.equal(PC.syncWhy({status:s,error:'x'}),"The server couldn't read this change. Try Retry; if it fails again, Discard.");});

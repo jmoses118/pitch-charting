@@ -73,7 +73,7 @@ function drawZone(){const hand=curHand();let ex='';const tset=D.aim?[D.aim]:D.pa
   if(D.loc){const e=$('zone').querySelector(`[data-z="${D.loc}"]`);e&&e.classList.add(tset.includes(D.loc)?'zta':'za');}
   document.querySelectorAll('#wayBtns [data-z]').forEach(b=>b.classList.toggle('sel',+b.dataset.z===D.loc));}
 const locTxt=z=>PC.isWay(z)?PC.WAY[z]:'@'+z;
-function tapLoc(z){const way=PC.isWay(z);
+function tapLoc(z){if(scoreGuard())return;const way=PC.isWay(z);
   if(tab==='bullpen'){if(!D.type&&D.parsed)D.type=D.parsed.type;
     const r=PC.bullpenTap({type:D.type,target:D.target,callTargets:callOn&&D.parsed?D.parsed.targets:[]},z);
     if(r.action==='need_type'){toast('Pick the pitch type first');return;}
@@ -141,6 +141,16 @@ function toggleTest(){if(store.isTest){if(!confirm('Exit test mode? Everything f
 $('testBtn').onclick=toggleTest;$('exitTest2').onclick=toggleTest;
 // ---------- cloud sync ----------
 const CFG=window.PC_CONFIG||{};const sync=CFG.url&&CFG.key?PC.makeSync(store,{url:CFG.url,key:CFG.key}):null;let syncT=null,syncing=false;
+// Scoring lock: the live game / bullpen session on screen is scored only from the phone that owns it (PC.canScore)
+store.real.sync.scorerCol=!!CFG.scorerColumn; // true only after supabase/migrations/*_scoring_lock.sql is applied
+const myDevice=()=>store.real.sync.deviceId;
+function liveBox(){if(tab==='game'){const g=game();return PC.gameInProgress(g)?g:null;}return tab==='bullpen'?session():null;}
+const viewOnly=()=>PC.lockedBox(liveBox(),myDevice());
+function scoreGuard(){if(!viewOnly())return false;toast(PC.SCORING_ELSEWHERE);return true;}
+function openTakeover(){if(!liveBox())return;$('takeDlg').returnValue='';$('takeDlg').showModal();$('takeCancel').focus();}
+$('roTake').onclick=openTakeover;
+$('takeDlg').addEventListener('close',()=>{if($('takeDlg').returnValue!=='ok')return;const b=liveBox();if(!b||!PC.claimScoring(b,myDevice()))return;
+  dirty(tab==='game'?'games':'sessions',b.id);save();render();toast('You are scoring now');if(typeof doSync==='function')doSync();});
 function schedSync(){if(store.isTest||!sync)return;clearTimeout(syncT);syncT=setTimeout(()=>doSync(false),3000);}
 async function doSync(manual,pull){if(!sync)return;if(store.isTest){if(manual)toast('Test mode never syncs');return;}
   if(!store.real.sync.teamCode){if(manual)toast('Enter the team code first');renderSync();return;}

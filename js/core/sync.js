@@ -30,11 +30,11 @@ function buildRows(st){let held=0;const q=st.sync.queue,team=st.sync.teamId,dev=
   const idx={};st.games.forEach(g=>g.pitches.forEach(p=>idx[p.id]=[p,{mode:'game',game_id:g.id}]));st.sessions.forEach(x=>x.pitches.forEach(p=>idx[p.id]=[p,{mode:'bullpen',session_id:x.id}]));
   for(const t of TABLES){q[t]=q[t]||{};out[t]=[];ver[t]={};for(const id in q[t]){ver[t][id]=q[t][id];let row=null;
     if(t==='pitchers'){const p=st.pitchers.find(x=>x.id===id);if(p)row={id:p.id,name:p.name,num:p.num||null,throws:p.throws,archived:!!p.archived,note:p.note||null};}
-    else if(t==='games'){const g=st.games.find(x=>x.id===id);if(g)row={id:g.id,date:g.date,opponent:g.opponent,event:g.event||null,home_away:g.homeAway,lineup:g.lineup,cur:Object.assign({},g.cur,{pn:g.pitches.length}),started:g.started||null,ended:g.ended||null,imported:!!g.imported,status:gameStatus(g),link:g.link||null,notes:g.notes||null,game_time:g.time||null,field:g.field||null,game_no:g.gameNo||null,location:g.location||null};}
+    else if(t==='games'){const g=st.games.find(x=>x.id===id);if(g)row={id:g.id,date:g.date,opponent:g.opponent,event:g.event||null,home_away:g.homeAway,lineup:g.lineup,cur:Object.assign({},g.cur,{scorer:g.scorer||null}),started:g.started||null,ended:g.ended||null,imported:!!g.imported,status:gameStatus(g),link:g.link||null,notes:g.notes||null,game_time:g.time||null,field:g.field||null,game_no:g.gameNo||null,location:g.location||null};}
     else if(t==='call_sheets'){const x=(st.callSheets||[]).find(y=>y.id===id);if(x)row={id:x.id,name:x.name||null,pitcher_id:x.pitcherId||null,cols:x.cols||[],rows:x.rows||[],sort:(st.callSheets||[]).indexOf(x),deleted:!!x.deleted};}
     else if(t==='notes'){const x=(st.notes||[]).find(y=>y.id===id);if(x)row={id:x.id,pitcher_id:x.pitcherId,session_id:x.sessionId||null,game_id:x.gameId||null,body:String(x.body||'').slice(0,2000),deleted:!!x.deleted};}
     else if(t==='team_settings'){if(id===TEAM_SETTINGS_ID&&st.settings)row=settingsRow(st.settings);}
-    else if(t==='sessions'){const x=st.sessions.find(y=>y.id===id);if(x)row={id:x.id,date:x.date,started:x.started||null,imported:!!x.imported,pitcher_id:x.pitcherId||null};}
+    else if(t==='sessions'){const x=st.sessions.find(y=>y.id===id);if(x){row={id:x.id,date:x.date,started:x.started||null,imported:!!x.imported,pitcher_id:x.pitcherId||null};if(st.sync.scorerCol)row.scorer=x.scorer||null;}}
     else{const hit=idx[id];if(hit)row=pitchRow(hit[0],hit[1]);else if(st.sync.tomb[id]){const tb=st.sync.tomb[id];row=pitchRow(tb,{mode:tb.mode,game_id:tb.game_id,session_id:tb.session_id});row.deleted=true;}}
     if(row&&!roleAllows(st.sync,t,row)){held++;continue;} // never send what this code can't write, but KEEP it queued for a code that can
     if(row){row.team_id=team;row.device_id=dev;out[t].push(row);}else delete q[t][id];}}
@@ -42,13 +42,13 @@ function buildRows(st){let held=0;const q=st.sync.queue,team=st.sync.teamId,dev=
 const gameStatus=g=>g.status||(g.ended?'final':'active');
 // last-write-wins by server updated_at: never let an older cloud row overwrite a newer local copy
 const newerThan=(loc,r)=>!loc||!loc._u||!r.updated_at||r.updated_at>=loc._u;
-// live game count from another phone: take it only if that phone had seen at least as many pitches as we have,
-// so two coach phones never roll each other's count back (cur.pn = pitches known when the count was saved)
-const curNewer=(g,cur)=>!!cur&&(cur.pn==null?!g.pitches.length:cur.pn>=g.pitches.length);
+// scoring lock owner travels with the row: games keep it in cur.scorer (jsonb, no schema change);
+// sessions use the scorer column when the migration is applied (sync.scorerCol), else the row's device_id
+const scorerOfRow=(t,r)=>t==='games'?(r.cur&&r.cur.scorer)||null:(r.scorer||r.device_id||null);
 function mergeRemote(st,data){const q=st.sync.queue;let added=0,removed=0;
   (data.pitchers||[]).forEach(r=>{if(q.pitchers[r.id]||r.deleted)return;const p=st.pitchers.find(x=>x.id===r.id);if(!newerThan(p,r))return;const v={id:r.id,name:r.name,num:r.num||'',throws:r.throws||'R',archived:!!r.archived,note:r.note||undefined,_u:r.updated_at||undefined};if(p)delete p._ph;if(p){Object.assign(p,v);if(!r.note)delete p.note;}else st.pitchers.push(v);});
-  (data.games||[]).forEach(r=>{if(q.games[r.id]||r.deleted)return;let g=st.games.find(x=>x.id===r.id);if(!newerThan(g,r))return;const v={id:r.id,date:r.date,opponent:r.opponent,event:r.event||'',homeAway:r.home_away,lineup:r.lineup||[],cur:r.cur||{inning:1,outs:0,slot:0,b:0,s:0,abn:0},started:r.started,ended:r.ended,imported:r.imported,status:r.status||(r.ended?'final':'active'),link:r.link||'',notes:r.notes||'',time:r.game_time||'',field:r.field||'',gameNo:r.game_no||'',location:r.location||'',_u:r.updated_at||undefined};
-    if(g){if(g.pitches.length&&v.status==='scheduled')v.status=g.status||'active';if(!curNewer(g,r.cur))v.cur=g.cur;Object.assign(g,v);}else st.games.push(Object.assign(v,{pitches:[]}));});
+  (data.games||[]).forEach(r=>{if(q.games[r.id]||r.deleted)return;let g=st.games.find(x=>x.id===r.id);if(!newerThan(g,r))return;const v={id:r.id,date:r.date,opponent:r.opponent,event:r.event||'',homeAway:r.home_away,lineup:r.lineup||[],cur:r.cur||{inning:1,outs:0,slot:0,b:0,s:0,abn:0},started:r.started,ended:r.ended,imported:r.imported,scorer:scorerOfRow('games',r),status:r.status||(r.ended?'final':'active'),link:r.link||'',notes:r.notes||'',time:r.game_time||'',field:r.field||'',gameNo:r.game_no||'',location:r.location||'',_u:r.updated_at||undefined};
+    if(g){if(g.pitches.length&&v.status==='scheduled')v.status=g.status||'active';Object.assign(g,v);}else st.games.push(Object.assign(v,{pitches:[]}));});
   (data.call_sheets||[]).forEach(r=>{const qq=q.call_sheets||{};if(qq[r.id])return;st.callSheets=st.callSheets||[];const x=st.callSheets.find(y=>y.id===r.id);if(!newerThan(x,r))return;
     const v={id:r.id,name:r.name||'Sheet',pitcherId:r.pitcher_id||null,cols:Array.isArray(r.cols)?r.cols.map(String):[],rows:Array.isArray(r.rows)?r.rows.map(a=>Array.isArray(a)?a.map(c=>String(c==null?'':c).slice(0,16)):[]):[],deleted:!!r.deleted,_u:r.updated_at||undefined};if(x)Object.assign(x,v);else st.callSheets.push(v);});
   (data.notes||[]).forEach(r=>{const qq=q.notes||{};if(qq[r.id])return;st.notes=st.notes||[];const x=st.notes.find(y=>y.id===r.id);if(!newerThan(x,r))return;
@@ -56,7 +56,7 @@ function mergeRemote(st,data){const q=st.sync.queue;let added=0,removed=0;
   (data.team_settings||[]).forEach(r=>{if(r.id!==TEAM_SETTINGS_ID||(q.team_settings||{})[r.id])return;st.settings=st.settings||{};if(!newerThan(st.settings,r))return;Object.assign(st.settings,rowSettings(r),{_u:r.updated_at||undefined});});
   // sessions: last writer wins by updated_at for every field (date, pitcher, ...), same as the other tables
   (data.sessions||[]).forEach(r=>{if(q.sessions[r.id]||r.deleted)return;const x=st.sessions.find(y=>y.id===r.id);if(!newerThan(x,r))return;
-    const v={id:r.id,date:r.date,started:r.started,imported:!!r.imported,pitcherId:r.pitcher_id||undefined,_u:r.updated_at||undefined};if(x)Object.assign(x,v);else st.sessions.push(Object.assign(v,{pitches:[]}));});
+    const v={id:r.id,date:r.date,started:r.started,imported:!!r.imported,pitcherId:r.pitcher_id||undefined,scorer:scorerOfRow('sessions',r),_u:r.updated_at||undefined};if(x)Object.assign(x,v);else st.sessions.push(Object.assign(v,{pitches:[]}));});
   const where={};st.games.forEach(g=>g.pitches.forEach(p=>where[p.id]=g));st.sessions.forEach(x=>x.pitches.forEach(p=>where[p.id]=x));const touched=new Set();
   (data.pitches||[]).forEach(r=>{if(q.pitches[r.id])return;const c=where[r.id];
     if(r.deleted){if(c){c.pitches=c.pitches.filter(p=>p.id!==r.id);removed++;}return;}
@@ -68,6 +68,10 @@ function mergeRemote(st,data){const q=st.sync.queue;let added=0,removed=0;
 function quarantine(st,t,id,status,error){st.sync.rejected=st.sync.rejected||{};st.sync.rejected[t+':'+id]={table:t,id,status,error,at:Date.now()};delete st.sync.queue[t][id];}
 function retryRejected(st,key){const r=(st.sync.rejected||{})[key];if(!r)return false;const q=st.sync.queue[r.table]=st.sync.queue[r.table]||{};q[r.id]=(q[r.id]||0)+1;delete st.sync.rejected[key];return true;}
 function discardRejected(st,key){if(!(st.sync.rejected||{})[key])return false;delete st.sync.rejected[key];return true;}
+// plain-words reason for a refused change (Setup → Sync problems); the raw server text stays behind "Details"
+const SYNC_WHY={auth:'Your sign-in ran out. Tap Retry – it will send after you sign in again.',denied:"This phone isn't allowed to save that. Ask your coach to check your team code.",
+  dup:'This was already saved from another phone. Usually safe to Discard.',bad:"The server couldn't read this change. Try Retry; if it fails again, Discard."};
+const syncWhy=r=>r.status===409||/duplicate/i.test(r.error||'')?SYNC_WHY.dup:r.status===401?SYNC_WHY.auth:r.status===403?SYNC_WHY.denied:SYNC_WHY.bad;
 const rejectedList=st=>Object.entries((st.sync&&st.sync.rejected)||{}).map(([key,r])=>Object.assign({key},r)).sort((a,b)=>b.at-a.at);
 // incremental pull: rows changed since the last pull (minus a 2-minute overlap for slow commits; merging is idempotent),
 // keyset-paged by (updated_at, id) so paging never skips or repeats rows while the table changes
@@ -114,5 +118,5 @@ function makeSync(store,cfg){const f=cfg.fetch||(typeof fetch!=='undefined'?fetc
       const a=st0.sync.role==='viewer'?{sent:0}:await api.push();const pe=st0.sync.lastError;const b=await api.pull(); // always pull, even if the push failed
       if((a.error||a.rejected)&&!b.error){st0.sync.lastError=pe;store.save();}return Object.assign({},b,a);}};
   return api;}
-Object.assign(PC,{validSpot,curNewer,quarantine,retryRejected,discardRejected,rejectedList,sinceOf,pullUrl,PAGE,TABLES,keyOf,TEAM_SETTINGS_ID,settingsRow,rowSettings,pitchRow,rowPitch,roleAllows,buildRows,gameStatus,newerThan,mergeRemote,makeSync});
+Object.assign(PC,{SYNC_WHY,syncWhy,validSpot,scorerOfRow,quarantine,retryRejected,discardRejected,rejectedList,sinceOf,pullUrl,PAGE,TABLES,keyOf,TEAM_SETTINGS_ID,settingsRow,rowSettings,pitchRow,rowPitch,roleAllows,buildRows,gameStatus,newerThan,mergeRemote,makeSync});
 })(typeof window!=='undefined'?window:globalThis);

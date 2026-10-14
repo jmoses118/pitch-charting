@@ -12,6 +12,19 @@
 - **Setup → Sync problems:** see changes the server refused, then retry or discard each one (Cancel changes nothing).
 - **Faster sync:** pull downloads only what changed since the last sync, with keyset paging.
 - CI runs the browser smoke and XSS tests on every PR.
+### Scoring lock (Jim)
+- A live game or bullpen session can be scored only from the phone that started it; other phones see the live count and pitches read only, with a "Scoring on another phone" note.
+- **Take over scoring** (with confirm and Cancel) moves scoring to this phone when the scoring phone dies.
+- Replaces the "phone that has seen more pitches wins" rule (`cur.pn` removed).
+- New migration `20261014120000_scoring_lock.sql` (`sessions.scorer`) – **not applied to the live DB yet**; until then sessions use `device_id` and games use `cur.scorer`.
+
+### Design review fixes (UI Designer)
+- Sync problems rows say why in plain words: "Why: This phone isn't allowed to save that. Ask your coach to check your team code. · Oct 14, 8:56 AM" (sign-in ran out / not allowed / already saved from another phone / couldn't read). The raw server text is behind a Details toggle.
+- Discard looks destructive before it's picked (red text and outline). After Apply, a "1 change discarded · Undo" toast stays for about 6 seconds.
+- New sheet subtitle: "These changes didn't reach the cloud. They're safe on this phone. Pick Retry or Discard for each, then tap Apply."
+- Coach screen: the change-up warning is short so it never truncates ("Change-up: aim low"; "CH: aim low" on narrow phones), and ⋯ Game keeps its full label. The bullpen toast keeps the full box list.
+- Boxes a change-up can't aim at are dashed outlines with grey (#5B6472) numbers instead of faded out.
+- Band setup: change-up rows say "Change-ups aim low: 4, 7, 8, 9, 13, 14 or 18." An old high change-up aim is flagged on its row ("Was zone 2 – change-ups can't aim high. Pick a low box.") instead of being dropped silently.
 ### Changed (code)
 - Heat map summary moved into scoring.js (`PC.heatSummary`), with tests. One miss-direction list and one best/weakest-spot helper. Removed the unused `isMiddleMiss` and a stray comment.
 
