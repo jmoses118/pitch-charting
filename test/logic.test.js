@@ -431,11 +431,11 @@ test('rowPitch keeps every valid spot (zone, ring, way off 21-24) and drops junk
 test('game zone tap: a call with no spot aims first; the cell above box 3 is zone 12',()=>{
   const ch={aimEdit:false,shook:false,called:true,type:'CH',targets:[]};
   assert.equal(PC.gameZoneAction(ch,12).action,'bad_target');assert.equal(PC.gameZoneAction(ch,3).action,'bad_target');
-  assert.deepEqual(PC.gameZoneAction(ch,8),{action:'aim',z:8});assert.equal(PC.gameZoneAction(ch,31).action,'need_aim');assert.equal(PC.gameZoneAction(ch,21).action,'need_aim');
+  assert.deepEqual(PC.gameZoneAction(ch,8),{action:'aim',z:8});assert.deepEqual(PC.gameZoneAction(ch,31),{action:'aim',z:31});assert.deepEqual(PC.gameZoneAction(ch,21),{action:'aim',z:21});
   assert.deepEqual(PC.gameZoneAction(Object.assign({},ch,{targets:[8]}),12),{action:'loc',z:12});
   assert.deepEqual(PC.gameZoneAction({aimEdit:false,shook:false,called:true,type:'FB',targets:[6]},12),{action:'loc',z:12});
   assert.deepEqual(PC.gameZoneAction({aimEdit:true,shook:false,called:true,type:'FB',targets:[6]},12),{action:'aim',z:12});
-  assert.deepEqual(PC.gameZoneAction({aimEdit:false,shook:true,called:true,type:'CH',targets:[]},8),{action:'loc',z:8});
+  assert.deepEqual(PC.gameZoneAction({aimEdit:false,shook:true,called:true,type:'CH',targets:[]},8),{action:'aim',z:8});
   const bare={type:null,targets:[],loc:5};const rep=PC.sessionReport([bare,{type:'CH',targets:[8],loc:31,result:'ball'}]);
   assert.ok(rep.types['?']);assert.equal(rep.types.CH.stats.called,1);assert.ok(!rep.types.CH.feedback.join(' ').includes('no spot'));});
 test("change-up targets: only 4, 7, 8, 9, 13, 14, 18; high CH calls (CH H+, CH H, CH 2) get no spot and are flagged",()=>{assert.deepEqual(PC.CH_TARGETS,[4,7,8,9,13,14,18]);assert.deepEqual(PC.aimOpts('CH'),[4,7,8,9,13,14,18]);assert.equal(PC.aimOpts('FB').length,17);
@@ -481,16 +481,52 @@ test('shake-off syncs on today\'s schema (call_raw tag) and via the shook column
   assert.equal(PC.rowPitch({id:'x',call_raw:'FB 3',shook:false}).shook,undefined);});
 
 // ---------------- v40 (scoring chart) ----------------
-test('actual location: in dirt and over the catcher are logged, never aimed',()=>{
+test('actual location: dirt and backstop can be the called spot; band setup still cannot aim there',()=>{
   assert.equal(PC.locInfo(31,'R','R').label,'in dirt');assert.equal(PC.locInfo(32,'R','R').label,'over catcher/backstop');
   assert.equal(PC.isCompetitive(31),false);assert.equal(PC.isCompetitive(32),false);assert.equal(PC.isActualOnly(31),true);
   assert.equal(PC.canAim('CH',2),false);assert.equal(PC.canAim('CH',8),true);assert.equal(PC.canAim('FB',31),false);assert.equal(PC.canAim('CH',18),true);
-  assert.equal(PC.bullpenTap({type:'CH'},31).action,'not_aim');assert.equal(PC.bullpenTap({type:'FB'},32).action,'not_aim');
-  assert.equal(PC.bullpenTap({type:'CH'},21).action,'not_aim');
+  assert.equal(PC.validCalled('CH',31),true);assert.equal(PC.validCalled('FB',21),true);assert.equal(PC.validCalled('CH',12),false);
+  assert.equal(PC.bullpenTap({type:'CH'},31).action,'target');assert.equal(PC.bullpenTap({type:'FB'},32).action,'target');
+  assert.equal(PC.bullpenTap({type:'CH'},21).action,'target');
   const aimed=PC.bullpenTap({type:'CH'},8);assert.equal(aimed.action,'target');
   assert.equal(PC.bullpenTap(aimed.draft,1).action,'log');assert.equal(PC.bullpenTap(aimed.draft,31).action,'log');
   assert.equal(PC.bullpenTap(aimed.draft,31).draft.loc,31);
   assert.equal(PC.chUp?PC.chUp({type:'CH',loc:32}):false,false);
+});
+test('scoring flow: game requires a result, bullpen saves on the actual spot',()=>{
+  assert.deepEqual(PC.flowSteps('game'),['type','called','actual','result']);assert.deepEqual(PC.flowSteps('bullpen'),['type','called','actual']);
+  const src={mode:'game',type:'FB',called:[6],actual:null};const before=JSON.stringify(src);PC.scoreApply(src,{op:'actual',z:4});assert.equal(JSON.stringify(src),before);
+  assert.equal(PC.scoreStep({mode:'game'}),'type');
+  assert.equal(PC.scoreApply({mode:'game'},{op:'called',z:6}).reason,'need_type');
+  assert.equal(PC.scoreApply({mode:'game'},{op:'actual',z:6}).reason,'need_type');
+  assert.equal(PC.scoreApply({mode:'game'},{op:'result',result:'ball'}).reason,'need_type');
+  const call=PC.scoreApply({mode:'game'},{op:'call',type:'FB',called:[6]});assert.equal(call.step,'actual');assert.deepEqual(call.draft.called,[6]);
+  let ch=PC.scoreApply({mode:'game'},{op:'call',type:'CH',called:[12,8]});assert.deepEqual(ch.draft.called,[8]);assert.equal(ch.step,'actual');
+  ch=PC.scoreApply({mode:'game'},{op:'call',type:'CH',called:[]});assert.equal(ch.step,'called');
+  assert.equal(PC.scoreTap(ch.draft,12).reason,'bad_target');
+  const aimed=PC.scoreTap(ch.draft,8);assert.equal(aimed.step,'actual');assert.deepEqual(aimed.draft.called,[8]);
+  assert.equal(PC.scoreApply(aimed.draft,{op:'result',result:'ball'}).reason,'need_actual');
+  const land=PC.scoreTap(aimed.draft,12);assert.equal(land.step,'result');assert.equal(land.draft.actual,12);
+  assert.equal(PC.scoreTap(aimed.draft,31).draft.actual,31);
+  const saved=PC.scoreApply(land.draft,{op:'result',result:'ball'});assert.equal(saved.step,'done');
+  const row=PC.scoreCommit(saved.draft);assert.deepEqual(row.targets,[8]);assert.equal(row.loc,12);assert.equal(row.calledLoc,8);assert.equal(row.result,'ball');
+  assert.equal(PC.scoreCommit(aimed.draft),null);
+  const over=PC.scoreApply({mode:'game',type:'FB',called:[6],actual:4},{op:'called',z:5});assert.deepEqual(over.draft.called,[5]);assert.equal(over.draft.actual,4);assert.equal(over.step,'result');
+  const ip=PC.scoreApply({mode:'game',type:'FB',called:[5],actual:5},{op:'result',result:'inplay'});assert.equal(ip.step,'done');assert.equal(ip.draft.ip,null);
+  assert.equal(PC.scoreApply(ip.draft,{op:'ip',ip:'GB'}).draft.ip,'GB');
+  assert.equal(PC.scoreApply({mode:'game',type:'FB',called:[5],actual:5,result:'ball'},{op:'ip',ip:'GB'}).reason,'need_result');
+  let b=PC.scoreApply({mode:'bullpen'},{op:'call',type:'CH',called:[31]});assert.equal(b.step,'actual');
+  assert.equal(PC.scoreApply(b.draft,{op:'result',result:'called'}).reason,'no_result');
+  const hit=PC.scoreCommit(PC.scoreTap(b.draft,31).draft);assert.equal(hit.result,null);assert.deepEqual(hit.targets,[31]);assert.equal(hit.loc,31);
+  assert.equal(PC.hitSpot(hit),true);assert.equal(PC.pitchMiss(hit).sev,0);
+  const miss=PC.scoreCommit(PC.scoreTap(PC.scoreApply({mode:'bullpen'},{op:'call',type:'CH',called:[8]}).draft,31).draft);
+  assert.equal(PC.hitSpot(miss),false);assert.equal(PC.pitchMiss(miss).sev,PC.MAX_MISS-1);
+  const sh=PC.scoreApply({mode:'game',type:'CH',called:[7]},{op:'shake',norm:'CH7',raw:'CH 7'});assert.equal(sh.step,'type');assert.deepEqual(sh.draft.shook.called,[7]);
+  const threw=PC.scoreApply(sh.draft,{op:'call',type:'FB',called:[]});assert.equal(threw.step,'called');
+  const fin=PC.scoreCommit(PC.scoreApply(PC.scoreTap(PC.scoreTap(threw.draft,5).draft,6).draft,{op:'result',result:'foul'}).draft);
+  assert.deepEqual(fin.targets,[5]);assert.equal(fin.loc,6);assert.equal(fin.calledLoc,7);assert.equal(fin.shook,true);assert.equal(fin.result,'foul');
+  const multi=PC.scoreCommit(PC.scoreApply(PC.scoreTap(PC.scoreApply({mode:'game'},{op:'call',type:'FB',called:[7,9]}).draft,8).draft,{op:'result',result:'ball'}).draft);
+  assert.equal(multi.calledLoc,PC.nearestTarget([7,9],8));
 });
 test('in dirt and over the catcher score as way off and still count as landed',()=>{
   const m=PC.pitchMiss({type:'FB',targets:[8],loc:31});assert.equal(m.sev,PC.MAX_MISS-1);assert.equal(PC.chUp({type:'CH',loc:32}),false);

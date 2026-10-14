@@ -18,17 +18,17 @@ for(const [r,c2,loc,res] of [[2,4,4,'ball'],[0,0,8,'called'],[1,2,7,'inplay']]){
 // AB2 – portrait one-screen entry, type only (no aim): 11 ball, 14 foul, 5 in play 1B
 await p.setViewportSize({width:390,height:844});await ev(()=>{localStorage.setItem('te_ui_portrait_ok','1');__app.render();});await w(300);
 const tapZ=async z=>{const xy=await p.$eval(`#zone [data-z="${z}"]`,e=>{const s=e.ownerSVGElement,pt=s.createSVGPoint(),bb=e.getBBox();const cx={11:[bb.x+4,bb.y+4],14:[bb.x+bb.width-4,bb.y+bb.height-4]}[e.dataset.z]||[bb.x+bb.width/2,bb.y+bb.height/2];pt.x=cx[0];pt.y=cx[1];const q=pt.matrixTransform(s.getScreenCTM());return[q.x,q.y];});await p.mouse.click(xy[0],xy[1]);};
-for(const [loc,res,ip] of [[11,'ball'],[14,'foul'],[5,'inplay','1B']]){await p.click('#types button:first-child');await tapZ(loc);await w();await p.click(`#resBtns [data-r="${res}"]`);await w();if(ip){await p.click(`[data-ip="${ip}"]`);await w();}}
+for(const [loc,res,ip] of [[11,'ball'],[14,'foul'],[5,'inplay','1B']]){await p.click('#types button:first-child');await tapZ(loc);await w();await tapZ(loc);await w();await p.click(`#resBtns [data-r="${res}"]`);await w();if(ip){await p.click(`[data-ip="${ip}"]`);await w();}}
 const g=await G();const P=g.pitches.filter(x=>!x.noPitch);
 ok(JSON.stringify(P.map(x=>x.loc))==='[4,8,7,11,14,5]','6 pitches stored with the landed spots tapped '+JSON.stringify(P.map(x=>x.loc)));
-ok(JSON.stringify(P.map(x=>x.targets||[]))==='[[6],[3],[7],[],[],[]]','aims stored only for the band calls (landscape + portrait use the same fields) '+JSON.stringify(P.map(x=>x.targets)));
+ok(JSON.stringify(P.map(x=>x.targets||[]))==='[[6],[3],[7],[11],[14],[5]]','every pitch stores a called spot, band calls and portrait taps alike '+JSON.stringify(P.map(x=>x.targets)));
 // ---- Game ----
 ok(await p.textContent('#pc')==='6','Game: PITCHES 6');
 ok(g.cur.outs===1&&g.cur.b===0&&g.cur.s===0&&g.cur.abn===3&&await p.textContent('#cnt')==='0-0','Game: count/outs correct after two finished at-bats (0-0, 1 out, 3rd batter)');
 ok(/^Last batter: 3 pitches · single · next batter starts 0-0$/.test(await ev(()=>document.getElementById('zoneNote')?.textContent||''))&&await ev(()=>!document.getElementById('zoneNote').classList.contains('hide')),'Game: zone says the balls are the last batter\'s, so 0-0 is not a stuck count');
 ok(await ev(()=>{const b=[...document.querySelectorAll('#zone .ball')];return b.length===3&&b.every(e=>+getComputedStyle(e).opacity<=.55);}),'Game: last batter\'s balls are faded');
 if(SHOT){await w(1500);await p.screenshot({path:SHOT+'game-portrait.png'});}
-await p.click('#types button:first-child');await tapZ(5);await w();await p.click('#resBtns [data-r="ball"]');await w();
+await p.click('#types button:first-child');await tapZ(5);await w();await tapZ(6);await w();await p.click('#resBtns [data-r="ball"]');await w();
 ok(await ev(()=>!!document.getElementById('zoneNote')?.classList.contains('hide'))&&await p.textContent('#cnt')==='1-0','Game: note clears and count moves on the next pitch (1-0)');
 await p.click('#undo');await w(1600);
 // ---- Stats: heat map ----
@@ -37,8 +37,8 @@ await p.click('#hvA');await w();const landed=await ev(()=>({t:document.getElemen
 ok(/^6 pitches · where they landed/.test(landed.t),'Landed: counts all 6 pitches, aimed or not → "'+landed.t+'"');
 if(SHOT){await p.screenshot({path:SHOT+'heat-landed.png'});}
 await p.click('#hvI');await w();const miss=await ev(()=>({t:document.getElementById('hSummary').textContent,cells:[...document.querySelectorAll('#hMap text')].map(e=>e.textContent)}));
-ok(miss.t==='Showing 3 of 6 pitches (the ones with an aim). Box = where she aimed · color = how far off. 3 with no aim aren\'t shown – see Landed.','Miss: shows 3 of 6 and says the 3 with no aim aren\'t shown → "'+miss.t+'"');
-{const lab=miss.cells.filter(t=>/off$|^Hit spot$|^Close$/.test(t));ok(!miss.cells.some(t=>/[✓✗.]\d|aimed|On spot/.test(t))&&lab.length===3&&lab.every(t=>/^(Hit spot|Close|[2-4] off)$/.test(t))&&miss.cells.filter(t=>/^1 pitch$/.test(t)).length===3,'Miss: kid-clear whole-box labels (Hit spot / Close / N off, "1 pitch") '+lab.join(','));}
+ok(miss.t==='Showing 6 of 6 pitches (the ones with an aim). Box = where she aimed · color = how far off.','Miss: shows all 6 aimed pitches → "'+miss.t+'"');
+{const lab=miss.cells.filter(t=>/off$|^Hit spot$|^Close$/.test(t));ok(!miss.cells.some(t=>/[✓✗.]\d|aimed|On spot/.test(t))&&lab.length===6&&lab.every(t=>/^(Hit spot|Close|[2-4] off)$/.test(t))&&miss.cells.filter(t=>/^1 pitch$/.test(t)).length===6,'Miss: kid-clear whole-box labels (Hit spot / Close / N off, "1 pitch") '+lab.join(','));}
 ok(await ev(()=>[missTxt(0),missTxt(1),missTxt(1.33),missTxt(1.5),missTxt(2.6),missTxt(4)].join('|'))==='Hit spot|Close|2 off|2 off|3 off|4 off','missTxt: avg 1.33 → "2 off" (never "1 off"), whole boxes');
 ok(!/squares/.test(await p.textContent('#hLegend')),'heat legend says boxes, not squares');
 ok(/Number = how many boxes she missed by\. "Close" = 1 box off – still on target\./.test(await p.textContent('#hLegend')),'Miss legend explains Close');
@@ -47,7 +47,7 @@ if(SHOT){await p.screenshot({path:SHOT+'heat-miss.png'});}
 // ---- per-pitch report agrees with Game ----
 const rep=await ev(()=>[...document.querySelectorAll('#sTypes .tsec')].map(s=>{const t=s.textContent;return{n:+(t.match(/(\d+) thrown/)||[])[1],aim:(t.match(/On target (\d+) of (\d+) aimed/)||[]).slice(1).map(Number),st:+(t.match(/Strikes (\d+)%/)||[])[1]};}));
 const thrown=rep.reduce((a,x)=>a+x.n,0),aimed=rep.reduce((a,x)=>a+(x.aim[1]||0),0);
-ok(thrown===6&&aimed===3,`report: ${thrown} thrown across types (=6), ${aimed} aimed (=3) `+JSON.stringify(rep));
+ok(thrown===6&&aimed===6,`report: ${thrown} thrown across types (=6), ${aimed} aimed (=6) `+JSON.stringify(rep));
 const exp=await ev(()=>{const P=S().games[0].pitches.filter(p=>!p.noPitch),by={};P.forEach(p=>{const t=p.type||'?';(by[t]=by[t]||{n:0,s:0}).n++;if(PC.isStrike(p.result))by[t].s++;});return by;});
 const fb=rep.find(x=>x.n===exp.FB.n);ok(!!fb&&fb.st===Math.round(100*exp.FB.s/exp.FB.n),`report: FB strike % follows the umpire results like the Game count (${fb&&fb.st}% vs ${Math.round(100*exp.FB.s/exp.FB.n)}%)`);
 ok((await p.textContent('#sTypesCard .lbl')).trim()==='Each pitch type'&&(await p.textContent('#sTypesNote')).trim()==='Strikes count every pitch. On target counts only pitches with an aim.','report title "Each pitch type" + strikes/on-target note');

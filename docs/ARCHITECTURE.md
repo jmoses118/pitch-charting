@@ -16,14 +16,15 @@
 Each module is an IIFE that reads dependencies from the shared `PC` namespace (`const {…}=PC`) and registers its exports with `Object.assign(PC,{…})`. The browser loads them via `<script>` tags; node via `logic.js`.
 
 1. **grid.js** – single source of truth for the location grid: zone 1–9, ring 11–18, way-off 21–24, actual-only 31 (in dirt) and 32 (over catcher/backstop), `GRID_XY` lattice, `MAX_MISS`, `missDist`, `locInfo`, `pct`.
-2. **calls.js** – pitch types, call codes (Jim's wristband language), call-code parsing, wristband/call sheet defaults.
-3. **game.js** – count logic (GameChanger aligned), results, at-bat ends, batted-ball types, bullpen entry steps.
-4. **scoring.js** – all scoring rules: miss severity (`pitchMiss` is the only severity source), souvenir, CH-low, ring/way-off, competitive %, heat maps, reports, summaries, K credit, count stats, trends, alert levels. Report, heat map and stats all call these same functions.
-5. **csv.js** – CSV export/import.
-6. **workload.js** – pitch counts today / this tournament weekend (Fri–Sun; Mon–Thu shows the last weekend), game and bullpen counted separately, optional soft day/weekend limits (`workloadAlert`: amber from 85%, red at the limit), in-game alert thresholds, optional rest-day guide (off by default).
-7. **sync.js** – Supabase REST: `TABLES`, `keyOf`, row builders, `roleAllows` (client mirror of RLS), `mergeRemote`, push/pull loop.
-8. **modes.js** – game and bullpen are mutually exclusive on a device: `modeLock(state, tab, canGame)` (a started, not-ended active game locks Bullpen; an active session with pitches locks Game), plus resumable `pausedGames` / `pausedSessions`. Pausing only clears `activeGame` / `activeSession`; no data changes.
-9. **store.js** – default state (first-name pitchers, empty roster), `pitcherLabel` (first name + #number, used by every view), `localStorage` load/save + migrations (`ensureSync`), notes.
+2. **calls.js** – pitch types, call codes (Jim's wristband language), call-code parsing, wristband/call sheet defaults. `canAim` / `aimOpts` stay the zone-and-ring rule (change-ups only 4, 7, 8, 9, 13, 14, 18) for band setup and the wristband.
+3. **flow.js** – the one scoring state machine. `flowSteps('game')` is `type → called → actual → result`. `flowSteps('bullpen')` stops after `actual` and then saves. `scoreApply` / `scoreTap` / `scoreStep` / `scoreCommit` are the only step rules. Portrait, the landscape coach screen, bullpen, and a future overlay all call this module. They do not keep a second copy of the order.
+4. **game.js** – count logic (GameChanger aligned), results, at-bat ends, batted-ball types. `bullpenTap` and `gameZoneAction` are thin wrappers over the machine.
+5. **scoring.js** – all scoring rules: miss severity (`pitchMiss` is the only severity source), souvenir, CH-low, ring/way-off, competitive %, heat maps, reports, summaries, K credit, count stats, trends, alert levels. Report, heat map and stats all call these same functions.
+6. **csv.js** – CSV export/import.
+7. **workload.js** – pitch counts today / this tournament weekend (Fri–Sun; Mon–Thu shows the last weekend), game and bullpen counted separately, optional soft day/weekend limits (`workloadAlert`: amber from 85%, red at the limit), in-game alert thresholds, optional rest-day guide (off by default).
+8. **sync.js** – Supabase REST: `TABLES`, `keyOf`, row builders, `roleAllows` (client mirror of RLS), `mergeRemote`, push/pull loop.
+9. **modes.js** – game and bullpen are mutually exclusive on a device: `modeLock(state, tab, canGame)` (a started, not-ended active game locks Bullpen; an active session with pitches locks Game), plus resumable `pausedGames` / `pausedSessions`. Pausing only clears `activeGame` / `activeSession`; no data changes.
+10. **store.js** – default state (first-name pitchers, empty roster), `pitcherLabel` (first name + #number, used by every view), `localStorage` load/save + migrations (`ensureSync`), notes.
 
 ## Data flow
 UI action (js/ui) → `store.update()` mutates state → saved to `localStorage` → marked dirty → `makeSync` pushes changed rows (filtered by `roleAllows`) via PostgREST with the access code in the `x-team-code` header → periodic pull merges remote rows (`mergeRemote`, newest `updated_at` wins). Test mode skips sync entirely.
@@ -71,4 +72,19 @@ A live game or bullpen session is scored from **one phone only** – the phone t
 - Migration `supabase/migrations/20261014180000_scoring_chart.sql` must be applied before merge, after `20261014140000_shake_off.sql`.
 - CSV columns are appended in `PC.CSV_COLS`, including `called_type`, `shook`, and `from_video` (`PC.csvChart` / `PC.csvApply`). An older file's `edited` column still imports. `PC.filterPitcherDate` keeps one pitcher (first name + number) on one date. Download names go through `PC.csvPitcherFile` / `PC.csvGameFile`: first name and jersey only, safe characters.
 - **Edit pitch:** `PC.editActual(pitch, loc)` sets `loc` and `actualLoc` and, when the spot changed, `edited`. When `targets` has more than one box, it sets `calledLoc` to `PC.nearestTarget` for the new spot. One target, or none, leaves `calledLoc`. It does not remove the pitch or change the result or the count. The sheet is `#editDlg` (Save / Cancel). Rows in `#log`, `#recent`, and Stats `#pitchList` (one game or one session) open it. `PC.canEditBox` allows the scoring phone (and that phone after the game); viewer and unknown codes cannot. Sync: `dirty('pitches', id)` sends a normal pitch update. `edited` is a word joiner (`PC.EDITED_TAG`) at the end of `call_raw`, so it round-trips on today's schema and the shake-off prefix stays at the front. It is not a new column.
-- Bullpen default result is `S().bpResult` (`''` | `ball` | `called`), stamped only in `logBullpen` via `PC.bullpenResult`. Batter side stays on the existing Batter sheet (No batter / LHB / RHB).
+- Bullpen default result is `S().bpResult` (`''` | `ball` | `called`). The scoring machine does not read it and does not stamp a ball or strike on a bullpen pitch. Batter side stays on the existing Batter sheet (No batter / LHB / RHB).
+
+## Scoring flow (v48)
+One state machine in `js/core/flow.js`. Portrait Game, the landscape coach Game screen, Bullpen, and a future overlay call `PC.scoreApply`, `PC.scoreTap`, `PC.scoreStep`, and `PC.scoreCommit`. There is no second screen and no second copy of the step order.
+
+| Mode | Required steps | Save |
+|---|---|---|
+| Game | `type` → `called` → `actual` → `result` | `recordGame` after the result. Result is ball, called strike, swinging strike, foul, foul tip, in play, HBP, or a dropped third. |
+| Bullpen | `type` → `called` → `actual` | `logBullpen` on the actual-location tap. No ball/strike step. |
+
+- **Called location** is auto-placed from the wristband call (or a saved band aim). A zone tap, ✎ Aim, or a long-press overrides it. `PC.validCalled` allows dirt (31), over the catcher (32), and way off (21–24), so a curve or change aimed in the dirt that lands in the dirt is a hit. A change-up still cannot be called in a high zone or ring box. `PC.canAim` is unchanged and still rejects those spots in band setup.
+- **Actual location** is the later tap. In a game it is what opens the result sheet. The sheet stays closed while the called spot or the actual spot is still missing, and it never covers the zone during those steps. The header reads aim → actual, for example `Result · CH 8 → @12`.
+- **Bullpen success** is hit-spot % (`PC.hitSpot`: the actual spot is one of the called spots, and a change-up up in the zone does not count). The live bullpen line, a bullpen Stats scope, and the session report lead with that. Game Stats keep strike %.
+- Landing on a called dirt or way-off spot is severity 0. The same landing aimed somewhere else stays `WAY_SEV`.
+- **Optional, and they do not reorder the required steps:** shake-off (the coach's call is stored, then the thrown pitch walks type → her own called spot → actual → game result), velocity, in-play contact and the play, and editing a past actual location (`PC.editActual`). Intentional walk stays outside the machine.
+- `PC.scoreCommit` is the one writer of `targets` (her called spots), `loc` / `actualLoc`, and `calledLoc` (on a shake-off, the coach's box nearest the landing). A future overlay should call the same four functions and not invent a third path.

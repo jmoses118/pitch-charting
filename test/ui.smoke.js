@@ -3,16 +3,15 @@ const {chromium}=require('playwright-core');
 const errs=[];pg.on('pageerror',e=>errs.push(e.message));
 await pg.goto('http://localhost:'+process.argv[2]+'/');
 await pg.fill('#gOpp','Lightning');await pg.click('#gStart');
-// result picker is a bottom sheet (v34): open it with the Result button when no location was tapped
-const openRes=async()=>{if(await pg.isHidden('#resSheet'))await pg.click('#resTog');};
+// result sheet opens only after the called spot and the actual spot (v48)
 const tap=async z=>{const s=`#zone [data-z="${z}"]`;await pg.$eval(s,e=>e.scrollIntoView({block:"center"}));await pg.click(s,{force:true});};
-const foul=async()=>{await pg.click('#types [data-c="FB"]');await openRes();await pg.click('[data-r=\"foul\"]');};
-await pg.click('#types [data-c="FB"]');await tap(3);await openRes();await pg.click('[data-r=\"called\"]');
-await foul();await foul();await foul();
+const pitch=async result=>{await pg.click('#types [data-c="FB"]');await tap(3);await tap(4);await pg.click(`[data-r="${result}"]`);};
+const peekKd3=async()=>{await pg.evaluate(()=>{D.type='FB';pushCalled([3]);D.loc=4;D.sheet=true;render();});const v=await pg.isVisible('[data-r="kd3"]');await pg.evaluate(()=>{resetDraft();render();});return v;};
+await pitch('called');await pitch('foul');await pitch('foul');await pitch('foul');
 let cnt=await pg.textContent('#cnt'),pc=await pg.textContent('#pc');console.log('after K,F,F,F count',cnt,'pc',pc);
 if(cnt!=='0-2'||pc!=='4')throw 'count';
-await pg.click('#types [data-c="FB"]');await openRes();await pg.click('[data-r=\"swinging\"]');console.log('after K3 count',await pg.textContent('#cnt'),'outs',await pg.$$eval('#outs .on',x=>x.length));
-{const h=(await openRes(),await pg.isVisible('[data-r=\"kd3\"]'));console.log('K-D3 button hidden at 0-0:',!h);if(h)throw 'kd3 visible at 0-0';}await pg.click('#undo');{const v=(await openRes(),await pg.isVisible('[data-r=\"kd3\"]'));console.log('K-D3 button shown at 2 strikes:',v);if(!v)throw 'kd3 hidden at 2 strikes';}await pg.click('#types [data-c="FB"]');await openRes();await pg.click('[data-r=\"kd3\"]');const o2=await pg.$$eval('#outs .on',x=>x.length);console.log('after K-D3 outs',o2,'count',await pg.textContent('#cnt'));if(o2!==0)throw 'kd3';await pg.click('#undo');console.log('after undo',await pg.textContent('#cnt'),await pg.textContent('#pc'));
+await pitch('swinging');console.log('after K3 count',await pg.textContent('#cnt'),'outs',await pg.$$eval('#outs .on',x=>x.length));
+{const h=await peekKd3();console.log('K-D3 button hidden at 0-0:',!h);if(h)throw 'kd3 visible at 0-0';}await pg.click('#undo');{const v=await peekKd3();console.log('K-D3 button shown at 2 strikes:',v);if(!v)throw 'kd3 hidden at 2 strikes';}await pitch('kd3');const o2=await pg.$$eval('#outs .on',x=>x.length);console.log('after K-D3 outs',o2,'count',await pg.textContent('#cnt'));if(o2!==0)throw 'kd3';await pg.click('#undo');console.log('after undo',await pg.textContent('#cnt'),await pg.textContent('#pc'));
 await pg.screenshot({path:require('path').join(__dirname,'shot-game.png'),fullPage:true});
 // bullpen with call
 await pg.click('#gPause'); // a game in progress locks the bullpen (modes are exclusive)

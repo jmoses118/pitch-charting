@@ -5,12 +5,12 @@ await c.route(/supabase\.co/,r=>r.abort());await c.addInitScript(()=>localStorag
 const tap=async s=>{await p.$eval(s,e=>e.scrollIntoView({block:'center'}));await p.click(s,{force:true});await p.waitForTimeout(80);};
 await p.goto(BASE);await p.click('nav [data-t="bullpen"]');await p.click('#bpTest');ok(await p.isVisible('#testbar'),'test mode');
 const pen=async(t,aim,land)=>{await tap(`#types [data-c="${t}"]`);await tap(`#zone [data-z="${aim}"]`);await tap(land>20?`#wayBtns [data-z="${land}"]`:`#zone [data-z="${land}"]`);};
-await tap('#types [data-c="FB"]');await tap('#wayBtns [data-z="21"]');const t0=await p.evaluate(()=>(__app.store.state.sessions.at(-1)?.pitches||[]).length);ok(t0===0,'way off cannot be a target');await tap('#zone [data-z="3"]');await tap('#zone [data-z="3"]');
+await tap('#types [data-c="FB"]');await tap('#wayBtns [data-z="21"]');const t0=await p.evaluate(()=>(__app.store.state.sessions.at(-1)?.pitches||[]).length);ok(t0===0,'a called way-off spot waits for the actual location');await tap('#undo');await tap('#zone [data-z="3"]');await tap('#zone [data-z="3"]');
 await pen('FB',3,12);await pen('FB',3,21);await pen('CH',8,18);await pen('FB',9,22);await pen('FB',16,16);
 const P=await p.evaluate(()=>__app.store.state.sessions.at(-1).pitches.map(x=>x.loc));ok(JSON.stringify(P)==='[3,12,21,18,22,16]','logged locs '+JSON.stringify(P));
 const log=await p.textContent('#log');ok(/way high/.test(log)&&/way low/.test(log),'log shows way high / way low');
 await p.click('#bpEnd');await p.waitForTimeout(300);const rt=await p.textContent('#rDlg');
-ok(/Competitive/.test(rt)&&/67%/.test(rt),'report: competitive 67% (4 of 6)');ok(/Way off/.test(rt),'report: way off tile');ok(/2 pitches way off/.test(rt),'report feedback mentions way off');ok(/17%/.test(rt),'raw strike % (1 of 6) still shown');
+ok(/Competitive/.test(rt)&&/67%/.test(rt),'report: competitive 67% (4 of 6)');ok(/Way off/.test(rt),'report: way off tile');ok(/2 pitches way off/.test(rt),'report feedback mentions way off');ok(/Hit spot/.test(rt)&&/33%/.test(rt),'bullpen report leads with hit spot (2 of 6)');
 await p.$eval('#rMap [data-z="3"]',e=>e.scrollIntoView({block:'center'}));await p.dispatchEvent('#rMap [data-z="3"]','click');await p.waitForTimeout(250);const dd=await p.textContent('#ddCap');
 ok(/2 on target/.test(dd)&&/1 way off/.test(dd)&&/way high/.test(dd),'drill-down: 2 on target (3, ring 12), 1 way high: '+dd);
 await p.evaluate(()=>document.querySelectorAll('dialog[open]').forEach(d=>d.close()));

@@ -30,7 +30,7 @@ const isBullpenPitch=p=>p&&p.abn==null&&p.inning==null;
 // CH / drop / drop curve landing in the bottom ring (13, 18, 14) is a good pitch (bullpen). CH-up rule still applies.
 const WAY_SEV=MAX_MISS-1;const LOW_RING=[13,18,14],LOW_TYPES=['CH','DR','DC'];
 const lowGood=p=>isBullpenPitch(p)&&LOW_TYPES.includes(p.type)&&LOW_RING.includes(p.loc);
-function adjSev(p,sev){if(isWay(p.loc)||isActualOnly(p.loc))return WAY_SEV;if(lowGood(p))return Math.min(sev,1);return sev;}
+function adjSev(p,sev){const aimedHere=p.targets&&p.targets.some(z=>+z===+p.loc);if((isWay(p.loc)||isActualOnly(p.loc))&&!aimedHere)return WAY_SEV;if(lowGood(p))return Math.min(sev,1);return sev;}
 const chUp=p=>p&&p.type==='CH'&&!isWay(p.loc)&&!isActualOnly(p.loc)&&GRID_XY[p.loc]!=null&&GRID_XY[p.loc][1]<=2;
 function missData(items,f){const q=heatFilter(items,f);const cells={};ALL_CELLS.forEach(z=>cells[z]={n:0,sum:0,hit:0,avg:null,mm:0});let total=0,mm=0,chu=0;
   // one source of truth for severity: pitchMiss (souvenir, CH-up, way-off, low-ring rules all live there)

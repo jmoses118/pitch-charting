@@ -52,7 +52,7 @@ for(const [W,H,MIN,ZMIN,RESW] of [[844,390,48,48,48],[667,375,44,34,46]]){const 
   await p.click('#cRes [data-cx="same"]');await wait();ok((await p.textContent('#cxCode')).replace(/\s+/g,' ').trim()==='3-05 Fb In',`${tag}: Same call repeats 3-05`);
   await p.click('#cRes [data-cx="aim"]');await wait();ok(/new aim/.test(await p.textContent('#cxHint')),`${tag}: ✎ Aim mode prompts for the new aim`);
   await p.click('#cZone button[data-z="5"]');await wait();ok(await ev(()=>!!document.querySelector('#cZone .aim[data-z="5"]')&&!document.querySelector('#cZone.editing')),`${tag}: ✎ Aim moves the aim to 5 and exits`);
-  await p.click('#cRes [data-r="called"]');await wait();ok(JSON.stringify((await G()).pitches.at(-1).targets)==='[5]',`${tag}: edited aim is logged`);
+  await p.click('#cZone button[data-z="4"]');await wait();await p.click('#cRes [data-r="called"]');await wait();ok(JSON.stringify((await G()).pitches.at(-1).targets)==='[5]',`${tag}: edited aim is logged`);
   await p.click('#cBand button[data-r="0"][data-c="0"]');await wait();
   {const bx=await p.$eval('#cZone button[data-z="8"]',e=>{const r=e.getBoundingClientRect();return[r.x+r.width/2,r.y+r.height/2];});await p.mouse.move(bx[0],bx[1]);await p.mouse.down();await wait(520);await p.mouse.up();await wait();}
   ok(await ev(()=>!!document.querySelector('#cZone .aim[data-z="8"]')&&!document.querySelector('#cZone .act')),`${tag}: long-press sets the aim (8) without marking a landing`);
@@ -91,7 +91,7 @@ for(const [W,H,MIN,ZMIN,RESW] of [[844,390,48,48,48],[667,375,44,34,46]]){const 
   await p.click('#cxMenu');await wait(200);await p.click('#cmBand');await wait(200);await p.selectOption('#bandList select[data-norm="CH"]','8');await p.click('#bandDlg button[value=ok]');await wait();
   await p.click('#cBand button[data-r="1"][data-c="7"]');await wait();ok(/aim 8/.test(await p.textContent('#cxAim')),`${tag}: unmapped "CHG" cell now aims at 8 after band setup`);
   // ---- side retired ----
-  await ev(()=>{const g=__app.store.real.games[0];g.cur.outs=2;g.cur.s=2;g.cur.b=0;__app.store.save();__app.render();});await p.click('#cRes [data-r="swinging"]');await wait();
+  await ev(()=>{const g=__app.store.real.games[0];g.cur.outs=2;g.cur.s=2;g.cur.b=0;__app.store.save();__app.render();});await p.click('#cZone button[data-z="8"]');await wait();await p.click('#cRes [data-r="swinging"]');await wait();
   ok(await ev(()=>!document.getElementById('cSide').classList.contains('hide'))&&/Top 1: \d+ pitches · \d+ K/.test(await p.textContent('#cSideSum')),`${tag}: "Side retired" card with the inning summary`);
   {const cr=await ev(()=>{const L=c=>{const m=c.match(/[\d.]+/g).slice(0,3).map(v=>{v/=255;return v<=.03928?v/12.92:((v+.055)/1.055)**2.4;});return .2126*m[0]+.7152*m[1]+.0722*m[2];};const e=document.getElementById('cSideOk'),cs=getComputedStyle(e),bg=getComputedStyle(document.getElementById('cSide')).backgroundColor;
     const r=(a,b)=>(Math.max(a,b)+.05)/(Math.min(a,b)+.05);return{t:r(L(cs.color),L(bg)),b:r(L(cs.borderTopColor),L(bg)),bw:parseFloat(cs.borderTopWidth)};});

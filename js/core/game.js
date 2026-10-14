@@ -27,23 +27,24 @@ function applyPitch(cnt,result,ip){let b=cnt.b,s=cnt.s,end=null,outs=0;
 const countsAsPitch=p=>!p.noPitch;
 const pitchCount=(pitches,pid)=>pitches.filter(p=>countsAsPitch(p)&&(pid==null||p.pitcherId===pid)).length;
 // ---------- Stats ----------
-// Bullpen per-pitch flow (same order as game mode): 1) pitch type 2) tap intended spot 3) tap actual spot -> log + reset.
-// A call-sheet code that already names a spot counts as step 2.
-function bullpenStep(d){if(!d.type)return'type';const it=(d.callTargets&&d.callTargets.length)?d.callTargets:(d.target?[d.target]:[]);return it.length?'actual':'target';}
-function bullpenTap(d,z){const st=bullpenStep(d);if(st==='type')return{action:'need_type',draft:d};
-  if(st==='target'&&(PC.isWay(z)||PC.isActualOnly(z)))return{action:'not_aim',draft:d};
-  if(st==='target'&&!PC.targetOk(d.type,z))return{action:'bad_target',draft:d};
-  if(st==='target')return{action:'target',draft:Object.assign({},d,{target:z})};
-  const targets=(d.callTargets&&d.callTargets.length)?d.callTargets.slice():[d.target];return{action:'log',draft:Object.assign({},d,{loc:z}),targets};}
-// Game zone tap. A call that already names a spot: the tap is where it went.
-// A call with no spot (CHG, a high change-up, band not set): the first tap is the aim, same as portrait.
-// Shake-off keeps her aim optional, so a tap is where it went until she sets one with ✎ Aim.
-// aimEdit forces an aim. In dirt / over the catcher / way off are never an aim.
-function gameZoneAction(d,z){z=+z;d=d||{};
-  if(d.aimEdit){if(!PC.targetOk(d.type,z))return{action:'bad_target'};return{action:'aim',z};}
-  const need=!d.shook&&d.called&&!(d.targets&&d.targets.length);
-  if(need){if(PC.isWay(z)||PC.isActualOnly(z))return{action:'need_aim'};if(!PC.canAim(d.type,z))return{action:'bad_target'};return{action:'aim',z};}
-  return{action:'loc',z};}
+// Thin wrappers over the scoring state machine (js/core/flow.js). Portrait, coach and bullpen call that machine directly.
+// These keep the older action names so a zone tap still reads as aim / loc / target / log.
+function zoneDraft(d){d=d||{};let called=[];
+  if(Array.isArray(d.targets)&&d.targets.length)called=d.targets.map(Number);
+  else if(Array.isArray(d.callTargets)&&d.callTargets.length)called=d.callTargets.map(Number);
+  else if(d.target)called=[+d.target];
+  else if(Array.isArray(d.called)&&d.called.length)called=d.called.map(Number);
+  const shook=d.shook&&typeof d.shook==='object'?d.shook:(d.shook?{type:d.type||null,called:[]}:null);
+  return{mode:d.mode==='game'?'game':'bullpen',type:d.type||null,called,actual:d.loc==null?(d.actual==null?null:d.actual):d.loc,aimEdit:!!d.aimEdit,shook,result:d.result||null};}
+function bullpenStep(d){const st=PC.scoreStep(Object.assign(zoneDraft(d),{mode:'bullpen'}));return st==='type'?'type':st==='called'?'target':'actual';}
+function bullpenTap(d,z){const r=PC.scoreTap(Object.assign(zoneDraft(d),{mode:'bullpen'}),z);
+  if(!r.ok)return{action:r.reason==='need_type'?'need_type':r.reason==='bad_target'?'bad_target':(r.reason||'bad_target'),draft:d};
+  const nd=r.draft,one=nd.called.length===1?nd.called[0]:null;
+  if(r.op==='called')return{action:'target',draft:Object.assign({},d,{type:nd.type,target:one,called:nd.called.slice()})};
+  return{action:'log',draft:Object.assign({},d,{loc:nd.actual,target:one!=null?one:d.target,called:nd.called.slice()}),targets:nd.called.slice()};}
+function gameZoneAction(d,z){const r=PC.scoreTap(Object.assign(zoneDraft(d),{mode:'game'}),z);
+  if(!r.ok){if(r.reason==='bad_target')return{action:'bad_target'};if(r.reason==='need_called')return{action:'need_aim'};if(r.reason==='need_type')return{action:'need_type'};return{action:r.reason||'bad_target'};}
+  if(r.op==='called')return{action:'aim',z:+z};return{action:'loc',z:+z};}
 // Redo holds undone location taps and pitches. A new logged pitch clears it. Cap is the newest 10.
 const REDO_MAX=10;
 const FOUL_TIMES={early:'Early',ontime:'On time',late:'Late'};

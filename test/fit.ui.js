@@ -28,10 +28,13 @@ for(const [W,H] of [[390,844],[375,667]]){const tag=`${W}x${H}`;
   await p.click('nav [data-t="game"]');await p.waitForTimeout(150);await fits('game');
   ok(await ev(()=>document.getElementById('resSheet').classList.contains('hide')),`${tag} game: result sheet closed until needed`);
   await p.click('#types [data-c="CH"]');await tap(7);await p.waitForTimeout(300);
-  ok(await ev(()=>{const s=document.getElementById('resSheet');const r=s.getBoundingClientRect();return !s.classList.contains('hide')&&getComputedStyle(s).position==='fixed'&&Math.abs(r.bottom-innerHeight)<1&&+getComputedStyle(s).zIndex>+getComputedStyle(document.querySelector('nav')).zIndex;}),`${tag} game: location opens the result bottom sheet over the tab bar`);
+  ok(await ev(()=>document.getElementById('resSheet').classList.contains('hide')&&D.loc==null&&D.called[0]===7),`${tag} game: called spot does not open the result sheet`);
+  await p.click('#resTog');ok(await ev(()=>document.getElementById('resSheet').classList.contains('hide')),`${tag} game: Result stays closed until the actual spot`);
+  await ev(()=>recordGame('ball'));ok(await ev(()=>__app.store.real.games[0].pitches.length===0),`${tag} game: a pitch cannot be saved without an actual location`);
+  await tap(8);await p.waitForTimeout(300);
+  ok(await ev(()=>{const s=document.getElementById('resSheet');const r=s.getBoundingClientRect();const h=document.getElementById('resHead').textContent;return !s.classList.contains('hide')&&getComputedStyle(s).position==='fixed'&&Math.abs(r.bottom-innerHeight)<1&&+getComputedStyle(s).zIndex>+getComputedStyle(document.querySelector('nav')).zIndex&&/7\s*→/.test(h)&&/8/.test(h);}),`${tag} game: actual spot opens the sheet, header shows aim → actual`);
   await p.click('#resBtns [data-r="called"]');await p.waitForTimeout(100);
-  ok(await ev(()=>__app.store.real.games[0].pitches.length===1&&__app.store.real.games[0].pitches[0].loc===7&&document.getElementById('resSheet').classList.contains('hide')),`${tag} game: result logged, sheet closes`);
-  await p.click('#resTog');ok(await ev(()=>!document.getElementById('resSheet').classList.contains('hide')),`${tag} game: Result button opens the sheet without a location`);await p.click('#resClose');
+  ok(await ev(()=>{const p=__app.store.real.games[0].pitches[0];return __app.store.real.games[0].pitches.length===1&&p.loc===8&&JSON.stringify(p.targets)==='[7]'&&document.getElementById('resSheet').classList.contains('hide');}),`${tag} game: result logged, sheet closes`);
   // wristband: one tap away, does not move the zone
   await ev(()=>{const S=__app.store.real;S.settings=S.settings||{};S.callSheets=[{id:'cs1',name:'Band A',cols:['1','2'],rows:[['FB 3','CH 7']]}];__app.store.save();__app.render();});
   const z0=await ev(()=>document.getElementById('zone').getBoundingClientRect().top);
