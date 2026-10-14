@@ -54,12 +54,11 @@
 </section>
 <!-- shared entry (game + bullpen) -->
 <section id="entry" class="hide">
- <div id="roBar" class="robar" role="status"><span>👁 Scoring on another phone · view only</span><button id="roTake" type="button">Take over scoring</button></div>
+ <div id="roBar" class="robar" role="status"><span>👁 View only – another phone is scoring</span><button id="roTake" type="button">Take over scoring</button></div>
  <div class="entrybar">
   <div id="shakeBar" class="shakebar hide" role="status"><span id="shakeTxt"></span><button id="shakeCancel" type="button">Cancel</button></div>
   <div id="types" class="chips" role="group" aria-label="Pitch type"></div>
-  <div class="stepline"><ol id="steps" class="steps" aria-label="Pitch entry steps"><li></li><li></li><li></li></ol><button id="wbTog" class="mini hide" aria-expanded="false" aria-controls="wbCard">Band</button><button id="resTog" class="mini hide" aria-controls="resSheet">Result</button></div>
-  <div class="shakerow"><button id="shakeBtn" class="mini hide" type="button" aria-label="Shake-off: she shook off the call">⤺ Shake-off</button></div>
+  <div class="stepline"><ol id="steps" class="steps" aria-label="Pitch entry steps"><li></li><li></li><li></li></ol><button id="wbTog" class="mini hide" aria-expanded="false" aria-controls="wbCard">Band</button><button id="resTog" class="mini hide" aria-controls="resSheet">Result</button><button id="shakeBtn" class="mini hide" type="button" aria-label="Shake-off: she shook off the call">⤺ Shake-off</button></div>
   <div class="phase" id="phase"></div>
  </div>
  <div class="zonewrap"><div id="zoneNote" class="zonenote hide" role="status"></div><svg id="zone" viewBox="-14 -6 128 138"></svg>
@@ -196,7 +195,7 @@
  <div class="dlgfoot"><button value="cancel" formnovalidate class="ghost" style="width:100%">Cancel</button></div></form></dialog>
 <dialog id="takeDlg" class="sheet" aria-labelledby="takeT"><form method="dialog"><div class="lbl" id="takeT">Take over scoring?</div>
  <p class="mut" id="takeTxt">Another phone is scoring this. Only take over if that phone died or the coach handed it to you. That phone will switch to view only.</p>
- <div class="dlgfoot"><button value="cancel" id="takeCancel">Cancel</button><button value="ok" id="takeOk" class="primary">Take over scoring</button></div></form></dialog>
+ <div class="dlgfoot"><button value="cancel" id="takeCancel" class="primary">Cancel</button><button value="ok" id="takeOk">Take over scoring</button></div></form></dialog>
 <dialog id="rejDlg" class="sheet" aria-labelledby="rejT"><form method="dialog"><div class="lbl" id="rejT">Sync problems</div>
  <div class="mut" id="rejSub" style="margin-bottom:8px">These changes didn't reach the cloud. They're safe on this phone. Pick Retry or Discard for each, then tap Apply.</div>
  <div id="rejList" class="rejlist"></div>

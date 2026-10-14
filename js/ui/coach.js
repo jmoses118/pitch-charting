@@ -23,8 +23,10 @@ const RES_BTNS=[['ball','Ball','b-ball'],['called','Called K','b-cs'],['swinging
 const IP_BTNS=[['out','Out'],['1B','1B'],['2B','2B'],['3B','3B'],['HR','HR'],['E','E'],['FC','FC'],['DP','DP']];
 const inningTag=g=>(g.homeAway==='home'?'T':g.homeAway==='away'?'B':'Inn ')+g.cur.inning;
 function callCode(){const sh=curSheet();return D.cell&&sh&&D.cell.sheet===sh.id?PC.cellCode(sh,D.cell.r,D.cell.c):'';}
-function hintText(){const g=game();if(sideCard)return '';if(D.aimEdit)return['✎','Tap the new aim'];if(D.ip)return['','Pick the outcome'];
-  if(!curSheet())return['1','Add a call sheet in Setup, or tap a result'];if(!D.parsed)return['1','Tap a cell or a result'];if(!D.loc)return['2','Tap where it went'];return['3','Tap the result'];}
+function hintText(){const g=game(),cmp=$('coach').classList.contains('compact');if(sideCard)return '';if(D.aimEdit)return['✎','Tap the new aim'];if(D.ip)return['','Pick the outcome'];
+  if(D.shook&&!D.type)return['',cmp?'Threw?':'Which pitch?']; // short: status already shows "⤺ CH7 → ?"
+  if(!curSheet())return['1','Add a call sheet in Setup, or tap a result'];if(!D.parsed&&!D.shook)return['1','Tap a cell or a result'];
+  if(!D.loc)return['2',cmp?'Where?':'Tap where it went'];return['3',cmp?'Result?':'Tap the result'];}
 function renderHint(){const e=$('cxHint');if(!e)return;if(cMsg&&(!D.aimEdit||cMsg.kind==='warn')){e.className='cs-hint msg '+cMsg.kind;e.textContent=cMsg.t;return;}const h=hintText();e.className='cs-hint';e.innerHTML=h?`<span class="cs-n">${H(h[0])}</span>${H(h[1])}`:'';}
 function sizeCoach(){const sh=curSheet(),cols=sh?Math.max(...sh.rows.map(r=>r.length),1):8,rows=sh?sh.rows.length:7;const el=$('coach'),cs=getComputedStyle(el);
   const padX=parseFloat(cs.paddingLeft)+parseFloat(cs.paddingRight),padY=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom);
@@ -69,12 +71,12 @@ function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,h
   $('cmKd3').disabled=$('cmKd3o').disabled=!two;$('cmTheme').textContent='Display: '+THEME_LABEL[PREF.get('theme','field')];$('cmMirror').textContent='Mirror sides: '+(PREF.get('mirror','0')==='1'?'on':'off');
   const und=PC.unmappedCells(sh||{rows:[]},S().customTypes);$('cmBand').textContent=`Band setup${und.length&&!PC.bandSetupDone(sh,S().customTypes)?` (${und.reduce((n,u)=>n+u.cells.length,0)} cells need an aim)`:''}`;$('cmBand').disabled=!sh||!und.length;}
 // ---------- coach input ----------
-$('cBand').addEventListener('click',e=>{const b=e.target.closest('button[data-r]');if(b&&!b.disabled){sideCard=null;cMsg=null;callCell(+b.dataset.r,+b.dataset.c);}});
+$('cBand').addEventListener('click',e=>{if(viewOnly()){toast(PC.SCORING_ELSEWHERE);return;}const b=e.target.closest('button[data-r]');if(b&&!b.disabled){sideCard=null;cMsg=null;callCell(+b.dataset.r,+b.dataset.c);}});
 let lpT=null,lpDone=false; // long-press (≥400 ms) on a zone cell sets the aim directly
 const zoneBtn=e=>e.target.closest('#cZone button[data-z]');
-$('cZone').addEventListener('pointerdown',e=>{const b=zoneBtn(e);if(!b)return;lpDone=false;clearTimeout(lpT);lpT=setTimeout(()=>{if(!D.parsed)return;lpDone=true;if(!PC.targetOk(D.type,+b.dataset.z)){coachMsg($('coach').classList.contains('compact')?PC.CH_AIM_TINY:PC.CH_AIM_SHORT,'warn');return;}D.aim=+b.dataset.z;D.aimEdit=false;buzz(15);render();coachMsg('✎ Aim → '+b.dataset.z);},400);});
+$('cZone').addEventListener('pointerdown',e=>{if(viewOnly())return;const b=zoneBtn(e);if(!b)return;lpDone=false;clearTimeout(lpT);lpT=setTimeout(()=>{if(!D.parsed)return;lpDone=true;if(!PC.targetOk(D.type,+b.dataset.z)){coachMsg($('coach').classList.contains('compact')?PC.CH_AIM_TINY:PC.CH_AIM_SHORT,'warn');return;}D.aim=+b.dataset.z;D.aimEdit=false;buzz(15);render();coachMsg('✎ Aim → '+b.dataset.z);},400);});
 ['pointerup','pointerleave','pointercancel'].forEach(t=>$('cZone').addEventListener(t,()=>clearTimeout(lpT)));
-$('cZone').addEventListener('click',e=>{const b=zoneBtn(e);if(!b)return;if(lpDone){lpDone=false;return;}const z=+b.dataset.z;sideCard=null;
+$('cZone').addEventListener('click',e=>{if(viewOnly()){toast(PC.SCORING_ELSEWHERE);return;}const b=zoneBtn(e);if(!b)return;if(lpDone){lpDone=false;return;}const z=+b.dataset.z;sideCard=null;
   if(D.aimEdit){if(!PC.targetOk(D.type,z)){coachMsg($('coach').classList.contains('compact')?PC.CH_AIM_TINY:PC.CH_AIM_SHORT,'warn');return;}D.aim=z;D.aimEdit=false;render();return;}D.loc=D.loc===z?null:z;render();});
 $('cRes').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;sideCard=null;
   if(b.dataset.r){if(b.dataset.r==='inplay'){D.ip=true;render();return;}recordGame(b.dataset.r);return;}
@@ -109,7 +111,7 @@ $('rotOk').onclick=()=>{PREF.set('portrait_ok','1');render();};
 $('pUndo').onclick=()=>undoLast();$('pPause').onclick=()=>$('bpPause').click();$('pEnd').onclick=()=>$('bpEnd').click();
 function placeBullpenPad(on){const pad=$('bpPad');pad.classList.toggle('hide',!on);document.body.classList.toggle('padmode',on);
   const mv=(el,home)=>{if(el.parentNode!==home)home.appendChild(el);};
-  if(on){mv($('types'),$('padTypes'));mv($('wayBtns'),$('padWay'));}else{$('types').parentNode!==document.querySelector('.entrybar')&&document.querySelector('.entrybar').prepend($('types'));const z=document.querySelector('.zonewrap');if($('wayBtns').previousElementSibling!==z)z.after($('wayBtns'));}}
+  if(on){mv($('types'),$('padTypes'));mv($('wayBtns'),$('padWay'));}else{const eb=document.querySelector('.entrybar');if($('types').parentNode!==eb){const sb=$('shakeBar');if(sb&&sb.parentNode===eb)sb.after($('types'));else eb.prepend($('types'));}const z=document.querySelector('.zonewrap');if($('wayBtns').previousElementSibling!==z)z.after($('wayBtns'));}}
 // called from render(): decides which charting screen shows
 function renderModes(lk,showEntry){const cg=coachGame(lk);const coach=cg&&LANDSCAPE.matches,gate=cg&&PORTRAIT.matches&&PREF.get('portrait_ok','0')!=='1';
   document.body.classList.toggle('coachmode',coach);$('coach').classList.toggle('hide',!coach);$('rotate').classList.toggle('hide',!gate);

@@ -190,14 +190,16 @@ addEventListener('resize',()=>fitZone());
 // D.shook keeps the coach's call (type + aim); she then picks the type thrown, and the pitch is scored against
 // her own aim (unknown = no aim). Cancel restores the call; after recording, Undo removes the pitch as usual.
 function shakeOff(){if(scoreGuard())return;if(tab!=='game'||!game()||D.shook)return;if(!D.parsed)return toast('Tap the wristband call first');
-  D.shook={norm:D.parsed.norm,raw:D.callTxt||D.parsed.norm,type:D.parsed.type,targets:aimSet(),prevType:D.type,prevAim:D.aim};D.type=null;D.aim=null;D.aimEdit=false;D.ip=false;buzz(15);render();toast(`Shook off ${D.shook.norm} – tap the pitch she threw`);}
+  D.shook={norm:D.parsed.norm,raw:D.callTxt||D.parsed.norm,type:D.parsed.type,targets:aimSet(),prevType:D.type,prevAim:D.aim};D.type=null;D.aim=null;D.aimEdit=false;D.ip=false;buzz(15);if(typeof cMsg!=='undefined')cMsg=null;render();}
 function cancelShake(){if(!D.shook)return;D.type=D.shook.prevType;D.aim=D.shook.prevAim;D.shook=null;render();toast('Shake-off canceled');}
-function renderShake(){const g=tab==='game'&&!!game()&&role()==='coach';$('shakeBtn').parentNode.classList.toggle('hide',!g||!D.parsed||!!D.shook);$('shakeBtn').classList.toggle('hide',!g);$('shakeBtn').disabled=!D.parsed||!!D.shook; // row shows only while a call is up (keeps the zone above the tab bar on small phones)
-  $('shakeBar').classList.toggle('hide',!g||!D.shook);if(D.shook)$('shakeTxt').textContent=`⤺ Shook off ${D.shook.norm} → ${D.type?'threw '+D.type:'tap the pitch she threw'}`;}
+function renderShake(){const g=tab==='game'&&!!game()&&role()==='coach'&&!viewOnly();
+  // Always keep Shake-off in the stepline during a coach game (disabled until a call) so the zone never jumps
+  $('shakeBtn').classList.toggle('hide',!g||!!D.shook);$('shakeBtn').disabled=!D.parsed||!!D.shook;
+  $('shakeBar').classList.toggle('hide',!g||!D.shook);document.querySelector('.entrybar').classList.toggle('shaking',!!(g&&D.shook));if(D.shook)$('shakeTxt').textContent=D.type?`↶ Shook off ${D.shook.norm} · ${D.type}`:`↶ Shook off ${D.shook.norm} · pick the pitch`;}
 $('shakeBtn').onclick=shakeOff;$('shakeCancel').onclick=cancelShake;
 // Shake-offs section (Stats + report): per pitcher, shake-off results vs pitches that followed the call, and each shake-off
 function shakeHTML(P){const ids=[...new Set(P.filter(p=>p.shook&&!p.deleted).map(p=>p.pitcherId))];if(!ids.length)return '';
   const row=(k,x)=>`<tr><td>${k}</td><td>${x.n}</td><td>${fmt(x.strikePct)}</td><td>${x.hits}</td><td>${x.hard}</td><td>${x.k}</td><td>${x.balls}</td></tr>`;
   return ids.map(id=>{const r=PC.shakeoffs(P.filter(p=>p.pitcherId===id));return `<div class="shk"><div class="lbl">Shake-offs · ${H(pName(id))}: ${r.n}</div>
-  <table class="shktbl"><tr><th></th><th>#</th><th>Str%</th><th>H</th><th title="Line drive or extra-base hit">Hard</th><th>K</th><th>Ball</th></tr>${row('Shook off',r.shook)}${row('Followed call',r.followed)}</table>
+  <table class="shktbl"><tr><th></th><th>Pitches</th><th>Strike %</th><th>Hits</th><th>Hard hit</th><th>K</th><th>Balls</th></tr>${row('Shook off',r.shook)}${row('Followed call',r.followed)}</table>
   <ol class="shklist">${r.list.map(x=>`<li><b>Called ${H(x.called)}</b> → threw <b>${H(x.thrown)}</b>${x.count?` · ${H(x.count)}`:''}${x.prev?` · after ${H(x.prev)}`:''} · <b>${H(x.outcome||'–')}</b></li>`).join('')}</ol></div>`;}).join('');}

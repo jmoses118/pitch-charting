@@ -17,7 +17,9 @@ for(const [W,H] of [[844,390],[667,375],[932,430]]){const tag=`${W}x${H}`;const 
   const n0=await ev(()=>__app.store.real.games[0].pitches.length);await ev(()=>{try{recordGame('strike');}catch(e){}});
   ok(await ev(n=>__app.store.real.games[0].pitches.length===n,n0),`${tag} coach: scoring is refused on the view-only phone`);
   {const pr=(process.env.CI?[]:await ev(AUDIT));ok(!pr.length,`${tag} coach: no clipping/overlap${pr.length?' → '+pr.slice(0,4).join(' | '):''}`);}
-  ok(await ev(()=>{const r=document.querySelector('#cRes [data-cx=take]').getBoundingClientRect();return r.height>=44&&r.bottom<=innerHeight&&r.right<=innerWidth;}),`${tag} coach: Take over scoring ≥44px and on screen`);
+  ok(await ev(()=>{const r=document.querySelector('#cRes [data-cx=take]').getBoundingClientRect();return r.height>=48&&r.bottom<=innerHeight&&r.right<=innerWidth;}),`${tag} coach: Take over scoring ≥48px and on screen`);
+  await p.click('#cBand button[data-r="0"][data-c="6"]');await w(200);
+  ok(/View only – another phone is scoring/.test(await p.textContent('#cxHint'))||/View only – another phone is scoring/.test(await ev(()=>document.getElementById('toast').textContent||document.getElementById('cxHint').textContent)),`${tag} coach: band tap toasts view-only reason`);
   if(SHOT)await p.screenshot({path:`${SHOT}coach-view-only-${tag}.png`});
   // ⋯ Game menu on the view-only phone: game-changing items disabled, note shown, viewing items still on
   await p.click('#cxMenu');await w(250);
@@ -40,12 +42,14 @@ for(const [W,H] of [[844,390],[667,375],[932,430]]){const tag=`${W}x${H}`;const 
 // ---- portrait: view-only bar + takeover popup, 3 sizes; own game is never locked; bullpen lock ----
 for(const [W,H] of [[390,844],[375,667],[430,932]]){const tag=`${W}x${H}`;const c=await ctx(W,H);const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));const ev=(f,a)=>p.evaluate(f,a),w=ms=>p.waitForTimeout(ms||150);
   await p.goto(BASE);await ev(seed,'other');await w(300);
-  ok(await ev(()=>{const r=document.getElementById('roBar');return getComputedStyle(r).display!=='none'&&/Scoring on another phone/.test(r.textContent)&&getComputedStyle(document.getElementById('types')).display==='none';}),`${tag}: view-only bar shown, pitch-type chips hidden`);
-  ok(await ev(()=>document.getElementById('roTake').getBoundingClientRect().height>=44),`${tag}: Take over scoring ≥44px`);
+  ok(await ev(()=>{const r=document.getElementById('roBar');const rr=r.getBoundingClientRect();const nav=document.querySelector('nav').getBoundingClientRect();return getComputedStyle(r).display!=='none'&&/View only – another phone is scoring/.test(r.textContent)&&getComputedStyle(document.getElementById('types')).display==='none'&&rr.top<nav.top&&rr.bottom<=nav.top+1;}),`${tag}: view-only bar under count strip (above tab bar), chips hidden`);
+  ok(await ev(()=>document.getElementById('roTake').getBoundingClientRect().height>=48),`${tag}: Take over scoring ≥48px`);
   {const pr=(process.env.CI?[]:await ev(AUDIT));ok(!pr.length,`${tag}: no clipping/overlap${pr.length?' → '+pr.slice(0,4).join(' | '):''}`);}
   if(SHOT)await p.screenshot({path:`${SHOT}game-view-only-${tag}.png`});
+  await ev(()=>{const z=document.getElementById('zone');const r=z.getBoundingClientRect();z.dispatchEvent(new MouseEvent('click',{clientX:r.left+r.width/2,clientY:r.top+r.height/2,bubbles:true}));});await w(200);
+  ok(/View only – another phone is scoring/.test(await ev(()=>document.getElementById('toast').textContent)),`${tag}: zone tap toasts view-only reason`);
   await p.click('#roTake');await w(250);ok(await ev(()=>document.getElementById('takeDlg').open),`${tag}: takeover popup opens`);
-  ok(await ev(()=>['takeCancel','takeOk'].every(i=>{const r=document.getElementById(i).getBoundingClientRect();return r.height>=44&&r.bottom<=innerHeight;})),`${tag}: Cancel and Take over scoring ≥44px, visible`);
+  ok(await ev(()=>['takeCancel','takeOk'].every(i=>{const r=document.getElementById(i).getBoundingClientRect();return r.height>=48&&r.bottom<=innerHeight;})&&document.getElementById('takeCancel').classList.contains('primary')&&!document.getElementById('takeOk').classList.contains('primary')),`${tag}: Cancel is primary (≥48px), Take over is outline`);
   {const pr=(process.env.CI?[]:await ev(AUDIT));ok(!pr.length,`${tag}: popup no clipping/overlap${pr.length?' → '+pr.slice(0,4).join(' | '):''}`);}
   if(SHOT)await p.screenshot({path:`${SHOT}takeover-popup-${tag}.png`});
   await p.click('#takeCancel');await w();ok(await ev(()=>document.body.classList.contains('viewonly')),`${tag}: Cancel keeps view only`);

@@ -34,6 +34,14 @@
 - Coach screen: the change-up warning is short so it never truncates ("Change-up: aim low"; "CH: aim low" on narrow phones), and ⋯ Game keeps its full label. The bullpen toast keeps the full box list.
 - Boxes a change-up can't aim at are dashed outlines with grey (#5B6472) numbers instead of faded out.
 - Band setup: change-up rows say "Change-ups aim low: 4, 7, 8, 9, 13, 14 or 18." An old high change-up aim is flagged on its row ("Was zone 2 – change-ups can't aim high. Pick a low box.") instead of being dropped silently.
+### Design review round 2 (UI Designer)
+- Coach shake hint no longer truncates: **"Which pitch?"** (landscape) / **"Threw?"** (667) while picking the type, then the normal step hint ("Tap where it went" / "Where?").
+- Portrait view-only banner sits under the INN/COUNT strip (sticky); copy **"👁 View only – another phone is scoring"**. Tapping the zone or band (incl. coach band) toasts that sentence.
+- Touch targets ≥48px: portrait Shake-off/Cancel, Take over, sync Keep/Retry/Discard, Details.
+- Contrast: coach "View only" `#4A5363`; unselected Discard `#B42323`.
+- Portrait zone no longer jumps on call: Shake-off lives in the Band/Result stepline; the shake bar is a fixed 48px slot.
+- Take over sheet: **Cancel** is the filled/primary button; Take over scoring is outline.
+- Sync row "Pitcher ?" → **"Pitcher (not on this phone)"**. Shake-offs table headers spelled out (Pitches · Strike % · Hits · Hard hit · K · Balls). Dropped the duplicate portrait shake toast.
 ### Changed (code)
 - Heat map summary moved into scoring.js (`PC.heatSummary`), with tests. One miss-direction list and one best/weakest-spot helper. Removed the unused `isMiddleMiss` and a stray comment.
 

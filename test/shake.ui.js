@@ -21,11 +21,14 @@ for(const [W,H] of [[844,390],[667,375],[932,430]]){const tag=`${W}x${H}`;const 
   if(SHOT)await p.screenshot({path:`${SHOT}coach-shake-button-${tag}.png`});
   // Cancel restores the call
   await p.click('#cRes [data-cx=shake]');await w();ok(await ev(()=>!!document.querySelector('#cRes [data-ty=FB]')&&/⤺ CH7/.test(document.getElementById('cxCode').textContent)),`${tag} coach: Shake-off asks what she threw`);
+  {const exp=W<700?'Threw?':'Which pitch?';ok((await p.textContent('#cxHint')).trim()===exp&&await ev(()=>{const h=document.getElementById('cxHint');return h.scrollWidth<=h.clientWidth+1;}),`${tag} coach: hint is "${exp}" and not truncated`);}
   {const pr=(process.env.CI?[]:await ev(AUDIT));ok(!pr.length,`${tag} coach picker: no clipping/overlap${pr.length?' → '+pr.slice(0,4).join(' | '):''}`);}
   if(SHOT)await p.screenshot({path:`${SHOT}coach-shake-pick-${tag}.png`});
   await p.click('#cRes [data-cx=unshake]');await w();ok(await ev(()=>!document.querySelector('#cRes [data-ty]')&&/CH7/.test(document.getElementById('cxCode').textContent)&&!!document.querySelector('#cRes [data-r=ball]')),`${tag} coach: Cancel goes back to the call`);
   // full flow: shake, threw FB, landed 5, foul
-  await p.click('#cRes [data-cx=shake]');await w();await p.click('#cRes [data-ty=FB]');await w();await p.click('#cZone button[data-z="5"]');await w();
+  await p.click('#cRes [data-cx=shake]');await w();await p.click('#cRes [data-ty=FB]');await w();
+  {const exp=W<700?'Where?':'Tap where it went';const ht=(await p.textContent('#cxHint')).trim();ok(ht===exp||ht.endsWith(exp)||ht.includes(exp),`${tag} coach: after type, hint is normal step ("${exp}") got "${ht}"`);}
+  await p.click('#cZone button[data-z="5"]');await w();
   if(SHOT)await p.screenshot({path:`${SHOT}coach-shake-threw-${tag}.png`});
   await p.click('#cRes [data-r=foul]');await w(250);
   ok(JSON.stringify(await ev(last))===JSON.stringify({n:1,shook:true,call:'CH7',type:'FB',targets:[],loc:5,result:'foul'}),`${tag} coach: logs called CH7, shook, threw FB 5, foul – no aim ${JSON.stringify(await ev(last))}`);
@@ -35,13 +38,17 @@ for(const [W,H] of [[844,390],[667,375],[932,430]]){const tag=`${W}x${H}`;const 
 // ---- portrait ----
 for(const [W,H] of [[390,844],[375,667],[430,932]]){const tag=`${W}x${H}`;const c=await ctx(W,H);const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));const ev=(f,a)=>p.evaluate(f,a),w=ms=>p.waitForTimeout(ms||150);
   await p.goto(BASE);await ev(seed);await w(300);
-  ok(await ev(()=>{const e=document.getElementById('shakeBtn');return !!e&&!!e.closest('#entry')&&!e.classList.contains('hide');}),`${tag}: portrait Shake-off button present in the pitch flow (regression guard)`);
-  ok(await ev(()=>document.querySelector('.shakerow').classList.contains('hide')),`${tag}: Shake-off row stays out of the way until a call is made`);
+  ok(await ev(()=>{const e=document.getElementById('shakeBtn');return !!e&&!!e.closest('.stepline')&&!!e.closest('#entry');}),`${tag}: portrait Shake-off button present in the stepline (regression guard)`);
+  ok(await ev(()=>{const e=document.getElementById('shakeBtn');return !e.classList.contains('hide')&&e.disabled;}),`${tag}: Shake-off sits in the stepline disabled until a call is made`);
+  const zBefore=await ev(()=>document.getElementById('zone').getBoundingClientRect().top);
   await ev(()=>callCell(0,6));await w();
-  ok(await ev(()=>{const e=document.getElementById('shakeBtn').getBoundingClientRect();return !document.getElementById('shakeBtn').disabled&&e.height>=44&&e.width>0&&e.bottom<=innerHeight;}),`${tag}: Shake-off visible and enabled after the call, ≥44px`);
+  ok(await ev(z=>{const d=Math.abs(document.getElementById('zone').getBoundingClientRect().top-z);return d<=2;},zBefore),`${tag}: call does not push the zone (Shake-off is in the stepline)`);
+  ok(await ev(()=>{const e=document.getElementById('shakeBtn').getBoundingClientRect();return !document.getElementById('shakeBtn').disabled&&e.height>=48&&e.width>0&&e.bottom<=innerHeight;}),`${tag}: Shake-off visible and enabled after the call, ≥48px`);
+  const zCall=await ev(()=>document.getElementById('zone').getBoundingClientRect().top);
   await p.click('#shakeBtn');await w();
-  ok(await ev(()=>!document.getElementById('shakeBar').classList.contains('hide')&&/Shook off CH7/.test(document.getElementById('shakeTxt').textContent)),`${tag}: shake-off bar shows the coach's call`);
-  ok(await ev(()=>{const e=document.getElementById('shakeCancel').getBoundingClientRect();return e.height>=44;}),`${tag}: Cancel ≥44px`);
+  ok(await ev(()=>!document.getElementById('shakeBar').classList.contains('hide')&&/Shook off CH7 · pick the pitch/.test(document.getElementById('shakeTxt').textContent)),`${tag}: shake-off bar shows the coach's call`);
+  ok(await ev(z=>{const bar=document.getElementById('shakeBar').getBoundingClientRect();return bar.height>=48&&bar.height<=50;},zCall),`${tag}: shake bar is a fixed 48px slot`);
+  ok(await ev(()=>{const e=document.getElementById('shakeCancel').getBoundingClientRect();return e.height>=48;}),`${tag}: Cancel ≥48px`);
   {const pr=(process.env.CI?[]:await ev(AUDIT));ok(!pr.length,`${tag}: no clipping/overlap${pr.length?' → '+pr.slice(0,4).join(' | '):''}`);}
   if(SHOT){await ev(()=>{scrollTo(0,0);document.getElementById('toast').classList.remove('on');});await w(300);await p.screenshot({path:`${SHOT}game-shake-${tag}.png`});}
   await p.click('#shakeCancel');await w();ok(await ev(()=>document.getElementById('shakeBar').classList.contains('hide')&&D.type==='CH'),`${tag}: Cancel restores the call`);

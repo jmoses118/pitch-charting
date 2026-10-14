@@ -86,7 +86,7 @@ $('codesCard').addEventListener('click',async e=>{const t=e.target;try{
 // ---------- Setup → Sync problems: rows the server refused (view, retry or discard; nothing changes until Apply) ----------
 const REJ_KIND={pitches:'Pitch',games:'Game',sessions:'Bullpen session',pitchers:'Pitcher',call_sheets:'Call sheet',notes:'Note',team_settings:'Team settings'};
 function rejWhat(r){const s=store.real;if(r.table==='pitches'){let hit=null;s.games.forEach(g=>g.pitches.forEach(p=>{if(p.id===r.id)hit={p,where:`${g.date||''} vs ${g.opponent||'?'}`};}));s.sessions.forEach(x=>x.pitches.forEach(p=>{if(p.id===r.id)hit={p,where:`bullpen ${x.date||''}`};}));
-    if(hit){const pit=s.pitchers.find(q=>q.id===hit.p.pitcherId);return `${PC.pitcherLabel(pit)} · ${hit.p.type||'pitch'}${hit.p.loc?' → '+hit.p.loc:''} · ${hit.where}`;}return 'deleted pitch';}
+    if(hit){const pit=s.pitchers.find(q=>q.id===hit.p.pitcherId);return `${pit?PC.pitcherLabel(pit):'Pitcher (not on this phone)'} · ${hit.p.type||'pitch'}${hit.p.loc?' → '+hit.p.loc:''} · ${hit.where}`;}return 'deleted pitch';}
   if(r.table==='games'){const g=s.games.find(x=>x.id===r.id);return g?`${g.date||''} vs ${g.opponent||'?'}`:'';}
   if(r.table==='sessions'){const x=s.sessions.find(y=>y.id===r.id);return x?`${x.date||''} · ${x.pitches.length} pitch${x.pitches.length===1?'':'es'}`:'';}
   if(r.table==='pitchers'){return PC.pitcherLabel(s.pitchers.find(p=>p.id===r.id));}return '';}

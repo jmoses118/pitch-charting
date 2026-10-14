@@ -20,7 +20,7 @@ function modeLock(st,tab,canGame){if(!canGame)return null;const g=activeGameOf(s
 const canScore=(box,dev)=>!box||!box.scorer||box.scorer===dev;
 const lockedBox=(box,dev)=>!!box&&!canScore(box,dev);
 function claimScoring(box,dev){if(!box||!dev)return false;const was=box.scorer||null;box.scorer=dev;return was!==dev;}
-const SCORING_ELSEWHERE='Scoring on another phone – view only';
+const SCORING_ELSEWHERE='👁 View only – another phone is scoring';
 const LOCK_MSG={game:'Game in progress — end or pause the game to start a bullpen',bullpen:'Bullpen in progress — end or pause the bullpen to start a game'};
 // started, not ended games that are not on screen (paused here or started on another phone) – resumable
 const pausedGames=st=>(st.games||[]).filter(g=>gameInProgress(g)&&g.id!==st.activeGame).sort((a,b)=>(b.started||0)-(a.started||0));

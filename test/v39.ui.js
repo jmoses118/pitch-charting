@@ -20,12 +20,12 @@ for(const [W,H] of [[390,844],[375,667],[430,932]]){const tag=`${W}x${H}`;const 
    ok(Object.keys(exp).every(k=>new RegExp('^Why: '+exp[k].replace(/[.?()]/g,'\\$&')+' · [A-Z][a-z]{2} \\d{1,2}, \\d{1,2}:\\d{2} [AP]M$').test(why[k])),`${tag}: plain "Why: … · Oct 14, 8:56 AM" for 401/403/409/400 `+JSON.stringify(why));}
   ok(await ev(()=>{const vis=[...document.querySelectorAll('.rejrow')].map(r=>r.innerText).join(' ');return !/row-level|constraint|JWT|pitches"|games_pkey|Server said/.test(vis)&&[...document.querySelectorAll('.rejdet')].every(d=>!d.open);}),`${tag}: raw server text hidden behind a closed Details toggle`);
   await p.click('.rejrow[data-key^="games"] .rejdet summary');ok(/games_pkey/.test(await ev(()=>document.querySelector('.rejrow[data-key^="games"] .rejdet').innerText)),`${tag}: Details shows the raw server text`);await p.click('.rejrow[data-key^="games"] .rejdet summary');
-  ok(await ev(()=>{const d=getComputedStyle(document.querySelector('.rejrow [data-act=discard]'));return d.color==='rgb(201, 42, 42)'||d.borderTopColor===d.color&&d.color!=='rgb(0, 0, 0)';})&&await ev(()=>{const d=getComputedStyle(document.querySelector('.rejrow [data-act=discard]'));return d.borderTopColor===d.color;}),`${tag}: unselected Discard has red text and outline`);
+  ok(await ev(()=>{const d=getComputedStyle(document.querySelector('.rejrow [data-act=discard]'));return d.color==='rgb(180, 35, 35)'&&d.borderTopColor===d.color;}),`${tag}: unselected Discard is #B42323 text and outline`);
   ok((await p.textContent('#rejSub')).trim()==="These changes didn't reach the cloud. They're safe on this phone. Pick Retry or Discard for each, then tap Apply.",`${tag}: sheet subtitle copy`);
   {const pr=await ev(AUDIT);ok(!pr.length,`${tag}: no clipping/overlap${pr.length?' → '+pr.slice(0,4).join(' | '):''}`);}
   const vis=s=>ev(s=>{const e=document.querySelector(s),r=e.getBoundingClientRect();return r.height>=44&&r.top>=0&&r.bottom<=innerHeight+.5;},s);
   ok(await vis('#rejDlg button[value=cancel]')&&await vis('#rejApply'),`${tag}: Cancel and Apply visible (≥44px) without scrolling`);
-  ok(await ev(()=>[...document.querySelectorAll('.rejseg button')].every(e=>e.getBoundingClientRect().height>=44)),`${tag}: Keep/Retry/Discard ≥44px`);
+  ok(await ev(()=>[...document.querySelectorAll('.rejseg button')].every(e=>e.getBoundingClientRect().height>=48)&&[...document.querySelectorAll('.rejdet summary')].every(e=>e.getBoundingClientRect().height>=48)),`${tag}: Keep/Retry/Discard and Details ≥48px`);
   await p.click('.rejrow:nth-child(1) [data-act=retry]');await p.click('.rejrow:nth-child(2) [data-act=discard]');if(SHOT){await w(200);await p.screenshot({path:`${SHOT}setup-sync-problems-${tag}.png`});}
   await p.click('#rejDlg button[value=cancel]');await w();
   ok(await ev(()=>PC.rejectedList(__app.store.real).length===4),`${tag}: Cancel changes nothing`);
