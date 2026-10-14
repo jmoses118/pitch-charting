@@ -3,7 +3,7 @@
 (function(root){
 'use strict';
 const PC=root.PC=root.PC||{};
-const {isZone,isOut,isWay,isCompetitive,gloveCol,locInfo,ALL_CELLS,GRID_XY,MAX_MISS,missDist,pct,isStrike,countsAsPitch}=PC;
+const {isZone,isOut,isWay,isActualOnly,isCompetitive,gloveCol,locInfo,ALL_CELLS,GRID_XY,MAX_MISS,missDist,pct,isStrike,countsAsPitch}=PC;
 // ---------- Heat map ----------
 function heatItems(st){const th={};st.pitchers.forEach(p=>th[p.id]=p.throws);const out=[];
   st.games.forEach(g=>g.pitches.forEach(p=>{if(!p.noPitch)out.push({p,src:'game',gameId:g.id,sessionId:null,throws:th[p.pitcherId]||null,side:p.hand==='L'?'L':p.hand==='N'?'N':(p.hand?'R':'N'),batter:p.batter||''});}));
@@ -14,7 +14,7 @@ function heatFilter(items,f){f=f||{};return items.filter(it=>(!f.type||it.p.type
 // view: 'actual' = where pitches landed; 'intended' = where they were aimed (counts + hit-the-spot % per aimed cell)
 function heatData(items,f,view){const q=heatFilter(items,f);const cells={};ALL_CELLS.forEach(z=>cells[z]={n:0,hit:0});let total=0;
   q.forEach(({p})=>{if(view==='intended'){const t=p.targets&&p.targets.length?p.targets:null;if(!t||p.loc==null)return;total++;const hit=t.includes(p.loc);t.forEach(z=>{if(cells[z]){cells[z].n++;if(hit)cells[z].hit++;}});}
-    else{if(p.loc==null||!cells[p.loc])return;total++;cells[p.loc].n++;}});
+    else{if(p.loc==null)return;if(!cells[p.loc]){if(isActualOnly(p.loc))total++;return;}total++;cells[p.loc].n++;}});
   const max=Math.max(0,...Object.values(cells).map(c=>c.n));return{cells,total,max,matched:q.length};}
 // per intended cell: n pitches aimed there, average miss distance (to the nearest called spot), hits
 // Jim's change-up rule: a CH must finish at the knees. Landing in the top or middle row (or any spot above the bottom row)
@@ -30,8 +30,8 @@ const isBullpenPitch=p=>p&&p.abn==null&&p.inning==null;
 // CH / drop / drop curve landing in the bottom ring (13, 18, 14) is a good pitch (bullpen). CH-up rule still applies.
 const WAY_SEV=MAX_MISS-1;const LOW_RING=[13,18,14],LOW_TYPES=['CH','DR','DC'];
 const lowGood=p=>isBullpenPitch(p)&&LOW_TYPES.includes(p.type)&&LOW_RING.includes(p.loc);
-function adjSev(p,sev){if(isWay(p.loc))return WAY_SEV;if(lowGood(p))return Math.min(sev,1);return sev;}
-const chUp=p=>p&&p.type==='CH'&&GRID_XY[p.loc]!=null&&GRID_XY[p.loc][1]<=2;
+function adjSev(p,sev){if(isWay(p.loc)||isActualOnly(p.loc))return WAY_SEV;if(lowGood(p))return Math.min(sev,1);return sev;}
+const chUp=p=>p&&p.type==='CH'&&!isWay(p.loc)&&!isActualOnly(p.loc)&&GRID_XY[p.loc]!=null&&GRID_XY[p.loc][1]<=2;
 function missData(items,f){const q=heatFilter(items,f);const cells={};ALL_CELLS.forEach(z=>cells[z]={n:0,sum:0,hit:0,avg:null,mm:0});let total=0,mm=0,chu=0;
   // one source of truth for severity: pitchMiss (souvenir, CH-up, way-off, low-ring rules all live there)
   q.forEach(({p})=>{const m=pitchMiss(p);if(!m)return;const t=p.targets,d=m.d,sev=m.sev,mmMiss=m.mm,up=m.chUp;total++;if(mmMiss)mm++;if(up)chu++;

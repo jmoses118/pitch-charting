@@ -31,8 +31,31 @@ const pitchCount=(pitches,pid)=>pitches.filter(p=>countsAsPitch(p)&&(pid==null||
 // A call-sheet code that already names a spot counts as step 2.
 function bullpenStep(d){if(!d.type)return'type';const it=(d.callTargets&&d.callTargets.length)?d.callTargets:(d.target?[d.target]:[]);return it.length?'actual':'target';}
 function bullpenTap(d,z){const st=bullpenStep(d);if(st==='type')return{action:'need_type',draft:d};
+  if(st==='target'&&(PC.isWay(z)||PC.isActualOnly(z)))return{action:'not_aim',draft:d};
   if(st==='target'&&!PC.targetOk(d.type,z))return{action:'bad_target',draft:d};
   if(st==='target')return{action:'target',draft:Object.assign({},d,{target:z})};
   const targets=(d.callTargets&&d.callTargets.length)?d.callTargets.slice():[d.target];return{action:'log',draft:Object.assign({},d,{loc:z}),targets};}
-Object.assign(PC,{BB_TYPES,BB_NAME,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,bullpenStep,bullpenTap});
+// Redo holds undone location taps and pitches. A new logged pitch clears it. Cap is the newest 10.
+const REDO_MAX=10;
+const FOUL_TIMES={early:'Early',ontime:'On time',late:'Late'};
+function redoPush(stack,item){const s=(Array.isArray(stack)?stack:[]).concat([item]);return s.length>REDO_MAX?s.slice(s.length-REDO_MAX):s;}
+function redoPop(stack){const s=(Array.isArray(stack)?stack:[]).slice();return{item:s.pop()||null,stack:s};}
+// Stored redo list: location, aim, or pitch items only, newest 10. Anything else is dropped.
+function redoState(raw){if(!Array.isArray(raw))return [];return raw.filter(x=>x&&typeof x==='object'&&(x.kind==='loc'||x.kind==='aim'||x.kind==='pitch')).slice(-REDO_MAX);}
+function cleanFoul(v){return Object.prototype.hasOwnProperty.call(FOUL_TIMES,v)?v:null;}
+function cleanFlag(v){return v==='wp'||v==='pb'?v:null;}
+function cleanVelo(v){if(v==null||v==='')return null;const n=+v;return Number.isFinite(n)&&n>=20&&n<=110?Math.round(n*10)/10:null;}
+// Bullpen may stamp a ball or a called strike when the phone's default is set. Anything else stays unset.
+function bullpenResult(def){return def==='ball'||def==='called'?def:null;}
+// Correct where a past pitch actually went. Does not remove it, reorder the list, or touch the result or the count.
+// One target (or none) keeps calledLoc. Several targets recompute it as the nearest to the new spot, so CSV called_location matches.
+function editActual(pitch,loc){loc=+loc;if(!pitch||!PC.GRID_XY[loc])return false;const same=pitch.loc===loc&&pitch.actualLoc===loc;pitch.loc=loc;pitch.actualLoc=loc;
+  const targets=Array.isArray(pitch.targets)?pitch.targets:[];let calledMoved=false;
+  if(targets.length>1){const next=PC.nearestTarget(targets,loc);if(next!=null&&next!==pitch.calledLoc){pitch.calledLoc=next;calledMoved=true;}}
+  if(!same||calledMoved)pitch.edited=true;return true;}
+// Put a corrected pitch back to the spot it had before the edit. Returns false when nothing changed.
+function revertEdit(pitch,snap){if(!pitch||!snap)return false;const was=!!pitch.edited,called=pitch.calledLoc==null?null:pitch.calledLoc;const nextCalled=snap.calledLoc==null?null:snap.calledLoc;
+  const same=pitch.loc===snap.loc&&pitch.actualLoc===snap.actualLoc&&called===nextCalled&&was===!!snap.edited;pitch.loc=snap.loc;pitch.actualLoc=snap.actualLoc;
+  if(nextCalled==null)delete pitch.calledLoc;else pitch.calledLoc=nextCalled;if(snap.edited)pitch.edited=true;else delete pitch.edited;return !same;}
+Object.assign(PC,{BB_TYPES,BB_NAME,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,bullpenStep,bullpenTap,REDO_MAX,FOUL_TIMES,redoPush,redoPop,redoState,cleanFoul,cleanFlag,cleanVelo,bullpenResult,editActual,revertEdit});
 })(typeof window!=='undefined'?window:globalThis);

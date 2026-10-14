@@ -4,9 +4,16 @@ All rules live in `js/core/grid.js` and `js/core/scoring.js`; report, heat map a
 
 ## Grid (pitcher's view)
 - **Zone** 1–9 (3×3), **5** = middle-middle.
-- **Ring** 11–18 just off the plate (competitive misses); 13/18/14 are the low ring.
-- **Way off** 21–24 (tap buttons outside the ring).
-- `GRID_XY` places zone + ring on a 5×5 lattice; miss distance = Chebyshev distance (squares) to the nearest target.
+- **Ring** 11–18 just off the plate (competitive misses); 13/18/14 are the low ring. This is the one ring of ball boxes outside the zone.
+- **Way off** 21–24 (tap buttons outside the ring). Not competitive.
+- **Actual only** 31 in dirt and 32 over catcher/backstop. Logged as where the pitch went. Never a called aim (`PC.canAim` is false; a target tap returns `not_aim`). Scored like way off (`WAY_SEV`). Not competitive. Counted as landed on the heat map, but not drawn on the zone grid.
+- `GRID_XY` places zone + ring on a 5×5 lattice; 31 sits one row below way-low and 32 one row above way-high. Miss distance = Chebyshev distance (squares) to the nearest target.
+
+## Called location vs actual location (v40)
+- `calledLoc` is the box that was called. One target stays that box. Several targets (a multi-target call, or a shake-off whose call named more than one box) use the target nearest the actual location (`PC.nearestTarget`, same Chebyshev distance as miss scoring). Before the actual location is known, the first target is shown. A distance tie keeps the earlier target. On a shake-off the set is the coach's called boxes, not her own aim.
+- `actualLoc` and `loc` are where it went. `loc` stays the field miss scoring, hit spot and heat maps already use, so those rules did not grow a second path.
+- A change-up **called** target is still only 4, 7, 8, 9, 13, 14, 18. The **actual** location may be any box, including a high box, in dirt, or over the catcher.
+- **Correcting a past pitch** (`PC.editActual`) changes `loc` and `actualLoc`. When `targets` has more than one box, `calledLoc` becomes the target nearest the new spot (same tie rule as above), so CSV `called_location` matches. One target, or none, leaves `calledLoc` as it was. The result and the count stay, and later pitches stay in the list. Miss scoring, hit spot, and the heat map follow the new `loc`. The pitch is marked `edited` (shown as “from video”, exported as `from_video`). Undo right after that correction restores the previous spot. Only the phone that owns scoring can save it, including after the game.
 
 ## Call codes
 Wristband calls map to pitch type + target cell(s) (`calls.js`); a call can have several targets, the nearest one counts.
@@ -33,7 +40,10 @@ A change-up is **never aimed in the upper zone**. The only valid change-up targe
 `PC.heatSummary(d, miss)` (scoring.js) accounts for every pitch: Miss = "Showing N of M pitches (the ones with an aim)…", plus souvenirs and how many with no aim aren't shown. Landed = all pitches with a location, plus how many with no location are left out.
 
 ## Competitive %
-Pitches landing in zone (1–9) or ring (11–18) ÷ all pitches. Way off is not competitive.
+Pitches landing in zone (1–9) or ring (11–18) ÷ all pitches. Way off, in dirt and over the catcher are not competitive.
+
+## Foul timing, wild pitch, velocity (v40)
+Optional. A foul is saved on the Foul tap with `foulTime` unset. Early / On time / Late can set `foulTime` to `early`, `ontime` or `late` on that pitch afterwards. `wpPb` is `wp` or `pb`. `velo` is 20–110, one decimal. A number outside that range is dropped and a short message says it was not saved (empty stays empty, with no message). A bullpen pitch can also carry `result` `ball` or `called` when the phone's default result is set; otherwise bullpen strike % still uses the zone.
 
 ## Strike %
 Game strike % follows GameChanger (balls vs called/swinging/foul/in play etc.); location does not change it.

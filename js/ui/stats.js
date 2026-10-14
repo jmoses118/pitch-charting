@@ -41,7 +41,8 @@ function renderStats(){const s=S();const sel=$('sScope').value||(s.activeGame||'
   const GS=M?s.games.filter(g=>g.pitches.some(p=>vis(p.pitcherId))):s.games,SS=M?s.sessions.filter(x=>(x.pitcherId&&vis(x.pitcherId))||x.pitches.some(p=>vis(p.pitcherId))):s.sessions;
   const opts=[['all','Everything'],['games','All games'],['bullpen','All bullpen']].concat(GS.slice().reverse().map(g=>[g.id,`${g.date} ${vsAt(g)} ${g.opponent}${PC.gameStatus(g)==='scheduled'?' (scheduled)':''}${g.event?' ('+g.event+')':''}`])).concat(SS.slice().reverse().map(x=>[x.id,`Bullpen ${x.date} (${M?x.pitches.filter(p=>vis(p.pitcherId)).length:x.pitches.length})`]));
   $('sScope').innerHTML=opts.map(([v,l])=>`<option value="${H(v)}" ${v===sel?'selected':''}>${H(l)}</option>`).join('');
-  const own=role()==='player'?store.real.sync.pitcherId:null;const pf=own||$('sPitcher').value;$('sPitcher').disabled=!!own;$('sPitcher').innerHTML=(own?'':`<option value="">${M?'All my pitchers':'All pitchers'}</option>`)+s.pitchers.filter(p=>(!own||p.id===own)&&vis(p.id)).map(p=>`<option value="${H(p.id)}" ${p.id===pf?'selected':''}>${H(PC.pitcherLabel(p))}${p.archived?' (archived)':''}</option>`).join('');
+  const own=role()==='player'?store.real.sync.pitcherId:null;let pf=own||$('sPitcher').value;if(!own&&!$('sPitcher').dataset.picked&&!pf)pf=curPitcherId()||'';$('sPitcher').disabled=!!own;$('sPitcher').innerHTML=(own?'':`<option value="">${M?'All my pitchers':'All pitchers'}</option>`)+s.pitchers.filter(p=>(!own||p.id===own)&&vis(p.id)).map(p=>`<option value="${H(p.id)}" ${p.id===pf?'selected':''}>${H(PC.pitcherLabel(p))}${p.archived?' (archived)':''}</option>`).join('');
+  if(!$('csvDate').value)$('csvDate').value=today();
   const all=scopePitches($('sScope').value).filter(p=>vis(p.pitcherId));const P=pf?all.filter(p=>p.pitcherId===pf):all;const sum=PC.summarize(P,pf?{all,pid:pf}:null);
   const isGame=P.some(p=>p.result);
   $('sReport').classList.toggle('hide',!s.sessions.some(q=>q.id===$('sScope').value));
@@ -52,6 +53,9 @@ function renderStats(){const s=S();const sel=$('sScope').value||(s.activeGame||'
   const tbl=(o,lbl)=>`<tr><th>${lbl}</th><th>#</th><th>K%</th><th>Spot</th><th>Whiff</th><th>InPlay</th></tr>`+Object.entries(o).sort((a,b)=>b[1].n-a[1].n).map(([k,v])=>`<tr><td>${H(k)}</td><td>${v.n}</td><td>${fmt(v.strikePct)}</td><td>${fmt(v.spotPct)}</td><td>${v.whiff}</td><td>${v.inPlay}</td></tr>`).join('');
   $('sType').innerHTML=tbl(sum.byType,'Type');
   $('sShake').innerHTML=shakeHTML(P)||'<div class="lbl">Shake-offs</div><div class="mut">No shake-offs in this view.</div>';
+  const oneBox=s.games.some(g=>g.id===$('sScope').value)||s.sessions.some(x=>x.id===$('sScope').value);
+  const listed=oneBox?P.filter(p=>!p.deleted):[];$('pitchListCard').classList.toggle('hide',!listed.length);
+  $('pitchList').innerHTML=listed.map((p,i)=>pitchLine(p,i,'stats')).reverse().join('');
   $('sCall').innerHTML=Object.keys(sum.byCall).length?tbl(sum.byCall,'Call')+'<tr><td colspan=6 class="mut">Call → thrown</td></tr>'+Object.entries(sum.callVsThrown).sort((a,b)=>b[1].n-a[1].n).map(([k,v])=>`<tr><td>${H(k)}</td><td>${v.n}</td><td>${fmt(v.strikePct)}</td><td>${fmt(v.spotPct)}</td><td>${v.whiff}</td><td>${v.inPlay}</td></tr>`).join(''):'<tr><td class="mut">No called pitches logged</td></tr>';
   $('sRes').innerHTML='<tr><th>Result</th><th>#</th></tr>'+Object.entries(sum.byResult).map(([k,v])=>`<tr><td>${H(k)}</td><td>${v.n}</td></tr>`).join('');
   const mx=Math.max(1,...Object.values(sum.byLoc).map(v=>v.n));const lab={};for(const k in sum.byLoc)lab[k]=sum.byLoc[k].n+' · '+fmt(sum.byLoc[k].strikePct);
@@ -98,4 +102,4 @@ $('hfDlg').addEventListener('close',()=>{const rv=$('hfDlg').returnValue;if(rv==
 $('hfChips').addEventListener('click',e=>{const k=e.target.dataset.hfx;if(k){delete HF[k];saveHF();renderHeat();}});
 $('hfReset').onclick=$('hfReset2').onclick=()=>{HF={};saveHF();renderHeat();};
 $('hvA').onclick=()=>{HV='actual';saveHF();renderHeat();};$('hvI').onclick=()=>{HV='miss';saveHF();renderHeat();};
-$('sScope').onchange=renderStats;$('sPitcher').onchange=renderStats;
+$('sScope').onchange=renderStats;$('sPitcher').onchange=()=>{$('sPitcher').dataset.picked='1';renderStats();};

@@ -1,5 +1,56 @@
 # Changelog
 
+## v40 – Scoring screen (simpler flow)
+### Added
+- **One tap starts a scheduled game.** Games that arrived from schedule sync show a Start button. One tap sets the game active, claims this phone as the scorer, and fills an empty lineup with Batter 1–9. The manual start form is still there. Tapping a GameChanger link does not start the game.
+- **Big result buttons** on the portrait result sheet: Ball, Called strike, Swinging strike, Foul, Ball in play, HBP.
+- **Ball in play drill-down.** Contact (GB / LD / FB / PU) is optional; then the play (out, 1B–HR, error, FC, DP). Cancel logs nothing.
+- **Foul timing** (optional): Early, On time, Late, or Foul with no timing. Cancel logs nothing. Same submenu on the landscape coach screen.
+- **Undo and Redo.** Undo removes the location tap first, then the last pitch. Redo puts it back (newest 10). Logging a pitch clears Redo. Redo is on the portrait sheet, the bullpen pad, and the coach result column.
+- **Called location and actual location** are stored separately. `loc` stays the actual spot so miss scoring, hit spot and the heat map stay on one field. The called box is the aim, or the nearest aim when the call names more than one (on a shake-off, the coach's called box, not her own aim).
+- **Actual location past the ring:** In dirt (31) and Over catcher/backstop (32), next to the way-off buttons in portrait and under the zone on the coach screen. They are never a called aim. A change-up called target is still only 4, 7, 8, 9, 13, 14, 18; the actual location may be any box, including those two.
+- **Per pitch:** pitch type called and thrown, count before, inning, outs, batter handedness, pitcher, game vs bullpen, result (ball / called strike / swinging strike / foul / in play / HBP), optional wild pitch or passed ball, optional velocity.
+- **Bullpen** still starts with no batter (LHB / RHB stay in the Batter sheet). An optional default result (Off / Ball / Strike) can stamp ball or called strike; Off is the default, so a pitch with no result still uses the zone.
+- **CSV:** Stats → This pitcher, this date exports one pitcher (first name + number) on one date. New columns are appended: called_location, actual_location, foul_time, wp_pb, velocity.
+### Unchanged
+- Scoring stays locked to the phone that started the game or bullpen; other phones are view only, with Take over scoring.
+- Shake-off stays on the portrait screen and the landscape coach Game screen (called pitch vs thrown pitch + result).
+- Strike zone, wristband aim, and Thunder Elite colours are unchanged.
+### Notes
+- Migration `supabase/migrations/20261014180000_scoring_chart.sql` adds `called_loc`, `actual_loc`, `foul_time`, `wp_pb`, `velo`. See **Go live** below. Cache: `te-pitch-v41`.
+### Review
+- **CSV** appends `called_type` (the called pitch) and `shook` (`1` when she shook it off). Import reads both. An older file without those columns still imports. The download name uses her first name and jersey only, with safe characters (`PC.csvPitcherFile`).
+- **Velocity** outside 20–110 shows "Velocity must be between 20 and 110. Not saved." Empty stays empty, with no message.
+- **Called box** when the call names more than one target is the target nearest where the pitch went. A tie keeps the earlier target. Before the location is tapped, the first target is shown.
+- **Redo** is saved on this phone (still the newest 10) and comes back after a reload. Logging a pitch clears it. It is not synced.
+### Design review (UI)
+- **Result colours.** Ball, Foul and HBP use `#0B0F17` text (white failed on those fills). Called strike, swinging strike and in play stay white.
+- **Foul is one tap.** The pitch is saved on Foul. Early / On time / Late then show for about 5 seconds and update that pitch. There is no skip button. A new pitch, or Undo of that pitch, clears the chips.
+- **Tap targets are at least 48px.** Coach In dirt / Over catcher is a row under the zone. Coach contact chips, the result sheet Cancel, velocity, short-phone way-off and dirt/backstop boxes, and the bullpen Undo / Redo / Pause / End and default-result buttons all meet that.
+- **Nothing needed sits below the fold.** The result sheet and the in-play sheet use 4 columns. Cancel, Undo and Redo are pinned to the bottom of the sheet.
+- **Contact** reads Ground, Liner, Fly, Pop up. The chips are an outline until one is picked. The stored values stay GB / LD / FB / PU.
+- **CSV** opens on today and the current pitcher. All pitchers is still there.
+- **Wild pitch, passed ball and velocity** sit under More on the result sheet.
+- The coach hint fits on one line. Portrait step labels (Pitch / Where / Result) have their own row.
+- The sync pill and Start game use white text on the green fill.
+- Cache: `te-pitch-v42`.
+### Edit pitch
+- **Tap a pitch in the list** (the game or bullpen log, the recent list, or Stats → Pitches after the game) to correct its **actual** location. The sheet is the full grid: zone, the ring, way off, In dirt, and Over catcher. Save writes that pitch. Cancel, Escape, and the backdrop write nothing.
+- Later pitches stay. The count and the result stay. Miss scoring follows the corrected spot (`loc` and `actualLoc`). When that call named more than one target, the called box becomes the target nearest the new spot (`PC.nearestTarget`), so CSV `called_location` matches. One target, or none, leaves the called box as it was. A distance tie keeps the earlier target.
+- The pitch is marked **edited**. The list shows “from video”. CSV writes `from_video` (`1` or empty) and still imports an older `edited` column.
+- Only the scoring phone can save, including after the game. A view-only phone cannot.
+- The correction syncs with the pitch (`loc`, plus an invisible mark on `call_raw` so the flag comes back). No new database column.
+- Stats → Pitches lists the pitches only when one game or one session is selected, so Everything still shows the heat map.
+- On a short phone the log sits above the location row, so each pitch stays tappable.
+- **Undo after a correction** puts that pitch back. It does not delete the latest pitch. The "Location updated" toast has Undo for about 5 seconds. Logging a new pitch makes Undo remove that pitch again.
+- The sheet is titled **Fix location (from video)**. The log says "Tap a pitch to fix where it went" and marks each row with ✎. Stats rows show aim → actual. CSV calls the flag `from_video` and still reads an older `edited` column.
+- On a short phone the fix-location sheet keeps Way off and In dirt above Save. Coach foul-timing chips sit under the wristband, clear of the count. Portrait pitch-type chips are 48px, the entry line wraps, and Archived is a full-height row. Cache: `te-pitch-v46`.
+### Go live
+- `chartColumn: true` and `shakeColumn: true` are set in `config.js`. `scorerColumn` was already on. Apply these two files to production before merge, in this order:
+  1. `supabase/migrations/20261014140000_shake_off.sql` (`pitches.shook`)
+  2. `supabase/migrations/20261014180000_scoring_chart.sql` (`called_loc`, `actual_loc`, `foul_time`, `wp_pb`, `velo`)
+- `20261014120000_scoring_lock.sql` is already applied. Cache: `te-pitch-v46`.
+
 ## v39 – Code Reviewer fixes
 ### Fixed
 - **Sync no longer stalls on one refused row.** A 401/403 is now retried row by row like other 4xx errors, so the good rows and every later table still sync. Sync stops only if the coach code itself is no longer valid.
@@ -16,7 +67,7 @@
 - New **⤺ Shake-off** button in the Game pitch flow (portrait) and on the landscape coach screen next to Aim/Undo/Same: records the coach's call as shaken off, then the pitch type she actually threw, where it went and the result, linked to the call. Cancel and Undo supported.
 - Stats gets a **Shake-offs** card per pitcher (also in the bullpen report when present): count, shook vs followed-call results (strike %, hits, hard contact, K, balls), and each shake-off with called vs thrown, count, previous pitch and outcome.
 - Scoring: a shake-off pitch is scored against her own aim; unknown = no aim (SCORING.md).
-- Sync works on today's schema (call_raw tag). Optional migration `20261014140000_shake_off.sql` (`pitches.shook`) – **not applied**.
+- Sync works on today's schema (call_raw tag). Migration `20261014140000_shake_off.sql` (`pitches.shook`) is listed under **Go live**; `shakeColumn:true` is set.
 - Bullpen: not included (no wristband call in bullpen).
 - History check: "shake" never appeared in any commit or PR (#1–#12), so this is new, not a restore.
 

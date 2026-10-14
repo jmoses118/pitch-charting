@@ -9,15 +9,15 @@ const S=()=>store.state;
 const dirty=(k,id)=>{store.markDirty(k,id);};
 const save=()=>{schedSync();if(!store.save()&&!store.isTest&&!store.saveOk)toast('Not saving: storage blocked. Open in Safari (not private).');};
 let tab='game';
-const D={type:null,callTxt:'',parsed:null,target:null,loc:null,ip:false}; // current pitch draft
+const D={type:null,callTxt:'',parsed:null,target:null,loc:null,ip:false,foul:false,foulTime:null,wpPb:null,velo:null}; // current pitch draft
 let callOn=false,bpHand='N'; // bullpen default: no batter (in/away calls map as RHB)
 // every dialog/sheet: Cancel, Escape and a tap on the backdrop close it without saving (returnValue 'cancel')
 function openSheet(d){d.returnValue='';d.showModal();}
 document.querySelectorAll('dialog').forEach(d=>{d.addEventListener('cancel',()=>{d.returnValue='cancel';});
   d.addEventListener('click',e=>{if(e.target!==d||!e.clientX&&!e.clientY)return;const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close('cancel');});});
 // inline sheets (result, wristband) close on Escape too
-document.addEventListener('keydown',e=>{if(e.key!=='Escape'||document.querySelector('dialog[open]'))return;if($('wbDet').open)$('wbDet').open=false;else if(D.sheet||D.ip){D.sheet=false;D.ip=false;render();}});
-function toast(t){if(document.body.classList.contains('coachmode')&&typeof coachMsg==='function')return coachMsg(t);const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),1300);}
+document.addEventListener('keydown',e=>{if(e.key!=='Escape'||document.querySelector('dialog[open]'))return;if($('wbDet').open)$('wbDet').open=false;else if(D.sheet||D.ip||D.foul){D.sheet=false;D.ip=false;D.foul=false;render();}});
+function toast(t,ms){if(document.body.classList.contains('coachmode')&&typeof coachMsg==='function')return coachMsg(t);const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),ms||1300);}
 // ---------- helpers ----------
 const allTypes=()=>PC.BASE_TYPES.concat(S().customTypes.map(c=>({code:c.code.toUpperCase(),name:c.name})));
 const pById=id=>S().pitchers.find(p=>p.id===id);
@@ -39,7 +39,7 @@ const oneHand=()=>S().oneHand!==false;
 function advance(step){if(!oneHand())return;if(document.body.classList.contains('entrymode')){if(scrollY)scrollTo(0,0);return;} // one-screen entry: everything is already in view
   const el=step==='loc'?$('zone'):step==='result'?$('resBtns'):($('wbCard')&&!$('wbCard').classList.contains('hide')?$('wbCard'):$('types'));if(el&&el.scrollIntoView)setTimeout(()=>el.scrollIntoView({behavior:'auto',block:step==='result'?'end':'start'}),30);}
 function pcCheck(pid,before,after){ensureSettings();const th=S().settings.alerts;const a=PC.alertLevel(before,th),b=PC.alertLevel(after,th);if(b.lvl>a.lvl){buzz([220,90,220]);toast(`⚠️ ${pName(pid)} has thrown ${after} pitches (alert at ${b.at})`);}}
-function resetDraft(){D.shook=null;D.cell=null;D.bb=null;D.sheet=false;D.aim=null;D.aimEdit=false;D.spray=null;Object.assign(D,{type:null,callTxt:'',parsed:null,target:null,loc:null,ip:false});$('callTxt').value='';}
+function resetDraft(){D.shook=null;D.cell=null;D.bb=null;D.sheet=false;D.aim=null;D.aimEdit=false;D.spray=null;D.foul=false;D.foulTime=null;D.wpPb=null;D.velo=null;Object.assign(D,{type:null,callTxt:'',parsed:null,target:null,loc:null,ip:false});$('callTxt').value='';const vel=$('velo');if(vel)vel.value='';}
 // ---------- zone ----------
 const ZX0=20,ZY0=24,CW=20,CHh=24;
 const QUAD={11:'M0 0H40V24H20V48H0Z',12:'M60 0H100V48H80V24H60Z',13:'M0 72H20V96H40V120H0Z',14:'M100 72V120H60V96H80V72Z',15:'M40 0H60V24H40Z',16:'M0 48H20V72H0Z',17:'M80 48H100V72H80Z',18:'M40 96H60V120H40Z'};
@@ -71,21 +71,25 @@ function drawZone(){const hand=curHand();let ex='';const tset=D.shook?aimSet():D
   const items=renderRecent();zoneSVG($('zone'),hand,{labels:lab,throws:throwsOf(),orient:true,compact:true,extra:ballsSVG(items,throwsOf())});
   tset.forEach(z=>{const e=$('zone').querySelector(`[data-z="${z}"]`);e&&e.classList.add('zt');});
   if(D.loc){const e=$('zone').querySelector(`[data-z="${D.loc}"]`);e&&e.classList.add(tset.includes(D.loc)?'zta':'za');}
-  document.querySelectorAll('#wayBtns [data-z]').forEach(b=>b.classList.toggle('sel',+b.dataset.z===D.loc));}
-const locTxt=z=>PC.isWay(z)?PC.WAY[z]:'@'+z;
+  document.querySelectorAll('#wayBtns [data-z],#actBtns [data-z]').forEach(b=>b.classList.toggle('sel',+b.dataset.z===D.loc));}
+const locTxt=z=>PC.isWay(z)?PC.WAY[z]:PC.isActualOnly(z)?PC.ACTUAL_ONLY[z]:'@'+z;
 function tapLoc(z){if(scoreGuard())return;const way=PC.isWay(z);
   if(tab==='bullpen'){if(!D.type&&D.parsed)D.type=D.parsed.type;
     const r=PC.bullpenTap({type:D.type,target:D.target,callTargets:callOn&&D.parsed?D.parsed.targets:[]},z);
     if(r.action==='need_type'){toast('Pick the pitch type first');return;}
+    if(r.action==='not_aim'){toast(PC.isActualOnly(z)?PC.ACTUAL_ONLY_MSG:'Way off can\'t be a target – tap a box to aim');return;}
     if(r.action==='bad_target'){toast(PC.CH_AIM_MSG);return;}
-    if(r.action==='target'){if(way)return toast('Way off can\'t be a target – tap a box to aim');D.target=z;render();return;}
+    if(r.action==='target'){D.target=z;render();return;}
     D.loc=z;logBullpen(r.targets);return;}
-  if(callOn&&D.parsed&&!D.parsed.targets.length&&!D.target){if(way)return toast('Tap the called target box first');if(!PC.targetOk(D.type,z))return toast(PC.CH_AIM_MSG);D.target=z;}
-  else{D.loc=z;D.sheet=true;}
+  // Called aim (change-up limited) is separate from where it actually went (anywhere, including dirt and backstop).
+  const aiming=!D.shook&&callOn&&D.parsed&&!D.parsed.targets.length&&!D.target;
+  if(aiming){if(way||PC.isActualOnly(z))return toast(PC.isActualOnly(z)?PC.ACTUAL_ONLY_MSG:'Tap the called target box first');if(!PC.canAim(D.type,z))return toast(PC.CH_AIM_MSG);D.target=z;}
+  else{if(typeof clearFoulChips==='function')clearFoulChips();D.loc=z;D.sheet=true;D.foul=false;}
   render();if(tab==='game'&&D.loc)advance('result');}
 $('zone').addEventListener('click',e=>{const svg=$('zone');const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const p=pt.matrixTransform(svg.getScreenCTM().inverse());
   const z=zoneOf(p.x,p.y);if(z)tapLoc(z);});
 $('wayBtns').addEventListener('click',e=>{const b=e.target.closest('[data-z]');if(b)tapLoc(+b.dataset.z);});
+$('actBtns').addEventListener('click',e=>{const b=e.target.closest('[data-z]');if(b)tapLoc(+b.dataset.z);});
 // ---------- call entry ----------
 function setCall(t){D.callTxt=t;$('callTxt').value=t;D.parsed=PC.parseCall(t,curHand(),throwsOf(),S().customTypes);D.target=null;if(D.parsed&&!D.type)D.type=D.parsed.type;render();}
 $('callTxt').addEventListener('input',e=>{D.callTxt=e.target.value;D.parsed=PC.parseCall(D.callTxt,curHand(),throwsOf(),S().customTypes);D.target=null;if(D.parsed)D.type=D.parsed.type;render(true);});
@@ -134,21 +138,24 @@ function setHand(h){if(tab==='game'&&game()){game().cur.hand=h;dirty('games',gam
 // the planned spot(s) for the pitch in progress: ✎ Aim / band-setup aim, else the call's own spot, else a tapped target
 function aimSet(){if(D.shook)return D.aim?[D.aim]:[]; // shake-off: only her own chosen aim, never the coach's
   if(D.aim)return[D.aim];if(!callOn)return[];return D.parsed&&D.parsed.targets.length?D.parsed.targets:(D.target?[D.target]:[]);}
-function baseRec(){return{id:PC.uuid(),ts:Date.now(),pitcherId:curPitcherId(),hand:curHand(),type:D.shook?D.type||null:D.type||(D.parsed&&D.parsed.type)||null,
-  call:D.shook?D.shook.norm:callOn&&D.parsed?D.parsed.norm:null,callRaw:D.shook?D.shook.raw:callOn&&D.callTxt?D.callTxt:null,targets:aimSet(),loc:D.loc||null,...(D.shook?{shook:true}:{})};}
+function calledLocNow(loc){let t=[];if(D.shook)t=D.shook.targets||[];else if(D.aim)t=[D.aim];else if(D.target)t=[D.target];else if(callOn&&D.parsed&&D.parsed.targets&&D.parsed.targets.length)t=D.parsed.targets;return PC.nearestTarget(t,loc==null?null:loc);}
+// A typed velocity outside 20–110 is dropped, and the coach hears about it once. Empty stays empty with no message.
+function noteVelo(raw){if(raw==null||String(raw).trim()==='')return null;const v=PC.cleanVelo(raw);if(v==null)toast('Velocity must be between 20 and 110. Not saved.',2200);return v;}
+function baseRec(){const loc=D.loc||null;return{id:PC.uuid(),ts:Date.now(),pitcherId:curPitcherId(),hand:curHand(),type:D.shook?D.type||null:D.type||(D.parsed&&D.parsed.type)||null,
+  call:D.shook?D.shook.norm:callOn&&D.parsed?D.parsed.norm:null,callRaw:D.shook?D.shook.raw:callOn&&D.callTxt?D.callTxt:null,targets:aimSet(),loc,calledLoc:calledLocNow(loc),actualLoc:loc,calledType:D.shook?(D.shook.type||null):((D.parsed&&D.parsed.type)||D.type||null),wpPb:PC.cleanFlag(D.wpPb),velo:noteVelo(D.velo),...(D.shook?{shook:true}:{})};}
 // ---------- test mode ----------
-function toggleTest(){if(store.isTest){if(!confirm('Exit test mode? Everything from this test is discarded.'))return;store.exitTest();resetDraft();toast('Test data cleared');}
-  else{store.enterTest();resetDraft();toast('TEST MODE – nothing is saved');}render();}
+function toggleTest(){if(store.isTest){if(!confirm('Exit test mode? Everything from this test is discarded.'))return;store.exitTest();resetDraft();if(typeof loadRedo==='function')loadRedo();toast('Test data cleared');}
+  else{store.enterTest();resetDraft();redoStack=[];toast('TEST MODE – nothing is saved');}render();}
 $('testBtn').onclick=toggleTest;$('exitTest2').onclick=toggleTest;
 // ---------- cloud sync ----------
 const CFG=window.PC_CONFIG||{};const sync=CFG.url&&CFG.key?PC.makeSync(store,{url:CFG.url,key:CFG.key}):null;let syncT=null,syncing=false;
 // Scoring lock: the live game / bullpen session on screen is scored only from the phone that owns it (PC.canScore)
-store.real.sync.scorerCol=!!CFG.scorerColumn; store.real.sync.shakeCol=!!CFG.shakeColumn; // true only after *_shake_off.sql is applied // true only after supabase/migrations/*_scoring_lock.sql is applied
+store.real.sync.scorerCol=!!CFG.scorerColumn; store.real.sync.shakeCol=!!CFG.shakeColumn; store.real.sync.chartCol=!!CFG.chartColumn; // on after 20261014140000_shake_off.sql and 20261014180000_scoring_chart.sql
 const myDevice=()=>store.real.sync.deviceId;
 function liveBox(){if(tab==='game'){const g=game();return PC.gameInProgress(g)?g:null;}return tab==='bullpen'?session():null;}
 const viewOnly=()=>PC.lockedBox(liveBox(),myDevice());
 // controls that change the live game / session: disabled on a view-only phone (viewing items – band setup, theme, mirror – stay)
-const RO_EDIT_IDS=['cmOutM','cmOutP','cmEnd','cmInn','cmIbb','cmKd3','cmKd3o','cmPause','gEnd','gPause','lkEndG','lkPauseG','outPlus','outMinus','innPlus','ibb','bpEnd','bpPause','lkEndBp','lkPauseBp','pUndo','pPause','pEnd','undo'];
+const RO_EDIT_IDS=['cmOutM','cmOutP','cmEnd','cmInn','cmIbb','cmKd3','cmKd3o','cmPause','cmXtra','gEnd','gPause','lkEndG','lkPauseG','outPlus','outMinus','innPlus','ibb','bpEnd','bpPause','lkEndBp','lkPauseBp','pUndo','pRedo','pPause','pEnd','undo','redo'];
 function applyViewOnly(vo){document.body.classList.toggle('viewonly',vo);const m=$('cmRo');if(m)m.classList.toggle('hide',!vo);
   for(const id of RO_EDIT_IDS){const e=$(id);if(!e)continue;if(vo){if(!e.disabled){e.disabled=true;e.dataset.rolock='1';}}else if(e.dataset.rolock){e.disabled=false;delete e.dataset.rolock;}}}
 function scoreGuard(){if(!viewOnly())return false;toast(PC.SCORING_ELSEWHERE);return true;}
@@ -162,9 +169,9 @@ async function doSync(manual,pull){if(!sync)return;if(store.isTest){if(manual)to
   if(typeof navigator!=='undefined'&&navigator.onLine===false){if(manual)toast('Offline – will sync later');renderSync();return;}
   syncing=true;renderSync();const r=pull?await sync.pull():await sync.sync();syncing=false;
   if(manual)toast(r.error?'Sync failed: '+r.error.slice(0,80):(pull?`Restored: ${r.added||0} new pitches`:`Synced${r.added?' · '+r.added+' new from cloud':''}`));render();}
-function renderSync(){const e=$('syncTag');if(!e)return;const mini=document.body.classList.contains('entrymode');if(store.isTest){e.textContent=mini?'☁ off':'☁ off (test)';e.title='Sync off (test mode)';e.style.background='#5c1515';return;}
+function renderSync(){const e=$('syncTag');if(!e)return;const mini=document.body.classList.contains('entrymode');if(store.isTest){e.textContent=mini?'☁ off':'☁ off (test)';e.title='Sync off (test mode)';e.style.background='#5c1515';e.style.color='#fff';return;}
   const st=store.real.sync,n=store.pendingCount();const t=st.last?new Date(st.last).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'}):'never';
-  const full=!sync||!st.teamCode?'☁ not set up':syncing?'☁ syncing…':st.lastError?`☁ error · ${n} pending`:`☁ ${t} · ${n} pending`;e.title=full;e.textContent=!mini?full:!sync||!st.teamCode?'☁ off':syncing?'☁ …':st.lastError?`☁ ! ${n}`:n?`☁ ${n}`:'☁ ✓';e.style.background=st.lastError?'#5c1515':n?'#5c4813':'#1d4a2a';
+  const full=!sync||!st.teamCode?'☁ not set up':syncing?'☁ syncing…':st.lastError?`☁ error · ${n} pending`:`☁ ${t} · ${n} pending`;e.title=full;e.textContent=!mini?full:!sync||!st.teamCode?'☁ off':syncing?'☁ …':st.lastError?`☁ ! ${n}`:n?`☁ ${n}`:'☁ ✓';e.style.background=st.lastError?'#5c1515':n?'#5c4813':'#1d4a2a';e.style.color='#fff';
   if($('syncMsg'))$('syncMsg').textContent=`Last synced: ${t}. Pending: ${n}.${st.lastError?' Last error: '+st.lastError:''} Device ${st.deviceId}. Test mode never syncs.`;if(typeof renderRejBtn==='function')renderRejBtn();}
 $('teamSave').onclick=()=>{if(store.isTest)return toast('Exit test mode first');const v=$('teamCode').value.trim().toUpperCase();if(v.length<20)return toast('Team code looks too short');const changed=store.real.sync.teamCode!==v;
   // never lose unsent work: a verified code with pending edits can't be swapped until they're sent (a rejected/typo code can always be corrected)
@@ -180,7 +187,7 @@ const ZONE_MIN_BOX=48;
 function fitZone(){const z=$('zone'),w=z.parentElement;if($('entry').classList.contains('hide')||!w.clientWidth)return;
   document.documentElement.style.setProperty('--hdr-h',document.querySelector('header').offsetHeight+'px');
   const pad=document.body.classList.contains('padmode')?$('bpPad').offsetHeight:0;document.documentElement.style.setProperty('--pad-h',pad+'px');
-  const vb=z.viewBox.baseVal,top=w.getBoundingClientRect().top+scrollY,nav=document.querySelector('nav').offsetHeight,way=pad?pad+8:$('wayBtns').offsetHeight+16;
+  const vb=z.viewBox.baseVal,top=w.getBoundingClientRect().top+scrollY,nav=document.querySelector('nav').offsetHeight,loc=$('locRow'),locH=!pad&&loc&&loc.offsetParent?loc.offsetHeight:0,way=pad?pad+8:(locH||$('wayBtns').offsetHeight)+16;
   const min=Math.ceil(ZONE_MIN_BOX*vb.height/CW)+1,h=Math.round(Math.max(min,Math.min(innerHeight-top-nav-way,w.clientWidth*vb.height/vb.width)));
   z.style.height=h+'px';const m=z.getScreenCTM(),r=w.getBoundingClientRect();if(!m)return;const bs=$('batTog').style;
   bs.left=(-13*m.a+m.e-r.left)+'px';bs.top=(124*m.d+m.f-r.top)+'px';bs.width=(43*m.a)+'px';}

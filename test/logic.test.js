@@ -413,7 +413,9 @@ test('sessions: last writer wins by updated_at for every field',()=>{const st=co
 test('scoring lock: only the starting phone scores; others view; take over moves the lock',()=>{
   assert.ok(PC.canScore(null,'A'));assert.ok(PC.canScore({},'A'),'legacy box with no owner stays open');
   const g={id:'g',scorer:'A'};assert.ok(PC.canScore(g,'A'));assert.ok(!PC.canScore(g,'B'));assert.ok(PC.lockedBox(g,'B'));assert.ok(!PC.lockedBox(g,'A'));
-  assert.equal(PC.claimScoring(g,'B'),true);assert.equal(g.scorer,'B');assert.ok(PC.lockedBox(g,'A'));assert.equal(PC.claimScoring(g,'B'),false);assert.equal(PC.claimScoring(g,''),false);});
+  assert.equal(PC.claimScoring(g,'B'),true);assert.equal(g.scorer,'B');assert.ok(PC.lockedBox(g,'A'));assert.equal(PC.claimScoring(g,'B'),false);assert.equal(PC.claimScoring(g,''),false);
+  g.ended=1;assert.ok(PC.canEditBox(g,'B','coach'),'the scorer can still edit after the game');assert.ok(!PC.canEditBox(g,'A','coach'));
+  assert.ok(!PC.canEditBox(g,'B','viewer'));assert.ok(!PC.canEditBox(g,'B','unknown'));assert.ok(PC.canEditBox({id:'legacy'},'A','coach'));});
 test('scoring lock syncs: games carry cur.scorer (no schema change), the count is plain last-writer, no pn field',()=>{const st=coachStore(),s=st.real;
   s.games.push({id:'g',date:'d',opponent:'o',homeAway:'home',lineup:[],pitches:[],cur:{inning:2,outs:1,slot:3,b:2,s:1,abn:7},scorer:'A'});s.sync.queue.games.g=1;
   const row=PC.buildRows(s).rows.games[0];assert.equal(row.cur.scorer,'A');assert.equal(row.cur.pn,undefined);delete s.sync.queue.games.g;
@@ -467,3 +469,152 @@ test('shake-off syncs on today\'s schema (call_raw tag) and via the shook column
   const back=PC.rowPitch(row);assert.equal(back.shook,true);assert.equal(back.callRaw,'CH 8');
   s.sync.shakeCol=true;row=PC.buildRows(s).rows.pitches[0];assert.equal(row.shook,true);
   assert.equal(PC.rowPitch({id:'x',call_raw:'FB 3',shook:false}).shook,undefined);});
+
+// ---------------- v40 (scoring chart) ----------------
+test('actual location: in dirt and over the catcher are logged, never aimed',()=>{
+  assert.equal(PC.locInfo(31,'R','R').label,'in dirt');assert.equal(PC.locInfo(32,'R','R').label,'over catcher/backstop');
+  assert.equal(PC.isCompetitive(31),false);assert.equal(PC.isCompetitive(32),false);assert.equal(PC.isActualOnly(31),true);
+  assert.equal(PC.canAim('CH',2),false);assert.equal(PC.canAim('CH',8),true);assert.equal(PC.canAim('FB',31),false);assert.equal(PC.canAim('CH',18),true);
+  assert.equal(PC.bullpenTap({type:'CH'},31).action,'not_aim');assert.equal(PC.bullpenTap({type:'FB'},32).action,'not_aim');
+  assert.equal(PC.bullpenTap({type:'CH'},21).action,'not_aim');
+  const aimed=PC.bullpenTap({type:'CH'},8);assert.equal(aimed.action,'target');
+  assert.equal(PC.bullpenTap(aimed.draft,1).action,'log');assert.equal(PC.bullpenTap(aimed.draft,31).action,'log');
+  assert.equal(PC.bullpenTap(aimed.draft,31).draft.loc,31);
+  assert.equal(PC.chUp?PC.chUp({type:'CH',loc:32}):false,false);
+});
+test('in dirt and over the catcher score as way off and still count as landed',()=>{
+  const m=PC.pitchMiss({type:'FB',targets:[8],loc:31});assert.equal(m.sev,PC.MAX_MISS-1);assert.equal(PC.chUp({type:'CH',loc:32}),false);
+  const items=[{p:{type:'FB',targets:[8],loc:31}},{p:{type:'FB',targets:[8],loc:5}}];
+  const l=PC.heatData(items,{},'actual');assert.equal(l.total,2);assert.equal(l.cells[5].n,1);assert.equal(l.cells[31],undefined);
+});
+test('redo stack keeps the newest 10 and a new item drops the oldest',()=>{
+  let s=[];for(let i=0;i<12;i++)s=PC.redoPush(s,{i});
+  assert.equal(s.length,10);assert.equal(s[0].i,2);assert.equal(s[9].i,11);assert.equal(PC.REDO_MAX,10);
+  const popped=PC.redoPop(s);assert.equal(popped.item.i,11);assert.equal(popped.stack.length,9);
+  assert.equal(PC.redoPop([]).item,null);
+});
+test('foul timing, wild pitch and velocity are cleaned; bullpen result defaults only to ball or called strike',()=>{
+  assert.equal(PC.cleanFoul('early'),'early');assert.equal(PC.cleanFoul('skip'),null);assert.equal(PC.cleanFoul('late'),'late');
+  assert.equal(PC.cleanFlag('wp'),'wp');assert.equal(PC.cleanFlag('pb'),'pb');assert.equal(PC.cleanFlag('ball'),null);
+  assert.equal(PC.cleanVelo('72.24'),72.2);assert.equal(PC.cleanVelo(19),null);assert.equal(PC.cleanVelo(''),null);assert.equal(PC.cleanVelo(110),110);
+  assert.equal(PC.bullpenResult('ball'),'ball');assert.equal(PC.bullpenResult('called'),'called');assert.equal(PC.bullpenResult(''),null);assert.equal(PC.bullpenResult('swinging'),null);
+});
+test('CSV export per pitcher per date, with called and actual location columns',()=>{
+  const rows=[{pitcher:'Avery',pitcher_num:'45',date:'2026-10-14',called_location:8,actual_location:31,mode:'game'},
+    {pitcher:'Avery',pitcher_num:'12',date:'2026-10-14',mode:'bullpen'},
+    {pitcher:'Jules',pitcher_num:'45',date:'2026-10-14',mode:'game'},
+    {pitcher:'Avery',pitcher_num:'45',date:'2026-10-13',mode:'game'}];
+  const hit=PC.filterPitcherDate(rows,{pitcher:'Avery',num:'45',date:'2026-10-14'});
+  assert.equal(hit.length,1);assert.equal(hit[0].actual_location,31);
+  assert.equal(PC.filterPitcherDate(rows,{}).length,4);
+  assert.ok(PC.toCSV(hit).includes('called_location'));assert.ok(PC.toCSV(hit).split('\n')[0].endsWith('from_video'));
+  assert.ok(PC.toCSV(hit).split('\n')[0].includes('shook'));assert.ok(PC.toCSV(hit).split('\n')[0].includes('called_type'));
+});
+test('called location is the target nearest the actual spot',()=>{
+  assert.equal(PC.nearestTarget([11,14],null),11);
+  assert.equal(PC.nearestTarget([11,14],9),14);
+  assert.equal(PC.nearestTarget([8],1),8);
+  assert.equal(PC.nearestTarget([],5),null);
+  assert.equal(PC.nearestTarget([11,12],2),11);
+  assert.equal(PC.nearestTarget([2,18],31),18);
+});
+test('CSV called_type and shook round-trip, and the file name is a first name only',()=>{
+  const pitch={type:'FB',call:'CH8',shook:true,hand:'R',calledLoc:8,actualLoc:14,loc:14,velo:64};
+  const chart=PC.csvChart(pitch);
+  assert.equal(chart.called_type,'CH');assert.equal(chart.shook,1);assert.equal(chart.actual_location,14);
+  assert.equal(PC.calledTypeOf({type:'FB',call:'FB5'}),'FB');
+  assert.equal(PC.calledTypeOf({shook:true,type:'FB',call:'CH8'}),'CH');
+  assert.equal(PC.calledTypeOf({calledType:'CH',type:'FB',shook:true}),'CH');
+  const csv=PC.toCSV([Object.assign({mode:'game',type:'FB',call:'CH8',pitcher:'Avery'},chart)]);
+  const back=PC.parseCSV(csv)[0];
+  assert.equal(back.called_type,'CH');assert.equal(back.shook,'1');
+  const applied=PC.csvApply({},back);assert.equal(applied.calledType,'CH');assert.equal(applied.shook,true);
+  assert.equal(PC.csvApply({},{shook:'0'}).shook,undefined);
+  assert.equal(PC.csvApply({},{shook:''}).shook,undefined);
+  assert.equal(PC.csvApply({},{shook:'yes'}).shook,true);
+  const old=PC.parseCSV('mode,type,call\ngame,FB,FB5\n')[0];
+  assert.equal(old.called_type,undefined);assert.equal(PC.csvApply({type:'FB'},old).shook,undefined);assert.equal(PC.csvApply({type:'FB'},old).edited,undefined);
+  const file=PC.csvPitcherFile({name:'Avery 99!',num:'45'},'2026-10-14');
+  assert.equal(file,'pitches-Avery-45-2026-10-14.csv');assert.equal(file.includes('99'),false);
+  const ugly=PC.csvPitcherFile({name:'O"Neil, J',num:'7/'},'2026/10/14');
+  assert.equal(ugly,'pitches-O-Neil-7-2026-10-14.csv');
+  assert.equal(/["',\s/]/.test(ugly),false);assert.equal(ugly.includes('J'),false);
+  assert.equal(PC.csvGameFile({date:'2026-10-14',opponent:'East Side!'}),'game-2026-10-14-East-Side.csv');
+  assert.equal(PC.csvScopeFile('bullpen'),'pitches-bullpen.csv');
+});
+test('redo list persists on this phone, stays capped at 10, and is not synced',()=>{
+  const bag={};const storage={getItem:k=>bag[k]??null,setItem:(k,v)=>{bag[k]=v;},removeItem:k=>{delete bag[k];}};
+  const st=PC.makeStore(storage);let s=[];
+  for(let i=0;i<12;i++)s=PC.redoPush(s,{kind:'loc',loc:i});
+  st.real.redo=s;st.save();
+  const st2=PC.makeStore(storage);
+  assert.equal(st2.real.redo.length,10);assert.equal(st2.real.redo[0].loc,2);assert.equal(st2.real.redo[9].loc,11);
+  st2.real.redo=[{kind:'nope'},{kind:'pitch',mode:'game'}];st2.save();
+  const st3=PC.makeStore(storage);assert.equal(st3.real.redo.length,1);assert.equal(st3.real.redo[0].kind,'pitch');
+  st3.enterTest();const before=st3.real.redo.map(x=>x.kind);
+  st3.state.redo.push({kind:'loc',loc:98});assert.equal(st3.save(),false);st3.exitTest();
+  assert.deepEqual(st3.real.redo.map(x=>x.kind),before);
+  st3.real.redo=[];st3.save();assert.deepEqual(PC.makeStore(storage).real.redo,[]);
+  const built=PC.buildRows(st3.real);assert.equal(built.rows.redo,undefined);
+});
+test('chart columns stay off the wire until chartCol is set, then round-trip including in dirt',()=>{const st=coachStore(),s=st.real;
+  s.sessions.push({id:'s1',date:'d',pitches:[]});
+  s.games.push({id:'g',date:'d',opponent:'o',homeAway:'home',lineup:[],cur:{},pitches:[{id:'p1',ts:1,type:'CH',call:'CH8',targets:[8],loc:31,calledLoc:8,actualLoc:31,result:'foul',foulTime:'early',wpPb:'wp',velo:61.5,mode:'game'}]});
+  s.sync.queue.pitches.p1=1;
+  let row=PC.buildRows(s).rows.pitches[0];assert.equal('called_loc' in row,false);assert.equal('actual_loc' in row,false);assert.equal('foul_time' in row,false);assert.equal('called_type' in row,false);assert.equal(row.loc,31);
+  s.sync.chartCol=true;row=PC.buildRows(s).rows.pitches[0];
+  assert.equal(row.called_loc,8);assert.equal(row.actual_loc,31);assert.equal(row.foul_time,'early');assert.equal(row.wp_pb,'wp');assert.equal(row.velo,61.5);
+  const back=PC.rowPitch(row);assert.equal(back.calledLoc,8);assert.equal(back.actualLoc,31);assert.equal(back.loc,31);assert.equal(back.foulTime,'early');assert.equal(back.wpPb,'wp');assert.equal(back.velo,61.5);
+});
+test('edit actual location keeps later pitches, the call, and the count, and marks the pitch edited',()=>{
+  const later={id:'b',loc:8,actualLoc:8,calledLoc:8,result:'called',b:1,s:0};
+  const pitches=[{id:'a',loc:5,actualLoc:5,calledLoc:7,result:'ball',b:0,s:0},{...later}];
+  assert.equal(PC.editActual(pitches[0],31),true);
+  assert.equal(pitches.length,2);assert.equal(pitches[1].id,'b');assert.equal(pitches[1].loc,8);assert.equal(pitches[1].result,'called');
+  assert.equal(pitches[0].loc,31);assert.equal(pitches[0].actualLoc,31);assert.equal(pitches[0].calledLoc,7);assert.equal(pitches[0].result,'ball');assert.equal(pitches[0].b,0);assert.equal(pitches[0].edited,true);
+  assert.equal(PC.editActual(pitches[0],32),true);assert.equal(pitches[0].loc,32);assert.equal(pitches[0].actualLoc,32);
+  assert.equal(PC.editActual(pitches[0],14),true);assert.equal(pitches[0].loc,14);
+  assert.equal(PC.editActual(pitches[0],21),true);assert.equal(pitches[0].loc,21);
+  assert.equal(PC.editActual(pitches[0],99),false);assert.equal(pitches[0].loc,21);
+  assert.equal(PC.editActual(pitches[0],21),true);assert.equal(pitches[0].edited,true);
+  const plain={id:'c',loc:5,actualLoc:5,result:'foul'};assert.equal(PC.editActual(plain,5),true);assert.equal(plain.edited,undefined);
+});
+test('editing the actual location recomputes calledLoc when the call had more than one target',()=>{
+  const p={id:'m',loc:9,actualLoc:9,calledLoc:14,targets:[11,14],result:'ball',call:'FB'};
+  assert.equal(PC.nearestTarget(p.targets,9),14);
+  assert.equal(PC.editActual(p,1),true);
+  assert.equal(p.loc,1);assert.equal(p.actualLoc,1);assert.equal(p.calledLoc,11);assert.equal(p.result,'ball');assert.equal(p.edited,true);
+  const chart=PC.csvChart(p);assert.equal(chart.called_location,11);assert.equal(chart.actual_location,1);
+  const one={id:'o',loc:5,actualLoc:5,calledLoc:7,targets:[7],result:'ball'};
+  assert.equal(PC.editActual(one,31),true);assert.equal(one.calledLoc,7);assert.equal(PC.csvChart(one).called_location,7);
+  const tie={id:'t',loc:9,actualLoc:9,calledLoc:14,targets:[11,12],result:'ball'};
+  assert.equal(PC.editActual(tie,2),true);assert.equal(tie.calledLoc,11);
+  const stay={id:'s',loc:1,actualLoc:1,calledLoc:11,targets:[11,14],result:'ball'};
+  assert.equal(PC.editActual(stay,1),true);assert.equal(stay.calledLoc,11);assert.equal(stay.edited,undefined);
+});
+test('edited flag syncs on the pitch row and round-trips in CSV without a new column',()=>{const st=coachStore(),s=st.real;
+  s.games.push({id:'g',date:'d',opponent:'o',homeAway:'home',lineup:[],cur:{},pitches:[
+    {id:'p1',ts:1,type:'FB',call:'CH8',callRaw:'CH 8',shook:true,targets:[8],loc:31,actualLoc:31,calledLoc:8,result:'ball',edited:true},
+    {id:'p2',ts:2,type:'FB',call:'FB5',loc:5,result:'called'}]});
+  s.sync.queue.pitches.p1=1;
+  const row=PC.buildRows(s).rows.pitches[0];
+  assert.equal(row.loc,31);assert.equal('edited' in row,false);assert.ok(row.call_raw.startsWith(PC.SHOOK_TAG));assert.ok(row.call_raw.endsWith(PC.EDITED_TAG));
+  const back=PC.rowPitch(row);assert.equal(back.edited,true);assert.equal(back.shook,true);assert.equal(back.callRaw,'CH 8');assert.equal(back.loc,31);
+  assert.equal(PC.rowPitch({id:'x',call_raw:'FB 3',shook:false}).edited,false);
+  const chart=PC.csvChart({type:'FB',call:'CH8',shook:true,edited:true,loc:31,actualLoc:31,calledLoc:8,hand:'R'});
+  assert.equal(chart.from_video,1);assert.equal(chart.edited,undefined);assert.equal(chart.shook,1);assert.equal(chart.actual_location,31);
+  const csv=PC.toCSV([Object.assign({mode:'game',pitcher:'Avery',location:31},chart)]);
+  assert.ok(csv.split('\n')[0].endsWith('from_video'));assert.equal(csv.split('\n')[0].includes(',edited'),false);
+  const applied=PC.csvApply({},PC.parseCSV(csv)[0]);assert.equal(applied.edited,true);assert.equal(applied.shook,true);
+  assert.equal(PC.csvApply({},{from_video:'0'}).edited,undefined);assert.equal(PC.csvApply({},{from_video:'yes'}).edited,true);
+  assert.equal(PC.csvApply({},{edited:'yes'}).edited,true);assert.equal(PC.csvApply({},{edited:'1',from_video:'0'}).edited,true);
+});
+test('undo of a location edit restores the spot and leaves later pitches',()=>{
+  const later={id:'b',loc:8,actualLoc:8,calledLoc:8,result:'called'};
+  const p={id:'a',loc:5,actualLoc:5,calledLoc:14,targets:[11,14],result:'ball'};
+  const snap={loc:p.loc,actualLoc:p.actualLoc,calledLoc:p.calledLoc,edited:!!p.edited};
+  assert.equal(PC.editActual(p,1),true);assert.equal(p.loc,1);assert.equal(p.calledLoc,11);assert.equal(p.edited,true);
+  assert.equal(PC.revertEdit(p,snap),true);
+  assert.equal(p.loc,5);assert.equal(p.actualLoc,5);assert.equal(p.calledLoc,14);assert.equal(p.edited,undefined);
+  assert.equal(later.loc,8);assert.equal(PC.revertEdit(p,snap),false);
+});

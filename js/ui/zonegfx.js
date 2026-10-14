@@ -27,10 +27,18 @@ const BATTER_PATH='M104 26a4.2 4.2 0 1 1 0.1 0M100.5 33c2.5-1.3 5.5-1.3 7.5.3l1.
 function batterSVG(hand){if(hand!=='L'&&hand!=='R')return'';const right=PC.insideCol(hand)===2;
   return `<g class="batter" aria-hidden="true"${right?'':' transform="translate(100 0) scale(-1 1)"'}><path d="${BATTER_PATH}"/></g>`;}
 // recent-pitch list rows: badge, result, type, target → landed
+function editedMark(p){return p&&p.edited?'<span class="fromvid">from video</span>':'';}
 function recentRows(items,isGame,throws){if(!items.length)return `<li class="empty">${isGame?'No pitches yet this at-bat':'No pitches yet this session'}</li>`;
   return items.slice().reverse().map(({p,no})=>{const mark=PC.pitchMark(p,throws);const res=isGame?(RESULT_SHORT[p.result]||p.result||''):(mark?PC.MARK_LABEL[mark]:'Logged');
     const aim=p.targets&&p.targets.length?p.targets.join('/'):'–';const typ=typeName(p.type);
-    return `<li><svg viewBox="-8 -8 16 16" class="badge">${ballSVG(0,0,no,mark,5.2)}</svg><span class="r-main"><b>${H(res)}</b><span class="mut">${H(p.type?typ:'No type')}</span></span><span class="r-loc mut">aim ${H(aim)} → ${H(p.loc?locTxt(p.loc):'–')}</span></li>`;}).join('');}
+    return `<li><button type="button" class="rrow" data-edit="${H(p.id)}" aria-label="Fix location for pitch ${no}${p.edited?', from video':''}"><svg viewBox="-8 -8 16 16" class="badge" aria-hidden="true">${ballSVG(0,0,no,mark,5.2)}</svg><span class="r-main"><b>${H(res)}</b> <span class="pedit" aria-hidden="true">✎</span> <span class="mut">${H(p.type?typ:'No type')}</span>${editedMark(p)}</span><span class="r-loc mut">aim ${H(aim)} → ${H(p.loc?locTxt(p.loc):'–')}</span></button></li>`;}).join('');}
+// One row in the game log and the Stats pitch list. Newest-first is the caller's job; i is the pitch's place in the at-bat order.
+function pitchLine(p,i,mode){const who=mode==='game'?H(String(pName(p.pitcherId)).split(' ')[0])+' vs '+H(p.batter||'–')+': ':'';
+  const res=p.result?(RESULT_SHORT[p.result]||p.result)+(p.ip?' '+p.ip:''):(p.loc!=null?(PC.isZone(p.loc)?'K':'B'):'');
+  const aimN=p.calledLoc!=null?p.calledLoc:(p.targets&&p.targets.length?p.targets.join('/'):'');
+  const act=p.actualLoc!=null?locTxt(p.actualLoc):(p.loc!=null?locTxt(p.loc):'');
+  const aimBit=mode==='stats'?`<span class="plist-aim">aim ${H(aimN===''?'–':aimN)} → ${H(act===''?'–':act)}</span>`:'';
+  return `<button type="button" class="plist" data-edit="${H(p.id)}" aria-label="Fix location for pitch ${i+1}${p.edited?', from video':''}"><span class="pedit" aria-hidden="true">✎</span><span class="n">${i+1}</span><span class="plist-main">${who}${p.call?'<b>['+H(p.call)+']</b> ':''}${H(p.type||'')}${p.loc?' <span class="tag">'+H(locTxt(p.loc))+'</span>':''}${p.targets&&p.targets.length&&p.loc?(PC.hitSpot(p)?' ✓':' ✗'):''} ${aimBit} ${editedMark(p)}</span><span class="plist-res">${H(res)}${p.end?' · <b>'+H(p.end)+'</b>':''}</span>${p.result!=null&&p.b!=null?`<span class="tag">${H(p.b)}-${H(p.s)}</span>`:''}</button>`;}
 // current at-bat (or the last one, right after it ends) / current session, newest last
 function recentFor(){if(tab==='game'){const g=game();if(!g)return{items:[],title:''};const P=g.pitches.filter(p=>!p.noPitch);let ab=P.filter(p=>p.abn===g.cur.abn),title='This at-bat';
     if(!ab.length&&P.length){const last=P[P.length-1].abn;ab=P.filter(p=>p.abn===last);title='Last at-bat';}return{items:PC.recentPitches(ab),title};}
