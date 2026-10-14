@@ -1,5 +1,9 @@
 # Changelog
 
+## Hardening – one batter advance
+### Changed
+- Ending an at-bat and the batter menu share `PC.nextBatter` and `PC.freshAb`. Three outs still retires the side through `PC.retireSide`. The outs button and Next inning still zero the count without moving the batter. Cache: `te-pitch-v51`.
+
 ## v48 – One scoring flow
 ### Changed
 - **One state machine** (`js/core/flow.js`) for portrait Game, the landscape coach screen, and Bullpen. Game steps are pitch type, called location, actual location, then the result. Bullpen stops after the actual location and saves. There is no ball/strike step in the pen.

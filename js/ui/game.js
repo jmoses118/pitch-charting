@@ -47,8 +47,8 @@ function recordGame(result,ip,noPitch){const g=game();if(!g||scoreGuard())return
   let o;if(noPitch){o={b:c.b,s:c.s,end:'IBB',outs:0};r.noPitch=true;r.type=null;r.loc=null;r.call=null;r.targets=[];}else{try{o=PC.applyPitch(c,result,ip);}catch(e){toast(String(e.message||e));return;}}
   if(result==='inplay'&&D.bb)r.bb=D.bb;if(result==='inplay'&&D.spray)r.spray=D.spray;if(result==='foul')r.foulTime=null;r.mode='game';if(noPitch){r.calledLoc=null;r.actualLoc=null;r.calledType=null;r.wpPb=null;r.velo=null;}const inn0=c.inning;const pcBefore=PC.pitchCount(g.pitches,r.pitcherId);r.end=o.end;clearRedo();clearEditUndo();g.pitches.push(r);dirty('pitches',r.id);dirty('games',g.id);c.b=o.b;c.s=o.s;if(result==='foul')armFoulChips(r.id);
   if(o.end){c.outs+=o.outs;let msg={BB:'Walk',K:'Strikeout',HBP:'Hit by pitch',IBB:'Intentional walk','K-D3':'Strikeout – reached on dropped 3rd',out:'Out',E:'Reached on error',FC:"Fielder's choice",DP:'Double play'}[o.end]||o.end;
-    c.b=0;c.s=0;c.abn++;c.slot=(c.slot+1)%Math.max(1,g.lineup.length);c.hand=null;
-    if(c.outs>=3){c.outs=0;c.inning++;msg+=' · side retired';sideCard={inning:inn0,gameId:g.id};}toast(msg);}
+    PC.nextBatter(c,g.lineup.length);
+    if(c.outs>=3){PC.retireSide(c);msg+=' · side retired';sideCard={inning:inn0,gameId:g.id};}toast(msg);}
   confirmSave(o.end?({BB:'Walk',K:'Strikeout','K-D3':'K (D3)',HBP:'HBP',IBB:'IBB'}[o.end]||o.end):`${{ball:'Ball',called:'Strike',swinging:'Swing & miss',foul:'Foul',foultip:'Foul tip',inplay:'In play'}[result]||result} · ${c.b}-${c.s}`);
   pcCheck(r.pitcherId,pcBefore,PC.pitchCount(g.pitches,r.pitcherId));
   resetDraft();save();render();if(oneHand())advance('call');}
@@ -73,7 +73,7 @@ $('undo').onclick=undoLast;$('redo').onclick=redoLast;
 $('outPlus').onclick=()=>{if(scoreGuard())return;const c=game().cur;c.outs++;if(c.outs>=3){c.outs=0;c.inning++;c.b=0;c.s=0;toast('Side retired');}dirty('games',game().id);save();render();};
 $('outMinus').onclick=()=>{if(scoreGuard())return;const c=game().cur;if(c.outs>0)c.outs--;dirty('games',game().id);save();render();};
 $('innPlus').onclick=()=>{if(scoreGuard())return;const c=game().cur;c.inning++;c.outs=0;c.b=0;c.s=0;dirty('games',game().id);save();render();};
-$('batter').onchange=e=>{const c=game().cur;if(c.b||c.s){if(!confirm('Count is not 0-0. Switch batter anyway?')){render();return;}}c.slot=+e.target.value;c.b=0;c.s=0;c.abn++;c.hand=null;dirty('games',game().id);save();render();};
+$('batter').onchange=e=>{const c=game().cur;if(c.b||c.s){if(!confirm('Count is not 0-0. Switch batter anyway?')){render();return;}}c.slot=+e.target.value;PC.freshAb(c);dirty('games',game().id);save();render();};
 $('bHand').onclick=()=>setHand(curHand()==='L'?'R':'L');
 $('pitcher').onchange=e=>{S().curPitcher=e.target.value;save();render();if(tab==='game'&&game())toast('Pitching change: '+pName(e.target.value));};
 // ---------- game / bullpen are mutually exclusive on this device (PC.modeLock) ----------
