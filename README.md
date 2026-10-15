@@ -8,7 +8,7 @@ Highlights: game + bullpen charting with Jim's wristband calls, miss severity / 
 
 ## Setup
 - Serve the folder with any static server, e.g. `python3 -m http.server 8766`, and open http://localhost:8766/.
-- `config.js` holds the Supabase URL and **publishable** key (safe for clients; RLS enforces access). Never put a secret/service key in the repo.
+- `config.js` holds the Supabase URL and **publishable** key (safe for clients; RLS enforces access). Never put a secret/service key in the repo. The public site is the only copy that uses production. This computer uses local Supabase, or `PC_SUPABASE_URL` and `PC_SUPABASE_ANON_KEY` for a staging branch.
 - Install the app on a phone with "Add to Home Screen"; the service worker (`sw.js`) caches every file for offline use.
 
 ## Sync problems

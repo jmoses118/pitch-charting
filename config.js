@@ -1,5 +1,15 @@
-// Public client config. The publishable key is public by design; data access is enforced by RLS + team code.
-// shakeColumn and chartColumn are on. Apply these before merge, in order:
-//   supabase/migrations/20261014140000_shake_off.sql
-//   supabase/migrations/20261014180000_scoring_chart.sql
-window.PC_CONFIG={url:'https://qeqijbrokrkzpcacpjyw.supabase.co',key:'sb_publishable_vwT3XEfeel6WAzDgtI4zRQ_5Zh-VhXy',scorerColumn:true,shakeColumn:true,chartColumn:true};
+// Browser wiring only. pcPickConfig in js/core/config.js chooses the database.
+(function(){
+  var root=typeof window!=='undefined'?window:globalThis;
+  function picker(){
+    if(root.PC&&root.PC.pcPickConfig)return root.PC.pcPickConfig;
+    if(typeof globalThis!=='undefined'&&globalThis.PC&&globalThis.PC.pcPickConfig)return globalThis.PC.pcPickConfig;
+    if(typeof require==='function'){require('./js/core/config.js');return (root.PC&&root.PC.pcPickConfig)||(globalThis.PC&&globalThis.PC.pcPickConfig);}
+  }
+  var host='',env={};
+  try{host=(typeof location!=='undefined'&&location.hostname)||'';}catch(e){}
+  try{var saved=localStorage.getItem('pc_supabase');if(saved){var j=JSON.parse(saved);if(j&&j.url)env.PC_SUPABASE_URL=String(j.url);if(j&&j.key)env.PC_SUPABASE_ANON_KEY=String(j.key);}}catch(e){}
+  // Node only. A browser has no process.env; localStorage above is the override there.
+  if(typeof process!=='undefined'&&process.env){if(process.env.PC_SUPABASE_URL)env.PC_SUPABASE_URL=process.env.PC_SUPABASE_URL;if(process.env.PC_SUPABASE_ANON_KEY)env.PC_SUPABASE_ANON_KEY=process.env.PC_SUPABASE_ANON_KEY;}
+  root.PC_CONFIG=picker()(host,env);
+})();

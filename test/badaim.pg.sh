@@ -1,7 +1,7 @@
 #!/bin/bash
 # RULE-4a: illegal called aims are kept and flagged.
 # The file in supabase/migrations is a no-op. The preview still lists the rows.
-# This database is created for the check. Do not point it at production.
+# The schema is the one test/pg-migrate.sh built. Do not point this at production.
 set -euo pipefail
 mig=supabase/migrations/20261015130000_delete_bad_aim_pitches.sql
 live=$(sed -e '/\/\*/,/\*\//d' -e 's/--.*$//' "$mig")
@@ -10,24 +10,7 @@ if printf '%s\n' "$live" | grep -qiE 'delete[[:space:]]+from'; then
   exit 1
 fi
 psql -v ON_ERROR_STOP=1 <<'SQL'
-drop table if exists public.pitches, public.pitchers, public.games, public.sessions cascade;
-create table public.pitchers (team_id text not null, id text not null, name text not null, primary key (team_id, id));
-create table public.games (team_id text not null, id text not null, date text, primary key (team_id, id));
-create table public.sessions (team_id text not null, id text not null, date text, primary key (team_id, id));
-create table public.pitches (
-  id uuid primary key,
-  team_id text not null,
-  mode text not null,
-  game_id text,
-  session_id text,
-  pitcher_id text,
-  type text,
-  targets int[],
-  loc int,
-  called_loc int,
-  actual_loc int,
-  result text
-);
+truncate public.pitches, public.pitchers, public.games, public.sessions;
 insert into public.pitchers (team_id, id, name) values ('t', 'p_woods', 'Avery Woods');
 insert into public.games (team_id, id, date) values ('t', 'g1', '2026-10-14');
 insert into public.sessions (team_id, id, date) values ('t', 's1', '2026-10-13');

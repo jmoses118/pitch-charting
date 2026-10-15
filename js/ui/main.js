@@ -59,6 +59,10 @@ function render(skipCallInput){const s=S();applyViewOnly(viewOnly());if(typeof r
   if(document.activeElement!==$('velo'))$('velo').value=D.velo==null?'':D.velo;
   const wbOn=!$('wbCard').classList.contains('hide');$('wbTog').classList.toggle('hide',!wbOn);if(!wbOn)$('wbDet').open=false;
   renderModes(lk,showEntry);drawZone();fitZone();if(typeof paintFoulChips==='function')paintFoulChips();
+  {const msg=(window.PC_CONFIG&&window.PC_CONFIG.banner)||'';
+   const both=!!(store.isTest&&msg&&!showEntry&&!document.body.classList.contains('coachmode'));
+   const n=$('envNote');if(n)n.textContent=both?' · '+msg:'';
+   const b=$('envBar');if(b)b.classList.toggle('hide',!(msg&&!both));}
   // log
   if(tab==='game'&&g){$('logTitle').textContent='Game log (newest first)';$('log').innerHTML=g.pitches.map((p,i)=>pitchLine(p,i,'game')).reverse().join('')||'<div class="mut">No pitches yet</div>';}
   if(tab==='bullpen'){const x=session();$('logTitle').textContent='Session log (newest first)';$('log').innerHTML=x?x.pitches.map((p,i)=>pitchLine(p,i,'bullpen')).reverse().join(''):'<div class="mut">No pitches yet</div>';

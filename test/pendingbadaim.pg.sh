@@ -12,15 +12,7 @@ C=aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3
 psql -v ON_ERROR_STOP=1 <<SQL
 drop table if exists public.pitches_badaim_backup_scratch1;
 drop table if exists public.pitches_badaim_backup_scratch2;
-drop table if exists public.pitches cascade;
-create table public.pitches (
-  id uuid primary key,
-  team_id text not null,
-  mode text not null,
-  type text,
-  called_loc int,
-  result text
-);
+truncate public.pitches;
 insert into public.pitches (id, team_id, mode, type, called_loc, result) values
   ('$A', 't', 'game', 'CH', 2, 'ball'),
   ('$B', 't', 'game', 'FB', 5, 'called');
@@ -46,15 +38,7 @@ psql -v ON_ERROR_STOP=1 -c "$restore"
 back=$(psql -tA -c "select string_agg(id::text, ',' order by id) from public.pitches")
 test "$back" = "$A,$B"
 psql -v ON_ERROR_STOP=1 <<SQL
-drop table if exists public.pitches cascade;
-create table public.pitches (
-  id uuid primary key,
-  team_id text not null,
-  mode text not null,
-  type text,
-  called_loc int,
-  result text
-);
+truncate public.pitches;
 insert into public.pitches (id, team_id, mode, type, called_loc, result) values
   ('$A', 't', 'game', 'CH', 2, 'ball'),
   ('$B', 't', 'game', 'FB', 5, 'called');
@@ -68,5 +52,5 @@ still=$(psql -tA -c "select string_agg(id::text, ',' order by id) from public.pi
 gone=$(psql -tA -c "select to_regclass('public.pitches_badaim_backup_scratch2') is null")
 test "$still" = "$A,$B"
 test "$gone" = "t"
-psql -v ON_ERROR_STOP=1 -c "drop table if exists public.pitches_badaim_backup_scratch1; drop table if exists public.pitches cascade;"
+psql -v ON_ERROR_STOP=1 -c "drop table if exists public.pitches_badaim_backup_scratch1;"
 echo "RULE-4a postgres: backup, delete, and approved stay in parity; a mismatch rolls back"
