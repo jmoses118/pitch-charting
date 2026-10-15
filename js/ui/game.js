@@ -95,10 +95,10 @@ function renderModeLock(){const s=S(),lk=PC.modeLock(s,tab,canGame());
   if(lk&&lk.by==='bullpen'){const x=lk.session;$('lockGame').querySelector('.lockMsg').textContent=PC.LOCK_MSG.bullpen;$('lockGameSub').textContent=`${x.pitcherId?pName(x.pitcherId)+' · ':''}${x.pitches.length} pitches`;}
   $('bpCard').classList.toggle('hide',!!(lk&&lk.by==='game'));
   const showPick=tab==='game'&&!game()&&!lk&&canGame();const pg=showPick?PC.pausedGames(s):[];
-  $('gamePick').classList.toggle('hide',!showPick);$('pickEmpty').classList.toggle('hide',!showPick||pg.length);
   const g=game(),sch=PC.todaysScheduled(s,today()),land=LANDSCAPE.matches,move=land&&showPick;
+  $('gamePick').classList.toggle('hide',!showPick);$('pickEmpty').classList.toggle('hide',!showPick||pg.length||(move&&sch.length));
   const html=sch.map(x=>`<div class="prow"><button data-sg="${H(x.id)}" class="primary startg"><b>Start</b> ${H((x.date||'').slice(5))} ${H(x.time||'')} ${vsAt(x)} ${H(x.opponent)}<br><small>${[x.gameNo,x.field,x.location].filter(Boolean).map(H).join(' · ')}</small></button>${x.link&&/^https:\/\//.test(x.link)?`<a href="${H(x.link)}" target="_blank" rel="noopener" class="gclink">GC</a>`:''}</div>`).join('');
-  $('pickList').innerHTML=pg.map(pickRow).join('')+(move?html:'');
+  $('pickList').innerHTML=(move?html:'')+pg.map(pickRow).join('');
   $('schedList').innerHTML=move?'':html;
   $('schedCard').classList.toggle('hide',!(tab==='game'&&!g&&!lk&&sch.length)||land);
   const ps=tab==='bullpen'&&!session()&&!lk?PC.pausedSessions(s):[];$('bpResume').classList.toggle('hide',!ps.length);if(ps.length)$('bpResume').textContent=`▶ Resume paused bullpen (${ps[0].pitcherId?pName(ps[0].pitcherId)+', ':''}${ps[0].pitches.length} pitches)`;
