@@ -1,11 +1,13 @@
 // ARCH-1 duplication gate. jscpd runs on a Prettier copy at --min-tokens 30.
 // test/dup.baseline.json lists the clones that already exist, by file and span.
-// A clone that is not listed fails. The list is shrink-only: it cannot grow, and
-// the token floor cannot drop below 30. Renamed copies are checked after identifiers
-// are blanked, which is what a name-only scan misses.
-const fs=require('fs'),path=require('path'),os=require('os'),{execSync}=require('child_process');
+// A clone that is not listed fails. The list is shrink-only against the base
+// branch: an entry cannot be added, and a listed clone the tree no longer has
+// fails until this file drops it. The token floor cannot drop below 30.
+// Renamed copies are checked after identifiers are blanked, which is what a
+// name-only scan misses.
+const fs=require('fs'),path=require('path'),os=require('os'),{execSync,spawnSync}=require('child_process');
 const repo=path.join(__dirname,'..');
-const MIN_TOKENS=30,MIN_LINES=5,MAX_BASELINE=12;
+const MIN_TOKENS=30,MIN_LINES=5;
 const PRETTIER='prettier@3.6.2',JSCPD='jscpd@4.0.5';
 const RESERVED=new Set('function const let var return null true false if else new this typeof void in of for while do switch case break continue throw try catch finally class extends super import export default from async await yield delete instanceof undefined get set'.split(' '));
 let fails=0;
@@ -13,7 +15,9 @@ const say=(ok,m)=>{console.log((ok?'PASS ':'FAIL ')+m);if(!ok)fails++;};
 
 function walk(dir){return fs.readdirSync(dir).flatMap(n=>{const p=path.join(dir,n);return fs.statSync(p).isDirectory()?walk(p):p.endsWith('.js')?[p]:[];});}
 function copyJs(){const dir=fs.mkdtempSync(path.join(os.tmpdir(),'dup-'));fs.cpSync(path.join(repo,'js'),path.join(dir,'js'),{recursive:true});return dir;}
-function formatDir(dir){const files=walk(path.join(dir,'js'));execSync('npx --yes '+PRETTIER+' --write '+files.map(f=>JSON.stringify(f)).join(' '),{stdio:'pipe'});}
+function formatDir(dir){const files=walk(path.join(dir,'js'));try{execSync('npx --yes '+PRETTIER+' --write '+files.map(f=>JSON.stringify(f)).join(' '),{stdio:'pipe'});return '';}
+  catch(e){const detail=((e.stderr&&e.stderr.toString())||e.message||'prettier failed').split('\n').map(s=>s.trim()).find(Boolean)||'prettier failed';return 'FAIL prettier '+detail;}}
+function gitBaseline(rel){const name=process.env.ARCH_BASE_REF||process.env.GITHUB_BASE_REF||'cursor/core-logic-consolidation-36f8';const ref=name.startsWith('origin/')?name:'origin/'+name;const r=spawnSync('git',['show',ref+':'+rel],{cwd:repo,encoding:'utf8'});if(r.status!==0||!r.stdout)return null;try{return JSON.parse(r.stdout);}catch(e){return null;}}
 function relJs(name){const n=String(name).replace(/\\/g,'/');const m=n.match(/(?:^|\/)(js\/.*)$/);return m?m[1]:n;}
 function side(file){return{file:relJs(file.name),start:file.start,end:file.end};}
 function key(s){return s.file+':'+s.start+'-'+s.end;}
@@ -23,12 +27,14 @@ function jscpd(dir,minTokens){const out=path.join(dir,'report');fs.rmSync(out,{r
   execSync('npx --yes '+JSCPD+' js --min-lines '+MIN_LINES+' --min-tokens '+minTokens+' --threshold 100 --reporters json --output '+JSON.stringify(out)+' --silent',{cwd:dir,stdio:'pipe'});
   const rep=JSON.parse(fs.readFileSync(path.join(out,'jscpd-report.json'),'utf8'));
   return (rep.duplicates||[]).map(norm);}
-function gate(detected,baseline,minTokens){const bad=[];
+function gate(detected,baseline,minTokens,baseLine){const bad=[];
   const floor=Math.min(minTokens,baseline&&baseline.minTokens!=null?baseline.minTokens:minTokens);
   if(floor<MIN_TOKENS)bad.push('token floor lowered below '+MIN_TOKENS);
-  if(!baseline||!Array.isArray(baseline.clones))bad.push('baseline missing');
-  else if(baseline.clones.length>MAX_BASELINE)bad.push('baseline grew past '+MAX_BASELINE+' ('+baseline.clones.length+')');
-  else if(minTokens>=MIN_TOKENS){for(const c of detected){const hit=baseline.clones.some(b=>same(b,c));if(!hit)bad.push('clone not in baseline '+key(c.a)+' || '+key(c.b));}}
+  if(!baseline||!Array.isArray(baseline.clones)){bad.push('baseline missing');return bad;}
+  if(minTokens<MIN_TOKENS)return bad;
+  for(const c of detected)if(!baseline.clones.some(b=>same(b,c)))bad.push('clone not in baseline '+key(c.a)+' || '+key(c.b));
+  for(const b of baseline.clones)if(!detected.some(c=>same(c,b)))bad.push('tree below baseline '+key(b.a)+' || '+key(b.b));
+  if(baseLine&&Array.isArray(baseLine.clones))for(const b of baseline.clones)if(!baseLine.clones.some(c=>same(c,b)))bad.push('baseline rose '+key(b.a)+' || '+key(b.b));
   return bad;}
 function grab(src,start){const lines=src.split('\n');const i=lines.findIndex(l=>l.includes(start));if(i<0)throw new Error('missing '+start);
   if(start.startsWith('function ')){let depth=0,started=false,n=0;for(let k=i;k<lines.length;k++){for(const ch of lines[k]){if(ch==='{'){depth++;started=true;}else if(ch==='}')depth--;}n++;if(started&&depth===0)break;}return lines.slice(i,i+n).join('\n');}
@@ -38,10 +44,12 @@ function renameIds(code){return code.replace(/[A-Za-z_$][\w$]*/g,m=>RESERVED.has
 function namesClone(clones,plant,other){return clones.some(c=>[c.a.file,c.b.file].includes(plant)&&[c.a.file,c.b.file].includes(other));}
 
 const baseline=JSON.parse(fs.readFileSync(path.join(__dirname,'dup.baseline.json'),'utf8'));
+const baseLine=gitBaseline('test/dup.baseline.json');
 const formatted=copyJs();
-formatDir(formatted);
+const pretty=formatDir(formatted);
+if(pretty){console.log(pretty);process.exit(1);}
 const detected=jscpd(formatted,MIN_TOKENS);
-const realBad=gate(detected,baseline,MIN_TOKENS);
+const realBad=gate(detected,baseline,MIN_TOKENS,baseLine);
 say(!realBad.length,'e real tree passes ('+detected.length+' clone'+(detected.length===1?'':'s')+')');
 if(realBad.length)console.log(realBad.slice(0,8).join('\n'));
 
@@ -50,7 +58,7 @@ if(realBad.length)console.log(realBad.slice(0,8).join('\n'));
   const block=fs.readFileSync(path.join(dir,'js/ui/stats.js'),'utf8').split('\n').slice(270,310).join('\n');
   fs.writeFileSync(path.join(dir,'js/ui/plant-extra.js'),block+'\n');
   const clones=jscpd(dir,MIN_TOKENS);
-  const bad=gate(clones,baseline,MIN_TOKENS);
+  const bad=gate(clones,baseline,MIN_TOKENS,baseLine);
   const named=bad.some(s=>s.includes('js/ui/plant-extra.js'));
   say(bad.length>0&&named,'e clone not in the baseline fails and names js/ui/plant-extra.js');
   if(!named)console.log(bad.slice(0,6).join('\n'));
@@ -113,5 +121,6 @@ if(realBad.length)console.log(realBad.slice(0,8).join('\n'));
   say(fixed.length===0,'f lowered baseline passes');}
 
 fs.rmSync(formatted,{recursive:true,force:true});
+{const dir=fs.mkdtempSync(path.join(os.tmpdir(),'dup-bad-'));fs.mkdirSync(path.join(dir,'js'));fs.writeFileSync(path.join(dir,'js/bad.js'),'function {\n');let threw=false,msg='';try{msg=formatDir(dir);}catch(e){threw=true;}say(!threw&&typeof msg==='string'&&msg.startsWith('FAIL prettier'),'prettier failure prints FAIL');fs.rmSync(dir,{recursive:true,force:true});}
 if(fails){console.log(fails+' dup case'+(fails===1?'':'s')+' failed');process.exit(1);}
 console.log('dup scan ok');

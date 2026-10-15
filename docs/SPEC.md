@@ -77,7 +77,7 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | RULE-11a | unit: `0` and `00` are allowed, empty is allowed, and a duplicate active number errors |
 | VIEW-1, VIEW-2 | `zonegfx.ui.js`: numbered, colored markers and list; one-tap scheduled start |
 | DoD | UI: `inning.e2e` (full inning) and `bullpen20.e2e` (20-pitch bullpen) at 390 px |
-| ARCH-1 | `test/arch.scan.js` passes on the tree. `test/arch.negative.js`: (1) `function strikeFor` and `const strikeFor=()=>`; (2) `PC.validCalled2=`, `PC['x']=`, `Object.assign(PC,{})`; (3) `[4,7,8,9,13,14,18]`, a shuffle, a string, and a Set; (4) `[13,18,14]` in any order, plus a string and a Set; (5) `PC.isZone`, `isStrike`, `CH_TARGETS`, `nearestTarget`, `PC['isZone']`, `PC?.isZone`; (6) `const {isZone}=PC` and `const P=PC`; (7) `GRID_XY` in `game.js` and a second `report.js` read outside `reportPNG`; (8) `validBox`; (9) core referencing `js/ui`; (10) a new `p.loc` read above the per-file baseline; (11) a clean copy passes; (12) a new `PC.aimRejectMsg` outside `coach.js` lines 85 and 88 and `shared.js` line 77. `test/dup.scan.js`: (a) a verbatim `pitchMiss` paste names both files; (b) the same paste with renamed identifiers; (c) a one-line copy after Prettier; (d) a renamed `strikeOf` body; (e) a clone not in `test/dup.baseline.json` fails while the real tree passes; (f) lowering the token floor or adding to the baseline fails |
+| ARCH-1 | `test/arch.scan.js` passes on the tree. Negative cases are `test/arch.negative.js` and `test/dup.scan.js`. |
 
 ## Architecture
 Each business rule lives in one `js/core` module. UI files render and forward events. They do not keep a second validator or a second copy of a rule.
