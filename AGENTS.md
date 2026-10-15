@@ -23,6 +23,7 @@ These files are IIFEs, not ES modules, so an import linter cannot see a cross-fi
 - **BRIEF-3.** Write tests first and cite rule IDs.
 - **BRIEF-4.** One small task.
 - **BRIEF-5.** Stay under the PR size cap.
+A word-for-word rename is free when both paths are counted or both are excluded. A move out of an excluded path counts the whole file.
 - **BRIEF-6.** Use the staging DB only, never production.
 - **BRIEF-7.** Add a plain-English CHANGELOG line.
 - **BRIEF-8.** Never merge.
