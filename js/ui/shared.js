@@ -1,6 +1,7 @@
 /* Thunder Elite pitch charting – UI shared.js: Shared UI: DOM helpers, store access, roles/visibility, toast, zone grid component, call entry, pitch-count banners, record building, test mode, cloud sync.
    Classic script: shares top-level bindings with the other js/ui files (load order in index.html). */
 'use strict';
+const LANDSCAPE=matchMedia('(orientation: landscape) and (max-height: 500px)');
 const $=id=>document.getElementById(id);
 const H=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let storage=null;try{storage=window.localStorage;storage.setItem('__t','1');storage.removeItem('__t');}catch(e){storage=null;}

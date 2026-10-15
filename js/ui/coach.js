@@ -10,8 +10,8 @@ function themeNow(){const t=PREF.get('theme','field');if(t!=='auto')return t;con
 function applyTheme(){const t=themeNow();document.documentElement.dataset.theme=t;const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==='field'?'#ffffff':'#000000';}
 applyTheme();
 // ---------- modes ----------
-const LANDSCAPE=matchMedia('(orientation: landscape) and (max-height: 500px)'),PORTRAIT=matchMedia('(orientation: portrait)');
-[LANDSCAPE,PORTRAIT].forEach(m=>m.addEventListener&&m.addEventListener('change',()=>render()));
+const PORTRAIT=matchMedia('(orientation: portrait)');
+PORTRAIT.addEventListener&&PORTRAIT.addEventListener('change',()=>render());
 const coachGame=lk=>!lk&&tab==='game'&&!!game()&&role()==='coach';
 let sideCard=null,cMsg=null;
 // ---------- zone: 5×5 grid (pitcher's view); ring quads 11–14 are L-shaped, so they own 3 cells each ----------

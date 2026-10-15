@@ -24,11 +24,6 @@ function render(skipCallInput){const s=S();applyViewOnly(viewOnly());if(typeof r
   {const st=$('syncTag'),home=showEntry?$('addPQuick'):$('modeTag');if(st.nextSibling!==home)home.parentNode.insertBefore(st,home);}
   $('gameHead').classList.toggle('hide',!(tab==='game'&&g));
   $('inGame').classList.toggle('hide',!g);
-  const sch=PC.todaysScheduled(s,today());
-  const land=window.matchMedia('(orientation:landscape) and (max-height:500px)').matches;
-  $('schedCard').classList.toggle('hide',!(tab==='game'&&!g&&!lk&&sch.length)||land);
-  $('schedList').innerHTML=sch.map(x=>`<div class="prow"><button data-sg="${H(x.id)}" class="primary startg"><b>Start</b> ${H((x.date||'').slice(5))} ${H(x.time||'')} ${vsAt(x)} ${H(x.opponent)}<br><small>${[x.gameNo,x.field,x.location].filter(Boolean).map(H).join(' · ')}</small></button>${x.link&&/^https:\/\//.test(x.link)?`<a href="${H(x.link)}" target="_blank" rel="noopener" class="gclink">GC</a>`:''}</div>`).join('');
-  if(land&&tab==='game'&&!g&&!lk&&canGame()){$('pickList').insertAdjacentHTML('beforeend',$('schedList').innerHTML);$('schedList').innerHTML='';}
   if(tab==='game'&&!g){renderLineupForm();if(!$('gDate').value)$('gDate').value=today();}
   const hand=curHand();$('batTog').textContent=(hand==='N'?'Batter: none':hand==='L'?'Batter: LHB':'Batter: RHB')+' ▾';$('batTog').setAttribute('aria-label','Batter: '+(hand==='N'?'none':hand==='L'?'left-handed':'right-handed')+' – change');$('hL').classList.toggle('sel',hand==='L');$('hR').classList.toggle('sel',hand==='R');$('hN').classList.toggle('sel',hand==='N');$('hN').classList.toggle('hide',tab==='game');
   const showHands=tab!=='bullpen'||!!(S().settings&&S().settings.showBatterHand);$('hL').classList.toggle('hide',!showHands);$('hR').classList.toggle('hide',!showHands);if($('bpHands'))$('bpHands').checked=!!(S().settings&&S().settings.showBatterHand);
@@ -43,7 +38,7 @@ function render(skipCallInput){const s=S();applyViewOnly(viewOnly());if(typeof r
   $('types').innerHTML=types.map(t=>`<button data-c="${H(t.code)}" class="${D.type===t.code?'sel':''}" title="${H(t.name)}" aria-label="${H(t.name)}" aria-pressed="${D.type===t.code}">${H(t.code)}</button>`).join('');
   $('callTypes').innerHTML=types.map(t=>`<button data-c="${H(t.code)}" class="${D.parsed&&D.parsed.type===t.code?'sel':''}">${H(t.code)}</button>`).join('');
   $('callSuf').innerHTML=['IN','A','H+','O','H','L'].map(x=>`<button data-s="${x}" class="${D.parsed&&D.parsed.suffix===x?'sel':''}">${x==='A'?'A (waste)':x==='H+'?'H+ (waste)':x}</button>`).join('')+'<button data-s="">no loc</button>';
-  if(!skipCallInput)$('callTxt').value=D.callTxt;
+  if(skipCallInput!==true)$('callTxt').value=D.callTxt;
   $('callAlt').innerHTML=D.parsed&&D.parsed.alts&&D.parsed.alts.length?D.parsed.alts.concat(D.parsed.targets).filter((z,i,x)=>x.indexOf(z)===i).map(z=>`<button data-alt="${z}" class="${(D.target||D.parsed.targets[0])===z?'sel':''}">CB → ${z}</button>`).join(''):'';
   $('callDesc').textContent=D.callTxt?(D.parsed?`${D.parsed.norm} = ${types.find(t=>t.code===D.parsed.type)?.name||D.parsed.type}${D.parsed.targets.length?' → zone '+D.parsed.targets.join('/'):' → tap target on grid'}${D.target?' '+D.target:''} · ${D.parsed.desc}`:'Unrecognized code'):'Type a code or tap buttons. Digits = zone (pitcher\'s view).';
   renderSteps();
@@ -88,5 +83,6 @@ function fitPitcherFace(){const sel=$('pitcher');if(!sel||!sel.options.length)re
 addEventListener('resize',()=>fitPitcherFace());
 document.querySelector('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;tab=b.dataset.t;document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));resetDraft();render();scrollTo(0,0);});
 if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+LANDSCAPE.addEventListener('change',render);
 render();doSync(false);
 window.__app={store,render,sync,doSync};
