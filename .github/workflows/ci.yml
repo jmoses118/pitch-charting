@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
       - name: Fetch base branch
         if: ${{ github.base_ref != '' }}
         run: git fetch --no-tags origin "+refs/heads/${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}"
@@ -24,6 +24,10 @@ jobs:
         run: node test/arch.scan.js && node test/arch.negative.js
       - name: Duplication
         run: node test/dup.scan.js
+      - name: PR size and changelog
+        env:
+          PR_LINE_CAP: "300"
+        run: node test/prsize.js && node test/changelog.js && node test/prgate.negative.js
   ui:
     # Playwright browser tests against a local static server (Supabase is blocked inside every test; test data only)
     runs-on: ubuntu-latest
