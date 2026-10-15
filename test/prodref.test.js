@@ -54,49 +54,54 @@ test('INFRA-3: an uppercase production URL and a split project ref are refused',
   assert.equal(sourceNamesProd(up),true);
   assert.equal(sourceNamesProd('https://staging-example.supabase.co'),false);
 });
-// A migration version is the 14-digit prefix. String order matches time order.
+// A migration version is the 14-digit prefix. The scan does not exempt by that number.
 function migrationVersion(rel){
   const norm=String(rel).split(path.sep).join('/');
   const m=norm.match(/(?:^|\/)supabase\/migrations\/(\d{14})_[^/]*\.sql$/);
   return m?m[1]:'';
 }
-function appliedOnBase(rel,cutoff){const v=migrationVersion(rel);return !!v&&v<=cutoff;}
-function newestOnBase(){
-  const root=path.join(__dirname,'..');
-  const ref=require('./git-base').baseRef();
-  const r=cp.spawnSync('git',['ls-tree','-r','--name-only',ref,'supabase/migrations'],{cwd:root,encoding:'utf8'});
-  if(r.status!==0)throw new Error(((r.stderr||'')+(r.stdout||'')).trim()||'git ls-tree failed');
-  let max='';
-  for(const line of r.stdout.split('\n')){const v=migrationVersion(line);if(v>max)max=v;}
-  if(!max)throw new Error('no migrations on '+ref);
-  return max;
+const {readBaseText}=require('./git-base');
+function unchangedOnBase(root,rel,text){
+  const got=readBaseText(root,rel);
+  if(!got.ok)throw new Error(got.error||'git show failed');
+  return !got.missing&&got.text===text;
+}
+function prodHit(root,rel,text){
+  if(rel===path.join('js','core','config.js'))return false;
+  if(!sourceNamesProd(text))return false;
+  return !(migrationVersion(rel)&&unchangedOnBase(root,rel,text));
 }
 test('INFRA-3: a migration already on the base branch is exempt from the project-ref scan',()=>{
+  const root=path.join(__dirname,'..');
   const old='supabase/migrations/20261014120000_scoring_lock.sql';
-  const cutoff='20261015130000';
-  assert.equal(appliedOnBase(old,cutoff),true);
-  assert.equal(appliedOnBase('supabase/migrations/'+cutoff+'_same.sql',cutoff),true);
-  assert.equal(appliedOnBase('supabase/migrations/20270101000000_next.sql',cutoff),false);
-  assert.equal(appliedOnBase('supabase/pending/20261014120000_scoring_lock.sql',cutoff),false);
-  assert.equal(appliedOnBase(path.join('js','core','config.js'),cutoff),false);
-  const sql=fs.readFileSync(path.join(__dirname,'..',old),'utf8');
+  const sql=fs.readFileSync(path.join(root,old),'utf8');
   assert.equal(sourceNamesProd(sql),true);
-  const baseMax=newestOnBase();
-  assert.match(baseMax,/^\d{14}$/);
-  assert.equal(appliedOnBase(old,baseMax),true);
-  assert.equal(appliedOnBase('supabase/migrations/20990101000000_next.sql',baseMax),false);
+  assert.equal(unchangedOnBase(root,old,sql),true);
+  assert.equal(prodHit(root,old,sql),false);
+  assert.equal(unchangedOnBase(root,old,sql+'-- changed\n'),false);
+  assert.equal(prodHit(root,old,sql+'-- changed\n'),true);
+  assert.equal(unchangedOnBase(root,'supabase/pending/20261014120000_scoring_lock.sql',sql),false);
+});
+test('INFRA-3: a backdated migration that is not on the base branch is not exempt',()=>{
+  const root=path.join(__dirname,'..');
+  const back='supabase/migrations/20261014120000_backdated.sql';
+  const text='-- '+PROD.ref+'\n';
+  assert.ok(migrationVersion(back)<='20261015130000');
+  assert.equal(sourceNamesProd(text),true);
+  const got=readBaseText(root,back);
+  assert.equal(got.ok,true);assert.equal(got.missing,true);
+  assert.equal(unchangedOnBase(root,back,text),false);
+  assert.equal(prodHit(root,back,text),true);
 });
 test('INFRA-3: CI, app, and SQL files do not name the production project',()=>{
-  const root=path.join(__dirname,'..'),hits=[],cutoff=newestOnBase();
+  const root=path.join(__dirname,'..'),hits=[];
   const walk=rel=>{
     const abs=path.join(root,rel);
     if(!fs.existsSync(abs))return;
     const st=fs.statSync(abs);
     if(st.isDirectory()){for(const n of fs.readdirSync(abs)){if(n==='node_modules')continue;walk(path.join(rel,n));}return;}
     if(!/\.(js|sh|yml|html|sql)$/.test(abs))return;
-    if(rel===path.join('js','core','config.js'))return;
-    if(appliedOnBase(rel,cutoff))return;
-    if(sourceNamesProd(fs.readFileSync(abs,'utf8')))hits.push(rel);
+    if(prodHit(root,rel,fs.readFileSync(abs,'utf8')))hits.push(rel);
   };
   for(const rel of ['js','test','.github','supabase','index.html','sw.js','config.js'])walk(rel);
   assert.deepEqual(hits,[]);
