@@ -210,9 +210,9 @@ body.entrymode #entry{display:contents}
 body.entrymode .entrybar,body.entrymode .zonewrap,body.entrymode #locRow,body.entrymode #wayBtns,body.entrymode #resSheet{order:-1}
 body.entrymode #wayBtns{margin:var(--s1) 0 var(--s3)}
 body.entrymode .topbar,body.entrymode #wlMsg{display:none}
-body.entrymode header{padding-top:calc(var(--s1) + env(safe-area-inset-top));padding-bottom:var(--s1)}
-body.entrymode .pickrow{margin-bottom:0;gap:var(--s2)}
-body.entrymode .pickrow select{flex:1 1 auto;max-width:48%;min-width:0;min-height:48px;font-weight:700;font-size:var(--fs-md);padding-right:28px}
+body.entrymode header{padding-top:calc(var(--s1) + env(safe-area-inset-top));padding-bottom:var(--s1);padding-left:8px;padding-right:8px}
+body.entrymode .pickrow{margin-bottom:0;gap:4px}
+body.entrymode .pickrow select{flex:1 1 auto;max-width:48%;min-width:0;min-height:48px;font-weight:700;font-size:var(--fs-md);padding:0 20px 0 8px}
 body.entrymode .pickrow button.icon{flex:0 0 48px;width:48px;min-width:48px;min-height:48px;height:48px}
 body.entrymode #gameHead{margin-top:var(--s1)}
 body.entrymode .count>div{padding:1px var(--s2);font-size:var(--fs-md)}
@@ -255,6 +255,7 @@ body.entrymode .count .dots span{width:9px;height:9px}
 body:not(.entrymode) #wlMini{display:none}
 body.entrymode .wlmini{flex:1 1 0;min-width:0;white-space:normal;line-height:1.15;text-align:right}
 body.entrymode #wlMini{white-space:nowrap;flex:0 0 auto;min-width:auto}
+body.entrymode #syncTag{padding-left:4px;padding-right:4px}
 body.entrymode .pickrow .tag{flex:0 0 auto;white-space:nowrap}
 .topbar .tag{white-space:nowrap}
 

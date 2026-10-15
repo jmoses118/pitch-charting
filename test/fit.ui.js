@@ -59,7 +59,7 @@ for(const [W,H] of [[390,844],[375,667],[430,932]]){const tag=`${W}x${H}`;
     else ok(band.h>=48&&band.w>=42,`${tag}: wristband cell ${band.w.toFixed(1)} wide × ${band.h.toFixed(1)} tall`);}
   await ev(()=>{const S=__app.store.real;const p=S.pitchers[0];p.name='Alexandria';p.num='12';__app.store.save();__app.render();});
   {const face=await ev(()=>{const s=document.getElementById('pitcher'),cs=getComputedStyle(s),row=document.querySelector('.pickrow').getBoundingClientRect().width;const c=document.createElement('canvas').getContext('2d');const room=s.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);c.font=cs.fontStyle+' '+cs.fontWeight+' 14px '+cs.fontFamily;const text=s.options[s.selectedIndex].text;const fullFits=c.measureText('Alexandria #12').width<=room-2;c.font=cs.fontStyle+' '+cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;const shown=c.measureText(text).width;return {font:parseFloat(cs.fontSize),text,title:s.title,w:s.getBoundingClientRect().width,row,fullFits,shownFits:shown<=room+1};});
-    ok(face.font>=14&&face.font<=16&&face.title==='Alexandria #12'&&face.text.endsWith('#12'),`${tag}: pitcher shows ${face.text} at ${face.font}px`);
+    ok(face.font>=14&&face.font<=16&&face.shownFits&&face.title==='Alexandria #12'&&face.text.endsWith('#12'),`${tag}: pitcher shows ${face.text} at ${face.font}px`);
     ok(face.fullFits?face.text==='Alexandria #12':(/… #12$/.test(face.text)&&!face.text.endsWith('…')),`${tag}: long name keeps #12 (${face.text})`);
     if(W===390)ok(face.w<=face.row*0.48+1,`${tag}: pitcher is ${Math.round(face.w)}px, cap 48% of ${Math.round(face.row)}`);}
   ok(!errs.length,`${tag}: no page errors `+errs.join('|'));await c.close();}
