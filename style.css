@@ -71,8 +71,8 @@ button.icon svg,nav svg{width:22px;height:22px;fill:none;stroke:currentColor;str
 .sel{background:var(--c-royal)!important;border-color:var(--c-royal-hi)!important;color:#fff!important}
 .seg{display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:var(--s2)}
 label.check{display:flex;gap:var(--s3);align-items:center;min-height:var(--tap);font-weight:600;flex-wrap:wrap}
-label.check input{width:24px;min-height:24px;height:24px;accent-color:var(--c-royal);margin:0}
-label.check .mut{font-weight:400;flex-basis:100%;padding-left:36px;margin-top:-10px}
+label.check input{width:44px;min-height:44px;height:44px;accent-color:var(--c-royal);margin:0}
+label.check .mut{font-weight:400;flex-basis:100%;padding-left:56px;margin-top:-10px}
 
 /* ---------- layout ---------- */
 main{padding:var(--s3)}
@@ -162,11 +162,12 @@ dialog::backdrop{background:rgba(0,0,0,.7)}
 
 /* ---------- wristband ---------- */
 .wbWrap{overflow-x:auto;margin-top:var(--s2)}
-.wbTbl{border-collapse:collapse;width:100%;font-size:13px;table-layout:fixed}
+.wbTbl{border-collapse:collapse;width:max-content;min-width:100%;font-size:13px;table-layout:auto}
 .wbTbl th,.wbTbl td{border:1px solid var(--c-line-strong);padding:0;text-align:center}
 .wbTbl th{font-size:11px;color:var(--c-text-2);padding:3px 0;width:auto;text-transform:none;letter-spacing:0}
 .wbTbl th.rh{width:22px}
-.wbTbl td button{width:100%;min-height:40px;padding:2px 0;font-size:11.5px;letter-spacing:-.3px;border-radius:0;border:0;background:transparent;color:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wbTbl td{min-width:44px}
+.wbTbl td button{width:100%;min-width:44px;min-height:44px;padding:2px 0;font-size:11.5px;letter-spacing:-.3px;border-radius:0;border:0;background:transparent;color:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .wbTbl tr.b td button,.wbTbl tr.b th{font-weight:800}
 .wbTbl tr.b td{background:rgba(255,255,255,.05)}
 .wbTbl td.on{background:var(--c-royal)!important;outline:2px solid #fff}
@@ -206,8 +207,8 @@ body.entrymode #wayBtns{margin:var(--s1) 0 var(--s3)}
 body.entrymode .topbar,body.entrymode #wlMsg{display:none}
 body.entrymode header{padding-top:calc(var(--s1) + env(safe-area-inset-top));padding-bottom:var(--s1)}
 body.entrymode .pickrow{margin-bottom:0;gap:var(--s2)}
-body.entrymode .pickrow select{flex:0 0 auto;max-width:62%;min-height:40px;font-weight:700;font-size:var(--fs-md);padding-right:28px}
-body.entrymode .pickrow button.icon{min-height:40px;width:40px}
+body.entrymode .pickrow select{flex:0 0 auto;max-width:62%;min-height:44px;font-weight:700;font-size:var(--fs-md);padding-right:28px}
+body.entrymode .pickrow button.icon{min-height:44px;width:44px}
 body.entrymode #gameHead{margin-top:var(--s1)}
 body.entrymode .count>div{padding:1px var(--s2);font-size:var(--fs-md)}
 body.entrymode .count small{font-size:10px;display:inline;margin-right:4px}
@@ -221,11 +222,11 @@ body.entrymode .count small{font-size:10px;display:inline;margin-right:4px}
 .stepline{display:flex;flex-wrap:wrap;align-items:center;gap:4px var(--s2);margin-top:var(--s1)}
 .stepline .steps{flex:1 0 100%;margin:0}
 .stepline .steps li{padding-top:2px;border-top-width:2px;font-size:11px;letter-spacing:0;white-space:nowrap;overflow:visible;text-overflow:clip}
-button.mini{min-height:32px;padding:0 var(--s3);font-size:var(--fs-xs);font-weight:700;border-radius:var(--r-pill)}
+button.mini{min-height:44px;padding:0 var(--s3);font-size:var(--fs-xs);font-weight:700;border-radius:var(--r-pill)}
 button.mini[aria-expanded="true"]{background:var(--c-royal);color:#fff}
 .entrybar .phase{padding:2px 0 0;margin:0;background:none;font-size:var(--fs-xs);color:var(--c-text-2);white-space:normal;overflow:visible;text-overflow:clip}
 body.entrymode #zone{max-width:none}
-button.zchip{position:absolute;z-index:2;min-height:32px;padding:0 var(--s2);border-radius:var(--r-pill);font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--c-surface-2);border-color:var(--c-line-strong)}
+button.zchip{position:absolute;z-index:2;min-height:44px;padding:0 var(--s2);border-radius:var(--r-pill);font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--c-surface-2);border-color:var(--c-line-strong)}
 .seg3{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:var(--s2)}.seg3 button{min-height:var(--tap-lg);font-weight:700}.seg3 button.sel{background:var(--c-royal);border-color:var(--c-royal-text);color:#fff}
 body.entrymode #toast{bottom:auto;top:calc(env(safe-area-inset-top) + 4px)}
 .way4{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s1);margin:var(--s1) 0 var(--s3)}
@@ -243,7 +244,7 @@ body.entrymode .count{gap:var(--s1)}
 body.entrymode .count>div{display:flex;align-items:baseline;justify-content:center;gap:4px;white-space:nowrap;min-height:28px;align-items:center;font-size:var(--fs-sm)}
 body.entrymode .count small{margin:0;font-size:9px}
 body.entrymode .count .dots span{width:9px;height:9px}
-@media (max-height:720px){body.entrymode header{padding-top:2px;padding-bottom:0}body.entrymode .topbar{margin-bottom:0}body.entrymode .entrybar{padding-top:2px;padding-bottom:0}body.entrymode .stepline{margin-top:0;gap:2px}body.entrymode .entrybar .phase{padding:0;line-height:1.2}body.entrymode button.mini{min-height:28px}body.entrymode #wayBtns button,body.entrymode #actBtns button{min-height:48px;height:auto}body.entrymode #types.chips button{min-height:48px;height:48px}body.entrymode .pickrow select,body.entrymode .pickrow button.icon{min-height:36px}body.entrymode .count>div{min-height:22px;padding-top:0;padding-bottom:0}}
+@media (max-height:720px){body.entrymode header{padding-top:2px;padding-bottom:0}body.entrymode .topbar{margin-bottom:0}body.entrymode .entrybar{padding-top:2px;padding-bottom:0}body.entrymode .stepline{margin-top:0;gap:2px}body.entrymode .entrybar .phase{padding:0;line-height:1.2}body.entrymode button.mini{min-height:44px}body.entrymode #wayBtns{margin:0}body.entrymode #wayBtns button,body.entrymode #actBtns button{min-height:44px;height:auto}body.entrymode #types.chips button{min-height:44px;height:44px}body.entrymode .pickrow select,body.entrymode .pickrow button.icon{min-height:44px}body.entrymode .count>div{min-height:0;padding:0 4px;line-height:1;font-size:13px}body.entrymode .count .dots{height:auto}body.entrymode #gameHead{margin-top:0;padding-top:0}}
 /* v36: the pitcher name never truncates – the picker sizes to its content and the counts wrap instead */
 .pickrow select{flex:1 0 auto}
 body:not(.entrymode) #wlMini{display:none}

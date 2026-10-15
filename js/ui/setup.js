@@ -25,13 +25,17 @@ $('csDelC').onclick=csEdit(sh=>{if(sh.cols.length>1){sh.cols.pop();sh.rows.forEa
 $('oneHand').onchange=e=>{S().oneHand=e.target.checked;save();render();};
 // ---------- pitchers ----------
 let pdEdit=null;
-function openPDlg(p){pdEdit=p?p.id:null;$('pDlgT').textContent=p?'Edit pitcher':'Add pitcher';$('pdName').value=p?p.name:'';$('pdNum').value=p?p.num:'';$('pdThrows').value=p?p.throws:'';openSheet($('pDlg'));}
+function openPDlg(p){pdEdit=p?p.id:null;$('pDlgT').textContent=p?'Edit pitcher':'Add pitcher';$('pdName').value=p?p.name:'';$('pdNum').value=p?p.num:'';$('pdNum').removeAttribute('aria-invalid');$('pdThrows').value=p?p.throws:'';openSheet($('pDlg'));}
+function reopenPDlg(msg){$('pdNum').setAttribute('aria-invalid','true');toast(msg);setTimeout(()=>{openSheet($('pDlg'));},0);}
 $('pDlg').addEventListener('close',()=>{if($('pDlg').returnValue!=='ok')return;const o={name:$('pdName').value,num:$('pdNum').value,throws:$('pdThrows').value};if(o.throws!=='L'&&o.throws!=='R'){toast('Pick which hand she throws with');setTimeout(()=>{openSheet($('pDlg'));},0);return;}
   if(!o.name.trim())return toast('Name required');
+  const err=PC.jerseyError(S().pitchers,o.num,pdEdit);if(err)return reopenPDlg(err);
+  o.num=PC.jerseyNum(o.num).num;$('pdNum').removeAttribute('aria-invalid');
   if(pdEdit)store.editPitcher(pdEdit,o);else{const p=store.addPitcher(o);S().curPitcher=p.id;save();toast('Added '+PC.pitcherLabel(p)+(store.isTest?' (test only)':''));}
   if(D.callTxt)D.parsed=PC.parseCall(D.callTxt,curHand(),throwsOf(),S().customTypes);render();});
 $('addP').onclick=()=>{if(role()==='coach')openPDlg();};$('addPQuick').onclick=()=>{if(role()==='coach')openPDlg();};
-function renderPitchers(){const row=p=>`<div class="prow"><span style="flex:1"><b>${H(PC.pitcherLabel(p))}</b> <span class="tag">${H(p.throws)}HP</span>${p.note?' <span class="tag">'+H(p.note)+'</span>':''}</span><button data-e="${H(p.id)}">Edit</button><button data-a="${H(p.id)}">${p.archived?'Restore':'Archive'}</button></div>`;
+$('jerseyEdit').onclick=()=>{if(role()!=='coach')return;const p=pById(curPitcherId());if(p)openPDlg(p);};
+function renderPitchers(){const row=p=>`<div class="prow"><span style="flex:1"><b>${H(PC.pitcherLabel(p))}</b> <span class="tag">${H(p.throws)}HP</span>${p.note?' <span class="tag">'+H(p.note)+'</span>':''}</span><button data-e="${H(p.id)}" aria-label="Edit ${H(PC.pitcherLabel(p))}">Edit</button><button data-a="${H(p.id)}">${p.archived?'Restore':'Archive'}</button></div>`;
   $('pList').innerHTML=S().pitchers.filter(p=>!p.archived).map(row).join('')||'<div class="mut">No active pitchers</div>';
   $('pArch').innerHTML=S().pitchers.filter(p=>p.archived).map(row).join('')||'<div class="mut">None</div>';}
 document.addEventListener('click',e=>{const t=e.target;if(t.dataset.e){openPDlg(pById(t.dataset.e));}else if(t.dataset.a){const p=pById(t.dataset.a);store.archivePitcher(p.id,!p.archived);render();}});
@@ -75,7 +79,7 @@ function importCSV(txt){const rows=PC.parseCSV(txt),s=S();let n=0,flagged=0;cons
 // coach: manage access codes
 async function renderCodes(){if(!sync||role()!=='coach'||store.isTest||!store.real.sync.teamCode){$('codesCard').classList.add('hide');return;}$('codesCard').classList.remove('hide');
   $('ncPitcher').innerHTML=store.real.pitchers.filter(p=>!p.archived).map(p=>`<option value="${H(p.id)}">${H(PC.pitcherLabel(p))}</option>`).join('');
-  $('ncPcList').innerHTML=store.real.pitchers.filter(p=>!p.archived).map(p=>`<label class="row" style="gap:4px"><input type="checkbox" value="${H(p.id)}" style="width:20px;min-height:20px">${H(PC.pitcherLabel(p))}</label>`).join('');
+  $('ncPcList').innerHTML=store.real.pitchers.filter(p=>!p.archived).map(p=>`<label class="row" style="gap:4px"><input type="checkbox" value="${H(p.id)}" style="width:44px;min-height:44px">${H(PC.pitcherLabel(p))}</label>`).join('');
   try{const L=await sync.rpc('coach_list_codes');$('codesList').innerHTML=L.map(c=>`<div class="prow"><span style="flex:1"><b>${H(c.label||c.pitcher_id||'')}</b> <span class="tag">${H(c.role==='pcoach'?'pitching coach':c.role)}</span>${c.role==='pcoach'?` <span class="mut">${H((c.pitcher_ids||[]).map(pName).join(', '))}</span>`:''}${c.revoked_at?' <span class="tag">revoked</span>':''}<br><small style="user-select:all;-webkit-user-select:all">${H(c.code)}</small></span>${c.revoked_at?'':`<button data-revoke="${H(c.code)}">Revoke</button>`}</div>`).join('')||'<div class="mut">No access codes yet</div>';}
   catch(e){$('codesList').innerHTML='<div class="mut">Go online to manage codes.</div>';}}
 $('codesCard').addEventListener('click',async e=>{const t=e.target;try{
