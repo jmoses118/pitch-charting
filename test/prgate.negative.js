@@ -1,7 +1,7 @@
 // BRIEF-5 and BRIEF-7. Planted diffs must fail the gates.
 // Merge-main counts only the pull request. Cap edits, nested test/fixture/lock
-// paths, .gitattributes binary and -diff, a .wasm, ## v5, a renamed heading,
-// and a cache-only line must fail.
+// paths, .gitattributes binary and -diff, a .wasm, a symlink, a submodule,
+// a minified line, ## v5, a renamed heading, and a cache-only line must fail.
 const fs=require('fs'),path=require('path'),os=require('os'),{spawnSync,execSync}=require('child_process');
 const {DEFAULT_CAP}=require('./prsize.js');
 const repo=path.join(__dirname,'..');
@@ -30,7 +30,7 @@ function repoDir(){const dir=emptyRepo();seed(dir);commit(dir,'base');return dir
 function lines(n){return Array.from({length:n},(_,i)=>'line '+i).join('\n')+'\n';}
 function run(script, dir, env){
   const r=spawnSync(process.execPath,[script,dir],{encoding:'utf8',env:Object.assign({},process.env,{
-    GITHUB_EVENT_NAME:'',GITHUB_BASE_REF:'',ARCH_BASE_REF:'HEAD~1',PR_BASE:'',PR_HEAD:''
+    GITHUB_EVENT_NAME:'',GITHUB_BASE_REF:'',GITHUB_EVENT_PATH:'',ARCH_BASE_REF:'HEAD~1',PR_BASE:'',PR_HEAD:''
   },env||{})});
   return {code:r.status==null?1:r.status, out:(r.stdout||'')+(r.stderr||'')};
 }
@@ -165,6 +165,97 @@ counted('BRIEF-5 a baseline image is counted','shots/home.baseline.png');
   done(dir);
 }
 {
+  const dir=withRepo(d=>fs.symlinkSync('app.js',path.join(d,'link.js')));
+  const r=run(sizeJs,dir);
+  say(r.code!==0&&r.out.includes('symlink')&&r.out.includes('link.js'),'BRIEF-5 a symlink outside test/ fails',r.out);
+  done(dir);
+}
+{
+  const dir=withRepo(d=>{
+    fs.mkdirSync(path.join(d,'test'));
+    fs.symlinkSync('../app.js',path.join(d,'test','link.js'));
+  });
+  const r=run(sizeJs,dir);
+  say(r.code===0&&/pr size ok: 0 lines/.test(r.out),'BRIEF-5 a symlink inside test/ passes',r.out);
+  done(dir);
+}
+{
+  const dir=repoDir();
+  const first=execSync('git rev-parse HEAD',{cwd:dir,encoding:'utf8'}).trim();
+  git(dir,'update-index --add --cacheinfo 160000,'+first+',vendor/lib');
+  git(dir,'commit -q -m addsub');
+  const r=run(sizeJs,dir);
+  say(r.code!==0&&r.out.includes('submodule')&&r.out.includes('vendor/lib'),'BRIEF-5 a new submodule fails',r.out);
+  done(dir);
+}
+{
+  const dir=repoDir();
+  const first=execSync('git rev-parse HEAD',{cwd:dir,encoding:'utf8'}).trim();
+  git(dir,'update-index --add --cacheinfo 160000,'+first+',vendor/lib');
+  git(dir,'commit -q -m addsub');
+  const second=execSync('git rev-parse HEAD',{cwd:dir,encoding:'utf8'}).trim();
+  git(dir,'update-index --cacheinfo 160000,'+second+',vendor/lib');
+  git(dir,'commit -q -m changesub');
+  const r=run(sizeJs,dir);
+  say(r.code!==0&&r.out.includes('submodule')&&r.out.includes('vendor/lib'),'BRIEF-5 a changed submodule fails',r.out);
+  done(dir);
+}
+{
+  const dir=withRepo(d=>writeRel(d,'.gitmodules','[submodule "vendor/lib"]\n\tpath = vendor/lib\n\turl = https://example.com/lib.git\n'));
+  const r=run(sizeJs,dir);
+  say(r.code!==0&&r.out.includes('.gitmodules'),'BRIEF-5 a .gitmodules change fails',r.out);
+  done(dir);
+}
+{
+  const dir=withRepo(d=>fs.appendFileSync(path.join(d,'app.js'),'m'.repeat(501)+'\n'));
+  const r=run(sizeJs,dir);
+  say(r.code!==0&&r.out.includes('minified line')&&r.out.includes('app.js'),'BRIEF-5 a minified line fails',r.out);
+  done(dir);
+}
+{
+  const dir=withRepo(d=>fs.appendFileSync(path.join(d,'app.js'),Array.from({length:100},()=>'m'.repeat(400)).join('\n')+'\n'));
+  const r=run(sizeJs,dir);
+  say(r.code!==0&&r.out.includes('exceeds')&&r.out.includes('app.js')&&!r.out.includes('minified'),'BRIEF-5 dense lines count as bytes',r.out);
+  done(dir);
+}
+{
+  const dir=withRepo(d=>writeRel(d,'test/min.js','m'.repeat(800)+'\n'));
+  const r=run(sizeJs,dir);
+  say(r.code===0&&/pr size ok: 0 lines/.test(r.out),'BRIEF-5 a minified line under test/ is not counted',r.out);
+  done(dir);
+}
+{
+  const dir=emptyRepo();
+  seed(dir);
+  writeRel(dir,'test/git-base.js','function a(){return 1;}\n');
+  commit(dir,'base');
+  writeRel(dir,'test/git-base.js','function a(){return 2;}\n');
+  commit(dir,'head');
+  const denied=run(sizeJs,dir);
+  say(denied.code!==0&&denied.out.includes('gate file changed')&&denied.out.includes('test/git-base.js')&&denied.out.includes('owner override'),'BRIEF-5 test/git-base.js is a gate file',denied.out);
+  const pushed=run(sizeJs,dir,{GITHUB_EVENT_NAME:'push'});
+  say(pushed.code===0&&/pr size ok: 0 lines/.test(pushed.out),'BRIEF-5 a push can land a gate edit',pushed.out);
+  done(dir);
+}
+{
+  const dir=emptyRepo();
+  seed(dir);
+  writeRel(dir,'test/prsize.js','const DEFAULT_CAP=10\n');
+  commit(dir,'base');
+  writeRel(dir,'test/prsize.js','const DEFAULT_CAP=99999\n');
+  fs.appendFileSync(path.join(dir,'app.js'),lines(20));
+  commit(dir,'head');
+  const ev=path.join(dir,'owner-event.json');
+  fs.writeFileSync(ev,JSON.stringify({pull_request:{user:{login:'owner'}},repository:{owner:{login:'owner'}}}));
+  const allowed=run(sizeJs,dir,{GITHUB_EVENT_NAME:'pull_request',GITHUB_EVENT_PATH:ev});
+  say(allowed.code!==0&&/exceeds 10\b/.test(allowed.out),'BRIEF-5 owner override keeps the base cap',allowed.out);
+  const other=path.join(dir,'other-event.json');
+  fs.writeFileSync(other,JSON.stringify({pull_request:{user:{login:'other'}},repository:{owner:{login:'owner'}}}));
+  const stranger=run(sizeJs,dir,{GITHUB_EVENT_NAME:'pull_request',GITHUB_EVENT_PATH:other});
+  say(stranger.code!==0&&stranger.out.includes('gate file changed'),'BRIEF-5 a non-owner cannot override a gate edit',stranger.out);
+  done(dir);
+}
+{
   const dir=withRepo(d=>{
     writeRel(d,'test/hidden.js','var x=1;\n');
     writeRel(d,'index.html','<script src="test/hidden.js"></script>\n');
@@ -235,14 +326,18 @@ logCase('BRIEF-7 a cache-only line is not plain English',baseLog,baseLog+'## v2 
   const spec=fs.readFileSync(path.join(repo,'docs/SPEC.md'),'utf8');
   const ids=['BRIEF-1','BRIEF-2','BRIEF-3','BRIEF-4','BRIEF-5','BRIEF-6','BRIEF-7','BRIEF-8'];
   const missing=ids.filter(s=>!agents.includes(s)||!spec.includes(s));
-  say(missing.length===0&&spec.includes('BRIEF-6 is not enforced'),'SPEC links BRIEF-1 through BRIEF-8',missing.join(', '));
+  const documented=agents.includes('owner override')&&agents.includes('merge main')&&agents.includes('test/git-base.js');
+  say(missing.length===0&&spec.includes('BRIEF-6 is not enforced')&&documented,'SPEC links BRIEF-1 through BRIEF-8',missing.join(', '));
 }
 {
   const yml=fs.readFileSync(path.join(repo,'.github/workflows/ci.yml'),'utf8');
   const gate=fs.readFileSync(path.join(repo,'.github/workflows/pr-gate.yml'),'utf8');
+  const diffSrc=fs.readFileSync(path.join(__dirname,'prdiff.js'),'utf8');
+  const baseSrc=fs.readFileSync(path.join(__dirname,'git-base.js'),'utf8');
   const wired=yml.includes('node test/prsize.js')&&yml.includes('node test/changelog.js')&&yml.includes('node test/prgate.negative.js')&&!yml.includes('PR_LINE_CAP');
-  const baseJob=gate.includes('pull_request_target')&&gate.includes('PR_BASE')&&gate.includes('PR_HEAD')&&gate.includes('node test/prsize.js')&&!gate.includes('pull_request.head.sha');
-  say(wired&&baseJob,'CI runs the base gate and does not let the PR set the cap');
+  const baseJob=gate.includes('pull_request_target')&&gate.includes('contents: read')&&gate.includes('PR_BASE')&&gate.includes('PR_HEAD')&&gate.includes('node test/prsize.js')&&!gate.includes('pull_request.head.sha');
+  const once=baseSrc.includes('function missingRev')&&!diffSrc.includes('exists on disk')&&diffSrc.includes('missingRev(');
+  say(wired&&baseJob&&once,'CI runs the base gate and does not let the PR set the cap');
 }
 
 if(fails){console.log(fails+' failed');process.exit(1);}

@@ -2,9 +2,9 @@
 // Pull requests use origin/<base>. A local run, and a push, use HEAD~1.
 // PR_BASE and PR_HEAD let a base-branch job judge a fetched pull request.
 const fs=require('fs'),path=require('path'),{spawnSync}=require('child_process');
-const {baseRef,readFileAt}=require('./git-base.js');
+const {baseRef,readFileAt,missingRev}=require('./git-base.js');
 
-const GATE_FILES=['test/prsize.js','test/changelog.js','test/prdiff.js','test/prgate.negative.js','.github/workflows/pr-gate.yml'];
+const GATE_FILES=['test/prsize.js','test/changelog.js','test/prdiff.js','test/prgate.negative.js','test/git-base.js','.github/workflows/pr-gate.yml'];
 
 function git(cwd, args){
   const r=spawnSync('git', args, {cwd, encoding:'utf8'});
@@ -79,11 +79,55 @@ function blobAt(cwd, rev, rel){
   if(r.error)return {ok:true,missing:false,binary:true,size:8*1024*1024+1};
   if(r.status!==0){
     const err=(r.stderr?r.stderr.toString():'');
-    if(/exists on disk, but not in|does not exist in/i.test(err))return {ok:true,missing:true,binary:false,size:0};
+    if(missingRev(err))return {ok:true,missing:true,binary:false,size:0};
     return {ok:false,error:err.trim().split('\n').find(Boolean)||'git cat-file failed'};
   }
   const buf=r.stdout||Buffer.alloc(0);
   return {ok:true,missing:false,binary:buf.includes(0),size:buf.length};
+}
+function rawModes(cwd){
+  const span=range(cwd);
+  if(!span.ok)return span;
+  const d=git(cwd, ['diff','--raw','--no-renames', span.from, span.head]);
+  if(d.code!==0){
+    const detail=(d.err||d.out).trim().split('\n').find(Boolean)||'git diff --raw failed';
+    return {ok:false,error:detail};
+  }
+  const rows=[];
+  for(const line of d.out.split('\n')){
+    const m=line.match(/^:(\d+) (\d+) \S+ \S+ [A-Z][0-9]*\t(.+)$/);
+    if(m)rows.push({oldMode:m[1], newMode:m[2], file:m[3]});
+  }
+  return {ok:true, rows};
+}
+function textChange(cwd, from, head, file){
+  const d=withTextDiff(cwd, ()=>git(cwd, ['diff','-U0','--text','--no-ext-diff', from, head, '--', file]));
+  if(d.code!==0){
+    const detail=(d.err||d.out).trim().split('\n').find(Boolean)||'git diff failed';
+    return {ok:false,error:detail};
+  }
+  let bytes=0, long=false;
+  for(const line of d.out.split('\n')){
+    if(line.startsWith('+++')||line.startsWith('---')||line.startsWith('@@'))continue;
+    if(!line.startsWith('+')&&!line.startsWith('-'))continue;
+    const body=line.slice(1);
+    bytes+=Buffer.byteLength(body);
+    if(line.startsWith('+')&&body.length>500)long=true;
+  }
+  return {ok:true, bytes, long};
+}
+function ownerOverride(){
+  // A push to main is the owner landing the edit. A pull request overrides
+  // only when its author is the repository owner.
+  if(process.env.GITHUB_EVENT_NAME==='push')return true;
+  const ev=process.env.GITHUB_EVENT_PATH;
+  if(!ev)return false;
+  let payload;
+  try{payload=JSON.parse(fs.readFileSync(ev,'utf8'));}
+  catch(e){return false;}
+  const author=payload.pull_request&&payload.pull_request.user&&payload.pull_request.user.login;
+  const owner=payload.repository&&payload.repository.owner&&payload.repository.owner.login;
+  return !!author&&author===owner;
 }
 function gateDrift(cwd){
   const changed=[];
@@ -95,6 +139,8 @@ function gateDrift(cwd){
     if(b.missing)continue;
     if(h.missing||b.text!==h.text)changed.push(rel);
   }
-  return {ok:changed.length===0,changed};
+  if(!changed.length)return {ok:true,changed};
+  if(ownerOverride())return {ok:true,changed,override:true};
+  return {ok:false,changed};
 }
-module.exports={git, baseRev, headRev, range, numstat, blobAt, gateDrift, destPath, GATE_FILES, readFileAt};
+module.exports={git, baseRev, headRev, range, numstat, blobAt, rawModes, textChange, gateDrift, destPath, GATE_FILES, readFileAt};

@@ -2,7 +2,7 @@
 // A pull request that changes either one fails. Only the top-level test/
 // folder and the named lockfiles at the repo root are excluded.
 const path=require('path');
-const {numstat, blobAt, gateDrift, readFileAt, baseRev, headRev}=require('./prdiff.js');
+const {numstat, blobAt, rawModes, textChange, gateDrift, readFileAt, baseRev, headRev}=require('./prdiff.js');
 
 const DEFAULT_CAP=300;
 const ROOT_LOCKS=['package-lock.json','npm-shrinkwrap.json','yarn.lock','pnpm-lock.yaml','bun.lock','bun.lockb','Cargo.lock','Gemfile.lock','poetry.lock','composer.lock','packages.lock.json'];
@@ -41,7 +41,7 @@ function main(){
   const root=process.argv[2]?path.resolve(process.argv[2]):path.join(__dirname,'..');
   const drift=gateDrift(root);
   if(!drift.ok&&drift.error){console.log('FAIL pr size '+drift.error);process.exit(1);}
-  if(!drift.ok){console.log('FAIL pr size gate file changed: '+drift.changed.join(', '));process.exit(1);}
+  if(!drift.ok){console.log('FAIL pr size gate file changed: '+drift.changed.join(', ')+'; an owner override is required');process.exit(1);}
   const cap=limitFromBase(root);
   if(cap.error){console.log('FAIL pr size '+cap.error);process.exit(1);}
   const env=process.env.PR_LINE_CAP;
@@ -64,6 +64,13 @@ function main(){
     const hits=shellHits(f.text);
     if(hits.length){console.log('FAIL pr size '+rel+' references excluded path '+hits[0]);process.exit(1);}
   }
+  const modes=rawModes(root);
+  if(!modes.ok){console.log('FAIL pr size '+modes.error);process.exit(1);}
+  for(const row of modes.rows){
+    if((row.oldMode==='120000'||row.newMode==='120000')&&!excluded(row.file)){console.log('FAIL pr size symlink '+row.file);process.exit(1);}
+    if(row.oldMode==='160000'||row.newMode==='160000'){console.log('FAIL pr size submodule '+row.file);process.exit(1);}
+    if(row.file==='.gitmodules'||row.file.endsWith('/.gitmodules')){console.log('FAIL pr size .gitmodules changed');process.exit(1);}
+  }
   let total=0;
   const files=[];
   for(const row of diff.rows){
@@ -74,7 +81,13 @@ function main(){
     if(!bb.ok){console.log('FAIL pr size '+bb.error);process.exit(1);}
     let n;
     if(hb.binary||bb.binary||row.add==='-'||row.del==='-')n=(hb.size||0)+(bb.size||0);
-    else n=Number(row.add)+Number(row.del);
+    else{
+      const text=textChange(root, diff.from, diff.head, row.file);
+      if(!text.ok){console.log('FAIL pr size '+text.error);process.exit(1);}
+      if(text.long){console.log('FAIL pr size minified line in '+row.file);process.exit(1);}
+      const linesN=Number(row.add)+Number(row.del);
+      n=Math.max(linesN, Math.ceil(text.bytes/120));
+    }
     if(!Number.isFinite(n)){console.log('FAIL pr size bad numstat '+row.file);process.exit(1);}
     total+=n;
     if(n)files.push({file:row.file, n});

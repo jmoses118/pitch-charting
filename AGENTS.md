@@ -25,3 +25,5 @@ These files are IIFEs, not ES modules, so an import linter cannot see a cross-fi
 - **BRIEF-6.** Use the staging DB only, never production.
 - **BRIEF-7.** Add a plain-English CHANGELOG line.
 - **BRIEF-8.** Never merge.
+
+A change to a gate file (`test/prsize.js`, `test/changelog.js`, `test/prdiff.js`, `test/prgate.negative.js`, `test/git-base.js`, `.github/workflows/pr-gate.yml`) fails the size check. That change needs an owner override: the pull request author is the repository owner, or the owner lands the edit on main. A branch that is behind main has to merge main before the changelog check passes.
