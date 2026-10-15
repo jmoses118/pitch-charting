@@ -25,7 +25,8 @@ function paintFoulChips(){const el=$('foulChips');if(!el)return;const on=!!foulW
   if(document.body.classList.contains('coachmode')){const band=document.querySelector('.cband');if(band){const r=band.getBoundingClientRect();const st=$('cStatus').getBoundingClientRect();el.style.right='auto';const h=el.offsetHeight||60;let left=Math.max(4,r.left),width=Math.max(148,Math.round(r.width));if(left+width>st.left-4)width=Math.max(148,st.left-4-left);el.style.left=left+'px';el.style.width=width+'px';let top=r.bottom+4;if(top+h>innerHeight-4)top=Math.max(4,r.bottom-h);if(top<r.top)top=r.top;el.style.top=top+'px';}}
   else{el.style.left='';el.style.width='';el.style.right='';el.style.top='';}}
 function clearFoulChips(){foulWatch=null;clearTimeout(foulTimer);paintFoulChips();}
-function armFoulChips(id){foulWatch=id;clearTimeout(foulTimer);foulTimer=setTimeout(clearFoulChips,3000);paintFoulChips();}
+const FOUL_CHIP_MS=3000;
+function armFoulChips(id){foulWatch=id;clearTimeout(foulTimer);foulTimer=setTimeout(clearFoulChips,FOUL_CHIP_MS);paintFoulChips();}
 function applyFoulTime(ft){const g=game();if(!foulWatch||!g)return;const p=g.pitches.find(x=>x.id===foulWatch);if(!p){clearFoulChips();return;}
   p.foulTime=PC.cleanFoul(ft);dirty('pitches',p.id);save();paintFoulChips();}
 function persistRedo(){redoStack=PC.redoState(redoStack);if(store.isTest)return;store.real.redo=redoStack.slice();store.save();}

@@ -70,7 +70,7 @@ function render(skipCallInput){const s=S();applyViewOnly(viewOnly());if(typeof r
   renderSync();if(tab==='setup'&&!store.isTest&&document.activeElement!==$('teamCode'))$('teamCode').value=store.real.sync.teamCode||'';fitPitcherFace();}
 // The closed pitcher control keeps the jersey. The font can shrink to 14px, then the name ellipsizes.
 function fitPitcherFace(){const sel=$('pitcher');if(!sel||!sel.options.length)return;const opt=sel.options[sel.selectedIndex];if(!opt||!opt.value)return;const p=pById(sel.value);if(!p)return;
-  const name=PC.firstName(p.name)||'?';const jersey=p.num?'#'+p.num:'';const full=jersey?name+' '+jersey:name;sel.title=full;
+  const face=PC.pitcherFace(p);const name=face.name,jersey=face.num?'#'+face.num:'',full=face.label;sel.title=full;
   const maxPx=document.body.classList.contains('entrymode')?16:19,minPx=14;const probe=fitPitcherFace.c||(fitPitcherFace.c=document.createElement('canvas').getContext('2d'));
   const faceCs=()=>getComputedStyle(sel);
   const room=()=>{const cs=faceCs();return sel.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);};

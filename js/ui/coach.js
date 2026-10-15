@@ -90,7 +90,7 @@ function coachZoneAct(z,aimEdit){const cmp=$('coach').classList.contains('compac
   if(r.op==='called'){render();coachMsg('✎ Aim → '+z);return;}
   if(typeof clearFoulChips==='function')clearFoulChips();if(r.draft.actual==null)D.sheet=false;render();}
 $('cZone').addEventListener('click',e=>{if(viewOnly()){toast(PC.SCORING_ELSEWHERE);return;}const b=zoneBtn(e);if(!b)return;if(lpDone){lpDone=false;return;}sideCard=null;coachZoneAct(+b.dataset.z,D.aimEdit);});
-$('cRes').addEventListener('pointerdown',e=>{const direct=e.target.closest&&e.target.closest('[data-r]');const hit=direct||[...e.currentTarget.querySelectorAll('button[data-r]')].find(btn=>{const q=btn.getBoundingClientRect();return e.clientX>=q.left&&e.clientX<=q.right&&e.clientY>=q.top&&e.clientY<=q.bottom;});if(hit)clearFoulChips();});
+$('cRes').addEventListener('pointerdown',e=>{if(e.target.closest('[data-r]'))clearFoulChips();});
 $('cRes').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;sideCard=null;
   if(b.dataset.r){if(PC.scoreStep(pullDraft())!=='result'){coachMsg($('coach').classList.contains('compact')?'Where?':'Tap where it went first','warn');return;}if(b.dataset.r==='inplay'){D.ip=true;render();return;}recordGame(b.dataset.r);return;}
   if(b.dataset.ip){recordGame('inplay',b.dataset.ip);return;}

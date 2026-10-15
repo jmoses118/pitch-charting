@@ -49,7 +49,8 @@ function makeStore(storage){
 // privacy for minors: pitchers are shown as first name + jersey number only (ids stay stable so history and codes stay attached)
 const FIRST_NAMES={p_woods:'Avery',p_crich:'Jules',p_larbus:'Reese'};
 const firstName=n=>String(n||'').trim().split(/\s+/)[0]||'';
-const pitcherLabel=p=>p?(firstName(p.name)||'?')+(p.num?' #'+p.num:''):'?';
+const pitcherFace=p=>{if(!p)return {name:'?',num:'',label:'?'};const name=firstName(p.name)||'?';const num=p.num?String(p.num):'';return {name,num,label:name+(num?' #'+num:'')};};
+const pitcherLabel=p=>pitcherFace(p).label;
 // RULE-11: a jersey is empty or 1–2 digits (00 is a real number). Checked on write, by the dialog and by add/edit.
 const JERSEY_MSG='Jersey number is 0–99 (00 is OK)';
 function jerseyNum(raw){if(raw==null||String(raw).trim()==='')return{ok:true,num:''};const s=String(raw);if(!/^\d{1,2}$/.test(s))return{ok:false,msg:JERSEY_MSG};return{ok:true,num:s};}
@@ -79,5 +80,5 @@ function ensureSync(st){
 // ---------- notes (pitching coach / coach -> player's report) ----------
 const noteId=(o)=>o.sessionId?'n_'+o.sessionId+(o.pitcherId?'_'+o.pitcherId:''):'n_'+o.gameId+'_'+o.pitcherId;
 function findNote(st,o){return (st.notes||[]).find(n=>!n.deleted&&n.pitcherId===o.pitcherId&&(o.sessionId?n.sessionId===o.sessionId:n.gameId===o.gameId))||null;}
-Object.assign(PC,{KEY,ROSTER,uuid,isUUID,uid,defaultState,makeStore,FIRST_NAMES,firstName,pitcherLabel,JERSEY_MSG,jerseyNum,jerseyClash,jerseyError,ensureSync,stripBullpenResults,blankSession,noteId,findNote});
+Object.assign(PC,{KEY,ROSTER,uuid,isUUID,uid,defaultState,makeStore,FIRST_NAMES,firstName,pitcherFace,pitcherLabel,JERSEY_MSG,jerseyNum,jerseyClash,jerseyError,ensureSync,stripBullpenResults,blankSession,noteId,findNote});
 })(typeof window!=='undefined'?window:globalThis);

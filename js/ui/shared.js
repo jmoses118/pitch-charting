@@ -202,7 +202,10 @@ function fitZone(){const z=$('zone'),w=z.parentElement;if($('entry').classList.c
   const vb=z.viewBox.baseVal,top=w.getBoundingClientRect().top+scrollY,nav=document.querySelector('nav').offsetHeight,loc=$('locRow'),locH=!pad&&loc&&loc.offsetParent?loc.offsetHeight:0,way=pad?pad+8:(locH||$('wayBtns').offsetHeight)+16;
   const min=Math.ceil(ZONE_MIN_BOX*vb.height/CW)+1,h=Math.round(Math.max(min,Math.min(innerHeight-top-nav-way,w.clientWidth*vb.height/vb.width)));
   z.style.height=h+'px';const m=z.getScreenCTM(),r=w.getBoundingClientRect();if(!m)return;const bs=$('batTog').style;
-  bs.left=(-13*m.a+m.e-r.left)+'px';bs.top=(124*m.d+m.f-r.top)+'px';bs.width=(43*m.a)+'px';}
+  // the extra header row drops this chip onto the fixed Way row or bullpen pad; keep its center above that bar
+  let chipTop=124*m.d+m.f-r.top;const block=document.body.classList.contains('padmode')?$('bpPad'):$('locRow');const br=block&&block.getBoundingClientRect();
+  if(br&&br.height>20){const fixed=getComputedStyle(block).position==='fixed';const maxTop=br.top-r.top-(fixed?scrollY:0)-32;if(chipTop>maxTop)chipTop=maxTop;}
+  bs.left=(-13*m.a+m.e-r.left)+'px';bs.top=chipTop+'px';bs.width=(43*m.a)+'px';}
 addEventListener('resize',()=>fitZone());
 
 // ---------- shake-off (game): she shook off the coach's call and threw her own pitch ----------

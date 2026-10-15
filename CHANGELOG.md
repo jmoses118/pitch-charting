@@ -2,7 +2,7 @@
 
 ## v66 – 48px targets on a short phone
 ### Changed
-- **RULE-8.** On a 375px phone the pitch buttons, the pitcher row, Batter, Band, and Result are 48px again. The strike boxes are a little shorter so the zone still fits. The wristband shows all 8 columns with no sideways scroll; those cells are 48px tall and a bit narrower. A long pitcher name keeps the jersey number. Foul-timing chips leave after about 3 seconds, or when you tap the band or a result.
+- **RULE-8.** On a 375px phone the pitch buttons, the pitcher row, Batter, Band, and Result are 48px again. The strike boxes are a little shorter so the zone still fits. The wristband shows all 8 columns with no sideways scroll; those cells stay 48px tall and may be a bit narrower. The pitch counts sit on their own line so a long pitcher name stays readable, and the jersey number stays on the end. Foul-timing chips leave after about 3 seconds, or when you tap the band or a result.
 - Cache: `te-pitch-v66`.
 
 ## v65 – A bad aim stays marked

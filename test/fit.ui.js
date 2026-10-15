@@ -25,7 +25,7 @@ for(const [W,H] of [[390,844],[375,667],[430,932]]){const tag=`${W}x${H}`;
     ok(await ev(()=>{const s=document.getElementById('batTog').getBoundingClientRect();return [...document.querySelectorAll('#zone [data-z]')].every(e=>{const r=e.getBoundingClientRect();return r.right<=s.left+.5||r.left>=s.right-.5||r.bottom<=s.top+.5||r.top>=s.bottom-.5;});}),`${tag} ${mode}: batter chip clear of the tap boxes`);};
   await p.click('nav [data-t="bullpen"]');await p.waitForTimeout(150);await fits('bullpen');
   ok(/^Today \d+ · Wknd \d+$/.test(await p.textContent('#wlMini'))&&await ev(()=>getComputedStyle(document.querySelector('.topbar')).display==='none'),`${tag}: slim header with workload counts`);
-  ok(await ev(()=>{const cs=getComputedStyle(document.getElementById('wlMini'));return cs.whiteSpace==='nowrap'&&cs.flexGrow==='0'&&cs.flexShrink==='0';}),`${tag}: workload line stays on one line`);
+  ok(await ev(()=>{const el=document.getElementById('wlMini'),cs=getComputedStyle(el),sel=document.getElementById('pitcher').getBoundingClientRect(),r=el.getBoundingClientRect();return cs.whiteSpace==='nowrap'&&cs.flexBasis==='100%'&&r.top>=sel.bottom-1;}),`${tag}: workload line stays on one line under the pitcher`);
   // tap through a bullpen pitch without scrolling
   const tap=async z=>{const r=await p.$eval(`#zone [data-z="${z}"]`,e=>{const r=e.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2};});await p.mouse.click(r.x,r.y);await p.waitForTimeout(100);};
   await p.click('#types [data-c="FB"]');await tap(3);await tap(2);
@@ -55,12 +55,12 @@ for(const [W,H] of [[390,844],[375,667],[430,932]]){const tag=`${W}x${H}`;
   if(!await ev(()=>document.body.classList.contains('wbopen'))){await p.click('#wbTog');await p.waitForTimeout(100);}
   {const band=await ev(()=>{const wrap=document.querySelector('#wbCard .wbWrap');const heads=[...document.querySelectorAll('#wbTbl tr:first-child th')].slice(1);const cell=document.querySelector('#wbTbl td button').getBoundingClientRect();const vis=e=>{const r=e.getBoundingClientRect();return r.width>0&&r.left>=-1&&r.right<=innerWidth+1&&r.top>=-1&&r.bottom<=innerHeight+1;};return {scroll:wrap.scrollWidth<=wrap.clientWidth+1&&document.documentElement.scrollWidth<=innerWidth+1,cols:heads.length===8&&heads.every(vis),row:vis(document.querySelector('#wbTbl th.rh')),w:cell.width,h:cell.height};});
     ok(band.scroll&&band.cols&&band.row,`${tag}: all 8 wristband columns on screen, no sideways scroll`);
-    if(W===375)ok(band.h>=48&&band.w>=41.5&&band.w<=45,`${tag}: wristband cell ${band.w.toFixed(1)} wide × ${band.h.toFixed(1)} tall (48 tall, about 42–44 wide)`);
+    if(W<=390)ok(band.h>=48&&band.w>=42&&band.w<=44.5,`${tag}: wristband cell ${band.w.toFixed(1)} wide × ${band.h.toFixed(1)} tall (height 48, 42–44 wide at <=390)`);
     else ok(band.h>=48&&band.w>=42,`${tag}: wristband cell ${band.w.toFixed(1)} wide × ${band.h.toFixed(1)} tall`);}
   await ev(()=>{const S=__app.store.real;const p=S.pitchers[0];p.name='Alexandria';p.num='12';__app.store.save();__app.render();});
   {const face=await ev(()=>{const s=document.getElementById('pitcher'),cs=getComputedStyle(s),row=document.querySelector('.pickrow').getBoundingClientRect().width;const c=document.createElement('canvas').getContext('2d');const room=s.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);c.font=cs.fontStyle+' '+cs.fontWeight+' 14px '+cs.fontFamily;const text=s.options[s.selectedIndex].text;const fullFits=c.measureText('Alexandria #12').width<=room-2;c.font=cs.fontStyle+' '+cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;const shown=c.measureText(text).width;return {font:parseFloat(cs.fontSize),text,title:s.title,w:s.getBoundingClientRect().width,row,fullFits,shownFits:shown<=room+1};});
     ok(face.font>=14&&face.font<=16&&face.shownFits&&face.title==='Alexandria #12'&&face.text.endsWith('#12'),`${tag}: pitcher shows ${face.text} at ${face.font}px`);
     ok(face.fullFits?face.text==='Alexandria #12':(/… #12$/.test(face.text)&&!face.text.endsWith('…')),`${tag}: long name keeps #12 (${face.text})`);
-    if(W===390)ok(face.w<=face.row*0.48+1,`${tag}: pitcher is ${Math.round(face.w)}px, cap 48% of ${Math.round(face.row)}`);}
+    if(W===375||W===390){const n=(face.text.match(/^(.*?)(?:…)? #12$/)||['',''])[1].length;ok(n>=8,`${tag}: at least 8 name characters plus #12 (${face.text})`);}}
   ok(!errs.length,`${tag}: no page errors `+errs.join('|'));await c.close();}
 await b.close();console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);})();
