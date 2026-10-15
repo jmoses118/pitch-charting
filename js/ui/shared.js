@@ -74,7 +74,7 @@ function drawZone(){const hand=curHand();let ex='';const tset=aimSet();
   document.querySelectorAll('#wayBtns [data-z],#actBtns [data-z]').forEach(b=>b.classList.toggle('sel',+b.dataset.z===D.loc));}
 const locTxt=z=>PC.isWay(z)?PC.WAY[z]:PC.isActualOnly(z)?PC.ACTUAL_ONLY[z]:'@'+z;
 function tapLoc(z){if(scoreGuard())return;const r=PC.scoreTap(pullDraft(),z);
-  if(!r.ok){if(r.reason==='need_type')return toast('Pick the pitch type first');if(r.reason==='bad_target')return toast(PC.CH_AIM_MSG);if(r.reason==='need_called')return toast('Tap the called location first');return;}
+  if(!r.ok){if(r.reason==='need_type')return toast('Pick the pitch type first');if(r.reason==='bad_target')return toast(PC.aimRejectMsg((r.draft&&r.draft.type)||D.type,z));if(r.reason==='need_called')return toast('Tap the called location first');return;}
   takeDraft(r);
   if(r.op==='called'){render();return;}
   if(typeof clearFoulChips==='function')clearFoulChips();

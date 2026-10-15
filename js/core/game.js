@@ -41,7 +41,7 @@ function cleanVelo(v){if(v==null||v==='')return null;const n=+v;return Number.is
 function sessionHand(settings,hand){if(!settings||!settings.showBatterHand)return 'N';return hand==='L'||hand==='R'?hand:'N';}
 // Correct where a past pitch actually went. Does not remove it, reorder the list, or touch the result or the count.
 // One target (or none) keeps calledLoc. Several targets recompute it as the nearest to the new spot, so CSV called_location matches.
-function editActual(pitch,loc){loc=+loc;if(!pitch||!PC.GRID_XY[loc])return false;const same=pitch.loc===loc&&pitch.actualLoc===loc;pitch.loc=loc;pitch.actualLoc=loc;
+function editActual(pitch,loc){loc=+loc;if(!pitch||!PC.validActual(loc))return false;const same=pitch.loc===loc&&pitch.actualLoc===loc;pitch.loc=loc;pitch.actualLoc=loc;
   const targets=Array.isArray(pitch.targets)?pitch.targets:[];let calledMoved=false;
   if(targets.length>1){const next=PC.nearestTarget(targets,loc);if(next!=null&&next!==pitch.calledLoc){pitch.calledLoc=next;calledMoved=true;}}
   if(!same||calledMoved)pitch.edited=true;return true;}

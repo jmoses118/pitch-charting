@@ -1,5 +1,13 @@
 # Changelog
 
+## v60 – One location validator
+### Changed
+- **RULE-1, RULE-3a.** `validCalled` is the only aim check. Dirt, way off, and the backstop are actual locations. A change-up aim stays 4, 7, 8, 9, 13, 14, 18. `canAim` and `targetOk` are gone.
+- **RULE-3.** `calledTypeOf` is the thrown pitch after a shake-off. The penalty, a bad aim, the low bonus, and the CSV called type all use it.
+- **RULE-3c, RULE-3d, FLOW-7a.** A low change, drop, or drop curve in the dirt is severity 2. A shake-off called location is the re-signaled box, or the original box. The bullpen low bonus needs that low call and a landing in 13, 14, or 18.
+- **RULE-4.** A sync read and a CSV import keep a grid aim that fails the validator and flag the row. The import toast counts flagged rows. `csvRow` builds every export row. `calledOf` and `actualOf` live in `js/core/location.js`.
+- Cache: `te-pitch-v60`.
+
 ## v60 – The game log asks scoring whether a pitch was a strike
 ### Changed
 - **FLOW-6.** The pitch list uses `strikeOf` for a pitch that has no umpire result. A bullpen row stays blank. A game row is K or B from that helper.

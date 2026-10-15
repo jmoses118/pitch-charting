@@ -1,5 +1,5 @@
 /* Thunder Elite pitch charting – flow.js: one scoring state machine for every mode.
-   Pure logic (no DOM). Loads after calls.js (canAim, GRID_XY, nearestTarget) and before game.js.
+   Pure logic (no DOM). Loads after calls.js and location.js, before game.js. validCalled is the only aim validator.
    Game: type → called location → actual location → result.
    Bullpen: type → called location → actual location → save. No ball/strike step.
    Optional and outside the required list: shake-off, velocity, in-play detail, editing a past location. */
@@ -25,9 +25,8 @@ function scoreStep(d){d=d||{};const steps=flowSteps(d.mode);
   if(d.actual==null)return 'actual';
   if(steps.indexOf('result')>=0&&!d.result)return 'result';
   return 'done';}
-// Dirt, way off and backstop are legal called spots so a pitch aimed there can be a hit.
-// Change-up high zone/ring boxes stay illegal. Band setup still uses canAim (zone and ring only).
-function validCalled(type,z){z=+z;if(!PC.GRID_XY[z])return false;if(PC.isWay(z)||PC.isActualOnly(z))return true;return PC.canAim(type,z);}
+// RULE-3a: dirt, way off and the backstop are actual locations only. RULE-1: a change-up aim is 4, 7, 8, 9, 13, 14, 18.
+function validCalled(type,z){z=+z;if(!PC.GRID_XY[z])return false;if(PC.isWay(z)||PC.isActualOnly(z))return false;if(!(PC.isZone(z)||PC.isOut(z)))return false;if(type==='CH'&&!(PC.CH_TARGETS||[]).includes(z))return false;return true;}
 function validActual(z){return !!PC.GRID_XY[+z];}
 function fail(op,d,reason){return{ok:false,op,draft:d,step:scoreStep(d),reason};}
 function scoreApply(draft,ev){const d=clone(draft);ev=ev||{};const op=ev.op;
@@ -47,9 +46,13 @@ function scoreTap(draft,z){const d=clone(draft);if(d.aimEdit)return scoreApply(d
   if(step==='type')return{ok:false,reason:'need_type',step,draft:d,op:null};
   if(step==='called')return scoreApply(d,{op:'called',z});
   return scoreApply(d,{op:'actual',z});}
-// One writer for targets (her called spots), loc / actualLoc, and calledLoc.
-// A shake-off's calledLoc is the coach's box nearest the landing, never her aim.
-function scoreCommit(d){d=clone(d);if(scoreStep(d)!=='done')return null;const her=d.called.slice();const coach=d.shook?(d.shook.called||[]):her;const pool=coach.length?coach:her;
-  return{type:d.type,targets:her,loc:d.actual,actualLoc:d.actual,calledLoc:PC.nearestTarget(pool,d.actual),result:d.mode==='bullpen'?null:d.result,ip:d.ip||null,shook:!!d.shook,velo:d.velo};}
+// RULE-3d: after a shake-off the called location is the box re-signaled with the final pitch.
+// When she did not re-signal, the original box stands. The screen still requires the aim tap.
+function scoreCommit(d){d=clone(d);const her=d.called.slice();const original=d.shook&&d.shook.called?d.shook.called.slice():[];const boxes=her.length?her:(d.shook?original:[]);
+  if(!boxes.length||!d.type||d.actual==null)return null;
+  if(flowSteps(d.mode).indexOf('result')>=0&&!d.result)return null;
+  if(!d.shook&&scoreStep(d)!=='done')return null;
+  if(d.shook&&her.length&&scoreStep(d)!=='done')return null;
+  return{type:d.type,targets:boxes,loc:d.actual,actualLoc:d.actual,calledLoc:PC.nearestTarget(boxes,d.actual),result:d.mode==='bullpen'?null:d.result,ip:d.ip||null,shook:!!d.shook,velo:d.velo};}
 Object.assign(PC,{FLOW,GAME_RESULTS,flowSteps,flowLabel,scoreStep,scoreApply,scoreTap,scoreCommit,validCalled,validActual});
 })(typeof window!=='undefined'?window:globalThis);
