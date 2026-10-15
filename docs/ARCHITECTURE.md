@@ -5,7 +5,7 @@
 |---|---|
 | `index.html` | Markup for every view (Game, Bullpen, Stats, Setup) and script tags |
 | `style.css` | Design tokens (CSS custom properties) + components; see [DESIGN.md](DESIGN.md) |
-| `config.js` | `window.PC_CONFIG`: Supabase URL + publishable key. Production only on the public site; local or staging everywhere else |
+| `config.js` | Browser wiring for `window.PC_CONFIG`. The choice lives in `js/core/config.js` |
 | `js/core/*.js` | Pure logic modules (no DOM), shared by browser and node tests |
 | `logic.js` | Node entry point: loads the core modules in order and exports `PC` |
 | `js/ui/*.js` | UI views (classic scripts sharing one global scope, loaded in order): `shared` (DOM helpers, store, roles, zone component, call entry, banners, sync), `zonegfx` (softball markers, plate, batter silhouette, recent-pitch list), `game`, `bullpen`, `report` (shared report / drill-down / notes components), `stats`, `setup`, `main` (render loop, nav, startup) |
@@ -15,17 +15,18 @@
 ## Core modules (load order = dependency order)
 Each module is an IIFE that reads dependencies from the shared `PC` namespace (`const {…}=PC`) and registers its exports with `Object.assign(PC,{…})`. The browser loads them via `<script>` tags; node via `logic.js`.
 
-1. **grid.js** – single source of truth for the location grid: zone 1–9, ring 11–18, way-off 21–24, actual-only 31 (in dirt) and 32 (over catcher/backstop), `GRID_XY` lattice, `MAX_MISS`, `missDist`, `locInfo`, `pct`.
-2. **calls.js** – pitch types, call codes (Jim's wristband language), call-code parsing, wristband/call sheet defaults. `aimOpts` asks `validCalled` (change-ups only 4, 7, 8, 9, 13, 14, 18). `aimRejectMsg` is the one refusal sentence.
-3. **location.js** – `calledOf` and `actualOf`, the one reading of a stored pitch's called spot and actual spot.
-4. **flow.js** – the one scoring state machine. `flowSteps('game')` is `type → called → actual → result`. `flowSteps('bullpen')` stops after `actual` and then saves. `scoreApply` / `scoreTap` / `scoreStep` / `scoreCommit` are the only step rules. `validCalled` is the only aim validator. Portrait, the landscape coach screen, bullpen, and any later view all call this module. They do not keep a second copy of the order.
-5. **game.js** – count logic (GameChanger aligned), results, at-bat ends, batted-ball types. Pitch entry is only `flow.js`.
-6. **scoring.js** – all scoring rules: miss severity (`pitchMiss` is the only severity source), souvenir, CH-low, ring/way-off, competitive %, heat maps, reports, summaries, K credit, count stats, trends, alert levels. Report, heat map and stats all call these same functions. `penaltyType` is `calledTypeOf`.
-7. **csv.js** – one CSV row builder (`csvRow`) and `calledTypeOf`. Import keeps an illegal grid aim and flags the row.
-8. **workload.js** – pitch counts today / this tournament weekend (Fri–Sun; Mon–Thu shows the last weekend), game and bullpen counted separately, optional soft day/weekend limits (`workloadAlert`: amber from 85%, red at the limit), in-game alert thresholds, optional rest-day guide (off by default).
-9. **sync.js** – Supabase REST: `TABLES`, `keyOf`, row builders, `roleAllows` (client mirror of RLS), `mergeRemote`, push/pull loop. A sync read keeps a grid aim that fails `validCalled` and sets `calledFlag`.
-10. **modes.js** – game and bullpen are mutually exclusive on a device: `modeLock(state, tab, canGame)` (a started, not-ended active game locks Bullpen; an active session with pitches locks Game), plus resumable `pausedGames` / `pausedSessions`. Pausing only clears `activeGame` / `activeSession`; no data changes.
-11. **store.js** – default state (first-name pitchers, empty roster), `pitcherLabel` (first name + #number, used by every view), `jerseyNum` / `jerseyError` (0–99, exact match, active pitchers only), `localStorage` load/save + migrations (`ensureSync`), notes.
+1. **config.js** – `pcPickConfig`, the one database target. Production only when the page host is listed on `pcPickConfig.PROD`.
+2. **grid.js** – single source of truth for the location grid: zone 1–9, ring 11–18, way-off 21–24, actual-only 31 (in dirt) and 32 (over catcher/backstop), `GRID_XY` lattice, `MAX_MISS`, `missDist`, `locInfo`, `pct`.
+3. **calls.js** – pitch types, call codes (Jim's wristband language), call-code parsing, wristband/call sheet defaults. `aimOpts` asks `validCalled` (change-ups only 4, 7, 8, 9, 13, 14, 18). `aimRejectMsg` is the one refusal sentence.
+4. **location.js** – `calledOf` and `actualOf`, the one reading of a stored pitch's called spot and actual spot.
+5. **flow.js** – the one scoring state machine. `flowSteps('game')` is `type → called → actual → result`. `flowSteps('bullpen')` stops after `actual` and then saves. `scoreApply` / `scoreTap` / `scoreStep` / `scoreCommit` are the only step rules. `validCalled` is the only aim validator. Portrait, the landscape coach screen, bullpen, and any later view all call this module. They do not keep a second copy of the order.
+6. **game.js** – count logic (GameChanger aligned), results, at-bat ends, batted-ball types. Pitch entry is only `flow.js`.
+7. **scoring.js** – all scoring rules: miss severity (`pitchMiss` is the only severity source), souvenir, CH-low, ring/way-off, competitive %, heat maps, reports, summaries, K credit, count stats, trends, alert levels. Report, heat map and stats all call these same functions. `penaltyType` is `calledTypeOf`.
+8. **csv.js** – one CSV row builder (`csvRow`) and `calledTypeOf`. Import keeps an illegal grid aim and flags the row.
+9. **workload.js** – pitch counts today / this tournament weekend (Fri–Sun; Mon–Thu shows the last weekend), game and bullpen counted separately, optional soft day/weekend limits (`workloadAlert`: amber from 85%, red at the limit), in-game alert thresholds, optional rest-day guide (off by default).
+10. **sync.js** – Supabase REST: `TABLES`, `keyOf`, row builders, `roleAllows` (client mirror of RLS), `mergeRemote`, push/pull loop. A sync read keeps a grid aim that fails `validCalled` and sets `calledFlag`.
+11. **modes.js** – game and bullpen are mutually exclusive on a device: `modeLock(state, tab, canGame)` (a started, not-ended active game locks Bullpen; an active session with pitches locks Game), plus resumable `pausedGames` / `pausedSessions`. Pausing only clears `activeGame` / `activeSession`; no data changes.
+12. **store.js** – default state (first-name pitchers, empty roster), `pitcherLabel` (first name + #number, used by every view), `jerseyNum` / `jerseyError` (0–99, exact match, active pitchers only), `localStorage` load/save + migrations (`ensureSync`), notes.
 
 ## Data flow
 UI action (js/ui) → `store.update()` mutates state → saved to `localStorage` → marked dirty → `makeSync` pushes changed rows (filtered by `roleAllows`) via PostgREST with the access code in the `x-team-code` header → periodic pull merges remote rows (`mergeRemote`, newest `updated_at` wins). Test mode skips sync entirely.

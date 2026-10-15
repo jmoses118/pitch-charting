@@ -8,6 +8,7 @@ Search before writing a helper. Never copy a block between files.
 - One CSV row builder: `csvRow` in `js/core/csv.js`.
 - One flow state machine: `js/core/flow.js`.
 - One location module: `js/core/location.js` (`calledOf`, `actualOf`).
+- One database target: `pcPickConfig` in `js/core/config.js`.
 
 `js/core` never references `js/ui`. `js/ui` does not define `valid*`, `calc*`, or `*Of` rule functions. `js/ui` does not bind `PC`, copy `CH_TARGETS` or `LOW_RING`, or read `isZone`, `isStrike`, `GRID_XY`, `CH_TARGETS`, or `nearestTarget`, and `PC.aimRejectMsg` stays only in `coach.js` `coachZoneAct` and `pointerdown` and in `shared.js` `tapLoc` (one call each); `test/dup.scan.js` reads `test/dup.baseline.json` from the base branch and fails if a clone is added or the tree falls below the list (`--min-tokens 30`).
 
@@ -17,6 +18,6 @@ These files are IIFEs, not ES modules, so an import linter cannot see a cross-fi
 
 ## Staging database
 
-Production is Supabase project `qeqijbrokrkzpcacpjyw`. Builders and CI do not connect to it, push migrations to it, or create branches on it. The public site (`jmoses118.github.io`) is the only build that uses that project. Any other host uses `http://127.0.0.1:54321`, or `PC_SUPABASE_URL` and `PC_SUPABASE_ANON_KEY` when those name a staging project. The environment wins over `localStorage.pc_supabase` (`{"url","key"}`). If either value names the production project, the app drops it and uses the local address with no key. Use the publishable (anon) key only. Never commit a secret or service-role key. Put staging values in the environment or in gitignored `.test-env`.
+Production is Supabase project `qeqijbrokrkzpcacpjyw`. Builders and CI do not connect to it, push migrations to it, or create branches on it. Production is chosen by a hostname check against `pcPickConfig.PROD.hosts` (the public site). Any other host uses `http://127.0.0.1:54321`, or a staging project. In Node, `PC_SUPABASE_URL` and `PC_SUPABASE_ANON_KEY` override `localStorage.pc_supabase` (`{"url","key"}`). In the browser there is no process environment, so `localStorage.pc_supabase` is the override. If the URL hostname is the production project, the app shows a banner and uses the local address with no key. Use the publishable (anon) key only. Never commit a secret or service-role key. Put staging values in the environment (Node) or in gitignored `.test-env`.
 
 Staging is a persistent Supabase preview branch. Jim creates it in the dashboard (Branching, persistent) or, after `supabase login`, with `supabase --experimental branches create --persistent`. Do not run that from CI or from a builder session. The branch has its own URL and publishable key. Schema checks run on that branch, or on the throwaway Postgres CI already starts: `test/pg-migrate.sh` applies `supabase/migrations`, then the database scripts run. Production schema changes only when that preview branch is merged into production. Merging git to `main` updates the site. It does not change the production database until the Supabase branch is merged.

@@ -46,6 +46,9 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
 - The overlay view: a big zone with floating count, pitcher and pitch widgets, the batter's last-at-bat widget, and a lineup edit menu.
 - Pocket Radar import.
 
+## INFRA
+- **INFRA-3** Production Supabase is used only when the page hostname is in `pcPickConfig.PROD.hosts`. The project ref, URL, and publishable key are defined once on `pcPickConfig.PROD` in `js/core/config.js`. Every other build uses the local address or `PC_SUPABASE_URL` / `PC_SUPABASE_ANON_KEY`. A database URL is refused when `new URL(url.toLowerCase()).hostname` contains the production project ref. The app then shows a banner and uses the local address with an empty key. CI applies `supabase/migrations` only when the database host is `localhost` or `127.0.0.1`. The production schema changes only when a Supabase preview branch is merged.
+
 ## Definition of done (v1)
 On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen can both be scored end to end with no bugs. Every requirement ID maps to at least one automated test, and all of those tests pass in CI.
 
@@ -78,12 +81,14 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | VIEW-1, VIEW-2 | `zonegfx.ui.js`: numbered, colored markers and list; one-tap scheduled start |
 | DoD | UI: `inning.e2e` (full inning) and `bullpen20.e2e` (20-pitch bullpen) at 390 px |
 | ARCH-1 | `test/arch.scan.js` passes on the tree. Negative cases are `test/arch.negative.js` and `test/dup.scan.js`. |
+| INFRA-3 | `test/prodref.test.js`: a non-production host, an uppercase production URL, and a split project ref do not point at production; `test/pg-migrate.sh` allows only `localhost` or `127.0.0.1` |
 
 ## Architecture
 Each business rule lives in one `js/core` module. UI files render and forward events. They do not keep a second validator or a second copy of a rule.
 
 | Module | Owns |
 |---|---|
+| `js/core/config.js` | `pcPickConfig`, the one database target. `pcPickConfig.PROD` holds the production ref, URL, publishable key, and host list. |
 | `js/core/flow.js` | The one scoring state machine (`scoreApply`, `scoreTap`, `scoreStep`, `scoreCommit`) and the one location validator (`validCalled`, `validActual`). Portrait Game, the landscape coach screen, Bullpen, and any later view call this module. |
 | `js/core/location.js` | `calledOf` and `actualOf`, the one reading of a stored called spot and actual spot. |
 | `js/core/scoring.js` | Miss severity, the low-pitch bonus, and strike versus hit-spot. The penalty uses `calledTypeOf`. |

@@ -160,7 +160,7 @@ function toggleTest(){if(store.isTest){if(!confirm('Exit test mode? Everything f
   else{store.enterTest();resetDraft();redoStack=[];toast('TEST MODE – nothing is saved');}render();}
 $('testBtn').onclick=toggleTest;$('exitTest2').onclick=toggleTest;
 // ---------- cloud sync ----------
-const CFG=window.PC_CONFIG||{};const sync=CFG.url&&CFG.key?PC.makeSync(store,{url:CFG.url,key:CFG.key}):null;let syncT=null,syncing=false;
+const CFG=window.PC_CONFIG||{};if(CFG.banner){const b=$('envBar');if(b){b.textContent=CFG.banner;b.classList.remove('hide');}}const sync=CFG.url&&CFG.key?PC.makeSync(store,{url:CFG.url,key:CFG.key}):null;let syncT=null,syncing=false;
 // Scoring lock: the live game / bullpen session on screen is scored only from the phone that owns it (PC.canScore)
 store.real.sync.scorerCol=!!CFG.scorerColumn; store.real.sync.shakeCol=!!CFG.shakeColumn; store.real.sync.chartCol=!!CFG.chartColumn; // on after 20261014140000_shake_off.sql and 20261014180000_scoring_chart.sql
 const myDevice=()=>store.real.sync.deviceId;

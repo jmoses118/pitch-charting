@@ -11,6 +11,7 @@ Search before writing a helper. Never copy a block between files.
 - One CSV row builder: `csvRow` in `js/core/csv.js`.
 - One flow state machine: `js/core/flow.js`.
 - One location module: `js/core/location.js` (`calledOf`, `actualOf`).
+- One database target: `pcPickConfig` in `js/core/config.js`.
 
 `js/core` never references `js/ui`. `js/ui` does not define `valid*`, `calc*`, or `*Of` rule functions. `js/ui` does not bind `PC`, copy `CH_TARGETS` or `LOW_RING`, or read `isZone`, `isStrike`, `GRID_XY`, `CH_TARGETS`, or `nearestTarget`, and `PC.aimRejectMsg` stays only in `coach.js` `coachZoneAct` and `pointerdown` and in `shared.js` `tapLoc` (one call each); `test/dup.scan.js` reads `test/dup.baseline.json` from the base branch and fails if a clone is added or the tree falls below the list (`--min-tokens 30`).
 

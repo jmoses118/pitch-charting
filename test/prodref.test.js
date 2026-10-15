@@ -1,6 +1,6 @@
-const test=require('node:test'),assert=require('node:assert'),fs=require('fs'),path=require('path');
-const REF='qeqijbrokrkzpcacpjyw';
-const PROD_KEY='sb_publishable_vwT3XEfeel6WAzDgtI4zRQ_5Zh-VhXy';
+const test=require('node:test'),assert=require('node:assert'),fs=require('fs'),path=require('path'),cp=require('child_process');
+const PC=require('../logic.js');
+const PROD=PC.pcPickConfig.PROD;
 function load(host,env,storage){
   const prevU=process.env.PC_SUPABASE_URL,prevK=process.env.PC_SUPABASE_ANON_KEY;
   if(env&&env.PC_SUPABASE_URL)process.env.PC_SUPABASE_URL=env.PC_SUPABASE_URL;else delete process.env.PC_SUPABASE_URL;
@@ -17,32 +17,59 @@ function load(host,env,storage){
   return cfg;
 }
 function offProd(cfg,where){
-  assert.equal(String(cfg.url).includes(REF),false,where+' url');
-  assert.equal(cfg.key===PROD_KEY,false,where+' key');
+  assert.equal(new URL(cfg.url).hostname.toLowerCase().includes(PROD.ref),false,where+' url');
+  assert.notEqual(cfg.key,PROD.key,where+' key');
   assert.equal(cfg.scorerColumn,true);assert.equal(cfg.shakeColumn,true);assert.equal(cfg.chartColumn,true);
 }
-test('non-production builds do not point at the production project',()=>{
-  for(const host of ['','localhost','127.0.0.1','preview.example'])offProd(load(host),'host '+host);
-  offProd(load('localhost',{PC_SUPABASE_URL:'https://'+REF+'.supabase.co',PC_SUPABASE_ANON_KEY:PROD_KEY}),'env');
-  offProd(load('',null,{getItem(){return JSON.stringify({url:'https://'+REF+'.supabase.co',key:PROD_KEY});}}),'localStorage');
+// Join adjacent quoted pieces before a case-insensitive search.
+function sourceNamesProd(src){
+  let s=String(src);
+  const re=/(['"])([^'"\\]*)\1\s*\+\s*(['"])([^'"\\]*)\3/g;
+  let prev;do{prev=s;s=s.replace(re,(_,q,a,_q,b)=>q+a+b+q);}while(s!==prev);
+  return s.toLowerCase().includes(PROD.ref.toLowerCase());
+}
+test('INFRA-3: non-production builds do not point at the production project',()=>{
+  for(const host of ['','localhost','127.0.0.1','preview.example']){
+    const cfg=load(host);offProd(cfg,'host '+host);assert.equal(cfg.banner,'');
+  }
+  const refused=load('localhost',{PC_SUPABASE_URL:PROD.url,PC_SUPABASE_ANON_KEY:PROD.key});
+  offProd(refused,'env');assert.ok(refused.banner);assert.equal(refused.fallback,true);assert.equal(new URL(refused.url).hostname,'127.0.0.1');
+  offProd(load('',null,{getItem(){return JSON.stringify({url:PROD.url,key:PROD.key});}}),'localStorage');
   const staging=load('localhost',{PC_SUPABASE_URL:'https://staging-example.supabase.co',PC_SUPABASE_ANON_KEY:'sb_publishable_staging'});
-  assert.equal(staging.url,'https://staging-example.supabase.co');
-  assert.equal(staging.key,'sb_publishable_staging');
-  const prod=load('jmoses118.github.io',{PC_SUPABASE_URL:'http://127.0.0.1:54321',PC_SUPABASE_ANON_KEY:'other'});
-  assert.equal(prod.url,'https://'+REF+'.supabase.co');
-  assert.equal(prod.key,PROD_KEY);
+  assert.equal(staging.url,'https://staging-example.supabase.co');assert.equal(staging.key,'sb_publishable_staging');assert.equal(staging.banner,'');
+  const prod=load(PROD.hosts[0],{PC_SUPABASE_URL:PROD.local,PC_SUPABASE_ANON_KEY:'other'});
+  assert.equal(prod.url,PROD.url);assert.equal(prod.key,PROD.key);assert.equal(prod.banner,'');
+  PROD.hosts.push('preview.example');
+  try{assert.equal(load('preview.example').url,PROD.url);}finally{PROD.hosts.pop();}
 });
-test('CI and app files other than config.js do not name the production project',()=>{
+test('INFRA-3: an uppercase production URL and a split project ref are refused',()=>{
+  const up=PROD.url.replace(PROD.ref,PROD.ref.toUpperCase());
+  const cfg=load('localhost',{PC_SUPABASE_URL:up,PC_SUPABASE_ANON_KEY:PROD.key});
+  offProd(cfg,'uppercase');assert.ok(cfg.banner);assert.equal(new URL(cfg.url).hostname,'127.0.0.1');
+  const userinfo='https://coach:secret@'+PROD.ref.toUpperCase()+'.supabase.co/rest';
+  offProd(load('localhost',{PC_SUPABASE_URL:userinfo}),'userinfo');
+  const split="'"+PROD.ref.slice(0,5)+"'+'"+PROD.ref.slice(5)+"'";
+  assert.equal(split.toLowerCase().includes(PROD.ref),false);
+  assert.equal(sourceNamesProd(split),true);
+  assert.equal(sourceNamesProd(up),true);
+  assert.equal(sourceNamesProd('https://staging-example.supabase.co'),false);
+});
+test('INFRA-3: CI, app, and SQL files do not name the production project',()=>{
   const root=path.join(__dirname,'..'),hits=[];
   const walk=rel=>{
     const abs=path.join(root,rel);
     if(!fs.existsSync(abs))return;
     const st=fs.statSync(abs);
     if(st.isDirectory()){for(const n of fs.readdirSync(abs)){if(n==='node_modules')continue;walk(path.join(rel,n));}return;}
-    if(!/\.(js|sh|yml|html)$/.test(abs))return;
-    if(rel.endsWith('config.js')||rel.endsWith(path.join('test','prodref.test.js')))return;
-    if(fs.readFileSync(abs,'utf8').includes(REF))hits.push(rel);
+    if(!/\.(js|sh|yml|html|sql)$/.test(abs))return;
+    if(rel===path.join('js','core','config.js'))return;
+    if(sourceNamesProd(fs.readFileSync(abs,'utf8')))hits.push(rel);
   };
-  for(const rel of ['js','test','.github','index.html','sw.js'])walk(rel);
+  for(const rel of ['js','test','.github','supabase','index.html','sw.js','config.js'])walk(rel);
   assert.deepEqual(hits,[]);
+  const sh=fs.readFileSync(path.join(root,'test','pg-migrate.sh'),'utf8');
+  assert.match(sh,/localhost\|127\.0\.0\.1/);
+  const bad=cp.spawnSync('bash',['test/pg-migrate.sh'],{cwd:root,env:Object.assign({},process.env,{PGHOST:'db.example.com'}),encoding:'utf8'});
+  assert.notEqual(bad.status,0);
+  assert.match(bad.stderr,/localhost or 127\.0\.0\.1/);
 });
