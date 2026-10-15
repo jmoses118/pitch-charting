@@ -1,5 +1,9 @@
 # Changelog
 
+## v68 – Pull requests note what changed
+### Changed
+- The chart works the same. A pull request that changes more than 300 lines is stopped. Files under test, and the lockfiles at the root of the repo, are not counted. Each pull request also needs a new changelog note that says what changed.
+
 ## v67 – Illegal aims stay in the database
 ### Changed
 - **RULE-4a.** `supabase/migrations/20261015130000_delete_bad_aim_pitches.sql` is a no-op, so `supabase db push` does not delete a pitch whose called aim fails the change-up rule. Those rows stay and stay flagged. `supabase/pending/delete_bad_aim_pitches.sql` is the hand-run template: the owner-approved ids are typed once, copied into `pitches_badaim_backup_YYYYMMDD`, and deleted from that backup inside a transaction that rolls back unless the counts match. The placeholder stays unfilled. `supabase/preview_delete_bad_aim_pitches.sql` is unchanged.

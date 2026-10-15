@@ -14,3 +14,16 @@ Search before writing a helper. Never copy a block between files.
 Every pull request cites the spec IDs it covers and adds the mapped tests first.
 
 These files are IIFEs, not ES modules, so an import linter cannot see a cross-file call. `test/arch.scan.js` is the check that fails the build: core files must not mention `js/ui`, and UI files must not define those rule functions. `test/arch.negative.js` plants the copies that must fail. `test/dup.scan.js` runs `jscpd` on a Prettier copy and fails a clone that is not already listed.
+
+## Standard builder brief
+
+- **BRIEF-1.** Read SPEC.md, AGENTS.md, and LESSONS.md.
+- **BRIEF-2.** Post a short plan (files, shared modules, tests) before coding.
+- **BRIEF-3.** Write tests first and cite rule IDs.
+- **BRIEF-4.** One small task.
+- **BRIEF-5.** Stay under the PR size cap.
+- **BRIEF-6.** Use the staging DB only, never production.
+- **BRIEF-7.** Add a plain-English CHANGELOG line.
+- **BRIEF-8.** Never merge.
+
+A change to a gate file (`test/prsize.js`, `test/changelog.js`, `test/prdiff.js`, `test/prgate.negative.js`, `test/git-base.js`, `.github/workflows/pr-gate.yml`) fails the size check. That change needs an owner override: the pull request author is the repository owner, or the owner lands the edit on main. A branch that is behind main has to merge main before the changelog check passes.
