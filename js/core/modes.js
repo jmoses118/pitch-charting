@@ -33,8 +33,7 @@ function createGame(st,o){if(!st||createGameMsg(o))return null;
 function endGame(st,id,confirmed){if(!st||!confirmed)return false;const g=(st.games||[]).find(x=>x.id===id);if(!g||g.deleted)return false;
   g.ended=Date.now();g.status='final';if(st.activeGame===id)st.activeGame=null;return true;}
 function discardGame(st,id,confirmed,device){if(!st||!confirmed)return false;const g=(st.games||[]).find(x=>x.id===id);
-  if(!g||!canScore(g,device)||!gameDraft(g))return false;g.deleted=true;if(st.activeGame===id)st.activeGame=null;
-  if(st.sync){st.sync.queue=st.sync.queue||{};st.sync.queue.games=st.sync.queue.games||{};st.sync.queue.games[id]=(st.sync.queue.games[id]||0)+1;}return true;}
+  if(!g||!canScore(g,device)||!gameDraft(g))return false;g.deleted=true;if(st.activeGame===id)st.activeGame=null;return true;}
 function pauseGame(st){if(!st)return null;const id=st.activeGame;const g=(st.games||[]).find(x=>x.id===id)||null;st.activeGame=null;return g;}
 const activeGameOf=st=>(st.games||[]).find(g=>g.id===st.activeGame)||null;
 const activeSessionOf=st=>(st.sessions||[]).find(s=>s.id===st.activeSession)||null;

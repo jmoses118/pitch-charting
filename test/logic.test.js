@@ -393,8 +393,8 @@ test('FLOW-14 pauseGame keeps the row and endGame waits for confirmation',()=>{c
   assert.equal(st.activeGame,null);assert.equal(st.games.length,1);assert.ok(!g.deleted);assert.equal(g.status,'active');
   assert.equal(PC.endGame(st,'g1',false),false);assert.equal(g.status,'active');assert.equal(st.games.length,1);
   assert.equal(PC.endGame(st,'g1',true),true);assert.equal(g.status,'final');assert.ok(g.ended);assert.ok(!g.deleted);assert.equal(st.games.length,1);assert.equal(PC.END_MSG,'End this game? It stays in Stats.');});
-test('FLOW-15 discard pushes deleted and a pull does not bring it back',()=>{const st=PC.defaultState();
-  st.sync={role:'coach',teamId:'t',deviceId:'phone',queue:{games:{},pitches:{},pitchers:{},sessions:{}},tomb:{}};
+test('FLOW-15 discard pushes deleted and a pull does not bring it back',()=>{const store=PC.makeStore(mem());const st=store.real;
+  st.sync.role='coach';st.sync.teamId='t';
   const g=PC.createGame(st,{opponent:'Storm',pitcherId:'p_a',id:'g_d',scorer:'other'});
   assert.equal(PC.gameDraft(g),true);assert.equal(PC.gameInProgress(g),true);
   assert.equal(PC.canScore(g,'phone'),false);assert.equal(PC.lockedBox(g,'phone'),true);assert.equal(PC.modeLock(st,'bullpen',true).by,'game');
@@ -403,8 +403,11 @@ test('FLOW-15 discard pushes deleted and a pull does not bring it back',()=>{con
   g.pitches.push({id:'live',pitcherId:'p_a',ts:1});assert.equal(PC.discardGame(st,'g_d',true,'other'),false);assert.ok(!g.deleted);
   g.pitches=[{id:'gone',pitcherId:'p_z',ts:9,deleted:true}];assert.equal(PC.gameDraft(g),true);
   assert.equal(PC.discardMsg(g),'Discard draft vs Storm?');assert.equal(PC.discardGame(st,'g_d',true,'other'),true);
-  assert.equal(g.deleted,true);assert.equal(st.activeGame,null);assert.ok(st.sync.queue.games.g_d>0);
-  const row=PC.buildRows(st).rows.games.find(r=>r.id==='g_d');assert.equal(row.deleted,true);
+  assert.equal(g.deleted,true);assert.equal(st.activeGame,null);
+  assert.equal(PC.buildRows(st).rows.games.some(r=>r.id==='g_d'),false);
+  assert.equal(store.markDirty('games','g_d'),true);
+  assert.equal(PC.buildRows(st).rows.games.find(r=>r.id==='g_d').deleted,true);
+  store.enterTest();assert.equal(store.markDirty('games','g_d'),false);
   const pull=PC.defaultState();pull.sync={queue:{games:{},pitches:{},pitchers:{},sessions:{}},tomb:{}};
   PC.mergeRemote(pull,{games:[{id:'gone',opponent:'Storm',deleted:true,started:1,status:'active',updated_at:'2026-10-15T00:00:00Z'}]});
   assert.equal(pull.games.find(x=>x.id==='gone'),undefined);

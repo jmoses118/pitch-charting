@@ -79,6 +79,8 @@ $('pitcher').onchange=e=>{S().curPitcher=e.target.value;save();render();if(tab==
 // ---------- game / bullpen are mutually exclusive on this device (PC.modeLock) ----------
 const canGame=()=>ROLE_TABS[role()].includes('game');
 function endGame(){const g=game();if(!g||scoreGuard()||!confirm(PC.END_MSG))return;if(!PC.endGame(S(),g.id,true))return;dirty('games',g.id);save();render();}
+// prettier-ignore
+function discardDraft(id){const g=(S().games||[]).find(x=>x.id===id);if(!g||!confirm(PC.discardMsg(g)))return;if(!PC.discardGame(S(),id,true,myDevice()))return;dirty('games',id);save();render();}
 function pauseGame(){const g=game();if(!g||scoreGuard())return;PC.pauseGame(S());resetDraft();save();render();toast('Game paused – resume it from the Game tab');}
 function resumeGame(id){const s=session();if(canGame()&&PC.sessionOpen(s))return toast(PC.LOCK_MSG.bullpen);const pid=PC.gamePitcherId(S().games.find(x=>x.id===id));if(pid)S().curPitcher=pid;S().activeGame=id;resetDraft();save();render();toast('Game resumed');}
 function endBullpen(){const s=session();if(!s||scoreGuard())return;if(!s.pitches.length)return toast('No pitches in this session yet');delete s.paused;openReport(s);S().activeSession=null;resetDraft();save();render();}
