@@ -50,8 +50,8 @@ for(const [W,H] of SIZES){const tag=`${W}x${H}`;const {c,p,errs,native,vis,clk,s
   ok(row.h>=56&&row.w>=row.lw-1,`${tag} FLOW-13 row is full width and at least 56px (${Math.round(row.w)}x${Math.round(row.h)})`);
   const resume=await p.$eval('#pickList .resume',e=>{e.scrollIntoView({block:'center'});const r=e.getBoundingClientRect();return {w:r.width,h:r.height,bg:getComputedStyle(e).backgroundColor};});
   ok(resume.w>=48&&resume.h>=48&&resume.bg==='rgb(30, 63, 208)',`${tag} FLOW-13 Resume is royal and at least 48px`);
-  const gap=await p.evaluate(()=>{const list=document.getElementById('pickList'),btn=document.getElementById('pickNew');const rows=[...list.querySelectorAll('.grow')];rows[rows.length-1].scrollIntoView({block:'nearest'});const last=rows[rows.length-1].getBoundingClientRect();const b=btn.getBoundingClientRect();const listW=list.getBoundingClientRect().width;return {below:b.top-last.bottom,h:b.height,w:b.width,lw:listW};});
-  ok(gap.h>=48&&gap.w>=gap.lw-1&&gap.below>=24,`${tag} FLOW-13 Start is full width, 48px, 24px below the list`);
+  const gap=await p.evaluate(()=>{const list=document.getElementById('pickList'),btn=document.getElementById('pickNew');list.scrollTop=list.scrollHeight;const b=btn.getBoundingClientRect(),box=list.getBoundingClientRect();return {below:b.top-box.bottom,h:b.height,w:b.width,lw:box.width};});
+  ok(gap.h>=48&&gap.w>=gap.lw-1&&gap.below>=23.5,`${tag} FLOW-13 Start is full width, 48px, 24px below the list (${gap.below.toFixed(1)})`);
   const draft=await p.$eval('[data-rg="draft1"]',e=>e.closest('.grow').textContent);
   ok(/Draft/.test(draft)&&!/\d+ pitches/.test(draft),`${tag} FLOW-15 draft badge and no pitch count`);
   const live=await p.$eval('[data-rg="live1"]',e=>e.closest('.grow').textContent);

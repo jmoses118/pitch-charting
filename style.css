@@ -472,7 +472,7 @@ html[data-theme="field"] .plist,html[data-theme="field"] .rrow{border-width:0 0 
   body.tab-game:not(.entrymode) #tab-game{min-height:0;flex:1;display:flex;flex-direction:column;overflow:hidden}
   body.tab-game:not(.entrymode) #gamePick{min-height:0;flex:1;display:flex;flex-direction:column;margin-bottom:0;overflow:hidden}
   body.tab-game:not(.entrymode) #pickList{min-height:0;overflow:auto;flex:1 1 auto}
-  body.tab-game:not(.entrymode) #pickNew{flex:none;margin-top:25px}
+  body.tab-game:not(.entrymode) #pickNew{flex:none}
 }
 .grow{display:flex;align-items:center;gap:16px;min-height:56px;width:100%}
 .gmeta{flex:1;min-width:0;overflow-wrap:anywhere}
