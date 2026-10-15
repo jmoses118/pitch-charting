@@ -82,17 +82,18 @@ function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,h
 $('cBand').addEventListener('click',e=>{if(viewOnly()){toast(PC.SCORING_ELSEWHERE);return;}const b=e.target.closest('button[data-r]');if(b&&!b.disabled){sideCard=null;cMsg=null;callCell(+b.dataset.r,+b.dataset.c);}});
 let lpT=null,lpDone=false; // long-press (≥400 ms) on a zone cell sets the aim directly
 const zoneBtn=e=>e.target.closest('#cZone button[data-z]');
-$('cZone').addEventListener('pointerdown',e=>{if(viewOnly())return;const b=zoneBtn(e);if(!b)return;lpDone=false;clearTimeout(lpT);lpT=setTimeout(()=>{if(!pullDraft().type)return;lpDone=true;const r=PC.scoreApply(pullDraft(),{op:'called',z:+b.dataset.z});if(!r.ok){coachMsg($('coach').classList.contains('compact')?PC.CH_AIM_TINY:PC.CH_AIM_SHORT,'warn');return;}pushCalled(r.draft.called);D.aimEdit=false;buzz(15);render();coachMsg('✎ Aim → '+b.dataset.z);},400);});
+$('cZone').addEventListener('pointerdown',e=>{if(viewOnly())return;const b=zoneBtn(e);if(!b)return;lpDone=false;clearTimeout(lpT);lpT=setTimeout(()=>{if(!pullDraft().type)return;lpDone=true;const r=PC.scoreApply(pullDraft(),{op:'called',z:+b.dataset.z});if(!r.ok){coachMsg($('coach').classList.contains('compact')?PC.CH_AIM_TINY:PC.CH_AIM_SHORT,'warn');return;}takeDraft(r);buzz(15);render();coachMsg('✎ Aim → '+b.dataset.z);},400);});
 ['pointerup','pointerleave','pointercancel'].forEach(t=>$('cZone').addEventListener(t,()=>clearTimeout(lpT)));
 function coachZoneAct(z,aimEdit){const cmp=$('coach').classList.contains('compact');const draft=pullDraft();draft.aimEdit=!!aimEdit;const r=PC.scoreTap(draft,z);
   if(!r.ok){if(r.reason==='bad_target')coachMsg(cmp?PC.CH_AIM_TINY:PC.CH_AIM_SHORT,'warn');else if(r.reason==='need_type')coachMsg(cmp?'Threw?':'Pick the pitch first','warn');else if(r.reason==='need_called')coachMsg(cmp?'Aim?':'Tap the aim first','warn');return;}
-  if(r.op==='called'){pushCalled(r.draft.called);D.aimEdit=false;render();coachMsg('✎ Aim → '+z);return;}
-  if(typeof clearFoulChips==='function')clearFoulChips();if(D.loc===z){D.loc=null;D.sheet=false;}else D.loc=z;render();}
+  takeDraft(r);
+  if(r.op==='called'){render();coachMsg('✎ Aim → '+z);return;}
+  if(typeof clearFoulChips==='function')clearFoulChips();if(r.draft.actual==null)D.sheet=false;render();}
 $('cZone').addEventListener('click',e=>{if(viewOnly()){toast(PC.SCORING_ELSEWHERE);return;}const b=zoneBtn(e);if(!b)return;if(lpDone){lpDone=false;return;}sideCard=null;coachZoneAct(+b.dataset.z,D.aimEdit);});
 $('cRes').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;sideCard=null;
   if(b.dataset.r){if(PC.scoreStep(pullDraft())!=='result'){coachMsg($('coach').classList.contains('compact')?'Where?':'Tap where it went first','warn');return;}if(b.dataset.r==='inplay'){D.ip=true;render();return;}recordGame(b.dataset.r);return;}
   if(b.dataset.ip){recordGame('inplay',b.dataset.ip);return;}
-  if(b.dataset.ty){D.type=b.dataset.ty;pushCalled([]);D.loc=null;D.sheet=false;render();return;}
+  if(b.dataset.ty){takeDraft(PC.scoreApply(pullDraft(),{op:'call',type:b.dataset.ty,called:[]}));D.sheet=false;render();return;}
   const x=b.dataset.cx;if(x==='shake')return shakeOff();if(x==='unshake')return cancelShake();if(x==='take')return openTakeover();if(x==='back'){D.ip=false;D.spray=null;render();}else if(x==='aim'){D.aimEdit=!D.aimEdit;render();}else if(x==='undo')undoLast();else if(x==='redo')redoLast();else if(x==='same'&&lastCell)callCell(lastCell.r,lastCell.c);});
 $('cAct').addEventListener('click',e=>{if(viewOnly()){toast(PC.SCORING_ELSEWHERE);return;}const b=e.target.closest('[data-z]');if(!b)return;sideCard=null;coachZoneAct(+b.dataset.z,false);});
 $('cContact').addEventListener('click',e=>{const b=e.target.closest('[data-bb]');if(!b)return;D.bb=D.bb===b.dataset.bb?null:b.dataset.bb;render();});

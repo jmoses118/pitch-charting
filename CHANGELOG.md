@@ -1,5 +1,22 @@
 # Changelog
 
+## v58 – The saved pitch comes from the scoring draft
+### Changed
+- **FLOW-1.** A saved pitch's type, aim, landing, and called box are written only by `scoreCommit`. The shake-off lives on that same draft, so Cancel restores the call from it. The screen no longer keeps a second copy of the aim or the landing.
+- Cache: `te-pitch-v58`.
+
+## v57 – One draft, one actual-location toggle
+### Changed
+- **FLOW-1.** A second tap of the actual location clears it inside `scoreTap`. The coach screen no longer keeps its own toggle. The entry screen keeps one flow draft.
+- Cache: `te-pitch-v57`.
+
+## v54 – Shared scoring machine is the only step list
+### Changed
+- **FLOW-1.** Portrait Game, the landscape coach Game screen, and Bullpen already call `js/core/flow.js`. The old `bullpenStep`, `bullpenTap`, and `gameZoneAction` wrappers are gone, so no screen keeps a second step list.
+- **FLOW-2, FLOW-4, FLOW-5.** A game pitch still walks type, called location, actual location, then result. The result sheet stays closed until the actual tap, and a pitch cannot be saved without that spot.
+- **FLOW-3.** The wristband aim (or a saved band aim) is still the called box, and a hand tap replaces it.
+- Cache: `te-pitch-v54`.
+
 ## v48 – One scoring flow
 ### Changed
 - **One state machine** (`js/core/flow.js`) for portrait Game, the landscape coach screen, and Bullpen. Game steps are pitch type, called location, actual location, then the result. Bullpen stops after the actual location and saves. There is no ball/strike step in the pen.

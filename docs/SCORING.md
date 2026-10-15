@@ -20,7 +20,7 @@ Wristband calls map to pitch type + target cell(s) (`calls.js`); a call can have
 
 ## Change-up targets (Jim's rule, v39)
 A change-up is **never aimed in the upper zone**. The only valid change-up targets are **4, 7, 8, 9, 13, 14 and 18** (`PC.CH_TARGETS`).
-- Every target picker uses `PC.aimOpts(type)` / `PC.targetOk(type, z)`: the bullpen target tap, the portrait call target, the coach zone when the call has no spot (`PC.gameZoneAction`), ✎ Aim / long-press, and band setup. Other boxes are refused ("Change-ups are aimed low: 4, 7, 8, 9 or 13, 14, 18"). A call that already names a spot keeps the next zone tap as where the pitch went. The cell directly above box 3 on the coach grid is zone 12, labeled and tappable.
+- Every target picker uses `PC.aimOpts(type)` / `PC.targetOk(type, z)`: the bullpen target tap, the portrait call target, the coach zone when the call has no spot (`PC.scoreTap`), ✎ Aim / long-press, and band setup. Other boxes are refused ("Change-ups are aimed low: 4, 7, 8, 9 or 13, 14, 18"). A call that already names a spot keeps the next zone tap as where the pitch went. The cell directly above box 3 on the coach grid is zone 12, labeled and tappable.
 - A change-up call that names a high spot (e.g. **CH H+**, CH H, CH 2) keeps the CH type but gets **no spot** and is flagged `chHigh`. It then shows up in band setup, where only the valid boxes can be picked.
 - Older data with a high change-up target is flagged by `pitchMiss(...).badAim`; it is still scored normally.
 - The **CH-up miss rule** below is unchanged.

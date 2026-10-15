@@ -33,3 +33,5 @@ jobs:
         run: node test/xss.ui.js http://localhost:8766/
       - name: Shake-off regression (button in both layouts) + scoring lock
         run: node test/shake.ui.js http://localhost:8766/ && node test/lock.ui.js http://localhost:8766/
+      - name: Shared scoring flow
+        run: node test/flow.ui.js http://localhost:8766/
