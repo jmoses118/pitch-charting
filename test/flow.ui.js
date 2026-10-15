@@ -3,7 +3,7 @@
 // Bullpen saves on the actual spot (no ball/strike). Dirt is an actual location only (RULE-3a). A bottom-row aim that lands there is a hit.
 // usage: node test/flow.ui.js <url>
 const {chromium}=require('playwright-core');const fs=require('fs');const BASE=process.argv[2]||'http://127.0.0.1:8766/';
-const SHOT='/opt/cursor/artifacts/screenshots';fs.mkdirSync(SHOT,{recursive:true});
+const SHOT=process.env.SHOT_DIR||'/opt/cursor/artifacts/screenshots';fs.mkdirSync(SHOT,{recursive:true});
 let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};
 const GAME={id:'g1',date:'2026-10-14',opponent:'Storm',homeAway:'home',status:'active',started:1,lineup:[{slot:1,name:'Batter 1',num:'1',hand:'R'}],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:1},pitches:[]};
 (async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});
@@ -56,6 +56,7 @@ for(const [W,H] of [[375,667],[390,844],[430,932]]){const tag=`${W}x${H}`;
   ok(JSON.stringify(row)===JSON.stringify({type:'CH',targets:[14],loc:14,result:true,hit:true}),'bullpen: bottom-row hit has no ball/strike '+JSON.stringify(row));
   const sum=await p.textContent('#bpSum');
   ok(/hit spot/i.test(sum)&&!/strike/i.test(sum),'bullpen line leads with hit spot, not strike % ('+sum+')');
+  ok(/^1 pitch ·/.test(sum),'one bullpen pitch reads “1 pitch”, not “1 pitches” ('+sum+')');
   await p.click('nav [data-t="stats"]');await p.waitForTimeout(200);await p.selectOption('#sScope','bullpen');await p.waitForTimeout(150);
   const grid=await p.textContent('#sGrid');
   ok(/Hit spot %/.test(grid)&&!/Strike %/.test(grid),'bullpen stats show hit-spot %, not strike % ('+grid+')');
@@ -90,7 +91,9 @@ const spot=async p=>p.evaluate(()=>({called:(D.called||[]).slice(),actual:D.loc,
   await p3.click('#batTog');await p3.waitForTimeout(200);
   const hidden=await p3.evaluate(()=>{const on=id=>{const e=document.getElementById(id);return e.offsetParent!==null;};return{n:on('hN'),l:on('hL'),r:on('hR')};});
   ok(hidden.n&&!hidden.l&&!hidden.r,'FLOW-8 LHB/RHB hidden until the setting is on '+JSON.stringify(hidden));
-  await p3.click('#batDlg button[value=cancel]');await p3.click('#bpHands');await p3.waitForTimeout(150);await p3.click('#batTog');await p3.waitForTimeout(200);
+  await p3.click('#batDlg button[value=cancel]');await p3.click('#bpHands');await p3.waitForTimeout(200);
+  ok(await p3.evaluate(()=>scrollY<2),'FLOW-8 batter-hand toggle returns the zone to the top');
+  await p3.click('#batTog');await p3.waitForTimeout(200);
   const shown=await p3.evaluate(()=>{const on=id=>{const e=document.getElementById(id);return e.offsetParent!==null;};return{n:on('hN'),l:on('hL'),r:on('hR')};});
   ok(shown.n&&shown.l&&shown.r,'FLOW-8 LHB/RHB shown with the setting on '+JSON.stringify(shown));
   ok(!errs3.length,'FLOW-1 bullpen: no page errors');await c3.close();}
