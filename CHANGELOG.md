@@ -2,7 +2,8 @@
 
 ## v69 – Checks and local copies stay off the live database
 ### Changed
-- **INFRA-3.** The public site is the only copy that talks to the live database. On a computer, in CI, and on any other address, the app uses a local or staging database and says that cloud sync is not the live database. If that address is the live project, the app uses the local database instead. A migration file already on the main branch stays unchanged when its bytes match. A new migration file is still checked when its date is old. CI builds its throwaway database from the migration files and only on this computer.
+- **INFRA-3.** The public site is the only copy that talks to the live database. On a computer, in CI, and on any other address, the app uses a local or staging database and says that cloud sync is not the live database. If that address is the live project, the app uses the local database instead.
+- A migration file already on the main branch stays unchanged when its bytes match. A new migration file is still checked when its date is old. CI builds its throwaway database from the migration files and only on this computer.
 - Cache: `te-pitch-v67`. v67 and v68 did not change any app file, so the cache did not skip from v66 to v69.
 
 ## v68 – Pull requests note what changed
