@@ -96,12 +96,21 @@ if(realBad.length)console.log(realBad.slice(0,8).join('\n'));
   say(hit,'d renamed strikeOf fails and names js/ui/plant-strike.js and js/core/scoring.js');
   fs.rmSync(dir,{recursive:true,force:true});}
 
-// (f) lowering the token floor or adding to the baseline fails
-{const low=gate(detected,{...baseline,minTokens:20},20);
+// (f) token floor, a rise versus the base branch, and a tree below its baseline
+{const low=gate(detected,{...baseline,minTokens:20},20,baseline);
   say(low.some(s=>/token floor/.test(s)),'f lowering the token floor fails');
-  const grown={...baseline,clones:baseline.clones.concat([{a:{file:'js/ui/extra.js',start:1,end:9},b:{file:'js/ui/extra2.js',start:1,end:9}}])};
-  const up=gate(detected,grown,MIN_TOKENS);
-  say(up.some(s=>/baseline grew/.test(s)),'f adding to the baseline fails');}
+  const extra={a:{file:'js/ui/extra.js',start:1,end:9},b:{file:'js/ui/extra2.js',start:1,end:9}};
+  const grown={...baseline,clones:baseline.clones.concat([extra])};
+  const up=gate(detected.concat([extra]),grown,MIN_TOKENS,baseline);
+  say(up.some(s=>/rose/.test(s)),'f baseline entry rises vs base');
+  const stale={...baseline,clones:baseline.clones.slice(0,-1).concat([extra])};
+  const down=gate(detected,stale,MIN_TOKENS,baseline);
+  say(down.some(s=>/below/.test(s)),'f tree below baseline');
+  const last=baseline.clones[baseline.clones.length-1];
+  const trimmed={...baseline,clones:baseline.clones.slice(0,-1)};
+  const less=detected.filter(c=>!same(c,last));
+  const fixed=gate(less,trimmed,MIN_TOKENS,baseline);
+  say(fixed.length===0,'f lowered baseline passes');}
 
 fs.rmSync(formatted,{recursive:true,force:true});
 if(fails){console.log(fails+' dup case'+(fails===1?'':'s')+' failed');process.exit(1);}
