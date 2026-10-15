@@ -1,3 +1,4 @@
+A migration that deletes every pitch with an illegal aim reached main via #14's history in supabase/migrations/20261015130000_delete_bad_aim_pitches.sql (the file itself merged in #24). supabase db push applies that folder. Those rows stay and are flagged. An owner-approved delete names the ids once, copies that set into a backup, and deletes from the backup inside a transaction that rolls back unless the approved, backup, and deleted counts match. Regression: test/pendingbadaim.pg.sh.
 The edit sheet used to open on loc when actualLoc disagreed; it follows actualOf. Regression: test/logic.test.js “edit sheet reads actualLoc before loc” and test/editpitch.ui.js.
 A shake-off used to demand a new aim; the original box stays, and a later aim tap can still replace it. Regression: test/logic.test.js RULE-3d and test/shake.ui.js.
 The 375×667 scoring screen used to scroll the zone under the tab bar. Regression: test/fit.ui.js at 375×667.

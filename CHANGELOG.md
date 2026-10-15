@@ -2,7 +2,7 @@
 
 ## v67 – Illegal aims stay in the database
 ### Changed
-- **RULE-4a.** `supabase/migrations/20261015130000_delete_bad_aim_pitches.sql` is a no-op, so `supabase db push` does not delete a pitch whose called aim fails the change-up rule. Those rows stay and stay flagged. A delete of owner-approved ids, after `pitches_badaim_backup_YYYYMMDD`, is only the unfilled template `supabase/pending/delete_bad_aim_pitches.sql`. `supabase/preview_delete_bad_aim_pitches.sql` is unchanged.
+- **RULE-4a.** `supabase/migrations/20261015130000_delete_bad_aim_pitches.sql` is a no-op, so `supabase db push` does not delete a pitch whose called aim fails the change-up rule. Those rows stay and stay flagged. `supabase/pending/delete_bad_aim_pitches.sql` is the hand-run template: the owner-approved ids are typed once, copied into `pitches_badaim_backup_YYYYMMDD`, and deleted from that backup inside a transaction that rolls back unless the counts match. The placeholder stays unfilled. `supabase/preview_delete_bad_aim_pitches.sql` is unchanged.
 
 ## v66 – 48px targets on a short phone
 ### Changed
@@ -49,7 +49,7 @@
 ### Changed
 - **RULE-3d.** Picking the pitch she threw after a shake-off fills in the original aim. A tap that is not a legal aim for that pitch is where it went. A legal aim tap still replaces the box. An aim that is illegal for the new type is kept and flagged. Superseded by v64.
 - **RULE-4.** The pitch log, CSV row, sync row, miss math, and the edit sheet read called and actual boxes through `calledOf` and `actualOf`. Superseded by v64.
-- **RULE-4a.** Import and sync still keep and flag an illegal called aim. Superseded by v65. `supabase/migrations/20261015130000_delete_bad_aim_pitches.sql` deletes pitches already saved with one. It is not applied to production. `supabase/preview_delete_bad_aim_pitches.sql` lists those rows first. Superseded by v67.
+- **RULE-4a.** Import and sync keep and flag an illegal called aim. That part of this note is superseded by v65. The same change added `supabase/migrations/20261015130000_delete_bad_aim_pitches.sql`, which would have deleted every saved pitch with an illegal aim. v67 turns that file into a no-op, so it does not delete those rows. `supabase/preview_delete_bad_aim_pitches.sql` only lists them.
 - **RULE-11a.** Active jersey numbers are unique. Empty is allowed, `0` and `00` stay distinct, and an archived pitcher does not block.
 - Cache: `te-pitch-v61`.
 
