@@ -5,7 +5,7 @@
 const sheets=()=>(S().callSheets||[]).filter(x=>!x.deleted);
 function curSheet(){const l=sheets();const p=curPitcherId();return l.find(x=>x.id===S().activeSheet)||l.find(x=>p&&x.pitcherId===p)||l[0]||null;}
 let lastCell=null; // for "Same call"
-function callCell(r,c){clearFoulChips();if(scoreGuard())return;const sh=curSheet();if(!sh)return;$('wbDet').open=false;const t=(sh.rows[r]||[])[c];if(t==null||!String(t).trim())return toast('Empty box');
+function callCell(r,c){if((clearFoulChips(),scoreGuard()))return;const sh=curSheet();if(!sh)return;$('wbDet').open=false;const t=(sh.rows[r]||[])[c];if(t==null||!String(t).trim())return toast('Empty box');
   if(!callOn){callOn=true;S().callOn=true;save();}D.cell={sheet:sh.id,r,c};lastCell={r,c};setCall(String(t));if(D.parsed){const band=PC.bandAim(sh,D.parsed);if(band)placeCall(D.parsed.type,[band]);}else toast(`Can't read "${t}"`);render();setTimeout(()=>advance('loc'),0);
   $('wbMsg').textContent=`${r+1}-${sh.cols[c]||c+1}: ${t}`+(D.parsed?(D.parsed.targets.length?` → zone ${D.parsed.targets.join('/')}`:' → no spot, tap target'):' (not understood)');render();}
 $('wbTbl').addEventListener('click',e=>{const b=e.target.closest('button[data-r]');if(b)callCell(+b.dataset.r,+b.dataset.c);});
@@ -25,7 +25,6 @@ function paintFoulChips(){const el=$('foulChips');if(!el)return;const on=!!foulW
   if(document.body.classList.contains('coachmode')){const band=document.querySelector('.cband');if(band){const r=band.getBoundingClientRect();const st=$('cStatus').getBoundingClientRect();el.style.right='auto';const h=el.offsetHeight||60;let left=Math.max(4,r.left),width=Math.max(148,Math.round(r.width));if(left+width>st.left-4)width=Math.max(148,st.left-4-left);el.style.left=left+'px';el.style.width=width+'px';let top=r.bottom+4;if(top+h>innerHeight-4)top=Math.max(4,r.bottom-h);if(top<r.top)top=r.top;el.style.top=top+'px';}}
   else{el.style.left='';el.style.width='';el.style.right='';el.style.top='';}}
 function clearFoulChips(){foulWatch=null;clearTimeout(foulTimer);paintFoulChips();}
-const FOUL_CHIP_MS=3000;
 function armFoulChips(id){foulWatch=id;clearTimeout(foulTimer);foulTimer=setTimeout(clearFoulChips,FOUL_CHIP_MS);paintFoulChips();}
 function applyFoulTime(ft){const g=game();if(!foulWatch||!g)return;const p=g.pitches.find(x=>x.id===foulWatch);if(!p){clearFoulChips();return;}
   p.foulTime=PC.cleanFoul(ft);dirty('pitches',p.id);save();paintFoulChips();}
@@ -34,7 +33,7 @@ function loadRedo(){redoStack=PC.redoState(store.real&&store.real.redo);}
 function clearRedo(){redoStack=[];persistRedo();}
 function clearEditUndo(){editUndo=null;}
 function pushRedo(item){redoStack=PC.redoPush(redoStack,item);persistRedo();}
-$('resBtns').addEventListener('click',e=>{const r=e.target.closest('[data-r]');if(!r)return;clearFoulChips();if(PC.scoreStep(pullDraft())!=='result'){toast('Tap where it went first');return;}if(r.dataset.r==='inplay'){D.ip=true;D.foul=false;render();return;}recordGame(r.dataset.r);});
+$('resBtns').addEventListener('click',e=>{const r=e.target.closest('[data-r]');if(!r)return;if((clearFoulChips(),PC.scoreStep(pullDraft())!=='result')){toast('Tap where it went first');return;}if(r.dataset.r==='inplay'){D.ip=true;D.foul=false;render();return;}recordGame(r.dataset.r);});
 $('foulChips').addEventListener('click',e=>{const b=e.target.closest('[data-ft]');if(b)applyFoulTime(b.dataset.ft);});
 $('ipBtns').addEventListener('click',e=>{const bb=e.target.closest('[data-bb]');if(bb){D.bb=D.bb===bb.dataset.bb?null:bb.dataset.bb;document.querySelectorAll('#ipBtns [data-bb]').forEach(x=>x.classList.toggle('sel',x.dataset.bb===D.bb));return;}const ip=(e.target.closest('[data-ip]')||{}).dataset?.ip;if(ip==null)return;if(!ip){D.ip=false;render();return;}recordGame('inplay',ip);});
 let extraOpen=false;
@@ -154,3 +153,4 @@ $('editDlg').addEventListener('close',()=>{const id=editId;editId=null;if($('edi
   const snap={id:id,loc:prev,actualLoc:prevAct,calledLoc:prevCalled,edited:was};editUndo=snap;
   dirty('pitches',hit.p.id);save();render();undoToast('Location updated',()=>{if(undoEditSnap(snap))toast('Location restored');},5000);});
 loadRedo();
+const FOUL_CHIP_MS=3000;
