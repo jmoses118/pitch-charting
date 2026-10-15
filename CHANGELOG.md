@@ -4,6 +4,7 @@
 ### Changed
 - Tapping Game opens a list of games in progress. Start new game asks for the opponent and the pitcher before it creates anything. A draft can be discarded. Ending a game still asks first.
 - The Game tab lists only today's scheduled games.
+- Ending a game names the opponent. Exit stays beside End game. In landscape, Start new game stays on screen.
 - Cache: `te-pitch-v69`.
 
 ## v70 – A game needs a pitcher, and an empty game stays on the list

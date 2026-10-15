@@ -80,8 +80,8 @@ for(const [W,H] of SIZES){const tag=`${W}x${H}`;const {c,p,errs,native,vis,clk,s
     await clk('#pickNew');await p.fill('#gOpp','Nope');await p.keyboard.press('Escape');
     ok(!(await vis('#setupDlg'))&&await st(n=>__app.store.real.games.length===n,before),'FLOW-13 Esc changes nothing');
     await clk('#pickList [data-dd="draft1"]');ok(await vis('#askDlg'),'FLOW-15 Discard asks');
-    const ask=await st(()=>{const g=__app.store.real.games.find(x=>x.id==='draft1');return {title:document.getElementById('askT').textContent,want:PC.discardMsg(g),focus:document.activeElement.id};});
-    ok(ask.title===ask.want&&/Drafty/.test(ask.title)&&ask.focus==='askCancel','FLOW-15 Discard names the game and Cancel is focused');
+    const ask=await st(()=>{const g=__app.store.real.games.find(x=>x.id==='draft1'),b=document.getElementById('askOk');return {title:document.getElementById('askT').textContent,want:PC.discardMsg(g),focus:document.activeElement.id,danger:b.classList.contains('gdismiss')&&!b.classList.contains('primary')};});
+    ok(ask.title===ask.want&&/Drafty/.test(ask.title)&&ask.focus==='askCancel'&&ask.danger,'FLOW-15 Discard names the game, Cancel is focused, and Yes is danger');
     await p.keyboard.press('Enter');await p.waitForTimeout(120);
     ok(await st(()=>!document.getElementById('askDlg').open&&!__app.store.real.games.find(x=>x.id==='draft1').deleted),'FLOW-15 Enter does not discard');
     await clk('#pickList [data-dd="draft1"]');await p.keyboard.press('Escape');await p.waitForTimeout(120);

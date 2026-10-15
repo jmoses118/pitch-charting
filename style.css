@@ -462,6 +462,18 @@ html[data-theme="field"] .plist,html[data-theme="field"] .rrow{border-width:0 0 
 #editDlg .dlgfoot{position:static;flex:none;background:transparent}
 #editDlg .dlgfoot button{flex:1}
 #gamePick{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+.gamecard .nowrap{gap:var(--s4)}
+#askOk.gdismiss{background:var(--c-danger);border-color:var(--c-danger);color:#fff}
+@media (orientation:landscape) and (max-height:500px){
+  body.tab-game:not(.entrymode){height:100dvh;overflow:hidden;display:flex;flex-direction:column;padding-bottom:70px}
+  body.tab-game:not(.entrymode) header{position:static;flex:none}
+  body.tab-game:not(.entrymode) .pickrow,body.tab-game:not(.entrymode) #wlMsg{display:none!important}
+  body.tab-game:not(.entrymode) main{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+  body.tab-game:not(.entrymode) #tab-game{min-height:0;flex:1;display:flex;flex-direction:column;overflow:hidden}
+  body.tab-game:not(.entrymode) #gamePick{min-height:0;flex:1;display:flex;flex-direction:column;margin-bottom:0;overflow:hidden}
+  body.tab-game:not(.entrymode) #pickList{min-height:0;overflow:auto;flex:1 1 auto}
+  body.tab-game:not(.entrymode) #pickNew{flex:none;margin-top:25px}
+}
 .grow{display:flex;align-items:center;gap:16px;min-height:56px;width:100%}
 .gmeta{flex:1;min-width:0;overflow-wrap:anywhere}
 .grow .resume{min-width:48px;min-height:48px;flex:none}
