@@ -11,9 +11,7 @@ const fmt=v=>v==null?'–':v+'%';
 // ---------- count charts, game notes, season trends ----------
 const kidRole=()=>role()==='player';
 function renderStatsExtra(sel,pf,all,P){const kid=kidRole();
-  // game note per pitcher
   $('sNote').innerHTML=sel.startsWith('g_')&&pf?`<div class="card">${noteBox({gameId:sel,pitcherId:pf},kid)||'<div class="mut">No coach note for this game yet.</div>'}</div>`:'';
-  // by count
   const G=P.filter(p=>p.abn!=null&&p.b!=null);const cs=PC.countStats(G);$('sCountCard').classList.toggle('hide',!G.length);
   if(G.length){const o=cs.o2;const T=PC.TYPE_NAME;
     $('cTop').innerHTML=`<span class="tag">${kid?'First pitch a strike':'1st-pitch strike'} ${fmt(cs.fpsPct)} (${cs.fps}/${cs.fpsN})</span><span class="tag">0-2 counts: ${o.n}</span>`;
@@ -38,7 +36,7 @@ function renderTrends(pf){const M=mine();const pid=pf||(M&&M.length===1?M[0]:nul
 $('tMetrics').addEventListener('click',e=>{const b=e.target.closest('[data-tm]');if(!b)return;const k=b.dataset.tm;tSel=tSel.includes(k)?tSel.filter(x=>x!==k):tSel.concat(k);if(!tSel.length)tSel=[k];renderStats();});
 $('tMode').onchange=()=>renderStats();
 function renderStats(){const s=S();const sel=$('sScope').value||(s.activeGame||'all');const me=role()==='player'?store.real.sync.pitcherId:null;const M=mine();
-  const GS=M?s.games.filter(g=>g.pitches.some(p=>vis(p.pitcherId))):s.games,SS=M?s.sessions.filter(x=>(x.pitcherId&&vis(x.pitcherId))||x.pitches.some(p=>vis(p.pitcherId))):s.sessions;
+  const GS=(M?s.games.filter(g=>g.pitches.some(p=>vis(p.pitcherId))):s.games).filter(PC.statsGame),SS=M?s.sessions.filter(x=>(x.pitcherId&&vis(x.pitcherId))||x.pitches.some(p=>vis(p.pitcherId))):s.sessions;
   const opts=[['all','Everything'],['games','All games'],['bullpen','All bullpen']].concat(GS.slice().reverse().map(g=>[g.id,`${g.date} ${vsAt(g)} ${g.opponent}${PC.gameStatus(g)==='scheduled'?' (scheduled)':''}${g.event?' ('+g.event+')':''}`])).concat(SS.slice().reverse().map(x=>[x.id,`Bullpen ${x.date} (${M?x.pitches.filter(p=>vis(p.pitcherId)).length:x.pitches.length})`]));
   $('sScope').innerHTML=opts.map(([v,l])=>`<option value="${H(v)}" ${v===sel?'selected':''}>${H(l)}</option>`).join('');
   const own=role()==='player'?store.real.sync.pitcherId:null;let pf=own||$('sPitcher').value;if(!own&&!$('sPitcher').dataset.picked&&!pf)pf=curPitcherId()||'';$('sPitcher').disabled=!!own;$('sPitcher').innerHTML=(own?'':`<option value="">${M?'All my pitchers':'All pitchers'}</option>`)+s.pitchers.filter(p=>(!own||p.id===own)&&vis(p.id)).map(p=>`<option value="${H(p.id)}" ${p.id===pf?'selected':''}>${H(PC.pitcherLabel(p))}${p.archived?' (archived)':''}</option>`).join('');
@@ -70,7 +68,7 @@ const SIDE_L={R:'RHB',L:'LHB',N:'No batter'},SRC_L={game:'Games',bullpen:'Bullpe
 function heatOptions(items){items=items.filter(i=>vis(i.p.pitcherId));const s=S(),own=role()==='player'?store.real.sync.pitcherId:null;const uniq=a=>[...new Set(a.filter(Boolean))];
   return{type:uniq(items.map(i=>i.p.type)).sort().map(v=>[v,v]),pitcher:s.pitchers.filter(p=>!own||p.id===own).map(p=>[p.id,PC.pitcherLabel(p)]),throws:[['R','RHP'],['L','LHP']],
     batter:uniq(items.map(i=>i.batter)).sort().map(v=>[v,v]),side:[['R','RHB'],['L','LHB'],['N','No batter']],src:[['game','Games'],['bullpen','Bullpen']],
-    game:(own?s.games.filter(g=>g.pitches.some(p=>p.pitcherId===own)):s.games).map(g=>[g.id,`${g.date||''} ${vsAt(g)} ${g.opponent}`]),session:s.sessions.map(x=>[x.id,`Bullpen ${x.date||''} (${x.pitches.length})`])};}
+    game:(own?s.games.filter(g=>g.pitches.some(p=>p.pitcherId===own)):s.games).filter(PC.statsGame).map(g=>[g.id,`${g.date||''} ${vsAt(g)} ${g.opponent}`]),session:s.sessions.map(x=>[x.id,`Bullpen ${x.date||''} (${x.pitches.length})`])};}
 const HF_LBL={type:'Pitch',pitcher:'Pitcher',throws:'Pitcher hand',batter:'Batter',side:'Batter side',src:'Source',game:'Game',session:'Bullpen session'};
 function heatChipText(k,v,opts){const o=(opts[k]||[]).find(x=>x[0]===v);return `${HF_LBL[k]}: ${o?o[1]:v}`;}
 function renderHeat(){const items0=PC.heatItems(S());const own=role()==='player'?store.real.sync.pitcherId:null;const items=(own?items0.filter(i=>i.p.pitcherId===own):items0).filter(i=>vis(i.p.pitcherId));

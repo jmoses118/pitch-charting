@@ -1,5 +1,11 @@
 # Changelog
 
+## v70 – A game needs a pitcher, and an empty game stays on the list
+### Changed
+- A pitcher is now required to start a game. Leaving the opponent blank no longer starts a game called Opponent.
+- An empty game is a draft. It still shows in the paused card until the picker is added. Ending it still asks first. Discarding a draft is only for the phone that is scoring, and only while it has no pitches.
+- Cache: `te-pitch-v68`.
+
 ## v69 – Checks and local copies stay off the live database
 ### Changed
 - **INFRA-3.** The public site is the only copy that talks to the live database. On a computer, in CI, and on any other address, the app uses a local or staging database and says that cloud sync is not the live database. If that address is the live project, the app uses the local database instead.

@@ -17,6 +17,9 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
 - **FLOW-10 (optional)** Shake-off: the user records the shake-off and picks the new pitch. It must be available on both the portrait and landscape Game screens.
 - **FLOW-11 (optional)** Velocity can be typed in.
 - **FLOW-12 (optional, Game only)** After the result, the user can add: ball-in-play detail, foul timing (early, on time, or late), contact type, and a WP/PB flag. None of these blocks saving.
+- **FLOW-13** Tapping Game opens a picker, not a game. The picker lists each in-progress game with Resume, plus a separate Start new game. No game is created until the opponent and pitcher are confirmed. `createGame` returns null until both are set. A blank opponent toasts "Enter the opponent". A blank pitcher toasts "Pick a pitcher". The picker screen is the next pull request.
+- **FLOW-14** Exiting a game saves it and never deletes it. Exit is pause. A game ends only through End game plus a confirmation. The ended game stays in Stats.
+- **FLOW-15** A game with no pitches is a draft. The picker can resume or discard it. Discard asks first, sets `deleted`, and only the scoring phone can do it, and only while the game is still empty. Until the picker, a draft still shows on the paused card. A draft is still in progress: it locks the bullpen, and another phone sees it view-only.
 
 ## RULES
 - **RULE-1** A changeup's called target must be box 4, 7, 8, 9, 13, 14 or 18.
@@ -81,6 +84,9 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | RULE-11, RULE-12 | UI: edit jersey number saves, and Cancel leaves it unchanged; smoke: branding unchanged |
 | RULE-11a | unit: `0` and `00` are allowed, empty is allowed, and a duplicate active number errors |
 | VIEW-1, VIEW-2 | `zonegfx.ui.js`: numbered, colored markers and list; one-tap scheduled start |
+| FLOW-13 | unit: `createGame` returns null until the opponent and pitcher are set; a scheduled id starts that row; the toast leaves the game list unchanged |
+| FLOW-14 | unit: pause keeps the row; `endGame` waits for confirmation |
+| FLOW-15 | unit: discard pushes `deleted` and a pull does not bring the game back; the stats scope omits the draft. The picker check is `modes.ui.js` "picker shows N Resume rows and one Start" in the next pull request |
 | DoD | UI: `inning.e2e` (full inning) and `bullpen20.e2e` (20-pitch bullpen) at 390 px |
 | ARCH-1 | `test/arch.scan.js` passes on the tree. Negative cases are `test/arch.negative.js` and `test/dup.scan.js`. |
 | INFRA-3 | `test/prodref.test.js`: a non-production host shows the sync-off warning and does not point at production; an uppercase production URL and a split project ref are refused; a migration on the base branch with identical bytes is exempt; a backdated new migration is not; `test/pg-migrate.sh` allows only `localhost` or `127.0.0.1` |
@@ -98,3 +104,4 @@ Each business rule lives in one `js/core` module. UI files render and forward ev
 | `js/core/csv.js` | `csvRow`, the one CSV row builder, and `calledTypeOf`. |
 | `js/core/store.js` | The roster, the jersey check, and the local save. |
 | `js/core/sync.js` | Row mapping and merge. A read keeps a grid aim that fails `validCalled` and sets `calledFlag`. |
+| `js/core/modes.js` | The game and bullpen lock, `createGame`, `endGame`, `discardGame`, and `pauseGame`. |
