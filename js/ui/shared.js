@@ -205,7 +205,9 @@ function fitZone(){const z=$('zone'),w=z.parentElement;if($('entry').classList.c
   // the extra header row drops this chip onto the fixed Way row or bullpen pad; keep its center above that bar
   let chipTop=124*m.d+m.f-r.top;const block=document.body.classList.contains('padmode')?$('bpPad'):$('locRow');const br=block&&block.getBoundingClientRect();
   if(br&&br.height>20){const fixed=getComputedStyle(block).position==='fixed';const maxTop=br.top-r.top-(fixed?scrollY:0)-32;if(chipTop>maxTop)chipTop=maxTop;}
-  bs.left=(-13*m.a+m.e-r.left)+'px';bs.top=chipTop+'px';bs.width=(43*m.a)+'px';}
+  bs.left=(-13*m.a+m.e-r.left)+'px';bs.top=chipTop+'px';bs.width=(43*m.a)+'px';
+  // a short zone makes this slot narrower than "Batter: none"; grow it so the label is not cut off
+  const chip=$('batTog'),over=chip.scrollWidth-chip.clientWidth;if(over>1)bs.width=(43*m.a+over)+'px';}
 addEventListener('resize',()=>fitZone());
 
 // ---------- shake-off (game): she shook off the coach's call and threw her own pitch ----------
