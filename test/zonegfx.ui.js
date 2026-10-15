@@ -44,6 +44,12 @@ await p.click('#schedList [data-sg="g_sched"]');await p.waitForTimeout(250);
 ok(await ev(()=>{const S=__app.store.real,g=S.games.find(x=>x.id==='g_sched');return S.activeGame==='g_sched'&&g.status==='active'&&!!g.started&&g.cur.inning===1&&g.cur.outs===0&&document.getElementById('schedCard').classList.contains('hide')&&document.getElementById('inn').textContent==='1';}),'VIEW-2 one tap starts the scheduled game');
 const resH=await ev(()=>parseFloat(getComputedStyle(document.querySelector('#resBtns button')).minHeight));
 ok(resH>=48,'VIEW-2 result buttons are at least 48px ('+resH+')');
+await ev(()=>{const S=__app.store.real;S.sessions=[];S.activeSession=null;S.activeGame=null;S.games=[
+  {id:'g_real',date:'2026-10-14',opponent:'Real',homeAway:'home',status:'final',started:1,ended:2,pitches:[{id:'p1',pitcherId:'p_a',type:'FB',loc:5,result:'called',ts:1}]},
+  {id:'g_draft',date:'2026-10-15',opponent:'Drafty',homeAway:'home',status:'active',started:3,pitches:[],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:0,pitcherId:'p_a'}},
+  {id:'g_gone',date:'2026-10-13',opponent:'Gone',homeAway:'home',status:'active',started:1,deleted:true,pitches:[{id:'p2',pitcherId:'p_a',type:'FB',loc:5,result:'ball',ts:2}]}];__app.store.save();__app.render();});
+await p.click('nav [data-t="stats"]');await p.waitForTimeout(200);
+ok(await ev(()=>{const o=[...document.querySelectorAll('#sScope option')];const t=o.map(x=>x.textContent).join('|');return o.length===4&&/Real/.test(t)&&!/Drafty|Gone/.test(t);}),'FLOW-15 stats scope is three scopes plus the real game');
 ok(await ev(()=>{const res=html=>{const m=String(html).match(/class="plist-res">([^<]*)</);return m?m[1]:null;};
   const k=pitchLine({type:'FB',loc:5,targets:[5],inning:1,abn:1,hand:'R'},0,'game');
   const bll=pitchLine({type:'FB',loc:11,targets:[11],inning:1,abn:1,hand:'R'},1,'game');

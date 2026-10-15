@@ -78,9 +78,11 @@ $('bHand').onclick=()=>setHand(curHand()==='L'?'R':'L');
 $('pitcher').onchange=e=>{S().curPitcher=e.target.value;save();render();if(tab==='game'&&game())toast('Pitching change: '+pName(e.target.value));};
 // ---------- game / bullpen are mutually exclusive on this device (PC.modeLock) ----------
 const canGame=()=>ROLE_TABS[role()].includes('game');
-function endGame(){const g=game();if(!g||scoreGuard()||!confirm('End this game? It stays in Stats.'))return;g.ended=Date.now();g.status='final';dirty('games',g.id);S().activeGame=null;save();render();}
-function pauseGame(){const g=game();if(!g||scoreGuard())return;S().activeGame=null;resetDraft();save();render();toast('Game paused – resume it from the Game tab');}
-function resumeGame(id){const s=session();if(canGame()&&PC.sessionOpen(s))return toast(PC.LOCK_MSG.bullpen);S().activeGame=id;resetDraft();save();render();toast('Game resumed');}
+function endGame(){const g=game();if(!g||scoreGuard()||!confirm(PC.END_MSG))return;if(!PC.endGame(S(),g.id,true))return;dirty('games',g.id);save();render();}
+// prettier-ignore
+function discardDraft(id){const g=(S().games||[]).find(x=>x.id===id);if(!g||!confirm(PC.discardMsg(g)))return;if(!PC.discardGame(S(),id,true,myDevice()))return;dirty('games',id);save();render();}
+function pauseGame(){const g=game();if(!g||scoreGuard())return;PC.pauseGame(S());resetDraft();save();render();toast('Game paused – resume it from the Game tab');}
+function resumeGame(id){const s=session();if(canGame()&&PC.sessionOpen(s))return toast(PC.LOCK_MSG.bullpen);const pid=PC.gamePitcherId(S().games.find(x=>x.id===id));if(pid)S().curPitcher=pid;S().activeGame=id;resetDraft();save();render();toast('Game resumed');}
 function endBullpen(){const s=session();if(!s||scoreGuard())return;if(!s.pitches.length)return toast('No pitches in this session yet');delete s.paused;openReport(s);S().activeSession=null;resetDraft();save();render();}
 function pauseBullpen(){const s=session();if(!s||scoreGuard())return;if(s.pitches.length)s.paused=Date.now();S().activeSession=null;resetDraft();save();render();toast('Bullpen paused – resume it from the Bullpen tab');}
 function resumeBullpen(id){if(canGame()&&PC.gameInProgress(game()))return toast(PC.LOCK_MSG.game);const s=S().sessions.find(x=>x.id===id);if(!s)return;delete s.paused;S().activeSession=id;resetDraft();save();render();toast('Bullpen resumed');}
@@ -108,14 +110,14 @@ const vsAt=g=>g.homeAway==='away'?'@':'vs';
 // One tap starts a game that schedule sync already filled in. Lineup can be edited after it starts.
 function startScheduled(id){if(canGame()&&PC.sessionOpen(session()))return toast(PC.LOCK_MSG.bullpen);const g=S().games.find(x=>x.id===id);if(!g||PC.gameStatus(g)!=='scheduled')return;
   const lineup=(g.lineup&&g.lineup.length)?g.lineup.map((b,i)=>({slot:i+1,name:String(b.name||'').trim()||('Batter '+(i+1)),num:String(b.num||'').trim(),hand:b.hand==='L'?'L':'R'})):Array.from({length:9},(_,i)=>({slot:i+1,name:'Batter '+(i+1),num:'',hand:'R'}));
-  Object.assign(g,{date:g.date||today(),opponent:String(g.opponent||'').trim()||'Opponent',event:g.event||'',homeAway:g.homeAway||'tbd',lineup,cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:0,hand:null},scorer:myDevice(),started:Date.now(),status:'active'});
-  g.pitches=g.pitches||[];S().activeGame=g.id;dirty('games',g.id);save();resetDraft();clearRedo();clearEditUndo();render();toast('Game on');}
+  const msg=PC.createGameMsg({opponent:g.opponent,pitcherId:curPitcherId()});if(msg)return toast(msg);
+  if(!PC.createGame(S(),{opponent:g.opponent,pitcherId:curPitcherId(),scheduledId:id,date:g.date||today(),event:g.event||'',homeAway:g.homeAway||'tbd',lineup,scorer:myDevice()}))return;
+  dirty('games',id);save();resetDraft();clearRedo();clearEditUndo();render();toast('Game on');}
 $('schedList').addEventListener('click',e=>{if(e.target.closest('a'))return;const b=e.target.closest('[data-sg]');if(b)startScheduled(b.dataset.sg);});
 $('gStart').onclick=()=>{if(canGame()&&PC.sessionOpen(session()))return toast(PC.LOCK_MSG.bullpen);const lineup=draftLineup.map((b,i)=>({slot:i+1,name:b.name.trim()||('Batter '+(i+1)),num:b.num.trim(),hand:b.hand}));
-  const fields={date:$('gDate').value||today(),opponent:$('gOpp').value.trim()||'Opponent',event:$('gEvent').value.trim(),homeAway:$('gHA').value,lineup,
-    cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:0,hand:null},scorer:myDevice(),started:Date.now(),status:'active'};
-  const g=Object.assign({id:'g_'+PC.uid(),pitches:[]},fields);S().games.push(g);
-  $('newGameLbl').textContent='New game';S().activeGame=g.id;dirty('games',g.id);blankLineup();save();resetDraft();clearRedo();clearEditUndo();render();toast('Game on! Pick your pitcher up top.');};
+  const o={opponent:$('gOpp').value,pitcherId:curPitcherId(),date:$('gDate').value||today(),event:$('gEvent').value.trim(),homeAway:$('gHA').value,lineup,scorer:myDevice()};
+  const msg=PC.createGameMsg(o);if(msg)return toast(msg);const g=PC.createGame(S(),o);if(!g)return;
+  $('newGameLbl').textContent='New game';dirty('games',g.id);blankLineup();save();resetDraft();clearRedo();clearEditUndo();render();toast('Game on! Pick your pitcher up top.');};
 // result picker = bottom sheet over the tab bar; wristband = toggle sheet (one tap away, never pushes the zone)
 function placeScoreDock(){const open=!$('resSheet').classList.contains('hide');const dest=open?$('bsFoot'):$('urHome');const undo=$('undo'),redo=$('redo');if(undo.parentNode!==dest)dest.appendChild(undo);if(redo.parentNode!==dest)dest.appendChild(redo);}
 $('resTog').onclick=()=>{if(PC.scoreStep(pullDraft())!=='result'){toast('Tap where it went first');return;}D.sheet=true;render();};$('resClose').onclick=()=>{D.sheet=false;D.ip=false;D.foul=false;render();};

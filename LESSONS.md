@@ -5,3 +5,7 @@ The 375×667 scoring screen used to scroll the zone under the tab bar. Regressio
 Short-phone pitch buttons, the pitcher row, Batter, Band, and Result used to shrink to 44px, and the portrait wristband scrolled sideways. They are 48px again. At 375 the band cells are 48 tall and about 42–44 wide so all 8 columns fit. Regression: test/fit.ui.js.
 Way-off and dirt used to be accepted as called targets; they are actual locations only. Regression: test/wayoff.ui.js and test/logic.test.js RULE-3a.
 #26 scan matched names only and was beaten by renaming -> test/arch.negative.js
+Tapping Game re-entered scoring because that tab shows the live game whenever one is active, and Start created the game on the same tap, even with a blank opponent named Opponent.
+Exit only left the screen, so an empty game stayed on the list with no picker and no discard.
+Regression: test/logic.test.js "FLOW-13 createGame returns null until opponent and pitcher are set", "FLOW-14 pauseGame keeps the row and endGame waits for confirmation", and "FLOW-15 discard pushes deleted and a pull does not bring it back".
+The picker check is test/modes.ui.js "picker shows N Resume rows and one Start".

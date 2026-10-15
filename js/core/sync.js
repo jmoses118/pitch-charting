@@ -53,7 +53,7 @@ function buildRows(st){let held=0;const q=st.sync.queue,team=st.sync.teamId,dev=
   const idx={};st.games.forEach(g=>g.pitches.forEach(p=>idx[p.id]=[p,{mode:'game',game_id:g.id}]));st.sessions.forEach(x=>x.pitches.forEach(p=>idx[p.id]=[p,{mode:'bullpen',session_id:x.id}]));
   for(const t of TABLES){q[t]=q[t]||{};out[t]=[];ver[t]={};for(const id in q[t]){ver[t][id]=q[t][id];let row=null;
     if(t==='pitchers'){const p=st.pitchers.find(x=>x.id===id);if(p)row={id:p.id,name:p.name,num:p.num||null,throws:p.throws,archived:!!p.archived,note:p.note||null};}
-    else if(t==='games'){const g=st.games.find(x=>x.id===id);if(g)row={id:g.id,date:g.date,opponent:g.opponent,event:g.event||null,home_away:g.homeAway,lineup:g.lineup,cur:Object.assign({},g.cur,{scorer:g.scorer||null}),started:g.started||null,ended:g.ended||null,imported:!!g.imported,status:gameStatus(g),link:g.link||null,notes:g.notes||null,game_time:g.time||null,field:g.field||null,game_no:g.gameNo||null,location:g.location||null};}
+    else if(t==='games'){const g=st.games.find(x=>x.id===id);if(g)row={id:g.id,date:g.date,opponent:g.opponent,event:g.event||null,home_away:g.homeAway,lineup:g.lineup,cur:Object.assign({},g.cur,{scorer:g.scorer||null}),started:g.started||null,ended:g.ended||null,imported:!!g.imported,status:gameStatus(g),link:g.link||null,notes:g.notes||null,game_time:g.time||null,field:g.field||null,game_no:g.gameNo||null,location:g.location||null,deleted:!!g.deleted};}
     else if(t==='call_sheets'){const x=(st.callSheets||[]).find(y=>y.id===id);if(x)row={id:x.id,name:x.name||null,pitcher_id:x.pitcherId||null,cols:x.cols||[],rows:x.rows||[],sort:(st.callSheets||[]).indexOf(x),deleted:!!x.deleted};}
     else if(t==='notes'){const x=(st.notes||[]).find(y=>y.id===id);if(x)row={id:x.id,pitcher_id:x.pitcherId,session_id:x.sessionId||null,game_id:x.gameId||null,body:String(x.body||'').slice(0,2000),deleted:!!x.deleted};}
     else if(t==='team_settings'){if(id===TEAM_SETTINGS_ID&&st.settings)row=settingsRow(st.settings);}
@@ -65,8 +65,7 @@ function buildRows(st){let held=0;const q=st.sync.queue,team=st.sync.teamId,dev=
 const gameStatus=g=>g.status||(g.ended?'final':'active');
 // last-write-wins by server updated_at: never let an older cloud row overwrite a newer local copy
 const newerThan=(loc,r)=>!loc||!loc._u||!r.updated_at||r.updated_at>=loc._u;
-// scoring lock owner travels with the row: games keep it in cur.scorer (jsonb, no schema change);
-// sessions use the scorer column when the migration is applied (sync.scorerCol), else the row's device_id
+// scoring lock owner travels on the row: games keep it in cur.scorer; sessions use scorer or device_id
 const scorerOfRow=(t,r)=>t==='games'?(r.cur&&r.cur.scorer)||null:(r.scorer||r.device_id||null);
 function mergeRemote(st,data){const q=st.sync.queue;let added=0,removed=0;
   (data.pitchers||[]).forEach(r=>{if(q.pitchers[r.id]||r.deleted)return;const p=st.pitchers.find(x=>x.id===r.id);if(!newerThan(p,r))return;const v={id:r.id,name:r.name,num:r.num||'',throws:r.throws||'R',archived:!!r.archived,note:r.note||undefined,_u:r.updated_at||undefined};if(p)delete p._ph;if(p){Object.assign(p,v);if(!r.note)delete p.note;}else st.pitchers.push(v);});

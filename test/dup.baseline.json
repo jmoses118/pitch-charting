@@ -6,7 +6,6 @@
     {"a": {"file": "js/ui/report.js", "start": 40, "end": 50}, "b": {"file": "js/ui/report.js", "start": 66, "end": 76}},
     {"a": {"file": "js/ui/game.js", "start": 73, "end": 80}, "b": {"file": "js/ui/setup.js", "start": 16, "end": 23}},
     {"a": {"file": "js/ui/game.js", "start": 87, "end": 100}, "b": {"file": "js/ui/setup.js", "start": 39, "end": 43}},
-    {"a": {"file": "js/ui/game.js", "start": 771, "end": 777}, "b": {"file": "js/ui/game.js", "start": 805, "end": 811}},
     {"a": {"file": "js/ui/coach.js", "start": 361, "end": 366}, "b": {"file": "js/ui/coach.js", "start": 430, "end": 435}},
     {"a": {"file": "js/ui/coach.js", "start": 361, "end": 366}, "b": {"file": "js/ui/coach.js", "start": 497, "end": 502}},
     {"a": {"file": "js/ui/bullpen.js", "start": 20, "end": 25}, "b": {"file": "js/ui/game.js", "start": 303, "end": 308}},

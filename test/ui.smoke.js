@@ -2,6 +2,14 @@ const {chromium}=require('playwright-core');
 (async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});const pg=await b.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,colorScheme:'dark'});await pg.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));
 const errs=[];pg.on('pageerror',e=>errs.push(e.message));
 await pg.goto('http://localhost:'+process.argv[2]+'/');
+const gamesN=()=>pg.evaluate(()=>__app.store.real.games.length);
+const n0=await gamesN();
+await pg.click('#gStart');
+if((await pg.textContent('#toast'))!=='Enter the opponent'||(await gamesN())!==n0)throw 'empty opponent';
+await pg.evaluate(()=>{const S=__app.store.real;S.pitchers.forEach(p=>{p.archived=true;});S.curPitcher=null;__app.store.save();__app.render();});
+await pg.fill('#gOpp','Lightning');await pg.click('#gStart');
+if((await pg.textContent('#toast'))!=='Pick a pitcher'||(await gamesN())!==n0)throw 'missing pitcher';
+await pg.evaluate(()=>{const S=__app.store.real;S.pitchers.forEach(p=>{p.archived=false;});S.curPitcher='p_woods';__app.store.save();__app.render();});
 await pg.fill('#gOpp','Lightning');await pg.click('#gStart');
 // result sheet opens only after the called spot and the actual spot (v48)
 const tap=async z=>{const s=`#zone [data-z="${z}"]`;await pg.$eval(s,e=>e.scrollIntoView({block:"center"}));await pg.click(s,{force:true});};
@@ -14,6 +22,11 @@ await pitch('swinging');console.log('after K3 count',await pg.textContent('#cnt'
 {const h=await peekKd3();console.log('K-D3 button hidden at 0-0:',!h);if(h)throw 'kd3 visible at 0-0';}await pg.click('#undo');{const v=await peekKd3();console.log('K-D3 button shown at 2 strikes:',v);if(!v)throw 'kd3 hidden at 2 strikes';}await pitch('kd3');const o2=await pg.$$eval('#outs .on',x=>x.length);console.log('after K-D3 outs',o2,'count',await pg.textContent('#cnt'));if(o2!==0)throw 'kd3';await pg.click('#undo');console.log('after undo',await pg.textContent('#cnt'),await pg.textContent('#pc'));
 await pg.screenshot({path:require('path').join(__dirname,'shot-game.png'),fullPage:true});
 // bullpen with call
+await pg.evaluate(()=>{__app.store.real.curPitcher='p_crich';});
+await pg.click('#gPause');
+await pg.click('#pausedList [data-rg]');
+const src=await pg.evaluate(()=>{const S=__app.store.real;const g=S.games.find(x=>x.id===S.activeGame);return S.curPitcher===g.cur.pitcherId&&S.curPitcher==='p_woods';});
+if(!src)throw 'resume pitcher';
 await pg.click('#gPause'); // a game in progress locks the bullpen (modes are exclusive)
 await pg.click('nav [data-t="bullpen"]');await pg.check('#callOn');await pg.fill('#callTxt','chg 7');await tap(7);
 await pg.fill('#callTxt','FB A');console.log('desc',await pg.textContent('#callDesc'),await pg.isVisible('#callTxt'),await pg.inputValue('#callTxt'));await tap(16);console.log('afterA',await pg.evaluate(()=>{const s=__app.store.state;return [s.activeSession,s.sessions.map(x=>x.id+':'+x.pitches.length)]}),await pg.textContent('#bpSum'),await pg.textContent('#callDesc'));await pg.fill('#callTxt','H+');await tap(15);await pg.click('#types [data-c="DC"]');await tap(8);await tap(9);
