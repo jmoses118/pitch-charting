@@ -128,4 +128,18 @@ for(const [W,H] of SIZES){const tag=`${W}x${H}`;const {c,p,errs,native,vis,clk,s
     await st(()=>document.getElementById('cMenuDlg').close('cancel'));
   }
   ok(!native.length,`${tag} no confirm()`);ok(!errs.length,`${tag} no page errors ${errs.join('|')}`);await c.close();}
+for(const [W,H] of [[667,375],[844,390],[932,430]]){for(const theme of ['night','field']){const tag=`${W}x${H} ${theme}`;const {c,p,errs,st}=await page(W,H);await p.goto(BASE);
+  await st(theme=>{localStorage.setItem('te_ui_theme',theme);applyTheme();const S=__app.store.real,dev=S.sync.deviceId,day=PC.localDate(Date.now());S.activeGame=null;S.activeSession=null;S.sessions=[];
+    S.games=[
+      {id:'draft1',started:10,status:'active',opponent:'Drafty',date:'2026-10-02',time:'15:00',homeAway:'home',scorer:dev,lineup:[],pitches:[],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:0,pitcherId:'p_woods'}},
+      {id:'live1',started:20,status:'active',opponent:'Storm',date:'2026-10-03',time:'18:00',homeAway:'away',scorer:dev,lineup:[],pitches:[{id:'p1',pitcherId:'p_woods',ts:50,type:'FB'}],cur:{inning:4,outs:1,slot:0,b:1,s:0,abn:1,pitcherId:'p_woods'}},
+      {id:'other1',started:5,status:'active',opponent:'Other',date:'2026-10-01',time:'12:00',homeAway:'home',scorer:'other-phone',lineup:[],pitches:[{id:'p2',pitcherId:'p_woods',ts:10}],cur:{inning:2,outs:0,slot:0,b:0,s:0,abn:0,pitcherId:'p_woods'}},
+      {id:'g_today',date:day,opponent:'Today',homeAway:'home',status:'scheduled',time:'18:00',pitches:[],lineup:[]}];
+    __app.store.save();__app.render();},theme);
+  await p.waitForTimeout(150);
+  const see=await p.evaluate(()=>{const nav=()=>document.querySelector('nav').getBoundingClientRect().top,head=()=>document.querySelector('header').getBoundingClientRect().bottom;
+    const reach=sel=>{const e=document.querySelector(sel);if(!e)return false;e.scrollIntoView({block:'nearest'});const r=e.getBoundingClientRect();const top=Math.max(r.top,head()),bot=Math.min(r.bottom,nav());return bot-top>=24&&r.width>20;};
+    return {resume:reach('#gamePick .resume'),start:reach('#pickNew'),sched:reach('#gamePick [data-sg]')};});
+  ok(see.resume&&see.start&&see.sched,`${tag} Resume, Start new game, and today's Start are reachable`);
+  ok(!errs.length,`${tag} no page errors ${errs.join('|')}`);await c.close();}}
 console.log(fails?fails+' FAILED':'ALL PASS');await b.close();process.exit(fails?1:0);})().catch(e=>{console.error(e);process.exit(1);});
