@@ -1,5 +1,9 @@
 # Changelog
 
+## v64 – Illegal aims stay in the database
+### Changed
+- **RULE-4a.** `supabase/migrations/20261015130000_delete_bad_aim_pitches.sql` is a no-op, so `supabase db push` does not delete a pitch whose called aim fails the change-up rule. Those rows stay and stay flagged. A delete of owner-approved ids, after `pitches_badaim_backup_YYYYMMDD`, is only the unfilled template `supabase/pending/delete_bad_aim_pitches.sql`. `supabase/preview_delete_bad_aim_pitches.sql` is unchanged.
+
 ## v63 – Short-screen count row
 ### Changed
 - On a phone 720px tall or shorter, the count row collapses so the zone stays above the tab bar. Shake-off stays 48px. Pitch chips on that short screen stay 44px.

@@ -856,3 +856,47 @@ test('RULE-4: scoring, edit, sync and CSV import use one validator; a read keeps
   assert.equal(s.games[0].pitches[0].calledFlag,undefined);assert.deepEqual(s.games[0].pitches[0].targets,[8]);
   assert.equal(PC.calledOf({calledLoc:8,targets:[7,9]}),8);assert.equal(PC.calledOf({targets:[7,9]}),'7/9');assert.equal(PC.actualOf({actualLoc:31,loc:8}),31);assert.equal(PC.actualOf({loc:14}),14);
 });
+test('RULE-1: every SQL change-up target list matches PC.CH_TARGETS',()=>{
+  const fs=require('fs'),path=require('path');
+  const root=path.join(__dirname,'..');
+  const src=fs.readFileSync(path.join(root,'js','core','calls.js'),'utf8');
+  const declared=src.match(/const CH_TARGETS=\[([0-9,\s]+)\]/);
+  assert.ok(declared,'js/core/calls.js declares CH_TARGETS');
+  assert.deepEqual(declared[1].split(',').map(s=>+s.trim()),PC.CH_TARGETS);
+  const strip=t=>t.replace(/\/\*[\s\S]*?\*\//g,'').replace(/--[^\n]*/g,'');
+  const files=[];
+  (function walk(d){for(const n of fs.readdirSync(d)){const p=path.join(d,n);if(fs.statSync(p).isDirectory())walk(p);else if(n.endsWith('.sql'))files.push(p);}})(path.join(root,'supabase'));
+  const re=/\(\s*(\d+(?:\s*,\s*\d+)+)\s*\)/g;
+  let n=0;
+  for(const file of files){
+    const live=strip(fs.readFileSync(file,'utf8'));
+    re.lastIndex=0;
+    let m;while((m=re.exec(live))){
+      const nums=m[1].split(',').map(s=>+s.trim());
+      const near=live.slice(Math.max(0,m.index-160),m.index);
+      const same=nums.length===PC.CH_TARGETS.length&&nums.every(z=>PC.CH_TARGETS.includes(z));
+      if(!/'CH'/.test(near)&&!same)continue;
+      assert.deepEqual(nums,PC.CH_TARGETS,path.relative(root,file));
+      n++;
+    }
+  }
+  assert.ok(n>=1,'a SQL change-up target list must stay tied to CH_TARGETS');
+});
+test('RULE-4a: db push does not delete pitches; the pending template deletes only owner-approved ids after a backup',()=>{
+  const fs=require('fs'),path=require('path');
+  const root=path.join(__dirname,'..');
+  const strip=t=>t.replace(/\/\*[\s\S]*?\*\//g,'').replace(/--[^\n]*/g,'');
+  const migDir=path.join(root,'supabase','migrations');
+  for(const name of fs.readdirSync(migDir)){
+    if(!name.endsWith('.sql'))continue;
+    const live=strip(fs.readFileSync(path.join(migDir,name),'utf8'));
+    assert.equal(/\bdelete\s+from\s+public\.pitches\b/i.test(live),false,name);
+  }
+  const pendingPath=path.join(root,'supabase','pending','delete_bad_aim_pitches.sql');
+  const pending=fs.readFileSync(pendingPath,'utf8');
+  assert.match(pending,/create\s+table\s+pitches_badaim_backup_YYYYMMDD\s+as\s+select\b/i);
+  assert.match(pending,/where\s+id\s+in\s*\(\s*<OWNER-APPROVED IDS>\s*\)/i);
+  assert.match(pending,/delete\s+from\s+public\.pitches\s+where\s+id\s+in\s*\(\s*<OWNER-APPROVED IDS>\s*\)/i);
+  assert.equal(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(pending),false);
+  assert.equal(fs.existsSync(path.join(migDir,'delete_bad_aim_pitches.sql')),false);
+});

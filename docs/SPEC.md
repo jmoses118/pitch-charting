@@ -27,7 +27,7 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
 - **RULE-3c** A CH, drop or drop curve called low (7, 8, 9, 13, 14, 18) that lands in the dirt (31) counts as a reduced-severity miss, not a full way-off miss.
 - **RULE-3d** After a shake-off, the called location is the location re-signaled with the final pitch. If none was re-signaled, the original box stands.
 - **RULE-4** One shared location component and one location validator are used everywhere: scoring, editing, sync, and CSV import. Called and actual boxes are read through `calledOf` and `actualOf`.
-- **RULE-4a** A CSV import or a sync read keeps a called aim that fails `validCalled` and flags that row. The scoring screen still rejects that aim on a new write. Pitches already saved with an illegal called aim are test data. `supabase/migrations/20261015130000_delete_bad_aim_pitches.sql` deletes them. That file is not applied to production from here. `supabase/preview_delete_bad_aim_pitches.sql` is the read-only list of the same rows.
+- **RULE-4a** A CSV import or a sync read keeps a called aim that fails `validCalled` and flags that row. The scoring screen still rejects that aim on a new write. Pitches already saved with an illegal called aim are kept and flagged. `supabase/migrations/20261015130000_delete_bad_aim_pitches.sql` is a no-op, so `supabase db push` does not delete them. A delete of owner-approved ids, after a backup, lives only in `supabase/pending/delete_bad_aim_pitches.sql`, which `supabase db push` does not apply. `supabase/preview_delete_bad_aim_pitches.sql` is the read-only list of the same rows.
 - **RULE-5** Only one phone can score a game or bullpen session. Every other phone sees it live and read-only.
 - **RULE-6** Undo and Redo cover both the pitch and its location.
 - **RULE-7** Every popup has a working Cancel that leaves the data unchanged.
@@ -67,7 +67,7 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | RULE-3c | unit: a CH, drop or drop curve called low that lands in 31 is a miss below way-off severity |
 | RULE-3d | unit: after a shake-off the called location is the re-signaled box, or the original box when none was re-signaled |
 | RULE-4 | unit: scoring, edit, sync and CSV import call the same validator with the same inputs and get the same results |
-| RULE-4a | unit: import and sync keep an illegal called aim and flag the row; Postgres: `test/badaim.pg.sh` deletes only those rows and the preview lists the same ids |
+| RULE-4a | unit: import and sync keep an illegal called aim and flag the row; SQL change-up target lists match `PC.CH_TARGETS`; Postgres: `test/badaim.pg.sh` keeps those rows and the preview still lists them |
 | RULE-5 | `lock.ui.js` + `live.sync.js`: a second phone is read-only and sees pitches live |
 | RULE-6, RULE-7 | unit: redo/undo state; UI: Cancel on every popup leaves the state unchanged |
 | RULE-8 | `fit.ui.js`: no vertical scroll at 375, 390 and 430 px |
