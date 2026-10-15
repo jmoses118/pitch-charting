@@ -57,10 +57,10 @@ for(const [W,H] of [[390,844],[375,667],[430,932]]){const tag=`${W}x${H}`;const 
   // bullpen session owned by another phone (synced row) is view only too
   await ev(()=>{const S=__app.store.real;S.games[0].ended=Date.now();S.games[0].status='final';S.activeGame=null;S.sessions.push({id:'s_o',date:'2026-10-14',started:1,scorer:'dev_other_phone',pitches:[{id:'b1',mode:'bullpen',pitcherId:'p_woods',ts:1,type:'FB',loc:5,targets:[5]}]});S.activeSession='s_o';__app.store.save();});
   await p.click('nav [data-t="bullpen"]');await w(300);
-  const n=await ev(()=>{try{logBullpen([5]);}catch(e){}window.confirm=()=>true;try{pauseBullpen();endBullpen();}catch(e){}return __app.store.real.sessions.find(s=>s.id==='s_o').pitches.length;});
+  const n=await ev(()=>{D.type='FB';pushCalled([5]);D.loc=5;try{logBullpen();}catch(e){}window.confirm=()=>true;try{pauseBullpen();endBullpen();}catch(e){}return __app.store.real.sessions.find(s=>s.id==='s_o').pitches.length;});
   ok(await ev(()=>document.body.classList.contains('viewonly'))&&n===1&&await ev(()=>__app.store.real.activeSession==='s_o'&&document.getElementById('bpEnd').disabled),`${tag} bullpen: other phone's session is view only; refuses pitches, pause and end`);
-  // a new session started here is owned here
-  await ev(()=>{const S=__app.store.real;S.activeSession=null;__app.render();});await ev(()=>{logBullpen([5]);});
+  // a new session started here is owned here (bullpen saves on a complete called+actual draft)
+  await ev(()=>{const S=__app.store.real;S.activeSession=null;__app.render();D.type='FB';pushCalled([5]);D.loc=5;logBullpen();});
   ok(await ev(()=>{const S=__app.store.real,s=S.sessions.find(x=>x.id===S.activeSession);return s&&s.scorer===S.sync.deviceId&&!document.body.classList.contains('viewonly');}),`${tag} bullpen: a session started here is scored here`);
   ok(!errs.length,`${tag}: no page errors ${errs.join('|')}`);await c.close();}
 await b.close();console.log(fails?`${fails} FAILED`:'ALL PASS');process.exit(fails?1:0);})();

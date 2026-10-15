@@ -27,11 +27,12 @@ for(const [W,H] of [[844,390],[667,375],[932,430]]){const tag=`${W}x${H}`;const 
   await p.click('#cRes [data-cx=unshake]');await w();ok(await ev(()=>!document.querySelector('#cRes [data-ty]')&&/CH7/.test(document.getElementById('cxCode').textContent)&&!!document.querySelector('#cRes [data-r=ball]')),`${tag} coach: Cancel goes back to the call`);
   // full flow: shake, threw FB, landed 5, foul
   await p.click('#cRes [data-cx=shake]');await w();await p.click('#cRes [data-ty=FB]');await w();
-  {const exp=W<700?'Where?':'Tap where it went';const ht=(await p.textContent('#cxHint')).trim();ok(ht===exp||ht.endsWith(exp)||ht.includes(exp),`${tag} coach: after type, hint is normal step ("${exp}") got "${ht}"`);}
+  {const exp=W<700?'Aim?':'Tap the aim';const ht=(await p.textContent('#cxHint')).trim();ok(ht===exp||ht.endsWith(exp)||ht.includes(exp),`${tag} coach: after the thrown type, her aim is required ("${exp}") got "${ht}"`);}
+  await p.click('#cZone button[data-z="5"]');await w();
   await p.click('#cZone button[data-z="5"]');await w();
   if(SHOT)await p.screenshot({path:`${SHOT}coach-shake-threw-${tag}.png`});
   await p.click('#cRes [data-r=foul]');await w(250);
-  ok(JSON.stringify(await ev(last))===JSON.stringify({n:1,shook:true,call:'CH7',type:'FB',targets:[],loc:5,result:'foul'}),`${tag} coach: logs called CH7, shook, threw FB 5, foul – no aim ${JSON.stringify(await ev(last))}`);
+  ok(JSON.stringify(await ev(last))===JSON.stringify({n:1,shook:true,call:'CH7',type:'FB',targets:[5],loc:5,result:'foul'}),`${tag} coach: logs called CH7, shook, threw FB aimed 5 landed 5, foul ${JSON.stringify(await ev(last))}`);
   ok(await ev(()=>!!document.querySelector('#cRes [data-cx=shake]')),`${tag} coach: next pitch starts fresh`);
   await p.click('#cRes [data-cx=undo]');await w(250);ok(await ev(()=>__app.store.real.games[0].pitches.length===0),`${tag} coach: Undo removes the shake-off pitch`);
   ok(!errs.length,`${tag}: no page errors ${errs.join('|')}`);await c.close();}
@@ -53,8 +54,9 @@ for(const [W,H] of [[390,844],[375,667],[430,932]]){const tag=`${W}x${H}`;const 
   if(SHOT){await ev(()=>{scrollTo(0,0);document.getElementById('toast').classList.remove('on');});await w(300);await p.screenshot({path:`${SHOT}game-shake-${tag}.png`});}
   await p.click('#shakeCancel');await w();ok(await ev(()=>document.getElementById('shakeBar').classList.contains('hide')&&D.type==='CH'),`${tag}: Cancel restores the call`);
   await p.click('#shakeBtn');await w();await ev(()=>recordGame('ball'));ok(await ev(()=>__app.store.real.games[0].pitches.length===0),`${tag}: won't log until she picks the pitch thrown`);
-  await p.click('#types [data-c=DR]');await w();await ev(()=>tapLoc(13));await ev(()=>recordGame('swinging'));await w();
-  ok(JSON.stringify(await ev(last))===JSON.stringify({n:1,shook:true,call:'CH7',type:'DR',targets:[],loc:13,result:'swinging'}),`${tag}: logs called CH7, shook, threw DR 13 ${JSON.stringify(await ev(last))}`);
+  await p.click('#types [data-c=DR]');await w();await ev(()=>tapLoc(13));await ev(()=>recordGame('swinging'));ok(await ev(()=>__app.store.real.games[0].pitches.length===0),`${tag}: won't log until she taps where it went`);
+  await ev(()=>tapLoc(13));await ev(()=>recordGame('swinging'));await w();
+  ok(JSON.stringify(await ev(last))===JSON.stringify({n:1,shook:true,call:'CH7',type:'DR',targets:[13],loc:13,result:'swinging'}),`${tag}: logs called CH7, shook, threw DR aimed 13 ${JSON.stringify(await ev(last))}`);
   // a followed call, then stats
   await ev(()=>{callCell(0,6);tapLoc(7);recordGame('called');});
   await p.click('nav [data-t="stats"]');await w(300);

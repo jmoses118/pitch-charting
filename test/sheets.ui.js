@@ -41,6 +41,7 @@ for(const [W,H] of [[390,844],[375,667]]){const tag=`${W}x${H}`;
   await p.click('#hL');await wait();ok(/LHB/.test(await p.textContent('#batTog')),`${tag} game batter set to LHB`);
   await dismiss(()=>p.click('#batTog'),'#batDlg button[value=cancel]','game batter sheet');
   await p.$eval('#inGame details.disc',d=>{d.open=true;d.scrollIntoView({block:'center'});});await wait();await segOK('#inGame .seg button','outs/innings segment',3);await p.evaluate(()=>scrollTo(0,0));await wait();
+  await ev(()=>{D.type='FB';pushCalled([3]);D.loc=5;D.sheet=false;render();});
   for(const how of ['close','Escape']){const before=await snap();await p.click('#resTog');await wait(300);if(how==='close')await p.click('#resClose');else await p.keyboard.press('Escape');await wait(250);
     ok(await ev(()=>document.getElementById('resSheet').classList.contains('hide'))&&(await snap())===before,`${tag} result sheet: ${how} closes, nothing logged`);}
   for(const how of ['Band','Escape']){const before=await snap();await p.click('#wbTog');await wait(250);if(how==='Band')await p.click('#wbTog');else await p.keyboard.press('Escape');await wait(250);

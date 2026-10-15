@@ -1,5 +1,20 @@
 # Changelog
 
+## v48 – One scoring flow
+### Changed
+- **One state machine** (`js/core/flow.js`) for portrait Game, the landscape coach screen, and Bullpen. Game steps are pitch type, called location, actual location, then the result. Bullpen stops after the actual location and saves. There is no ball/strike step in the pen.
+- **Called location** is filled in from the wristband (or a saved band aim) and can be overridden. Dirt, way off, and over the catcher are legal called spots, so a change or curve aimed in the dirt that finishes in the dirt is a hit. A change-up still cannot be called up in the zone.
+- **The result sheet stays closed** until the actual location is tapped, and it does not cover the zone while that tap is still needed. The header shows aim → actual (for example `Result · CH 8 → @12`). A game pitch cannot be saved without that actual spot.
+- **Bullpen success is hit-spot %**, on the live session line, in bullpen Stats, and on the session report. Game Stats still show strike %.
+- Cache: `te-pitch-v48`.
+
+## v47 – Coach ring and change-up aim
+### Fixed
+- **Landscape coach zone.** Every ring box is labeled and tappable, including the cell above box 3 (zone 12). Aim and the landing mark show on that cell. A high pitch can be recorded there.
+- **Change-up with no called spot** (CHG, or a high change-up). The first zone tap is the aim, the same as portrait. The next tap is where it went, including a high box, in the dirt, or over the catcher. Stats counts that aim.
+- **A result with no pitch type is not saved.** That pitch was showing up on Stats as "?".
+- Cache: `te-pitch-v47`.
+
 ## v40 – Scoring screen (simpler flow)
 ### Added
 - **One tap starts a scheduled game.** Games that arrived from schedule sync show a Start button. One tap sets the game active, claims this phone as the scorer, and fills an empty lineup with Batter 1–9. The manual start form is still there. Tapping a GameChanger link does not start the game.

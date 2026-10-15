@@ -3,10 +3,9 @@
 'use strict';
 // ---------- render ----------
 // current-step indicator above the zone: Pitch → Aim → Landed (bullpen), Pitch → Location → Result (game)
-function renderSteps(needTarget){const bp=tab==='bullpen';const labels=bp?['Pitch','Aim','Landed']:['Pitch','Where','Result'];let i;
-  if(bp){const st=PC.bullpenStep({type:D.type||(D.parsed&&D.parsed.type),target:D.target,callTargets:callOn&&D.parsed?D.parsed.targets:[]});i=st==='type'?0:st==='target'?1:2;}
-  else i=needTarget?0:D.loc?2:D.type?1:0;
-  [...$('steps').children].forEach((li,k)=>{li.textContent=labels[k];li.className=k<i?'done':k===i?'now':'';if(k===i)li.setAttribute('aria-current','step');else li.removeAttribute('aria-current');});}
+function renderSteps(){const mode=tab==='bullpen'?'bullpen':'game';const steps=PC.flowSteps(mode);const cur=PC.scoreStep(pullDraft());let i=steps.indexOf(cur);if(i<0)i=steps.length;const ol=$('steps');
+  ol.style.setProperty('--steps',String(steps.length));ol.classList.toggle('s4',steps.length>3);
+  ol.innerHTML=steps.map((s,k)=>{const lb=s==='actual'&&mode==='bullpen'?'Landed':PC.flowLabel(s);const cls=k<i?'done':k===i?'now':'';return `<li class="${cls}"${k===i?' aria-current="step"':''}>${lb}</li>`;}).join('');}
 function render(skipCallInput){const s=S();applyViewOnly(viewOnly());if(typeof renderShake==='function')renderShake();{const gg=game();const two=!!(gg&&gg.cur&&gg.cur.s===2);document.querySelectorAll('#resBtns [data-r="kd3"],#resBtns [data-r="kd3out"]').forEach(kb=>{kb.classList.toggle('hide',!two);kb.disabled=!two;});}document.body.classList.toggle('test',store.isTest);document.body.classList.toggle('onehand',oneHand());document.body.classList.toggle('tab-game',tab==='game');$('oneHand').checked=oneHand();try{renderAlerts();renderAlertCard();}catch(e){console.error(e);}$('testbar').classList.toggle('hide',!store.isTest);
   $('testBtn').textContent=store.isTest?'Exit test mode (discard)':'Start test mode';$('testBtn').style.background=store.isTest?'var(--red)':'';
   callOn=!!s.callOn;$('callOn').checked=callOn;$('callBox').classList.toggle('hide',!callOn);try{renderWristband();renderCS();}catch(e){console.error(e);}
@@ -44,15 +43,15 @@ function render(skipCallInput){const s=S();applyViewOnly(viewOnly());if(typeof r
   if(!skipCallInput)$('callTxt').value=D.callTxt;
   $('callAlt').innerHTML=D.parsed&&D.parsed.alts&&D.parsed.alts.length?D.parsed.alts.concat(D.parsed.targets).filter((z,i,x)=>x.indexOf(z)===i).map(z=>`<button data-alt="${z}" class="${(D.target||D.parsed.targets[0])===z?'sel':''}">CB → ${z}</button>`).join(''):'';
   $('callDesc').textContent=D.callTxt?(D.parsed?`${D.parsed.norm} = ${types.find(t=>t.code===D.parsed.type)?.name||D.parsed.type}${D.parsed.targets.length?' → zone '+D.parsed.targets.join('/'):' → tap target on grid'}${D.target?' '+D.target:''} · ${D.parsed.desc}`:'Unrecognized code'):'Type a code or tap buttons. Digits = zone (pitcher\'s view).';
-  const needTarget=callOn&&D.parsed&&!D.parsed.targets.length&&!D.target;
-  renderSteps(needTarget);
-  const called=typeof calledLocNow==='function'?calledLocNow(D.loc):null;
-  $('phase').innerHTML=needTarget?'Tap the <b>called target</b> on the grid':(tab==='bullpen'?bpPhase():`Tap where it went, then the result${called!=null?` · called ${called}`:''}`);
+  renderSteps();
+  const step=PC.scoreStep(pullDraft()),aims=aimSet();
+  $('phase').innerHTML=tab==='bullpen'?bpPhase():step==='type'?'Pick the pitch type':step==='called'?'Tap the <b>called target</b> on the grid':step==='actual'?'Tap where it went':`Tap the result${aims.length?` · ${aims.join('/')} → ${locTxt(D.loc)}`:''}`;
   $('resBtns').classList.toggle('hide',!!D.ip);$('ipBtns').classList.toggle('hide',!D.ip);
   $('undo').textContent=D.loc?'Undo location':(editUndo?'Undo edit':tab==='bullpen'&&(D.type||D.target||D.callTxt)?'Undo step':'Undo');
   $('redo').disabled=!redoStack.length;$('pRedo').disabled=!redoStack.length;
-  const sheet=tab==='game'&&!!(D.sheet||D.ip);$('resSheet').classList.toggle('hide',!sheet);$('resTog').classList.toggle('hide',tab!=='game');
-  $('resHead').textContent=D.ip?'Ball in play':D.loc?`Result · ${D.type?D.type+' ':''}${locTxt(D.loc)}`:'Result';
+  if(D.loc==null)D.sheet=false;const onResult=tab==='game'&&D.loc!=null&&PC.scoreStep(pullDraft())==='result';if(!onResult)D.ip=D.ip&&onResult;
+  const sheet=tab==='game'&&!!(D.ip||(onResult&&D.sheet));$('resSheet').classList.toggle('hide',!sheet);$('resTog').classList.toggle('hide',tab!=='game');
+  const aimTxt=aimSet();$('resHead').textContent=D.ip?'Ball in play':D.loc?`Result · ${D.type?D.type+' ':''}${aimTxt.length?aimTxt.join('/')+' → ':''}${locTxt(D.loc)}`:'Result';
   if(typeof placeScoreDock==='function')placeScoreDock();
   document.querySelectorAll('#pitchExtra [data-flag]').forEach(b=>b.classList.toggle('sel',b.dataset.flag===D.wpPb));
   if(document.activeElement!==$('velo'))$('velo').value=D.velo==null?'':D.velo;
@@ -63,7 +62,7 @@ function render(skipCallInput){const s=S();applyViewOnly(viewOnly());if(typeof r
   if(tab==='game'&&g){$('logTitle').textContent='Game log (newest first)';$('log').innerHTML=g.pitches.map((p,i)=>pitchLine(p,i,'game')).reverse().join('')||'<div class="mut">No pitches yet</div>';}
   if(tab==='bullpen'){const x=session();$('logTitle').textContent='Session log (newest first)';$('log').innerHTML=x?x.pitches.map((p,i)=>pitchLine(p,i,'bullpen')).reverse().join(''):'<div class="mut">No pitches yet</div>';
     const q=PC.summarize(x?x.pitches:[]);$('bpTitle').textContent='Bullpen '+(x?x.date:'');
-    $('bpSum').textContent=`${q.n} pitches · ${fmt(q.strikePct)} strikes${q.compPct!=null?` · ${fmt(q.compPct)} competitive`:''}${q.wayOff?` · ${q.wayOff} way off`:''} · hit spot ${fmt(q.spotPct)} · `+Object.entries(q.byType).map(([k,v])=>`${k} ${v.n} (${fmt(v.strikePct)})`).join(', ');}
+    $('bpSum').textContent=`${q.n} pitches · hit spot ${fmt(q.spotPct)}${q.compPct!=null?` · ${fmt(q.compPct)} competitive`:''}${q.wayOff?` · ${q.wayOff} way off`:''} · `+Object.entries(q.byType).map(([k,v])=>`${k} ${v.n}`).join(', ');}
   if(tab==='setup'){renderCodes();renderPitchers();renderRoster();$('cTypes').innerHTML=s.customTypes.map((c,i)=>`<span class="tag" data-ct="${i}">${H(c.code)} = ${H(c.name)} ✕</span> `).join('')||'None yet';
     $('storeMsg').textContent=store.isTest?'Test mode: storage untouched.':(storage?'Saved on this device (localStorage). Export a JSON backup regularly.':'Storage is blocked here – open in Safari (not private browsing).');}
   if(tab==='stats'){renderStats();renderHeat();}
