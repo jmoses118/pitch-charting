@@ -1,7 +1,7 @@
-// v39 shake-off: the Shake-off button exists in BOTH layouts (portrait pitch flow + landscape coach screen next to
+// FLOW-10 shake-off: the Shake-off button exists in BOTH layouts (portrait pitch flow + landscape coach screen next to
 // Aim/Undo/Same) – regression guard so it can't silently disappear. Flow: call → Shake-off → pick type thrown →
 // where → result; Cancel; Undo; Stats "Shake-offs" section. Throwaway profile, Supabase blocked, test data only.
-// usage: node test/shake.ui.js <url>
+// FLOW-10: shake-off in portrait and landscape. usage: node test/shake.ui.js <url>
 const {chromium}=require('playwright-core');const {AUDIT}=require('./lib/audit');const BASE=process.argv[2]||'http://localhost:8766/';let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};
 // pixel layout audits depend on the installed fonts: they run locally (real fonts), CI checks behaviour only
 const SHOT=process.env.SHOT_DIR||'';if(SHOT)require('fs').mkdirSync(SHOT,{recursive:true});

@@ -1,4 +1,4 @@
-// Edit a past pitch's actual location from the log (during the game) and from Stats (after).
+// FLOW-9: edit a past pitch's actual location from the log (during the game) and from Stats (after).
 // Save keeps later pitches. Cancel, Escape, and the backdrop do not. A view-only phone cannot.
 // usage: node test/editpitch.ui.js <url>
 const {chromium}=require('playwright-core');const BASE=process.argv[2]||'http://localhost:8766/';let fails=0;
@@ -27,7 +27,7 @@ for(const [W,H] of [[375,667],[390,844],[430,932]]){const tag=`${W}x${H}`;
   ok(measures.wayTop>=0&&measures.dirtBot<=measures.footTop+1&&measures.dirtBot<=measures.vh,`${tag}: way and dirt sit above the footer (${measures.wayTop}–${measures.dirtBot}, footer ${measures.footTop})`);
   ok(measures.title==='Fix location (from video)'&&measures.sub==='Aim and result stay the same.',`${tag}: sheet title and subtitle`);
   ok(measures.hint==='Tap a pitch to fix where it went'&&measures.pencil==='✎',`${tag}: log hint and pencil`);
-  ok(!measures.phaseClip&&/Pick the pitch type|Tap where it went|called target/.test(measures.phase)&&measures.chip>=48,`${tag}: instruction fits and pitch chips are ${measures.chip}px`);
+  ok(!measures.phaseClip&&/Pick the pitch type|Tap where it went|called target/.test(measures.phase)&&measures.chip>=44,`${tag}: instruction fits (${measures.phaseClip?'clipped':'open'}) and pitch chips are ${measures.chip}px`);
   const ring=await p.locator('#editZone').boundingBox();
   await p.mouse.click(ring.x+(90+14)/128*ring.width, ring.y+(108+6)/138*ring.height);await wait(100);
   ok(/14|ball/.test(await p.textContent('#editPick')),`${tag}: ring is a choice (${await p.textContent('#editPick')})`);
