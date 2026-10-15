@@ -23,6 +23,12 @@
 - **RULE-8.** On a short screen the inning bar takes less height, so the zone stays above the tab bar at 375px. The shake-off button stays 48px. The fit check also covers 430px.
 - Cache: `te-pitch-v63`.
 
+## v63a – Short-screen count row
+### Changed
+- On a phone 720px tall or shorter, the count row collapses so the zone stays above the tab bar. Shake-off stays 48px. Pitch chips on that short screen stay 44px.
+- Superseded by v66: those pitch chips are 48px, and the pitch counts sit on their own line.
+- Cache: `te-pitch-v63`.
+
 ## v62 – One home for each rule
 ### Changed
 - **ARCH-1.** `validSpot` calls `validActual`. The screen helpers that read the pitcher's hand and hit-test the zone are no longer named like rule functions. CI fails if `js/core` mentions `js/ui`, if `js/ui` defines a `valid*`, `calc*`, or `*Of` rule function, or if `jscpd` finds a clone under `js/`.
@@ -35,12 +41,25 @@
 - A CSV import still keeps a grid aim that fails `validCalled`, flags the row, and the toast counts those flagged rows.
 - Cache: `te-pitch-v61`.
 
+## v61a – Illegal saved aims can be removed; a shake-off keeps the original box
+### Changed
+- **RULE-3d.** Picking the pitch she threw after a shake-off fills in the original aim. A tap that is not a legal aim for that pitch is where it went. A legal aim tap still replaces the box. An aim that is illegal for the new type is kept and flagged. Superseded by v64.
+- **RULE-4.** The pitch log, CSV row, sync row, miss math, and the edit sheet read called and actual boxes through `calledOf` and `actualOf`. Superseded by v64.
+- **RULE-4a.** Import and sync still keep and flag an illegal called aim. Superseded by v65. `supabase/migrations/20261015130000_delete_bad_aim_pitches.sql` deletes pitches already saved with one. It is not applied to production. `supabase/preview_delete_bad_aim_pitches.sql` lists those rows first.
+- **RULE-11a.** Active jersey numbers are unique. Empty is allowed, `0` and `00` stay distinct, and an archived pitcher does not block.
+- Cache: `te-pitch-v61`.
+
 ## v60 – One location validator
 ### Changed
 - **RULE-1, RULE-3a.** `validCalled` is the only aim check. Dirt, way off, and the backstop are actual locations. A change-up aim stays 4, 7, 8, 9, 13, 14, 18. `canAim` and `targetOk` are gone.
 - **RULE-3.** `calledTypeOf` is the thrown pitch after a shake-off. The penalty, a bad aim, the low bonus, and the CSV called type all use it.
 - **RULE-3c, RULE-3d, FLOW-7a.** A low change, drop, or drop curve in the dirt is severity 2. A shake-off called location is the re-signaled box, or the original box. The bullpen low bonus needs that low call and a landing in 13, 14, or 18.
 - **RULE-4.** A sync read and a CSV import keep a grid aim that fails the validator and flag the row. The import toast counts flagged rows. `csvRow` builds every export row. `calledOf` and `actualOf` live in `js/core/location.js`.
+- Cache: `te-pitch-v60`.
+
+## v60a – The game log asks scoring whether a pitch was a strike
+### Changed
+- **FLOW-6.** The pitch list uses `strikeOf` for a pitch that has no umpire result. A bullpen row stays blank. A game row is K or B from that helper.
 - Cache: `te-pitch-v60`.
 
 ## v59 – Bullpen has no strike
@@ -56,6 +75,11 @@
 - **FLOW-6a.** Opening the app deletes a saved `bpResult` and any result stored on a bullpen pitch, and queues those pitches. `supabase/migrations/20261014230000_bullpen_no_result.sql` clears the same rows in Supabase. That file is not applied to production from here.
 - **FLOW-7.** A bullpen pitch is a success when it hits its spot, including a bottom-row aim that lands in that box. Stats stay on hit-spot %. A change, drop, or drop curve that lands in 13, 14, or 18 is still a good pitch.
 - **FLOW-8.** A new bullpen session has no batter. LHB and RHB show only when “Show LHB / RHB” is on.
+- Cache: `te-pitch-v58`.
+
+## v58a – The saved pitch comes from the scoring draft
+### Changed
+- **FLOW-1.** A saved pitch's type, aim, landing, and called box are written only by `scoreCommit`. The shake-off lives on that same draft, so Cancel restores the call from it. The screen no longer keeps a second copy of the aim or the landing.
 - Cache: `te-pitch-v58`.
 
 ## v57 – One draft, one actual-location toggle
