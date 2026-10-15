@@ -74,7 +74,7 @@ function drawZone(){const hand=curHand();let ex='';const tset=aimSet();
   document.querySelectorAll('#wayBtns [data-z],#actBtns [data-z]').forEach(b=>b.classList.toggle('sel',+b.dataset.z===D.loc));}
 const locTxt=z=>PC.isWay(z)?PC.WAY[z]:PC.isActualOnly(z)?PC.ACTUAL_ONLY[z]:'@'+z;
 function tapLoc(z){if(scoreGuard())return;const r=PC.scoreTap(pullDraft(),z);
-  if(!r.ok){if(r.reason==='need_type')return toast('Pick the pitch type first');if(r.reason==='bad_target')return toast(PC.CH_AIM_MSG);if(r.reason==='need_called')return toast('Tap the called location first');return;}
+  if(!r.ok){if(r.reason==='need_type')return toast('Pick the pitch type first');if(r.reason==='bad_target')return toast(PC.aimRejectMsg((r.draft&&r.draft.type)||D.type,z));if(r.reason==='need_called')return toast('Tap the called location first');return;}
   takeDraft(r);
   if(r.op==='called'){render();return;}
   if(typeof clearFoulChips==='function')clearFoulChips();
@@ -149,11 +149,11 @@ function pushCalled(arr){const type=(D.draft&&D.draft.type)||D.type||null;takeDr
 function placeCall(type,boxes){const r=PC.scoreApply({mode:tab==='bullpen'?'bullpen':'game'},{op:'call',type:type||null,called:boxes||[]});if(!r.ok){D.draft=blankDraft();mirrorDraft();D.sheet=false;return r;}takeDraft(r);D.sheet=false;D.ip=false;return r;}
 function pullDraft(){if(!D.draft)D.draft=blankDraft();const d=D.draft;const shook=D.shook?{type:D.shook.type||null,called:(D.shook.targets||[]).slice(),norm:D.shook.norm||null,raw:D.shook.raw||D.shook.norm||null}:d.shook;
   return{mode:tab==='bullpen'?'bullpen':'game',type:D.shook?(D.type||d.type||null):d.type,called:(d.called||[]).slice(),actual:d.actual==null?null:d.actual,result:d.result||null,ip:d.ip||null,velo:D.velo==null?null:D.velo,aimEdit:!!d.aimEdit,shook};}
-function calledLocNow(loc){const t=D.shook?(D.shook.targets||[]):aimSet();return PC.nearestTarget(t.length?t:(callOn&&D.parsed&&D.parsed.targets)||[],loc==null?null:loc);}
+function calledLocNow(loc){const her=aimSet();const original=D.shook&&D.shook.targets?D.shook.targets:[];const boxes=her.length?her:(D.shook?original:[]);const t=boxes.length?boxes:((callOn&&D.parsed&&D.parsed.targets)||[]);return PC.nearestTarget(t,loc==null?null:loc);}
 // A typed velocity outside 20–110 is dropped, and the coach hears about it once. Empty stays empty with no message.
 function noteVelo(raw){if(raw==null||String(raw).trim()==='')return null;const v=PC.cleanVelo(raw);if(v==null)toast('Velocity must be between 20 and 110. Not saved.',2200);return v;}
 function baseRec(){const loc=D.loc||null;return{id:PC.uuid(),ts:Date.now(),pitcherId:curPitcherId(),hand:curHand(),type:D.shook?D.type||null:D.type||(D.parsed&&D.parsed.type)||null,
-  call:D.shook?D.shook.norm:callOn&&D.parsed?D.parsed.norm:null,callRaw:D.shook?D.shook.raw:callOn&&D.callTxt?D.callTxt:null,targets:aimSet(),loc,calledLoc:calledLocNow(loc),actualLoc:loc,calledType:D.shook?(D.shook.type||null):((D.parsed&&D.parsed.type)||D.type||null),wpPb:PC.cleanFlag(D.wpPb),velo:noteVelo(D.velo),...(D.shook?{shook:true}:{})};}
+  call:D.shook?D.shook.norm:callOn&&D.parsed?D.parsed.norm:null,callRaw:D.shook?D.shook.raw:callOn&&D.callTxt?D.callTxt:null,targets:aimSet(),loc,calledLoc:calledLocNow(loc),actualLoc:loc,calledType:D.shook?(D.type||null):((D.parsed&&D.parsed.type)||D.type||null),wpPb:PC.cleanFlag(D.wpPb),velo:noteVelo(D.velo),...(D.shook?{shook:true}:{})};}
 // ---------- test mode ----------
 function toggleTest(){if(store.isTest){if(!confirm('Exit test mode? Everything from this test is discarded.'))return;store.exitTest();resetDraft();if(typeof loadRedo==='function')loadRedo();toast('Test data cleared');}
   else{store.enterTest();resetDraft();redoStack=[];toast('TEST MODE – nothing is saved');}render();}

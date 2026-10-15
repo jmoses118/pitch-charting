@@ -28,10 +28,17 @@ const isBullpenPitch=p=>p&&p.abn==null&&p.inning==null;
 // Jim's ring rules (Oct 2026): ring 11-18 is competitive and scored by normal distance (within 1 box = on target).
 // Way off (21-24) is always a miss at WAY_SEV (not a souvenir), whatever the target.
 // CH / drop / drop curve landing in the bottom ring (13, 18, 14) is a good pitch (bullpen). CH-up rule still applies.
-const WAY_SEV=MAX_MISS-1;const LOW_RING=[13,18,14],LOW_TYPES=['CH','DR','DC'];
-const lowGood=p=>isBullpenPitch(p)&&LOW_TYPES.includes(p.type)&&LOW_RING.includes(p.loc);
-function adjSev(p,sev){const aimedHere=p.targets&&p.targets.some(z=>+z===+p.loc);if((isWay(p.loc)||isActualOnly(p.loc))&&!aimedHere)return WAY_SEV;if(lowGood(p))return Math.min(sev,1);return sev;}
-const chUp=p=>p&&p.type==='CH'&&!isWay(p.loc)&&!isActualOnly(p.loc)&&GRID_XY[p.loc]!=null&&GRID_XY[p.loc][1]<=2;
+const WAY_SEV=MAX_MISS-1;const LOW_RING=[13,18,14],LOW_TYPES=['CH','DR','DC'],LOW_CALL=[7,8,9,13,14,18];
+// Called type is the one helper in csv.js. A shake-off uses the pitch she threw, not the abandoned call.
+const penaltyType=p=>typeof PC.calledTypeOf==='function'?String(PC.calledTypeOf(p)||''):String((p&&p.type)||'');
+function calledBoxes(p){const b=[];if(p&&p.targets)for(const z of p.targets)b.push(+z);if(p&&p.calledLoc!=null)b.push(+p.calledLoc);return b;}
+const calledLow=p=>calledBoxes(p).some(z=>LOW_CALL.includes(z));
+// FLOW-7a: bullpen only, called in 7/8/9/13/14/18, lands in 13/14/18, called type CH/DR/DC.
+const lowGood=p=>isBullpenPitch(p)&&LOW_TYPES.includes(penaltyType(p))&&calledLow(p)&&LOW_RING.includes(+p.loc);
+// RULE-3c: that same low call landing in the dirt is a miss, one step under a full way-off.
+const dirtSoft=p=>+p.loc===31&&LOW_TYPES.includes(penaltyType(p))&&calledLow(p);
+function adjSev(p,sev){if(dirtSoft(p))return Math.min(sev,WAY_SEV-1);const aimedHere=p.targets&&p.targets.some(z=>+z===+p.loc);if((isWay(p.loc)||isActualOnly(p.loc))&&!aimedHere)return WAY_SEV;if(lowGood(p))return Math.min(sev,1);return sev;}
+const chUp=p=>p&&penaltyType(p)==='CH'&&!isWay(p.loc)&&!isActualOnly(p.loc)&&GRID_XY[p.loc]!=null&&GRID_XY[p.loc][1]<=2;
 function missData(items,f){const q=heatFilter(items,f);const cells={};ALL_CELLS.forEach(z=>cells[z]={n:0,sum:0,hit:0,avg:null,mm:0});let total=0,mm=0,chu=0;
   // one source of truth for severity: pitchMiss (souvenir, CH-up, way-off, low-ring rules all live there)
   q.forEach(({p})=>{const m=pitchMiss(p);if(!m)return;const t=p.targets,d=m.d,sev=m.sev,mmMiss=m.mm,up=m.chUp;total++;if(mmMiss)mm++;if(up)chu++;
@@ -81,7 +88,7 @@ function pitchMiss(p,throws){throws=throws||p.throws;const t=p.targets&&p.target
   const toward3B=dx>0;// pitcher's view: +x = 3B side, where an RHB stands
   const noBat=p.hand!=='L'&&p.hand!=='R'&&(throws==='L'||throws==='R');
   const horiz=dx===0?null:noBat?((dx>0)===(gloveCol(throws)===2)?'glove side':'arm side'):((toward3B===(hand==='R'))?'in':'away');const vert=dy===0?null:(dy<0?'up':'down');
-  return{d:best,sev,mm,chUp:up,badAim:t.some(z=>!PC.targetOk(p.type,z)),way,low:lowGood(p),waste:wasteAim(p),good:isGoodSev(sev),target:bt,vert,horiz};}
+  return{d:best,sev,mm,chUp:up,badAim:t.some(z=>!PC.validCalled(penaltyType(p),z)),way,low:lowGood(p),waste:wasteAim(p),good:isGoodSev(sev),target:bt,vert,horiz};}
 // hit the spot = exactly on a target, by the same rule as the report (a change-up up in the zone never counts as a hit).
 // One rule for Stats Spot%, the report's Bullseyes and the Game marks.
 const hitSpot=p=>{const m=pitchMiss(p);return !!m&&m.d===0&&!m.chUp;};
@@ -179,5 +186,5 @@ function shakeoffs(pitches){const P=(pitches||[]).filter(p=>!p.deleted&&countsAs
   return{n:S.length,shook:shakeLine(S),followed:shakeLine(F),
     list:S.map(p=>{const q=prevOf(p);return{id:p.id,called:p.call||p.callRaw||'?',thrown:(p.type||'?')+(p.loc!=null?' '+p.loc:''),count:(p.b!=null&&p.s!=null)?`${p.b}-${p.s}`:'',
       prev:q?`${q.type||'?'} · ${outcomeOf(q)}`:'',outcome:outcomeOf(p),inning:p.inning,batter:p.batter||''};})};}
-Object.assign(PC,{shakeoffs,shakeLine,isHard,heatSummary,strikeOf,hitSpot,MISS_DIRS,topDir,bestWeak,pitchMark,MARK_LABEL,recentPitches,heatItems,HEAT_KEYS,heatFilter,heatData,CH_MIN_SEV,GOOD_MAX_SEV,isGoodSev,wasteAim,isBullpenPitch,WAY_SEV,LOW_RING,LOW_TYPES,lowGood,adjSev,chUp,missData,MISS_SCALE,missColor,VIRIDIS,heatColor,kCredit,summarize,pitchMiss,grpStats,TYPE_NAME,FIX,sessionReport,typeFeedback,COUNTS,countStats,trendPoints});
+Object.assign(PC,{shakeoffs,shakeLine,isHard,heatSummary,strikeOf,hitSpot,MISS_DIRS,topDir,bestWeak,pitchMark,MARK_LABEL,recentPitches,heatItems,HEAT_KEYS,heatFilter,heatData,CH_MIN_SEV,GOOD_MAX_SEV,isGoodSev,wasteAim,isBullpenPitch,WAY_SEV,LOW_RING,LOW_TYPES,LOW_CALL,penaltyType,lowGood,adjSev,chUp,missData,MISS_SCALE,missColor,VIRIDIS,heatColor,kCredit,summarize,pitchMiss,grpStats,TYPE_NAME,FIX,sessionReport,typeFeedback,COUNTS,countStats,trendPoints});
 })(typeof window!=='undefined'?window:globalThis);
