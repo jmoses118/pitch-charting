@@ -143,7 +143,18 @@ for(const [W,H] of [[667,375],[844,390],[932,430]]){for(const theme of ['night',
   ok(see.resume&&see.start&&see.sched,`${tag} Resume, Start new game, and today's Start are reachable`);
   const n=await p.evaluate(()=>({resume:document.querySelectorAll('#gamePick .resume').length,sg:document.querySelectorAll('#gamePick [data-sg]').length,list:document.querySelectorAll('#schedList [data-sg]').length,neu:document.querySelectorAll('#pickNew').length}));
   ok(n.resume===3&&n.sg===1&&n.list===0&&n.neu===1,`${tag} landscape has 3 Resume, 1 Start in the picker, 0 in the card, 1 Start new game (${n.resume}/${n.sg}/${n.list}/${n.neu})`);
+  ok(await p.evaluate(()=>{const kids=[...document.getElementById('pickList').children];const sg=kids.findIndex(el=>el.querySelector('[data-sg]'));const re=kids.findIndex(el=>el.querySelector('.resume'));return sg===0&&re>sg;}),`${tag} today's Start is above Resume`);
   ok(!errs.length,`${tag} no page errors ${errs.join('|')}`);await c.close();}}
+for(const theme of ['night','field']){const tag=`844x390 ${theme} no paused`;const {c,p,errs,st}=await page(844,390);await p.goto(BASE);
+  await st(theme=>{localStorage.setItem('te_ui_theme',theme);applyTheme();const S=__app.store.real,day=PC.localDate(Date.now());S.activeGame=null;S.activeSession=null;S.sessions=[];
+    S.games=[{id:'g_today',date:day,opponent:'Today',homeAway:'home',status:'scheduled',time:'18:00',gameNo:'1',field:'Main',pitches:[],lineup:[]}];
+    __app.store.save();__app.render();},theme);
+  await p.waitForTimeout(150);
+  const n=await p.evaluate(()=>({resume:document.querySelectorAll('#gamePick .resume').length,sg:document.querySelectorAll('#gamePick [data-sg]').length,list:document.querySelectorAll('#schedList [data-sg]').length,neu:document.querySelectorAll('#pickNew').length}));
+  ok(n.resume===0&&n.sg===1&&n.list===0&&n.neu===1,`${tag} 0 Resume and 1 Start in the picker (${n.resume}/${n.sg}/${n.list}/${n.neu})`);
+  const fit=await p.evaluate(()=>{const btn=document.querySelector('#gamePick [data-sg]'),list=document.getElementById('pickList').getBoundingClientRect(),nav=document.querySelector('nav').getBoundingClientRect().top,b=btn.getBoundingClientRect(),neu=document.getElementById('pickNew').getBoundingClientRect();return {h:b.height,clip:+(b.bottom-list.bottom).toFixed(2),neu:nav-neu.bottom};});
+  ok(fit.h>=48&&fit.clip<=0.5&&fit.neu>=0,`${tag} scheduled Start is fully in the list (${fit.h.toFixed(1)}px, clip ${fit.clip})`);
+  ok(!errs.length,`${tag} no page errors ${errs.join('|')}`);await c.close();}
 {const {c,p,errs,st}=await page(390,844);await p.goto(BASE);
   const seed=()=>{const S=__app.store.real,dev=S.sync.deviceId,day=PC.localDate(Date.now());S.activeGame=null;S.activeSession=null;S.sessions=[];
     S.games=[
