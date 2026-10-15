@@ -21,7 +21,8 @@ function pcPickConfig(host,env){
   if(prodHost(host))return Object.assign({url:PROD.url,key:PROD.key,fallback:false,banner:''},flags);
   let url=env.PC_SUPABASE_URL||PROD.local,key=env.PC_SUPABASE_ANON_KEY||'',fallback=false;
   if(namesProd(url)||key===PROD.key){url=PROD.local;key='';fallback=true;}
-  return Object.assign({url:url,key:key,fallback:fallback,banner:fallback?'Not the live database. This address was refused, so this copy is using the local database.':''},flags);
+  const banner=fallback?'Not the live database. This address was refused, so this copy is using the local database.':'Not the live database. Cloud sync on this copy does not use production.';
+  return Object.assign({url:url,key:key,fallback:fallback,banner:banner},flags);
 }
 pcPickConfig.PROD=PROD;
 Object.assign(PC,{pcPickConfig:pcPickConfig});

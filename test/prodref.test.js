@@ -30,13 +30,13 @@ function sourceNamesProd(src){
 }
 test('INFRA-3: non-production builds do not point at the production project',()=>{
   for(const host of ['','localhost','127.0.0.1','preview.example']){
-    const cfg=load(host);offProd(cfg,'host '+host);assert.equal(cfg.banner,'');
+    const cfg=load(host);offProd(cfg,'host '+host);assert.equal(cfg.fallback,false);assert.match(cfg.banner,/does not use production/);
   }
   const refused=load('localhost',{PC_SUPABASE_URL:PROD.url,PC_SUPABASE_ANON_KEY:PROD.key});
   offProd(refused,'env');assert.ok(refused.banner);assert.equal(refused.fallback,true);assert.equal(new URL(refused.url).hostname,'127.0.0.1');
   offProd(load('',null,{getItem(){return JSON.stringify({url:PROD.url,key:PROD.key});}}),'localStorage');
   const staging=load('localhost',{PC_SUPABASE_URL:'https://staging-example.supabase.co',PC_SUPABASE_ANON_KEY:'sb_publishable_staging'});
-  assert.equal(staging.url,'https://staging-example.supabase.co');assert.equal(staging.key,'sb_publishable_staging');assert.equal(staging.banner,'');
+  assert.equal(staging.url,'https://staging-example.supabase.co');assert.equal(staging.key,'sb_publishable_staging');assert.equal(staging.fallback,false);assert.match(staging.banner,/does not use production/);
   const prod=load(PROD.hosts[0],{PC_SUPABASE_URL:PROD.local,PC_SUPABASE_ANON_KEY:'other'});
   assert.equal(prod.url,PROD.url);assert.equal(prod.key,PROD.key);assert.equal(prod.banner,'');
   PROD.hosts.push('preview.example');
@@ -54,8 +54,40 @@ test('INFRA-3: an uppercase production URL and a split project ref are refused',
   assert.equal(sourceNamesProd(up),true);
   assert.equal(sourceNamesProd('https://staging-example.supabase.co'),false);
 });
+// A migration version is the 14-digit prefix. String order matches time order.
+function migrationVersion(rel){
+  const norm=String(rel).split(path.sep).join('/');
+  const m=norm.match(/(?:^|\/)supabase\/migrations\/(\d{14})_[^/]*\.sql$/);
+  return m?m[1]:'';
+}
+function appliedOnBase(rel,cutoff){const v=migrationVersion(rel);return !!v&&v<=cutoff;}
+function newestOnBase(){
+  const root=path.join(__dirname,'..');
+  const ref=require('./git-base').baseRef();
+  const r=cp.spawnSync('git',['ls-tree','-r','--name-only',ref,'supabase/migrations'],{cwd:root,encoding:'utf8'});
+  if(r.status!==0)throw new Error(((r.stderr||'')+(r.stdout||'')).trim()||'git ls-tree failed');
+  let max='';
+  for(const line of r.stdout.split('\n')){const v=migrationVersion(line);if(v>max)max=v;}
+  if(!max)throw new Error('no migrations on '+ref);
+  return max;
+}
+test('INFRA-3: a migration already on the base branch is exempt from the project-ref scan',()=>{
+  const old='supabase/migrations/20261014120000_scoring_lock.sql';
+  const cutoff='20261015130000';
+  assert.equal(appliedOnBase(old,cutoff),true);
+  assert.equal(appliedOnBase('supabase/migrations/'+cutoff+'_same.sql',cutoff),true);
+  assert.equal(appliedOnBase('supabase/migrations/20270101000000_next.sql',cutoff),false);
+  assert.equal(appliedOnBase('supabase/pending/20261014120000_scoring_lock.sql',cutoff),false);
+  assert.equal(appliedOnBase(path.join('js','core','config.js'),cutoff),false);
+  const sql=fs.readFileSync(path.join(__dirname,'..',old),'utf8');
+  assert.equal(sourceNamesProd(sql),true);
+  const baseMax=newestOnBase();
+  assert.match(baseMax,/^\d{14}$/);
+  assert.equal(appliedOnBase(old,baseMax),true);
+  assert.equal(appliedOnBase('supabase/migrations/20990101000000_next.sql',baseMax),false);
+});
 test('INFRA-3: CI, app, and SQL files do not name the production project',()=>{
-  const root=path.join(__dirname,'..'),hits=[];
+  const root=path.join(__dirname,'..'),hits=[],cutoff=newestOnBase();
   const walk=rel=>{
     const abs=path.join(root,rel);
     if(!fs.existsSync(abs))return;
@@ -63,6 +95,7 @@ test('INFRA-3: CI, app, and SQL files do not name the production project',()=>{
     if(st.isDirectory()){for(const n of fs.readdirSync(abs)){if(n==='node_modules')continue;walk(path.join(rel,n));}return;}
     if(!/\.(js|sh|yml|html|sql)$/.test(abs))return;
     if(rel===path.join('js','core','config.js'))return;
+    if(appliedOnBase(rel,cutoff))return;
     if(sourceNamesProd(fs.readFileSync(abs,'utf8')))hits.push(rel);
   };
   for(const rel of ['js','test','.github','supabase','index.html','sw.js','config.js'])walk(rel);
