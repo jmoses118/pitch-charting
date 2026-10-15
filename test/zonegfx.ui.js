@@ -1,4 +1,6 @@
-// Gameday-style zone graphics: softball markers, plate, batter silhouette, recent list, drill-down. Throwaway profile, Supabase blocked.
+// VIEW-1: Gameday-style zone graphics: softball markers, plate, batter silhouette, recent list, drill-down.
+// VIEW-2: one tap starts a scheduled game, and the result buttons are at least 48px.
+// Throwaway profile, Supabase blocked.
 const {chromium}=require('playwright-core');const BASE=process.argv[2]||'http://localhost:8766/';let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};
 (async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
 await c.route(/supabase\.co/,r=>r.abort());await c.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());const ev=f=>p.evaluate(f);
@@ -31,4 +33,14 @@ ok(await ev(()=>!!document.querySelector('#zone .batter')),'game batter silhouet
 await ev(()=>{__app.store.real.activeGame=null;__app.store.save();__app.render();});await p.click('nav [data-t="stats"]');await p.waitForTimeout(250);
 const cell=await p.$('#hMap [role="button"]');if(cell)await cell.click();await p.waitForTimeout(250);
 ok(await ev(()=>document.getElementById('ddDlg').open&&document.querySelectorAll('#ddMap .ball').length>0&&!!document.querySelector('#ddMap .plate')&&!document.querySelector('#ddMap .batter')),'drill-down: softballs + plate, no batter');
+// VIEW-2: close the live bullpen, then one tap starts a scheduled game
+await ev(()=>{const S=__app.store.real;S.activeSession=null;S.activeGame=null;S.games.push({id:'g_sched',date:'2026-10-15',opponent:'Storm',homeAway:'home',status:'scheduled',time:'18:00',lineup:[{slot:1,name:'Batter 1',num:'1',hand:'R'}],pitches:[]});__app.store.save();__app.render();});
+await p.click('nav [data-t="game"]');await p.waitForTimeout(200);
+ok(await ev(()=>!document.getElementById('schedCard').classList.contains('hide')&&!!document.querySelector('#schedList [data-sg="g_sched"]')),'VIEW-2 a scheduled game offers one Start button');
+const startH=await ev(()=>document.querySelector('#schedList [data-sg="g_sched"]').getBoundingClientRect().height);
+ok(startH>=48,'VIEW-2 Start is at least 48px ('+Math.round(startH)+')');
+await p.click('#schedList [data-sg="g_sched"]');await p.waitForTimeout(250);
+ok(await ev(()=>{const S=__app.store.real,g=S.games.find(x=>x.id==='g_sched');return S.activeGame==='g_sched'&&g.status==='active'&&!!g.started&&g.cur.inning===1&&g.cur.outs===0&&document.getElementById('schedCard').classList.contains('hide')&&document.getElementById('inn').textContent==='1';}),'VIEW-2 one tap starts the scheduled game');
+const resH=await ev(()=>parseFloat(getComputedStyle(document.querySelector('#resBtns button')).minHeight));
+ok(resH>=48,'VIEW-2 result buttons are at least 48px ('+resH+')');
 ok(errs.length===0,'no page errors '+errs.join(' | '));console.log(fails?fails+' FAILED':'ALL PASS');await b.close();process.exit(fails?1:0);})();
