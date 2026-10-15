@@ -1,8 +1,9 @@
 // BRIEF-5. The cap and these gate files are read from the base branch.
 // A pull request that changes either one fails. Only the top-level test/
 // folder and the named lockfiles at the repo root are excluded.
+// A word-for-word rename does not count.
 const path=require('path');
-const {numstat, blobAt, rawModes, textChange, gateDrift, readFileAt, baseRev, headRev}=require('./prdiff.js');
+const {numstat, blobAt, rawModes, textChange, gateDrift, readFileAt, baseRev, headRev, git}=require('./prdiff.js');
 
 const DEFAULT_CAP=300;
 const ROOT_LOCKS=['package-lock.json','npm-shrinkwrap.json','yarn.lock','pnpm-lock.yaml','bun.lock','bun.lockb','Cargo.lock','Gemfile.lock','poetry.lock','composer.lock','packages.lock.json'];
@@ -71,10 +72,19 @@ function main(){
     if(row.oldMode==='160000'||row.newMode==='160000'){console.log('FAIL pr size submodule '+row.file);process.exit(1);}
     if(row.file==='.gitmodules'||row.file.endsWith('/.gitmodules')){console.log('FAIL pr size .gitmodules changed');process.exit(1);}
   }
+  const named=git(root, ['diff','-M','--name-status', diff.from, diff.head]);
+  if(named.code!==0){console.log('FAIL pr size '+((named.err||named.out).trim().split('\n').find(Boolean)||'git diff failed'));process.exit(1);}
+  const pure=new Set(), edited=new Map();
+  for(const line of named.out.split('\n')){
+    const m=line.match(/^R(\d+)\t(.*)\t(.*)$/);
+    if(!m)continue;
+    if(m[1]==='100'){pure.add(m[2]);pure.add(m[3]);}
+    else edited.set(m[3], m[2]);
+  }
   let total=0;
   const files=[];
   for(const row of diff.rows){
-    if(excluded(row.file))continue;
+    if(excluded(row.file)||pure.has(row.file))continue;
     const hb=blobAt(root, diff.head, row.file);
     const bb=blobAt(root, diff.from, row.file);
     if(!hb.ok){console.log('FAIL pr size '+hb.error);process.exit(1);}
@@ -82,7 +92,7 @@ function main(){
     let n;
     if(hb.binary||bb.binary||row.add==='-'||row.del==='-')n=(hb.size||0)+(bb.size||0);
     else{
-      const text=textChange(root, diff.from, diff.head, row.file);
+      const text=textChange(root, diff.from, diff.head, row.file, edited.get(row.file));
       if(!text.ok){console.log('FAIL pr size '+text.error);process.exit(1);}
       if(text.long){console.log('FAIL pr size minified line in '+row.file);process.exit(1);}
       const linesN=Number(row.add)+Number(row.del);

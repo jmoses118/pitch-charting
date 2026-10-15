@@ -58,7 +58,7 @@ function withTextDiff(cwd, fn){
 function numstat(cwd){
   const span=range(cwd);
   if(!span.ok)return span;
-  const d=withTextDiff(cwd, ()=>git(cwd, ['diff','--numstat','--text','--no-ext-diff', span.from, span.head]));
+  const d=withTextDiff(cwd, ()=>git(cwd, ['diff','-M','--numstat','--text','--no-ext-diff', span.from, span.head]));
   if(d.code!==0){
     const detail=(d.err||d.out).trim().split('\n').find(Boolean)||'git diff failed';
     return {ok:false, base:span.base, error:detail};
@@ -100,8 +100,13 @@ function rawModes(cwd){
   }
   return {ok:true, rows};
 }
-function textChange(cwd, from, head, file){
-  const d=withTextDiff(cwd, ()=>git(cwd, ['diff','-U0','--text','--no-ext-diff', from, head, '--', file]));
+function textChange(cwd, from, head, file, oldFile){
+  const args=['diff','-U0'];
+  if(oldFile)args.push('-M');
+  args.push('--text','--no-ext-diff', from, head, '--');
+  if(oldFile)args.push(oldFile);
+  args.push(file);
+  const d=withTextDiff(cwd, ()=>git(cwd, args));
   if(d.code!==0){
     const detail=(d.err||d.out).trim().split('\n').find(Boolean)||'git diff failed';
     return {ok:false,error:detail};

@@ -1,5 +1,9 @@
 # Changelog
 
+## v72 – A file move with no edits is free
+### Changed
+- **BRIEF-5.** The chart works the same. Moving a file without changing its text does not count toward the 300-line pull request limit. A long line that was already in the file can move with it. A move that also changes the file counts only those changed lines, and a new line longer than 500 characters still fails.
+
 ## v71 – The Game tab opens a picker
 ### Changed
 - Tapping Game opens a list of games in progress. Start new game asks for the opponent and the pitcher before it creates anything. A draft can be discarded. Ending a game still asks first.
