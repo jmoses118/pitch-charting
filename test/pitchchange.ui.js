@@ -51,7 +51,7 @@ if(await p.$('#sPitcher option[value=""]')){await p.selectOption('#sPitcher','')
 const so=await p.$$eval('#sPit tr',rs=>rs.slice(1).map(r=>[...r.cells].map(c=>c.textContent.trim())));console.log('SO table',JSON.stringify(so));
 const soOf=nm=>{const r=so.find(x=>x[0].includes(nm));return r?r[r.length-1]:null;};ok(soOf('Avery')==='1'&&soOf('Jules')==='1'&&soOf('Newbie')==='1','SO column: Avery 1, Jules 1, Newbie 1');
 // exit test mode: nothing kept
-await p.click('nav [data-t="setup"]');await p.click('#testBtn');await p.waitForTimeout(200);
+await p.click('nav [data-t="setup"]');await p.click('#testBtn');await p.click('#askOk');await p.waitForTimeout(200);
 const after=await p.evaluate(()=>({g:__app.store.real.games.some(x=>x.id==='g_t'),np:__app.store.real.pitchers.some(x=>x.name==='Newbie'),q:__app.store.pendingCount()-window.__q0,same:window.__realBefore===JSON.stringify(__app.store.real.games.length)+JSON.stringify(__app.store.real.pitchers.length)}));
 console.log(JSON.stringify(after));ok(!after.g&&!after.np&&after.q===0&&after.same,'after exit: no test game, no test pitcher, nothing queued');ok(netT===net0,'no Supabase requests during test mode ('+(netT-net0)+')');
 ok(errs.length===0,'no page errors '+errs.join('|'));console.log(fails?`${fails} FAILED`:'ALL PASS');await b.close();process.exit(fails?1:0);})().catch(e=>{console.error(e);process.exit(1)});

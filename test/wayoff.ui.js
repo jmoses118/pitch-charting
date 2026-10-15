@@ -14,5 +14,5 @@ ok(/Competitive/.test(rt)&&/67%/.test(rt),'report: competitive 67% (4 of 6)');ok
 await p.$eval('#rMap [data-z="3"]',e=>e.scrollIntoView({block:'center'}));await p.dispatchEvent('#rMap [data-z="3"]','click');await p.waitForTimeout(250);const dd=await p.textContent('#ddCap');
 ok(/2 on target/.test(dd)&&/1 way off/.test(dd)&&/way high/.test(dd),'drill-down: 2 on target (3, ring 12), 1 way high: '+dd);
 await p.evaluate(()=>document.querySelectorAll('dialog[open]').forEach(d=>d.close()));
-await p.click('nav [data-t="setup"]');await p.click('#testBtn');await p.waitForTimeout(150);ok(await p.evaluate(()=>!__app.store.real.sessions.some(s=>s.pitches.some(x=>x.loc>20))),'nothing kept after test mode');
+await p.click('nav [data-t="setup"]');await p.click('#testBtn');await p.click('#askOk');await p.waitForTimeout(150);ok(await p.evaluate(()=>!__app.store.real.sessions.some(s=>s.pitches.some(x=>x.loc>20))),'nothing kept after test mode');
 ok(errs.length===0,'no page errors '+errs.join('|'));console.log(fails?`${fails} FAILED`:'ALL PASS');await b.close();process.exit(fails?1:0);})().catch(e=>{console.error(e);process.exit(1)});

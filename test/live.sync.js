@@ -9,8 +9,8 @@ console.log('pending before sync:',await pg.textContent('#syncTag'));
 await pg.click('nav [data-t="setup"]');await pg.click('#syncNow');await pg.waitForTimeout(4000);console.log('after sync:',await pg.textContent('#syncTag'),'|',await pg.textContent('#syncMsg'));
 // test mode must not sync
 await pg.click('#testBtn');await pg.click('nav [data-t="bullpen"]');await pg.click('#types [data-c="DR"]');await tap(8);await tap(8);console.log('test tag:',await pg.textContent('#syncTag'));
-await pg.click('nav [data-t="setup"]');await pg.click('#testBtn');
+await pg.click('nav [data-t="setup"]');await pg.click('#testBtn');await pg.click('#askOk');
 // fresh phone restore
-const c2=await b.newContext();const p2=await c2.newPage();p2.on('dialog',d=>d.accept());await p2.goto('https://jmoses118.github.io/pitch-charting/');await p2.click('nav [data-t="setup"]');await p2.fill('#teamCode',TEST_COACH);await p2.click('#teamSave');await p2.waitForTimeout(3000);await p2.click('#pullCloud');await p2.waitForTimeout(3000);
+const c2=await b.newContext();const p2=await c2.newPage();p2.on('dialog',d=>d.accept());await p2.goto('https://jmoses118.github.io/pitch-charting/');await p2.click('nav [data-t="setup"]');await p2.fill('#teamCode',TEST_COACH);await p2.click('#teamSave');await p2.waitForTimeout(3000);await p2.click('#pullCloud');await p2.click('#askOk');await p2.waitForTimeout(3000);
 const n=await p2.evaluate(()=>__app.store.real.sessions.reduce((a,s)=>a+s.pitches.length,0));console.log('fresh phone restored pitches:',n);
 console.log('errors',errs);await b.close();})().catch(e=>{console.error(e);process.exit(1)});

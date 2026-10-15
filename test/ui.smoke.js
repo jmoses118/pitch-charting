@@ -4,13 +4,14 @@ const errs=[];pg.on('pageerror',e=>errs.push(e.message));
 await pg.goto('http://localhost:'+process.argv[2]+'/');
 const gamesN=()=>pg.evaluate(()=>__app.store.real.games.length);
 const n0=await gamesN();
+await pg.click('#pickNew');
+if(!(await pg.isDisabled('#gStart'))||(await gamesN())!==n0)throw 'empty stays disabled';
+await pg.fill('#gOpp','Lightning');
+await pg.evaluate(()=>{const s=document.getElementById('gPitcher');s.value='';s.dispatchEvent(new Event('change',{bubbles:true}));});
+if(!(await pg.isDisabled('#gStart'))||(await gamesN())!==n0)throw 'missing pitcher';
+await pg.selectOption('#gPitcher','p_woods');
+if(await pg.isDisabled('#gStart'))throw 'ready to confirm';
 await pg.click('#gStart');
-if((await pg.textContent('#toast'))!=='Enter the opponent'||(await gamesN())!==n0)throw 'empty opponent';
-await pg.evaluate(()=>{const S=__app.store.real;S.pitchers.forEach(p=>{p.archived=true;});S.curPitcher=null;__app.store.save();__app.render();});
-await pg.fill('#gOpp','Lightning');await pg.click('#gStart');
-if((await pg.textContent('#toast'))!=='Pick a pitcher'||(await gamesN())!==n0)throw 'missing pitcher';
-await pg.evaluate(()=>{const S=__app.store.real;S.pitchers.forEach(p=>{p.archived=false;});S.curPitcher='p_woods';__app.store.save();__app.render();});
-await pg.fill('#gOpp','Lightning');await pg.click('#gStart');
 // result sheet opens only after the called spot and the actual spot (v48)
 const tap=async z=>{const s=`#zone [data-z="${z}"]`;await pg.$eval(s,e=>e.scrollIntoView({block:"center"}));await pg.click(s,{force:true});};
 const pitch=async result=>{await pg.click('#types [data-c="FB"]');await tap(3);await tap(4);await pg.click(`[data-r="${result}"]`);};
@@ -24,7 +25,7 @@ await pg.screenshot({path:require('path').join(__dirname,'shot-game.png'),fullPa
 // bullpen with call
 await pg.evaluate(()=>{__app.store.real.curPitcher='p_crich';});
 await pg.click('#gPause');
-await pg.click('#pausedList [data-rg]');
+await pg.click('#pickList [data-rg]');
 const src=await pg.evaluate(()=>{const S=__app.store.real;const g=S.games.find(x=>x.id===S.activeGame);return S.curPitcher===g.cur.pitcherId&&S.curPitcher==='p_woods';});
 if(!src)throw 'resume pitcher';
 await pg.click('#gPause'); // a game in progress locks the bullpen (modes are exclusive)
@@ -40,6 +41,6 @@ await pg.click('nav [data-t="setup"]');await pg.click('#testBtn');await pg.click
 await pg.click('#types [data-c="DR"]');await tap(8);await tap(9);
 const vis=await pg.isVisible('#testbar');const after=await pg.evaluate(()=>localStorage.getItem('te_pitchchart_v1'));
 console.log('testbar visible',vis,'storage unchanged',before===after);await pg.screenshot({path:require('path').join(__dirname,'shot-test.png')});
-pg.on('dialog',d=>d.accept());await pg.click('nav [data-t="setup"]');await pg.click('#testBtn');
+await pg.click('nav [data-t="setup"]');await pg.click('#testBtn');await pg.click('#askOk');
 console.log('test exited, testbar visible',await pg.isVisible('#testbar'));
 console.log('errors',errs);await b.close();if(errs.length||!vis||before!==after)process.exit(1);})().catch(e=>{console.error(e);process.exit(1)});

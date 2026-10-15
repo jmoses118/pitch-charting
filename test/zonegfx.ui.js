@@ -35,7 +35,7 @@ const cell=await p.$('#hMap [role="button"]');if(cell)await cell.click();await p
 ok(await ev(()=>document.getElementById('ddDlg').open&&document.querySelectorAll('#ddMap .ball').length>0&&!!document.querySelector('#ddMap .plate')&&!document.querySelector('#ddMap .batter')),'drill-down: softballs + plate, no batter');
 await p.click('#ddClose');await p.waitForTimeout(150);
 // VIEW-2: close the live bullpen, then one tap starts a scheduled game
-await ev(()=>{const S=__app.store.real;S.activeSession=null;S.activeGame=null;S.games.push({id:'g_sched',date:'2026-10-15',opponent:'Storm',homeAway:'home',status:'scheduled',time:'18:00',lineup:[{slot:1,name:'Batter 1',num:'1',hand:'R'}],pitches:[]});__app.store.save();__app.render();});
+await ev(()=>{const S=__app.store.real;S.activeSession=null;S.activeGame=null;S.games.push({id:'g_sched',date:PC.localDate(Date.now()),opponent:'Storm',homeAway:'home',status:'scheduled',time:'18:00',lineup:[{slot:1,name:'Batter 1',num:'1',hand:'R'}],pitches:[]});__app.store.save();__app.render();});
 await p.click('nav [data-t="game"]');await p.waitForTimeout(200);
 ok(await ev(()=>!document.getElementById('schedCard').classList.contains('hide')&&!!document.querySelector('#schedList [data-sg="g_sched"]')),'VIEW-2 a scheduled game offers one Start button');
 const startH=await ev(()=>document.querySelector('#schedList [data-sg="g_sched"]').getBoundingClientRect().height);
