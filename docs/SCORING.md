@@ -1,6 +1,6 @@
 # Scoring rules
 
-All rules live in `js/core/grid.js` and `js/core/scoring.js`; report, heat map and stats share them.
+All rules live in `js/core/grid.js` and `js/core/scoring.js`; report, heat map and stats share them. SPEC.md lists SCORE-1 through SCORE-4. The wording of those four rules is in this file. The rest of this file is current too.
 
 ## Grid (pitcher's view)
 - **Zone** 1–9 (3×3), **5** = middle-middle.
@@ -25,10 +25,10 @@ A change-up is **never aimed in the upper zone**. The only valid change-up targe
 - Older data with a high change-up target is flagged by `pitchMiss(...).badAim`; it is still scored normally.
 - The **CH-up miss rule** below is unchanged.
 
-## Hit spot
+## SCORE-1 Hit spot
 `PC.hitSpot(p)` = `pitchMiss(p).d === 0` and not a CH-up. One rule for Stats Spot %, the report's Bullseyes and the Game marks.
 
-## Miss severity (per called pitch)
+## SCORE-2 Miss severity (per called pitch)
 - `sev` = distance in squares from the nearest target, 0 = hit spot.
 - **Souvenir**: landing in 5 when 5 was not a target → `MAX_MISS` (4).
 - **CH up**: a changeup that misses up is at least `CH_MIN_SEV` (2).
@@ -39,13 +39,13 @@ A change-up is **never aimed in the upper zone**. The only valid change-up targe
 ## Heat map summary
 `PC.heatSummary(d, miss)` (scoring.js) accounts for every pitch: Miss = "Showing N of M pitches (the ones with an aim)…", plus souvenirs and how many with no aim aren't shown. Landed = all pitches with a location, plus how many with no location are left out.
 
-## Competitive %
+## SCORE-3 Competitive %
 Pitches landing in zone (1–9) or ring (11–18) ÷ all pitches. Way off, in dirt and over the catcher are not competitive.
 
 ## Foul timing, wild pitch, velocity (v40)
 Optional. A foul is saved on the Foul tap with `foulTime` unset. Early / On time / Late can set `foulTime` to `early`, `ontime` or `late` on that pitch afterwards. `wpPb` is `wp` or `pb`. `velo` is 20–110, one decimal. A number outside that range is dropped and a short message says it was not saved (empty stays empty, with no message). A bullpen pitch can also carry `result` `ball` or `called` when the phone's default result is set; otherwise bullpen strike % still uses the zone.
 
-## Strike %
+## SCORE-4 Strike %
 Game strike % follows GameChanger (balls vs called/swinging/foul/in play etc.); location does not change it.
 
 ## Strikeouts
