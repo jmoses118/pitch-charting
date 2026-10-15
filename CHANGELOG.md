@@ -1,5 +1,10 @@
 # Changelog
 
+## v63 – Short-screen count row
+### Changed
+- On a phone 720px tall or shorter, the count row collapses so the zone stays above the tab bar. Shake-off stays 48px. Pitch chips on that short screen stay 44px.
+- Cache: `te-pitch-v63`.
+
 ## v62 – Jersey number and tap targets
 ### Changed
 - **RULE-11, RULE-11a.** A jersey is empty or 1–2 digits, and `00` is allowed. `jerseyNum` in `js/core/store.js` rejects `100`, `-1`, `abc`, and `4 5` with “Jersey number is 0–99 (00 is OK)” and the dialog stays open. An active pitcher cannot take another active pitcher’s number (`#45 is already Avery`); `0` and `00` stay distinct. An archived pitcher does not block. The Game screen opens the same editor.
