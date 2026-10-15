@@ -141,5 +141,27 @@ for(const [W,H] of [[667,375],[844,390],[932,430]]){for(const theme of ['night',
     const reach=sel=>{const e=document.querySelector(sel);if(!e)return false;e.scrollIntoView({block:'nearest'});const r=e.getBoundingClientRect();const top=Math.max(r.top,head()),bot=Math.min(r.bottom,nav());return bot-top>=24&&r.width>20;};
     return {resume:reach('#gamePick .resume'),start:reach('#pickNew'),sched:reach('#gamePick [data-sg]')};});
   ok(see.resume&&see.start&&see.sched,`${tag} Resume, Start new game, and today's Start are reachable`);
+  const n=await p.evaluate(()=>({resume:document.querySelectorAll('#gamePick .resume').length,sg:document.querySelectorAll('#gamePick [data-sg]').length,list:document.querySelectorAll('#schedList [data-sg]').length,neu:document.querySelectorAll('#pickNew').length}));
+  ok(n.resume===3&&n.sg===1&&n.list===0&&n.neu===1,`${tag} landscape has 3 Resume, 1 Start in the picker, 0 in the card, 1 Start new game (${n.resume}/${n.sg}/${n.list}/${n.neu})`);
   ok(!errs.length,`${tag} no page errors ${errs.join('|')}`);await c.close();}}
+{const {c,p,errs,st}=await page(390,844);await p.goto(BASE);
+  const seed=()=>{const S=__app.store.real,dev=S.sync.deviceId,day=PC.localDate(Date.now());S.activeGame=null;S.activeSession=null;S.sessions=[];
+    S.games=[
+      {id:'draft1',started:10,status:'active',opponent:'Drafty',date:'2026-10-02',time:'15:00',homeAway:'home',scorer:dev,lineup:[],pitches:[],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:0,pitcherId:'p_woods'}},
+      {id:'live1',started:20,status:'active',opponent:'Storm',date:'2026-10-03',time:'18:00',homeAway:'away',scorer:dev,lineup:[],pitches:[{id:'p1',pitcherId:'p_woods',ts:50,type:'FB'}],cur:{inning:4,outs:1,slot:0,b:1,s:0,abn:1,pitcherId:'p_woods'}},
+      {id:'other1',started:5,status:'active',opponent:'Other',date:'2026-10-01',time:'12:00',homeAway:'home',scorer:'other-phone',lineup:[],pitches:[{id:'p2',pitcherId:'p_woods',ts:10}],cur:{inning:2,outs:0,slot:0,b:0,s:0,abn:0,pitcherId:'p_woods'}},
+      {id:'g_today',date:day,opponent:'Today',homeAway:'home',status:'scheduled',time:'18:00',pitches:[],lineup:[]}];
+    __app.store.save();__app.render();};
+  await st(seed);
+  const count=()=>p.evaluate(()=>{const card=document.getElementById('schedCard'),cs=getComputedStyle(card);
+    return {resume:document.querySelectorAll('#gamePick .resume').length,sg:document.querySelectorAll('#gamePick [data-sg]').length,list:document.querySelectorAll('#schedList [data-sg]').length,pick:document.querySelectorAll('#pickList [data-sg]').length,neu:document.querySelectorAll('#pickNew').length,shown:!card.classList.contains('hide')&&cs.display!=='none'&&card.getBoundingClientRect().height>0};});
+  const portrait=n=>n.list===1&&n.pick===0&&n.shown&&n.resume===3&&n.neu===1;
+  const landscape=n=>n.resume===3&&n.sg===1&&n.list===0&&n.neu===1&&n.pick===1;
+  const say=n=>`${n.resume} resume, picker ${n.sg}, card ${n.list}, pickList ${n.pick}, new ${n.neu}, card ${n.shown?'shown':'hidden'}`;
+  let n=await count();ok(portrait(n),`portrait scheduled Start is on the card (${say(n)})`);
+  await p.setViewportSize({width:844,height:390});await p.waitForTimeout(250);
+  n=await count();ok(landscape(n),`rotate to landscape moves today's Start into the picker (${say(n)})`);
+  await p.setViewportSize({width:390,height:844});await p.waitForTimeout(250);
+  n=await count();ok(portrait(n),`rotate back to portrait restores the Scheduled card (${say(n)})`);
+  ok(!errs.length,`rotate no page errors ${errs.join('|')}`);await c.close();}
 console.log(fails?fails+' FAILED':'ALL PASS');await b.close();process.exit(fails?1:0);})().catch(e=>{console.error(e);process.exit(1);});
