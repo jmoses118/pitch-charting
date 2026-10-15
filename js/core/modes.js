@@ -53,9 +53,10 @@ const SCORING_ELSEWHERE='👁 View only – another phone is scoring';
 const LOCK_MSG={game:'Game in progress — end or pause the game to start a bullpen',bullpen:'Bullpen in progress — end or pause the bullpen to start a game'};
 // started, not ended games that are not on screen (paused here or started on another phone) – resumable
 function openGames(st){return (st&&st.games||[]).filter(g=>gameInProgress(g)&&g.id!==st.activeGame);}
+function scheduledFor(st,day){return (st&&st.games||[]).filter(g=>gameStatus(g)==='scheduled'&&g.date===day).sort((a,b)=>(a.date+a.gameNo).localeCompare(b.date+b.gameNo,undefined,{numeric:true}));}
 const pausedGames=st=>openGames(st).sort((a,b)=>lastUsed(b)-lastUsed(a)||(b.started||0)-(a.started||0)||String(a.id).localeCompare(String(b.id)));
 function canDiscard(g,device){return canScore(g,device)&&gameDraft(g);}
 // paused bullpen sessions with pitches – resumable
 const pausedSessions=st=>(st.sessions||[]).filter(s=>s.paused&&s.id!==st.activeSession&&sessionOpen(s)).sort((a,b)=>(b.paused||0)-(a.paused||0));
-Object.assign(PC,{canScore,lockedBox,canEditBox,claimScoring,SCORING_ELSEWHERE,gameInProgress,sessionOpen,activeGameOf,activeSessionOf,modeLock,LOCK_MSG,pausedGames,pausedSessions,NEED_OPP,NEED_PITCHER,END_MSG,discardMsg,createGameMsg,hasPitches,gameDraft,statsGame,gamePitcherId,lastUsed,openGames,canDiscard,createGame,endGame,discardGame,pauseGame});
+Object.assign(PC,{canScore,lockedBox,canEditBox,claimScoring,SCORING_ELSEWHERE,gameInProgress,sessionOpen,activeGameOf,activeSessionOf,modeLock,LOCK_MSG,pausedGames,pausedSessions,NEED_OPP,NEED_PITCHER,END_MSG,discardMsg,createGameMsg,hasPitches,gameDraft,statsGame,gamePitcherId,lastUsed,openGames,canDiscard,scheduledFor,createGame,endGame,discardGame,pauseGame});
 })(typeof window!=='undefined'?window:globalThis);

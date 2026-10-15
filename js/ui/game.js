@@ -108,18 +108,19 @@ $('gLineup').addEventListener('click',e=>{const{i,f}=e.target.dataset;if(f==='ha
 $('gAddB').onclick=()=>{draftLineup.push({slot:draftLineup.length+1,name:'',num:'',hand:'R'});renderLineupForm();};
 const vsAt=g=>g.homeAway==='away'?'@':'vs';
 // One tap starts a game that schedule sync already filled in. Lineup can be edited after it starts.
-function startScheduled(id){if(canGame()&&PC.sessionOpen(session()))return toast(PC.LOCK_MSG.bullpen);const g=S().games.find(x=>x.id===id);if(!g||PC.gameStatus(g)!=='scheduled')return;
+function startScheduled(id,opponent){if(canGame()&&PC.sessionOpen(session()))return toast(PC.LOCK_MSG.bullpen);const g=S().games.find(x=>x.id===id);if(!g||PC.gameStatus(g)!=='scheduled')return;
   const lineup=(g.lineup&&g.lineup.length)?g.lineup.map((b,i)=>({slot:i+1,name:String(b.name||'').trim()||('Batter '+(i+1)),num:String(b.num||'').trim(),hand:b.hand==='L'?'L':'R'})):Array.from({length:9},(_,i)=>({slot:i+1,name:'Batter '+(i+1),num:'',hand:'R'}));
-  const msg=PC.createGameMsg({opponent:g.opponent,pitcherId:curPitcherId()});if(msg)return toast(msg);
-  if(!PC.createGame(S(),{opponent:g.opponent,pitcherId:curPitcherId(),scheduledId:id,date:g.date||today(),event:g.event||'',homeAway:g.homeAway||'tbd',lineup,scorer:myDevice()}))return;
+  const opp=opponent==null?g.opponent:opponent;
+  const msg=PC.createGameMsg({opponent:opp,pitcherId:curPitcherId()});if(msg)return toast(msg);
+  if(!PC.createGame(S(),{opponent:opp,pitcherId:curPitcherId(),scheduledId:id,date:g.date||today(),event:g.event||'',homeAway:g.homeAway||'tbd',lineup,scorer:myDevice()}))return;
   dirty('games',id);save();resetDraft();clearRedo();clearEditUndo();render();toast('Game on');}
 $('schedList').addEventListener('click',e=>{if(e.target.closest('a'))return;const b=e.target.closest('[data-sg]');if(b)startScheduled(b.dataset.sg);});
 let setupSchedId=null;
 function paintConfirm(){$('gStart').disabled=!!PC.createGameMsg({opponent:$('gOpp').value,pitcherId:$('gPitcher').value});}
 function openSetup(){if(canGame()&&PC.sessionOpen(session()))return toast(PC.LOCK_MSG.bullpen);setupSchedId=null;const cur=curPitcherId();
   $('gPitcher').innerHTML='<option value=""></option>'+store.activePitchers().map(p=>`<option value="${H(p.id)}"${p.id===cur?' selected':''}>${H(PC.pitcherLabel(p))}</option>`).join('');
-  if(!$('gDate').value)$('gDate').value=today();const day=today();
-  $('setupSched').innerHTML=(S().games||[]).filter(x=>PC.gameStatus(x)==='scheduled'&&x.date===day).map(x=>`<button type="button" class="ghost" data-fill="${H(x.id)}">${H(x.opponent||'Game')}</button>`).join('');
+  if(!$('gDate').value)$('gDate').value=today();
+  $('setupSched').innerHTML=PC.scheduledFor(S(),today()).map(x=>`<button type="button" class="ghost" data-fill="${H(x.id)}">${H(x.opponent||'Game')}</button>`).join('');
   paintConfirm();openSheet($('setupDlg'));}
 function pickRow(x){const who=H(PC.pitcherLabel(pById(PC.gamePitcherId(x)))),when=H([x.date,x.time].filter(Boolean).join(' '));
   const meta=PC.gameDraft(x)?`${H(vsAt(x))} ${H(x.opponent)} <span class="drafttag">Draft</span><br><small class="mut">${who}${when?' · '+when:''}</small>`:`${H(vsAt(x))} ${H(x.opponent)}<br><small class="mut">${who}${when?' · '+when:''} · ${PC.pitchCount(x.pitches)} pitches · inning ${x.cur?x.cur.inning:1}</small>`;
@@ -127,9 +128,9 @@ function pickRow(x){const who=H(PC.pitcherLabel(pById(PC.gamePitcherId(x)))),whe
   return `<div class="grow"><div class="gmeta">${meta}</div>${dis}<button type="button" class="primary resume" data-rg="${H(x.id)}">Resume</button></div>`;}
 $('pickNew').onclick=openSetup;$('setupCancel').onclick=()=>$('setupDlg').close('cancel');
 $('gOpp').addEventListener('input',paintConfirm);$('gPitcher').addEventListener('change',paintConfirm);
-$('setupSched').addEventListener('click',e=>{const b=e.target.closest('[data-fill]');if(!b)return;const g=S().games.find(x=>x.id===b.dataset.fill);if(!g)return;setupSchedId=g.id;$('gOpp').value=g.opponent||'';if(g.homeAway)$('gHA').value=g.homeAway;if(g.date)$('gDate').value=g.date;$('gEvent').value=g.event||'';if(g.pitcherId)$('gPitcher').value=g.pitcherId;paintConfirm();});
+$('setupSched').addEventListener('click',e=>{const b=e.target.closest('[data-fill]');if(!b)return;const g=S().games.find(x=>x.id===b.dataset.fill);if(!g)return;setupSchedId=g.id;$('gOpp').value=g.opponent||'';if(g.homeAway)$('gHA').value=g.homeAway;if(g.date)$('gDate').value=g.date;$('gEvent').value=g.event||'';paintConfirm();});
 $('gStart').onclick=()=>{if($('gStart').disabled)return;if(canGame()&&PC.sessionOpen(session()))return toast(PC.LOCK_MSG.bullpen);const pid=$('gPitcher').value;if(pid)S().curPitcher=pid;
-  if(setupSchedId){const row=S().games.find(x=>x.id===setupSchedId);if(row)$('gOpp').value&&(row.opponent=$('gOpp').value);const id=setupSchedId;setupSchedId=null;$('setupDlg').close();return startScheduled(id);}
+  if(setupSchedId){const id=setupSchedId,opp=$('gOpp').value;setupSchedId=null;$('setupDlg').close();return startScheduled(id,opp);}
   const lineup=draftLineup.map((b,i)=>({slot:i+1,name:b.name.trim()||('Batter '+(i+1)),num:b.num.trim(),hand:b.hand}));
   const o={opponent:$('gOpp').value,pitcherId:pid,date:$('gDate').value||today(),event:$('gEvent').value.trim(),homeAway:$('gHA').value,lineup,scorer:myDevice()};
   const msg=PC.createGameMsg(o);if(msg)return toast(msg);const g=PC.createGame(S(),o);if(!g)return;

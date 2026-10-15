@@ -24,7 +24,7 @@ function render(skipCallInput){const s=S();applyViewOnly(viewOnly());if(typeof r
   {const st=$('syncTag'),home=showEntry?$('addPQuick'):$('modeTag');if(st.nextSibling!==home)home.parentNode.insertBefore(st,home);}
   $('gameHead').classList.toggle('hide',!(tab==='game'&&g));
   $('inGame').classList.toggle('hide',!g);
-  const sch=s.games.filter(x=>PC.gameStatus(x)==='scheduled'&&x.date===today()).sort((x,y)=>(x.date+x.gameNo).localeCompare(y.date+y.gameNo,undefined,{numeric:true}));
+  const sch=PC.scheduledFor(s,today());
   $('schedCard').classList.toggle('hide',!(tab==='game'&&!g&&!lk&&sch.length));
   $('schedList').innerHTML=sch.map(x=>`<div class="prow"><button data-sg="${H(x.id)}" class="primary startg"><b>Start</b> ${H((x.date||'').slice(5))} ${H(x.time||'')} ${vsAt(x)} ${H(x.opponent)}<br><small>${[x.gameNo,x.field,x.location].filter(Boolean).map(H).join(' · ')}</small></button>${x.link&&/^https:\/\//.test(x.link)?`<a href="${H(x.link)}" target="_blank" rel="noopener" class="gclink">GC</a>`:''}</div>`).join('');
   if(tab==='game'&&!g){renderLineupForm();if(!$('gDate').value)$('gDate').value=today();}
