@@ -2,7 +2,7 @@
 
 ## v63 – Short game screen keeps the zone on screen
 ### Changed
-- **RULE-8.** On a short screen the inning bar and the shake-off button take less height, so the zone stays above the tab bar at 375px. The fit check also covers 430px.
+- **RULE-8.** On a short screen the inning bar takes less height, so the zone stays above the tab bar at 375px. The shake-off button stays 48px. The fit check also covers 430px.
 - Cache: `te-pitch-v63`.
 
 ## v62 – One home for each rule
