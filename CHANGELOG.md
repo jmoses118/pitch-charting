@@ -1,5 +1,10 @@
 # Changelog
 
+## v71 – The Game tab opens a picker
+### Changed
+- Tapping Game opens a list of games in progress. Start new game asks for the opponent and the pitcher before it creates anything. A draft can be discarded. Ending a game still asks first.
+- Cache: `te-pitch-v69`.
+
 ## v70 – A game needs a pitcher, and an empty game stays on the list
 ### Changed
 - A pitcher is now required to start a game. Leaving the opponent blank no longer starts a game called Opponent.

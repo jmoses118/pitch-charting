@@ -13,6 +13,8 @@ const D={type:null,callTxt:'',parsed:null,target:null,called:[],loc:null,aim:nul
 let callOn=false,bpHand='N'; // bullpen default: no batter (in/away calls map as RHB)
 // every dialog/sheet: Cancel, Escape and a tap on the backdrop close it without saving (returnValue 'cancel')
 function openSheet(d){d.returnValue='';d.showModal();}
+function ask(title){const d=$('askDlg');$('askT').textContent=title||'';d.returnValue='';return new Promise(res=>{d.addEventListener('close',()=>res(d.returnValue==='ok'),{once:true});openSheet(d);$('askCancel').focus();});}
+$('askOk').onclick=()=>$('askDlg').close('ok');
 document.querySelectorAll('dialog').forEach(d=>{d.addEventListener('cancel',()=>{d.returnValue='cancel';});
   d.addEventListener('click',e=>{if(e.target!==d||!e.clientX&&!e.clientY)return;const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close('cancel');});});
 // inline sheets (result, wristband) close on Escape too
@@ -156,7 +158,7 @@ function noteVelo(raw){if(raw==null||String(raw).trim()==='')return null;const v
 function baseRec(){const loc=D.loc||null;return{id:PC.uuid(),ts:Date.now(),pitcherId:curPitcherId(),hand:curHand(),type:D.shook?D.type||null:D.type||(D.parsed&&D.parsed.type)||null,
   call:D.shook?D.shook.norm:callOn&&D.parsed?D.parsed.norm:null,callRaw:D.shook?D.shook.raw:callOn&&D.callTxt?D.callTxt:null,targets:aimSet(),loc,calledLoc:calledLocNow(loc),actualLoc:loc,calledType:D.shook?(D.type||null):((D.parsed&&D.parsed.type)||D.type||null),wpPb:PC.cleanFlag(D.wpPb),velo:noteVelo(D.velo),...(D.shook?{shook:true}:{})};}
 // ---------- test mode ----------
-function toggleTest(){if(store.isTest){if(!confirm('Exit test mode? Everything from this test is discarded.'))return;store.exitTest();resetDraft();if(typeof loadRedo==='function')loadRedo();toast('Test data cleared');}
+async function toggleTest(){if(store.isTest){if(!await ask('Exit test mode? Everything from this test is discarded.'))return;store.exitTest();resetDraft();if(typeof loadRedo==='function')loadRedo();toast('Test data cleared');}
   else{store.enterTest();resetDraft();redoStack=[];toast('TEST MODE – nothing is saved');}render();}
 $('testBtn').onclick=toggleTest;$('exitTest2').onclick=toggleTest;
 // ---------- cloud sync ----------
@@ -191,7 +193,7 @@ $('teamSave').onclick=()=>{if(store.isTest)return toast('Exit test mode first');
   if(sync)sync.whoami().then(w=>{if(w.role===null)toast('Code not recognized');else if(w.role)toast({coach:'Coach code: full access',player:'Player code: bullpen for '+(store.real.sync.pitcherName||'you'),viewer:'View-only code',pcoach:'Pitching-coach code'}[w.role]);
     if(!ROLE_TABS[role()].includes(tab))tab=ROLE_TABS[role()][0];doSync(false);render();});else{toast('Team code saved');doSync(true);}};
 $('syncNow').onclick=()=>doSync(true);
-$('pullCloud').onclick=()=>{if(confirm('Download this team\'s data from the cloud and merge it into this phone?'))doSync(true,true);};
+$('pullCloud').onclick=async()=>{if(await ask('Download this team\'s data from the cloud and merge it into this phone?'))doSync(true,true);};
 window.addEventListener('online',()=>doSync(false));document.addEventListener('visibilitychange',()=>{if(!document.hidden)doSync(false);});setInterval(()=>doSync(false),60000);
 // one-screen entry: the zone fills the height left between the sticky entry bar and the tab bar,
 // never shrinking a box below ZONE_MIN_BOX px; the batter toggle sits in the zone's bottom-left corner

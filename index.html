@@ -22,20 +22,22 @@
 <section id="tab-game">
  <div id="lockGame" class="card lock hide" role="status"><div class="lockMsg"></div><div class="mut" id="lockGameSub"></div>
   <div class="row" style="margin-top:8px"><button id="lkPauseBp" class="primary" style="flex:1">Pause bullpen</button><button id="lkEndBp" class="success" style="flex:1">End bullpen</button></div></div>
- <div id="pausedCard" class="card hide"><div class="lbl">Games in progress – tap to resume</div><div id="pausedList"></div></div>
+ <div id="gamePick" class="card hide"><p id="pickEmpty" class="mut hide">No games in progress.</p><div id="pickList"></div><button id="pickNew" type="button" class="ghost">Start new game</button></div>
  <div id="schedCard" class="card hide"><div class="lbl">Scheduled games</div><div class="mut">One tap starts the game from the schedule.</div><div id="schedList"></div></div>
- <div id="noGame" class="card">
+ <dialog id="setupDlg" class="sheet" aria-labelledby="newGameLbl"><form method="dialog">
   <div class="lbl" id="newGameLbl">New game</div>
   <div class="grid2"><input id="gDate" type="date"><select id="gHA"><option value="home">Home</option><option value="away">Away</option><option value="tbd">Home/away TBD</option></select></div>
-  <div class="row" style="margin-top:6px"><input id="gOpp" placeholder="Opponent" style="flex:1"></div>
-  <div class="row" style="margin-top:6px"><input id="gEvent" placeholder="Tournament / event" style="flex:1"></div>
-  <div class="lbl" style="margin-top:8px">Opponent lineup (slot · name · # · bats) – editable later</div>
+  <div class="row" style="margin-top:6px"><input id="gOpp" placeholder="Opponent" aria-label="Opponent" style="flex:1"></div>
+  <label class="row" style="margin-top:6px">Pitcher <select id="gPitcher" aria-label="Pitcher"></select></label>
+  <div class="row" style="margin-top:6px"><input id="gEvent" placeholder="Tournament / event" aria-label="Tournament or event" style="flex:1"></div>
+  <div class="lbl" style="margin-top:8px">Opponent lineup (slot · name · # · bats)</div>
   <div id="gLineup"></div>
-  <div class="row" style="margin-top:6px"><button id="gAddB" style="flex:1">+ Batter</button><button id="gStart" class="success" style="flex:2">Start game</button></div>
-  <div class="mut" style="margin-top:8px">Past games are in Stats.</div>
- </div>
+  <button id="gAddB" type="button">+ Batter</button>
+  <div id="setupSched"></div>
+  <div class="dlgfoot"><button type="button" id="setupCancel">Cancel</button><button type="button" id="gStart" class="primary" disabled>Confirm</button></div>
+ </form></dialog>
  <div id="inGame" class="hide">
-  <div class="card gamecard"><div class="row sp"><div class="titleblock"><div id="gTitle" class="title"></div><div class="mut" id="gSub"></div></div><span class="row nowrap"><button id="gPause" class="ghost">Pause</button><button id="gEnd" class="danger">End game</button></span></div>
+  <div class="card gamecard"><div class="row sp"><div class="titleblock"><div id="gTitle" class="title"></div><div class="mut" id="gSub"></div></div><span class="row nowrap"><button id="gPause" class="ghost">Exit</button><button id="gEnd" class="danger">End game</button></span></div>
    <div class="row stack"><select id="batter" aria-label="Batter"></select><button id="bHand" class="chip-btn"></button></div>
    <details class="disc"><summary>Outs, innings &amp; options</summary>
     <div class="discbody"><div class="seg" role="group" aria-label="Outs and innings"><button id="outMinus">Out −</button><button id="outPlus">Out +</button><button id="innPlus">Next inning</button></div><button id="ibb" title="Intentional walk, no pitches" style="width:100%">Intentional walk (IBB)</button>
@@ -214,8 +216,10 @@
  <div id="cmRo" class="robar cmro hide" role="status"><span>👁 Scoring on another phone · view only. Game changes are off here.</span><button type="button" id="cmTake">Take over scoring</button></div>
  <div class="cmenu-g"><button type="button" id="cmOutM">Out −</button><button type="button" id="cmOutP">Out +</button><button type="button" id="cmEnd" class="danger">End game</button><button type="button" id="cmInn">Next inning</button><button type="button" id="cmIbb">Intentional walk</button>
  <button type="button" id="cmKd3">K – reached (D3)</button><button type="button" id="cmKd3o">K – D3 thrown out</button><button type="button" id="cmBand">Band setup</button><button type="button" id="cmTheme"></button><button type="button" id="cmMirror"></button>
- <button type="button" id="cmPause">❚❚ Pause game</button><button type="button" id="cmXtra">Wild pitch / velo</button></div>
- <div class="dlgfoot"><button value="cancel" formnovalidate class="ghost" style="width:100%">Cancel</button></div></form></dialog>
+ <button type="button" id="cmXtra">Wild pitch / velo</button></div>
+ <div class="dlgfoot"><button type="button" id="cmPause" class="ghost">Exit</button><button value="cancel" formnovalidate class="ghost" style="width:100%">Cancel</button></div></form></dialog>
+<dialog id="askDlg" class="sheet" aria-labelledby="askT"><form method="dialog"><div class="lbl" id="askT"></div>
+ <div class="dlgfoot"><button type="submit" id="askCancel" value="cancel">Cancel</button><button type="button" id="askOk" class="gdismiss">Yes</button></div></form></dialog>
 <dialog id="takeDlg" class="sheet" aria-labelledby="takeT"><form method="dialog"><div class="lbl" id="takeT">Take over scoring?</div>
  <p class="mut" id="takeTxt">Another phone is scoring this. Only take over if that phone died or the coach handed it to you. That phone will switch to view only.</p>
  <div class="dlgfoot"><button value="cancel" id="takeCancel" class="primary">Cancel</button><button value="ok" id="takeOk">Take over scoring</button></div></form></dialog>

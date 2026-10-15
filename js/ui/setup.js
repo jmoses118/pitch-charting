@@ -16,7 +16,7 @@ $('csSel').onchange=e=>{csId=e.target.value;renderCS();};
 $('csName').onchange=e=>{const sh=csCur();if(!sh)return;sh.name=e.target.value.trim().slice(0,80)||'Sheet';csDirty(sh);render();};
 $('csPitcher').onchange=e=>{const sh=csCur();if(!sh)return;sh.pitcherId=e.target.value||null;csDirty(sh);};
 $('csNew').onclick=()=>{const n=sheets().length+1;const sh={id:'cs_'+Date.now().toString(36),name:'Wristband '+n,pitcherId:null,cols:PC.sheetCols(8),rows:Array.from({length:7},()=>Array(8).fill(''))};S().callSheets=S().callSheets||[];S().callSheets.push(sh);csId=sh.id;csDirty(sh);render();};
-$('csDel').onclick=()=>{const sh=csCur();if(!sh||!confirm(`Delete "${sh.name}"?`))return;sh.deleted=true;csId=null;if(S().activeSheet===sh.id)S().activeSheet=null;csDirty(sh);render();};
+$('csDel').onclick=async()=>{const sh=csCur();if(!sh||!await ask(`Delete "${sh.name}"?`))return;sh.deleted=true;csId=null;if(S().activeSheet===sh.id)S().activeSheet=null;csDirty(sh);render();};
 const csEdit=f=>()=>{const sh=csCur();if(!sh)return;f(sh);$('csTbl').innerHTML='';csDirty(sh);render();};
 $('csAddR').onclick=csEdit(sh=>sh.rows.push(Array(sh.cols.length).fill('')));
 $('csDelR').onclick=csEdit(sh=>{if(sh.rows.length>1)sh.rows.pop();});
@@ -42,7 +42,7 @@ document.addEventListener('click',e=>{const t=e.target;if(t.dataset.e){openPDlg(
 // roster
 function renderRoster(){$('roster').innerHTML=S().roster.map((r,i)=>`<div class="prow"><input data-ri="${i}" data-f="name" value="${H(r.name)}"><input data-ri="${i}" data-f="num" value="${H(r.num)}" placeholder="#" style="width:56px;flex:none" inputmode="numeric"><button data-rd="${i}">✕</button></div>`).join('');}
 $('roster').addEventListener('change',e=>{const{ri,f}=e.target.dataset;if(ri!=null){S().roster[ri][f]=e.target.value;save();}});
-$('roster').addEventListener('click',e=>{const i=e.target.dataset.rd;if(i!=null&&confirm('Remove '+S().roster[i].name+'?')){S().roster.splice(i,1);save();render();}});
+$('roster').addEventListener('click',async e=>{const i=e.target.dataset.rd;if(i!=null&&await ask('Remove '+S().roster[i].name+'?')){S().roster.splice(i,1);save();render();}});
 $('addR').onclick=()=>{const n=prompt('Player name');if(n){S().roster.push({name:n.trim(),num:''});save();render();}};
 $('ctAdd').onclick=()=>{const c=$('ctCode').value.trim().toUpperCase().replace(/\s+/g,''),n=$('ctName').value.trim();if(!c)return;if(allTypes().some(t=>t.code===c))return toast('Code exists');S().customTypes.push({code:c,name:n||c});$('ctCode').value='';$('ctName').value='';save();render();};
 $('cTypes').addEventListener('click',e=>{const i=e.target.dataset.ct;if(i!=null){S().customTypes.splice(i,1);save();render();}});
@@ -65,7 +65,7 @@ $('csvPD').onclick=()=>{if(noTest())return;const pf=$('sPitcher').value,date=$('
   download(PC.csvPitcherFile(p,date),PC.toCSV(rows),'text/csv');toast(rows.length?`${rows.length} pitches`:'No pitches that day');};
 let impKind=null;$('impJSON').onclick=()=>{if(store.isTest)return toast('Exit test mode to import');impKind='json';$('file').click();};$('impCSV').onclick=()=>{if(store.isTest)return toast('Exit test mode to import');impKind='csv';$('file').click();};
 $('file').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;const txt=await f.text();
-  try{if(impKind==='json'){const o=JSON.parse(txt);if(!o.pitchers||!o.games)throw new Error('Not a backup file');if(!confirm('Replace ALL current data with this backup?'))return;store.replace(o);if(typeof loadRedo==='function')loadRedo();toast('Backup restored');}
+  try{if(impKind==='json'){const o=JSON.parse(txt);if(!o.pitchers||!o.games)throw new Error('Not a backup file');if(!await ask('Replace ALL current data with this backup?'))return;store.replace(o);if(typeof loadRedo==='function')loadRedo();toast('Backup restored');}
   else{if(!store.real.sync)return;const imp=importCSV(txt);toast(`Imported ${imp.n} pitch${imp.n===1?'':'es'}`+(imp.flagged?` · ${imp.flagged} flagged`:''));}}catch(err){alert('Import failed: '+err.message);}render();};
 function importCSV(txt){const rows=PC.parseCSV(txt),s=S();let n=0,flagged=0;const pid=(name,num,th)=>{let p=s.pitchers.find(x=>x.name===name);if(!p&&name)p=store.addPitcher({name,num,throws:th});return p?p.id:null;};
   const has=new Set(s.games.map(g=>g.id).concat(s.sessions.map(x=>x.id)));
@@ -83,7 +83,7 @@ async function renderCodes(){if(!sync||role()!=='coach'||store.isTest||!store.re
   try{const L=await sync.rpc('coach_list_codes');$('codesList').innerHTML=L.map(c=>`<div class="prow"><span style="flex:1"><b>${H(c.label||c.pitcher_id||'')}</b> <span class="tag">${H(c.role==='pcoach'?'pitching coach':c.role)}</span>${c.role==='pcoach'?` <span class="mut">${H((c.pitcher_ids||[]).map(pName).join(', '))}</span>`:''}${c.revoked_at?' <span class="tag">revoked</span>':''}<br><small style="user-select:all;-webkit-user-select:all">${H(c.code)}</small></span>${c.revoked_at?'':`<button data-revoke="${H(c.code)}">Revoke</button>`}</div>`).join('')||'<div class="mut">No access codes yet</div>';}
   catch(e){$('codesList').innerHTML='<div class="mut">Go online to manage codes.</div>';}}
 $('codesCard').addEventListener('click',async e=>{const t=e.target;try{
-  if(t.dataset.revoke){if(!confirm('Revoke this code? Anyone using it loses access right away.'))return;await sync.rpc('coach_revoke_code',{p_code:t.dataset.revoke});toast('Code revoked');}
+  if(t.dataset.revoke){if(!await ask('Revoke this code? Anyone using it loses access right away.'))return;await sync.rpc('coach_revoke_code',{p_code:t.dataset.revoke});toast('Code revoked');}
   else if(t.id==='ncPlayer'){const id=$('ncPitcher').value;const p=pById(id);await doSync(false);const c=await sync.rpc('coach_create_code',{p_role:'player',p_pitcher_id:id,p_label:p?PC.pitcherLabel(p):id});toast('New code for '+(p?p.name:id));prompt('Player code (copy it):',c);}
   else if(t.id==='ncPcoach'){const ids=[...document.querySelectorAll('#ncPcList input:checked')].map(i=>i.value);if(!ids.length)return toast('Pick at least one pitcher');await doSync(false);const c=await sync.rpc('coach_create_code',{p_role:'pcoach',p_pitcher_ids:ids,p_label:$('ncPcName').value.trim()||'Pitching coach'});$('ncPcName').value='';prompt('Pitching-coach code (copy it):',c);}
   else if(t.id==='ncViewer'){const c=await sync.rpc('coach_create_code',{p_role:'viewer',p_label:'View-only'});prompt('View-only code (copy it):',c);}

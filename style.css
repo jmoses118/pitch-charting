@@ -461,5 +461,17 @@ html[data-theme="field"] .plist,html[data-theme="field"] .rrow{border-width:0 0 
 #editWay button,#editAct button,#editDlg .dlgfoot button{min-height:48px}
 #editDlg .dlgfoot{position:static;flex:none;background:transparent}
 #editDlg .dlgfoot button{flex:1}
+#gamePick{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+.grow{display:flex;align-items:center;gap:16px;min-height:56px;width:100%}
+.gmeta{flex:1;min-width:0;overflow-wrap:anywhere}
+.grow .resume{min-width:48px;min-height:48px;flex:none}
+#pickNew{width:100%;min-height:48px;margin-top:24px}
+.drafttag{display:inline-block;font-size:12px;font-weight:700;border:1px solid var(--c-line);border-radius:8px;padding:2px 6px}
+.gdismiss{color:var(--c-danger-text);border-color:var(--c-danger-text);background:transparent;min-height:var(--tap);min-width:var(--tap)}
+html[data-theme="field"] .gdismiss{color:var(--c-danger);border-color:var(--c-danger)}
+#setupDlg,#askDlg{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+#gStart,#setupCancel{min-height:48px}
+#cMenuDlg .dlgfoot{display:flex;flex-direction:column;gap:16px}
+#cmPause{width:100%;min-height:48px;margin-top:16px}
 @media (max-height:720px){#editZone{width:276px;height:auto;max-width:100%}}
 details.arch{margin-top:8px}details.arch>summary{min-height:48px;display:flex;align-items:center;font-weight:700;font-size:var(--fs-md);cursor:pointer}

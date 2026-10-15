@@ -50,6 +50,8 @@ jobs:
         run: node test/sheets.ui.js http://localhost:8766/ && node test/zonegfx.ui.js http://localhost:8766/ && node test/fit.ui.js http://localhost:8766/ && node test/layout.ui.js http://localhost:8766/
       - name: Way-off and actual-only locations
         run: node test/wayoff.ui.js http://localhost:8766/
+      - name: Game picker
+        run: node test/modes.ui.js http://localhost:8766/
       - name: Jersey number
         run: node test/jersey.ui.js http://localhost:8766/
       - name: Edit a pitch and optional detail
