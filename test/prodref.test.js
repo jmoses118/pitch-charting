@@ -60,7 +60,8 @@ function migrationVersion(rel){
   const m=norm.match(/(?:^|\/)supabase\/migrations\/(\d{14})_[^/]*\.sql$/);
   return m?m[1]:'';
 }
-const {readBaseText}=require('./git-base');
+const {readFileAt,baseRef}=require('./git-base');
+function readBaseText(root,rel){return readFileAt(root,baseRef(),String(rel).split(path.sep).join('/'));}
 function unchangedOnBase(root,rel,text){
   const got=readBaseText(root,rel);
   if(!got.ok)throw new Error(got.error||'git show failed');

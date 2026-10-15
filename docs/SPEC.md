@@ -82,6 +82,7 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | DoD | UI: `inning.e2e` (full inning) and `bullpen20.e2e` (20-pitch bullpen) at 390 px |
 | ARCH-1 | `test/arch.scan.js` passes on the tree. Negative cases are `test/arch.negative.js` and `test/dup.scan.js`. |
 | INFRA-3 | `test/prodref.test.js`: a non-production host shows the sync-off warning and does not point at production; an uppercase production URL and a split project ref are refused; a migration on the base branch with identical bytes is exempt; a backdated new migration is not; `test/pg-migrate.sh` allows only `localhost` or `127.0.0.1` |
+| BRIEF-1, BRIEF-2, BRIEF-3, BRIEF-4, BRIEF-5, BRIEF-6, BRIEF-7, BRIEF-8 | `AGENTS.md` Standard builder brief. BRIEF-5 is `test/prsize.js` and `test/prgate.negative.js`. BRIEF-7 is `test/changelog.js` and `test/prgate.negative.js`. BRIEF-6 is not enforced in this tree. |
 
 ## Architecture
 Each business rule lives in one `js/core` module. UI files render and forward events. They do not keep a second validator or a second copy of a rule.
