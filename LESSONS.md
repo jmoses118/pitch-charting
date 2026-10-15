@@ -9,3 +9,4 @@ Tapping Game re-entered scoring because that tab shows the live game whenever on
 Exit only left the screen, so an empty game stayed on the list with no picker and no discard.
 Regression: test/logic.test.js "FLOW-13 createGame returns null until opponent and pitcher are set", "FLOW-14 pauseGame keeps the row and endGame waits for confirmation", and "FLOW-15 discard pushes deleted and a pull does not bring it back".
 The picker check is test/modes.ui.js "picker shows N Resume rows and one Start".
+The paused card is gone. The picker is the list. Regression: test/modes.ui.js "picker shows N Resume rows and one Start".

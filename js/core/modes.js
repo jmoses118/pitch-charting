@@ -6,8 +6,8 @@ const PC=root.PC=root.PC||{};
 const {gameStatus}=PC;
 const NEED_OPP='Enter the opponent';
 const NEED_PITCHER='Pick a pitcher';
-const END_MSG='End this game? It stays in Stats.';
 function discardMsg(g){return 'Discard draft vs '+((g&&g.opponent)||'')+'?';}
+function endMsg(g){return 'End game vs '+((g&&g.opponent)||'')+'? It stays in Stats.';}
 function blankText(v){return String(v==null?'':v).trim();}
 function createGameMsg(o){o=o||{};if(!blankText(o.opponent))return NEED_OPP;if(!blankText(o.pitcherId))return NEED_PITCHER;return '';}
 // one has-pitches check: a deleted pitch does not count. A draft is in progress and has none.
@@ -19,9 +19,9 @@ const statsGame=g=>!!(g&&!g.deleted&&!gameDraft(g));
 // a bullpen session is open while it is the active session and has at least one pitch (an empty session blocks nothing)
 const sessionOpen=s=>hasPitches(s);
 // cur.pitcherId is stored once on the game. curPitcher is only the header. The label reads the latest pitch, else that id.
-function gamePitcherId(g){if(!g)return null;const pitches=(g.pitches||[]).filter(p=>p&&!p.deleted);
-  if(!pitches.length){const id=g.cur&&g.cur.pitcherId;return id?String(id):null;}
-  const last=pitches.reduce((a,p)=>(p.ts||0)>=(a.ts||0)?p:a);return last.pitcherId||null;}
+function latestPitch(g){const pitches=(g&&g.pitches||[]).filter(p=>p&&!p.deleted);if(!pitches.length)return null;return pitches.reduce((a,p)=>(p.ts||0)>=(a.ts||0)?p:a);}
+function gamePitcherId(g){if(!g)return null;const last=latestPitch(g);if(!last){const id=g.cur&&g.cur.pitcherId;return id?String(id):null;}return last.pitcherId||null;}
+function lastUsed(g){const last=latestPitch(g);return Math.max((last&&last.ts)||0,(g&&g.started)||0);}
 function createGame(st,o){if(!st||createGameMsg(o))return null;
   const opponent=blankText(o.opponent),pitcherId=blankText(o.pitcherId),now=Date.now();
   const cur={inning:1,outs:0,slot:0,b:0,s:0,abn:0,hand:null,pitcherId};
@@ -33,7 +33,7 @@ function createGame(st,o){if(!st||createGameMsg(o))return null;
 function endGame(st,id,confirmed){if(!st||!confirmed)return false;const g=(st.games||[]).find(x=>x.id===id);if(!g||g.deleted)return false;
   g.ended=Date.now();g.status='final';if(st.activeGame===id)st.activeGame=null;return true;}
 function discardGame(st,id,confirmed,device){if(!st||!confirmed)return false;const g=(st.games||[]).find(x=>x.id===id);
-  if(!g||!canScore(g,device)||!gameDraft(g))return false;g.deleted=true;if(st.activeGame===id)st.activeGame=null;return true;}
+  if(!g||!canDiscard(g,device))return false;g.deleted=true;if(st.activeGame===id)st.activeGame=null;return true;}
 function pauseGame(st){if(!st)return null;const id=st.activeGame;const g=(st.games||[]).find(x=>x.id===id)||null;st.activeGame=null;return g;}
 const activeGameOf=st=>(st.games||[]).find(g=>g.id===st.activeGame)||null;
 const activeSessionOf=st=>(st.sessions||[]).find(s=>s.id===st.activeSession)||null;
@@ -52,8 +52,11 @@ function claimScoring(box,dev){if(!box||!dev)return false;const was=box.scorer||
 const SCORING_ELSEWHERE='👁 View only – another phone is scoring';
 const LOCK_MSG={game:'Game in progress — end or pause the game to start a bullpen',bullpen:'Bullpen in progress — end or pause the bullpen to start a game'};
 // started, not ended games that are not on screen (paused here or started on another phone) – resumable
-const pausedGames=st=>(st.games||[]).filter(g=>gameInProgress(g)&&g.id!==st.activeGame).sort((a,b)=>(b.started||0)-(a.started||0));
+function openGames(st){return (st&&st.games||[]).filter(g=>gameInProgress(g)&&g.id!==st.activeGame);}
+function todaysScheduled(st,day){return (st&&st.games||[]).filter(g=>gameStatus(g)==='scheduled'&&g.date===day).sort((a,b)=>(a.date+a.gameNo).localeCompare(b.date+b.gameNo,undefined,{numeric:true}));}
+const pausedGames=st=>openGames(st).sort((a,b)=>lastUsed(b)-lastUsed(a)||(b.started||0)-(a.started||0)||String(a.id).localeCompare(String(b.id)));
+function canDiscard(g,device){return canScore(g,device)&&gameDraft(g);}
 // paused bullpen sessions with pitches – resumable
 const pausedSessions=st=>(st.sessions||[]).filter(s=>s.paused&&s.id!==st.activeSession&&sessionOpen(s)).sort((a,b)=>(b.paused||0)-(a.paused||0));
-Object.assign(PC,{canScore,lockedBox,canEditBox,claimScoring,SCORING_ELSEWHERE,gameInProgress,sessionOpen,activeGameOf,activeSessionOf,modeLock,LOCK_MSG,pausedGames,pausedSessions,NEED_OPP,NEED_PITCHER,END_MSG,discardMsg,createGameMsg,hasPitches,gameDraft,statsGame,gamePitcherId,createGame,endGame,discardGame,pauseGame});
+Object.assign(PC,{canScore,lockedBox,canEditBox,claimScoring,SCORING_ELSEWHERE,gameInProgress,sessionOpen,activeGameOf,activeSessionOf,modeLock,LOCK_MSG,pausedGames,pausedSessions,NEED_OPP,NEED_PITCHER,endMsg,discardMsg,createGameMsg,hasPitches,gameDraft,statsGame,gamePitcherId,lastUsed,openGames,canDiscard,todaysScheduled,createGame,endGame,discardGame,pauseGame});
 })(typeof window!=='undefined'?window:globalThis);

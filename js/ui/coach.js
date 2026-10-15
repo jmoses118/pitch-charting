@@ -11,7 +11,8 @@ function applyTheme(){const t=themeNow();document.documentElement.dataset.theme=
 applyTheme();
 // ---------- modes ----------
 const LANDSCAPE=matchMedia('(orientation: landscape) and (max-height: 500px)'),PORTRAIT=matchMedia('(orientation: portrait)');
-[LANDSCAPE,PORTRAIT].forEach(m=>m.addEventListener&&m.addEventListener('change',()=>render()));
+// Landscape change is registered after render exists.
+PORTRAIT.addEventListener&&PORTRAIT.addEventListener('change',()=>render());
 const coachGame=lk=>!lk&&tab==='game'&&!!game()&&role()==='coach';
 let sideCard=null,cMsg=null;
 // ---------- zone: 5×5 grid (pitcher's view); ring quads 11–14 are L-shaped, so they own 3 cells each ----------
