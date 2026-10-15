@@ -88,7 +88,7 @@ function resumeBullpen(id){if(canGame()&&PC.gameInProgress(game()))return toast(
 $('gEnd').onclick=endGame;$('gPause').onclick=pauseGame;$('lkEndG').onclick=endGame;$('lkPauseG').onclick=pauseGame;$('lkGoG').onclick=()=>{tab='game';render();};
 $('lkEndBp').onclick=endBullpen;$('lkPauseBp').onclick=pauseBullpen;$('bpPause').onclick=pauseBullpen;
 $('bpResume').onclick=()=>{const x=PC.pausedSessions(S())[0];if(x)resumeBullpen(x.id);};
-$('pickList').addEventListener('click',e=>{const d=e.target.closest('[data-dd]');if(d)return discardDraft(d.dataset.dd);const b=e.target.closest('[data-rg]');if(b)resumeGame(b.dataset.rg);});
+$('pickList').addEventListener('click',e=>{const d=e.target.closest('[data-dd]');if(d)return discardDraft(d.dataset.dd);const sg=e.target.closest('[data-sg]');if(sg)return startScheduled(sg.dataset.sg);const b=e.target.closest('[data-rg]');if(b)resumeGame(b.dataset.rg);});
 function renderModeLock(){const s=S(),lk=PC.modeLock(s,tab,canGame());
   $('lockBp').classList.toggle('hide',!(lk&&lk.by==='game'));$('lockGame').classList.toggle('hide',!(lk&&lk.by==='bullpen'));
   if(lk&&lk.by==='game'){const g=lk.game;$('lockBp').querySelector('.lockMsg').textContent=PC.LOCK_MSG.game;$('lockBpSub').textContent=`${vsAt(g)} ${g.opponent||''} · inning ${g.cur.inning} · ${PC.pitchCount(g.pitches)} pitches`;}

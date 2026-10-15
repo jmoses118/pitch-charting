@@ -25,8 +25,10 @@ function render(skipCallInput){const s=S();applyViewOnly(viewOnly());if(typeof r
   $('gameHead').classList.toggle('hide',!(tab==='game'&&g));
   $('inGame').classList.toggle('hide',!g);
   const sch=PC.todaysScheduled(s,today());
-  $('schedCard').classList.toggle('hide',!(tab==='game'&&!g&&!lk&&sch.length));
+  const land=window.matchMedia('(orientation:landscape) and (max-height:500px)').matches;
+  $('schedCard').classList.toggle('hide',!(tab==='game'&&!g&&!lk&&sch.length)||land);
   $('schedList').innerHTML=sch.map(x=>`<div class="prow"><button data-sg="${H(x.id)}" class="primary startg"><b>Start</b> ${H((x.date||'').slice(5))} ${H(x.time||'')} ${vsAt(x)} ${H(x.opponent)}<br><small>${[x.gameNo,x.field,x.location].filter(Boolean).map(H).join(' · ')}</small></button>${x.link&&/^https:\/\//.test(x.link)?`<a href="${H(x.link)}" target="_blank" rel="noopener" class="gclink">GC</a>`:''}</div>`).join('');
+  if(land&&tab==='game'&&!g&&!lk&&canGame()){$('pickList').insertAdjacentHTML('beforeend',$('schedList').innerHTML);$('schedList').innerHTML='';}
   if(tab==='game'&&!g){renderLineupForm();if(!$('gDate').value)$('gDate').value=today();}
   const hand=curHand();$('batTog').textContent=(hand==='N'?'Batter: none':hand==='L'?'Batter: LHB':'Batter: RHB')+' ▾';$('batTog').setAttribute('aria-label','Batter: '+(hand==='N'?'none':hand==='L'?'left-handed':'right-handed')+' – change');$('hL').classList.toggle('sel',hand==='L');$('hR').classList.toggle('sel',hand==='R');$('hN').classList.toggle('sel',hand==='N');$('hN').classList.toggle('hide',tab==='game');
   const showHands=tab!=='bullpen'||!!(S().settings&&S().settings.showBatterHand);$('hL').classList.toggle('hide',!showHands);$('hR').classList.toggle('hide',!showHands);if($('bpHands'))$('bpHands').checked=!!(S().settings&&S().settings.showBatterHand);
