@@ -37,9 +37,12 @@ function makeStore(storage){
     replace(s){if(test)return false;const keep=real.sync;real=s;real.sync=null;ensureSync(real);real.sync.teamCode=keep.teamCode;real.sync.deviceId=keep.deviceId;api.markAllDirty();return api.save();},
     get real(){return real;},
     addPitcher(o){const s=api.state;const name=String(o.name||'').trim();if(!name)throw new Error('name required');
-      const p={id:'p_'+uid(),name,num:String(o.num==null?'':o.num).trim(),throws:o.throws,archived:false};if(p.throws!=='L'&&p.throws!=='R')throw new Error('throwing hand required (L or R)');s.pitchers.push(p);api.markDirty('pitchers',p.id);api.save();return p;},
+      const err=jerseyError(s.pitchers,o.num,null);if(err)throw new Error(err);
+      const p={id:'p_'+uid(),name,num:jerseyNum(o.num).num,throws:o.throws,archived:false};if(p.throws!=='L'&&p.throws!=='R')throw new Error('throwing hand required (L or R)');s.pitchers.push(p);api.markDirty('pitchers',p.id);api.save();return p;},
     editPitcher(id,o){const p=api.state.pitchers.find(x=>x.id===id);if(!p)return null;
-      if(o.name!=null&&String(o.name).trim())p.name=String(o.name).trim();if(o.num!=null)p.num=String(o.num).trim();if(o.throws)p.throws=o.throws==='L'?'L':'R';api.markDirty('pitchers',id);api.save();return p;},
+      if(o.name!=null&&String(o.name).trim())p.name=String(o.name).trim();
+      if(o.num!=null){const err=jerseyError(api.state.pitchers,o.num,id);if(err)throw new Error(err);p.num=jerseyNum(o.num).num;}
+      if(o.throws)p.throws=o.throws==='L'?'L':'R';api.markDirty('pitchers',id);api.save();return p;},
     archivePitcher(id,on=true){const p=api.state.pitchers.find(x=>x.id===id);if(p){p.archived=!!on;api.markDirty('pitchers',id);api.save();}return p;},
     activePitchers(){return api.state.pitchers.filter(p=>!p.archived);},
   };return api;}
@@ -47,6 +50,11 @@ function makeStore(storage){
 const FIRST_NAMES={p_woods:'Avery',p_crich:'Jules',p_larbus:'Reese'};
 const firstName=n=>String(n||'').trim().split(/\s+/)[0]||'';
 const pitcherLabel=p=>p?(firstName(p.name)||'?')+(p.num?' #'+p.num:''):'?';
+// RULE-11: a jersey is empty or 1–2 digits (00 is a real number). Checked on write, by the dialog and by add/edit.
+const JERSEY_MSG='Jersey number is 0–99 (00 is OK)';
+function jerseyNum(raw){if(raw==null||String(raw).trim()==='')return{ok:true,num:''};const s=String(raw);if(!/^\d{1,2}$/.test(s))return{ok:false,msg:JERSEY_MSG};return{ok:true,num:s};}
+function jerseyClash(pitchers,num,exceptId){if(!num)return null;return (pitchers||[]).find(p=>!p.archived&&p.id!==exceptId&&String(p.num)===String(num))||null;}
+function jerseyError(pitchers,num,exceptId){const j=jerseyNum(num);if(!j.ok)return j.msg;const hit=jerseyClash(pitchers,j.num,exceptId);return hit?'#'+j.num+' is already '+firstName(hit.name):'';}
 function clearPitchResult(p){if(!p)return false;const had=p.result!=null||p.ip!=null||p.end!=null||p.bpResult!=null;delete p.result;delete p.ip;delete p.end;delete p.bpResult;return had;}
 function stripBullpenResults(st){if(!st||st.migBpResult)return st;delete st.bpResult;const q=st.sync&&st.sync.queue;const mark=p=>{if(!p||!p.id||!q)return;q.pitches=q.pitches||{};q.pitches[p.id]=(q.pitches[p.id]||0)+1;};
   (st.sessions||[]).forEach(s=>{delete s.bpResult;(s.pitches||[]).forEach(p=>{if(clearPitchResult(p))mark(p);});});
@@ -71,5 +79,5 @@ function ensureSync(st){
 // ---------- notes (pitching coach / coach -> player's report) ----------
 const noteId=(o)=>o.sessionId?'n_'+o.sessionId+(o.pitcherId?'_'+o.pitcherId:''):'n_'+o.gameId+'_'+o.pitcherId;
 function findNote(st,o){return (st.notes||[]).find(n=>!n.deleted&&n.pitcherId===o.pitcherId&&(o.sessionId?n.sessionId===o.sessionId:n.gameId===o.gameId))||null;}
-Object.assign(PC,{KEY,ROSTER,uuid,isUUID,uid,defaultState,makeStore,FIRST_NAMES,firstName,pitcherLabel,ensureSync,stripBullpenResults,blankSession,noteId,findNote});
+Object.assign(PC,{KEY,ROSTER,uuid,isUUID,uid,defaultState,makeStore,FIRST_NAMES,firstName,pitcherLabel,JERSEY_MSG,jerseyNum,jerseyClash,jerseyError,ensureSync,stripBullpenResults,blankSession,noteId,findNote});
 })(typeof window!=='undefined'?window:globalThis);

@@ -1,5 +1,12 @@
 # Changelog
 
+## v61 – Jersey number and tap targets
+### Changed
+- **RULE-11.** A jersey is empty or 1–2 digits, and `00` is allowed. `jerseyNum` in `js/core/store.js` rejects `100`, `-1`, `abc`, and `4 5` with “Jersey number is 0–99 (00 is OK)” and the dialog stays open. An active pitcher cannot take another active pitcher’s number (`#45 is already Avery`); `0` and `00` stay distinct. The Game screen opens the same editor.
+- The batter-hand checkbox returns the page to the top. One bullpen pitch reads “1 pitch”. Pitcher, Band, Result, the batter chip, checkboxes, and wristband cells are at least 44px.
+- A CSV import still keeps a grid aim that fails `validCalled`, flags the row, and the toast counts those flagged rows.
+- Cache: `te-pitch-v61`.
+
 ## v60 – One location validator
 ### Changed
 - **RULE-1, RULE-3a.** `validCalled` is the only aim check. Dirt, way off, and the backstop are actual locations. A change-up aim stays 4, 7, 8, 9, 13, 14, 18. `canAim` and `targetOk` are gone.
