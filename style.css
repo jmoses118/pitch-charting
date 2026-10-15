@@ -162,12 +162,17 @@ dialog::backdrop{background:rgba(0,0,0,.7)}
 
 /* ---------- wristband ---------- */
 .wbWrap{overflow-x:auto;margin-top:var(--s2)}
+#wbCard .wbWrap{overflow-x:hidden}
 .wbTbl{border-collapse:collapse;width:max-content;min-width:100%;font-size:13px;table-layout:auto}
+#wbTbl{width:100%;min-width:0;table-layout:fixed}
 .wbTbl th,.wbTbl td{border:1px solid var(--c-line-strong);padding:0;text-align:center}
 .wbTbl th{font-size:11px;color:var(--c-text-2);padding:3px 0;width:auto;text-transform:none;letter-spacing:0}
 .wbTbl th.rh{width:22px}
 .wbTbl td{min-width:44px}
+#wbTbl th.rh{width:22px}
+#wbTbl td{min-width:0}
 .wbTbl td button{width:100%;min-width:44px;min-height:44px;padding:2px 0;font-size:11.5px;letter-spacing:-.3px;border-radius:0;border:0;background:transparent;color:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#wbTbl td button{min-width:0;min-height:var(--tap);height:var(--tap)}
 .wbTbl tr.b td button,.wbTbl tr.b th{font-weight:800}
 .wbTbl tr.b td{background:rgba(255,255,255,.05)}
 .wbTbl td.on{background:var(--c-royal)!important;outline:2px solid #fff}
@@ -205,10 +210,10 @@ body.entrymode #entry{display:contents}
 body.entrymode .entrybar,body.entrymode .zonewrap,body.entrymode #locRow,body.entrymode #wayBtns,body.entrymode #resSheet{order:-1}
 body.entrymode #wayBtns{margin:var(--s1) 0 var(--s3)}
 body.entrymode .topbar,body.entrymode #wlMsg{display:none}
-body.entrymode header{padding-top:calc(var(--s1) + env(safe-area-inset-top));padding-bottom:var(--s1)}
-body.entrymode .pickrow{margin-bottom:0;gap:var(--s2)}
-body.entrymode .pickrow select{flex:0 0 auto;max-width:62%;min-height:44px;font-weight:700;font-size:var(--fs-md);padding-right:28px}
-body.entrymode .pickrow button.icon{min-height:44px;width:44px}
+body.entrymode header{padding-top:calc(var(--s1) + env(safe-area-inset-top));padding-bottom:var(--s1);padding-left:8px;padding-right:8px}
+body.entrymode .pickrow{margin-bottom:0;gap:4px;flex-wrap:wrap}
+body.entrymode .pickrow select{flex:1 1 auto;max-width:none;min-width:0;min-height:var(--tap);font-weight:700;font-size:var(--fs-md);padding:0 20px 0 8px}
+body.entrymode .pickrow button.icon{flex:0 0 var(--tap);width:var(--tap);min-width:var(--tap);min-height:var(--tap);height:var(--tap)}
 body.entrymode #gameHead{margin-top:var(--s1)}
 body.entrymode .count>div{padding:1px var(--s2);font-size:var(--fs-md)}
 body.entrymode .count small{font-size:10px;display:inline;margin-right:4px}
@@ -217,16 +222,16 @@ body.entrymode .count small{font-size:10px;display:inline;margin-right:4px}
 .entrybar{position:sticky;top:var(--hdr-h,56px);z-index:4;background:var(--c-bg);margin:0 calc(-1 * var(--s3));padding:var(--s2) var(--s3) var(--s1)}
 .chips{display:flex;gap:var(--s2);overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px}
 .chips::-webkit-scrollbar{display:none}
-.chips button{flex:0 0 auto;min-height:44px;min-width:52px;padding:0 var(--s3);border-radius:var(--r-pill);font-weight:800;font-size:var(--fs-md);letter-spacing:.02em}
+.chips button{flex:0 0 auto;min-height:var(--tap);min-width:52px;padding:0 var(--s3);border-radius:var(--r-pill);font-weight:800;font-size:var(--fs-md);letter-spacing:.02em}
 .chips button.sel{background:var(--c-royal);border-color:var(--c-royal-text);color:#fff}
 .stepline{display:flex;flex-wrap:wrap;align-items:center;gap:4px var(--s2);margin-top:var(--s1)}
 .stepline .steps{flex:1 0 100%;margin:0}
 .stepline .steps li{padding-top:2px;border-top-width:2px;font-size:11px;letter-spacing:0;white-space:nowrap;overflow:visible;text-overflow:clip}
-button.mini{min-height:44px;padding:0 var(--s3);font-size:var(--fs-xs);font-weight:700;border-radius:var(--r-pill)}
+button.mini{min-height:var(--tap);padding:0 var(--s3);font-size:var(--fs-xs);font-weight:700;border-radius:var(--r-pill)}
 button.mini[aria-expanded="true"]{background:var(--c-royal);color:#fff}
 .entrybar .phase{padding:2px 0 0;margin:0;background:none;font-size:var(--fs-xs);color:var(--c-text-2);white-space:normal;overflow:visible;text-overflow:clip}
 body.entrymode #zone{max-width:none}
-button.zchip{position:absolute;z-index:2;min-height:44px;padding:0 var(--s2);border-radius:var(--r-pill);font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--c-surface-2);border-color:var(--c-line-strong)}
+button.zchip{position:absolute;z-index:2;min-height:var(--tap);min-width:var(--tap);padding:0 var(--s2);border-radius:var(--r-pill);font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--c-surface-2);border-color:var(--c-line-strong)}
 .seg3{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:var(--s2)}.seg3 button{min-height:var(--tap-lg);font-weight:700}.seg3 button.sel{background:var(--c-royal);border-color:var(--c-royal-text);color:#fff}
 body.entrymode #toast{bottom:auto;top:calc(env(safe-area-inset-top) + 4px)}
 .way4{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s1);margin:var(--s1) 0 var(--s3)}
@@ -235,20 +240,22 @@ body.entrymode #wayBtns button{min-height:48px;font-size:var(--fs-xs);font-weigh
 .bsheet::before{content:"";display:block;width:40px;height:4px;border-radius:4px;background:var(--c-line-strong);margin:0 auto var(--s2)}
 .bshead{margin-bottom:var(--s2)}.bshead .lbl{margin:0}
 .bsheet .grid3 button,.bsheet .grid4 button{min-height:var(--tap-lg);font-size:var(--fs-md);font-weight:700;line-height:1.15;padding:0 4px}
-body.wbopen #wbCard{position:fixed;left:0;right:0;bottom:0;z-index:8;margin:0!important;max-height:70vh;overflow:auto;background:var(--c-surface);border-top:1px solid var(--c-line-strong);border-radius:var(--r-lg) var(--r-lg) 0 0;box-shadow:var(--shadow-2);padding:var(--s2) var(--s3) calc(var(--s3) + env(safe-area-inset-bottom))}
+body.wbopen #wbCard{position:fixed;left:0;right:0;bottom:0;z-index:8;margin:0!important;max-height:70vh;overflow-x:hidden;overflow-y:auto;background:var(--c-surface);border-top:1px solid var(--c-line-strong);border-radius:var(--r-lg) var(--r-lg) 0 0;box-shadow:var(--shadow-2);padding:var(--s2) 4px calc(var(--s3) + env(safe-area-inset-bottom))}
 .recentwrap.first{margin-top:0;padding-top:0;border-top:0}
-body #types.chips button{min-height:44px;height:44px;font-size:var(--fs-md)}
+body #types.chips button{min-height:var(--tap);height:var(--tap);font-size:var(--fs-md)}
 body.onehand #types.chips button{min-height:48px;height:48px;font-size:var(--fs-lg)}
 .stepline .steps li{white-space:nowrap;overflow:visible;text-overflow:clip}
 body.entrymode .count{gap:var(--s1)}
 body.entrymode .count>div{display:flex;align-items:baseline;justify-content:center;gap:4px;white-space:nowrap;min-height:28px;align-items:center;font-size:var(--fs-sm)}
 body.entrymode .count small{margin:0;font-size:9px}
 body.entrymode .count .dots span{width:9px;height:9px}
-@media (max-height:720px){body.entrymode header{padding-top:2px;padding-bottom:0}body.entrymode .topbar{margin-bottom:0}body.entrymode .entrybar{padding-top:2px;padding-bottom:0}body.entrymode .stepline{margin-top:0;gap:2px}body.entrymode .entrybar .phase{padding:0;line-height:1.2}body.entrymode button.mini{min-height:44px}body.entrymode #wayBtns{margin:0}body.entrymode #wayBtns button,body.entrymode #actBtns button{min-height:44px;height:auto}body.entrymode #types.chips button{min-height:44px;height:44px}body.entrymode .pickrow select,body.entrymode .pickrow button.icon{min-height:44px}body.entrymode .count>div{min-height:0;padding:0 4px;line-height:1;font-size:13px}body.entrymode .count .dots{height:auto}body.entrymode #gameHead{margin-top:0;padding-top:0}}
+@media (max-height:720px){body.entrymode header{padding-top:2px;padding-bottom:0}body.entrymode .topbar{margin-bottom:0}body.entrymode .entrybar{padding-top:2px;padding-bottom:0}body.entrymode .stepline{margin-top:0;gap:2px}body.entrymode .entrybar .phase{padding:0;line-height:1.2}body.entrymode button.mini{min-height:var(--tap)}body.entrymode #wayBtns{margin:0}body.entrymode #wayBtns button,body.entrymode #actBtns button{min-height:var(--tap);height:auto}body.entrymode #types.chips button{min-height:var(--tap);height:var(--tap)}body.entrymode .pickrow select,body.entrymode .pickrow button.icon{min-height:var(--tap)}body.entrymode .count>div{min-height:0;padding:0 4px;line-height:1;font-size:13px}body.entrymode .count .dots{height:auto}body.entrymode #gameHead{margin-top:0;padding-top:0}body.entrymode:not(.padmode) #tab-game{margin-top:16px}}
 /* v36: the pitcher name never truncates – the picker sizes to its content and the counts wrap instead */
 .pickrow select{flex:1 0 auto}
 body:not(.entrymode) #wlMini{display:none}
 body.entrymode .wlmini{flex:1 1 0;min-width:0;white-space:normal;line-height:1.15;text-align:right}
+body.entrymode #wlMini{order:9;flex:1 0 100%;text-align:right;font-size:11px;line-height:14px;white-space:nowrap}
+body.entrymode #syncTag{padding-left:4px;padding-right:4px}
 body.entrymode .pickrow .tag{flex:0 0 auto;white-space:nowrap}
 .topbar .tag{white-space:nowrap}
 
@@ -334,13 +341,13 @@ body.padmode main{padding-bottom:calc(var(--pad-h,0px) + 12px)}
 #cSideOk{color:#fff;background:transparent;border:2px solid #C3CAD6}
 .dlgfoot{position:sticky;bottom:0;background:var(--c-surface,var(--c-bg));padding:10px 0 2px;margin-top:6px;z-index:1}
 @media (orientation:landscape) and (max-height:500px){#cMenuDlg .cmenu-g{grid-template-columns:repeat(3,1fr);gap:6px}#cMenuDlg .cmenu-g button{min-height:48px;padding:0 6px}#cMenuDlg{max-height:calc(100vh - 16px);width:min(820px,96vw);max-width:96vw}}
-.coach.compact .cres{grid-template-columns:46px 46px}.coach.compact .cs-bat{font-size:11px}
+.coach.compact{gap:5px}.coach.compact .cres{grid-template-columns:var(--tap) var(--tap)}.coach.compact .cs-bat{font-size:11px}
 .coach.compact .cs-top{font-size:11px}.coach.compact .cs-count{font-size:14px}.coach.compact .cchip{font-size:10px;line-height:14px;padding:0 3px}
 .coach.compact .cs-hint{font-size:10px}
 .coach.compact .cmenu{width:44px;padding:0;font-size:20px}
 #wayBtns button{min-height:48px}body.padmode .bpad #wayBtns button,body.padmode #wayBtns button{min-height:48px}
 @media (max-height:720px){body.padmode .bpad{padding:2px 8px 2px;row-gap:2px}body.padmode .padact{margin-top:2px}body.padmode #wayBtns button,body.padmode #actBtns button{min-height:48px;height:auto;font-size:11px;line-height:1.05}}
-.bpad #types.chips{flex-wrap:nowrap;overflow-x:auto}.bpad #types.chips button{flex:1 0 auto;min-width:44px;padding-left:6px;padding-right:6px}
+.bpad #types.chips{flex-wrap:nowrap;overflow-x:auto;gap:6px}.bpad #types.chips button{flex:1 0 auto;min-width:var(--tap);padding-left:6px;padding-right:6px}
 body.padmode #flash{top:56px;font-size:16px;padding:8px 16px;transform:translate(-50%,0) scale(.92)}body.padmode #flash.on{transform:translate(-50%,0) scale(1)}
 body.padmode #locRow{display:none}
 .thseg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}.thseg button{min-height:44px;font-weight:800}.thseg button.on{background:var(--c-royal);color:#fff;border-color:var(--c-royal)}
@@ -449,9 +456,9 @@ html[data-theme="field"] .plist,html[data-theme="field"] .rrow{border-width:0 0 
 #editDlg[open]{display:flex;flex-direction:column;overflow:hidden;max-height:min(92dvh,100dvh)}
 #editDlg form{display:flex;flex-direction:column;flex:1;min-height:0;margin:0}
 #editDlg .editscroll{overflow:auto;flex:1;min-height:0}
-#editZone{display:block;width:min(100%,334px);height:auto;aspect-ratio:128/138;margin:0 auto;touch-action:manipulation}
+#editZone{display:block;width:min(100%,334px);height:auto;aspect-ratio:var(--zone-ar);margin:0 auto;touch-action:manipulation}
 #editWay button,#editAct button,#editDlg .dlgfoot button{min-height:48px}
 #editDlg .dlgfoot{position:static;flex:none;background:transparent}
 #editDlg .dlgfoot button{flex:1}
-@media (max-height:720px){#editZone{width:258px;height:318px;aspect-ratio:128/158;max-width:100%}}
+@media (max-height:720px){#editZone{width:276px;height:auto;max-width:100%}}
 details.arch{margin-top:8px}details.arch>summary{min-height:48px;display:flex;align-items:center;font-weight:700;font-size:var(--fs-md);cursor:pointer}

@@ -46,8 +46,8 @@ function render(skipCallInput){const s=S();applyViewOnly(viewOnly());if(typeof r
   $('callDesc').textContent=D.callTxt?(D.parsed?`${D.parsed.norm} = ${types.find(t=>t.code===D.parsed.type)?.name||D.parsed.type}${D.parsed.targets.length?' → zone '+D.parsed.targets.join('/'):' → tap target on grid'}${D.target?' '+D.target:''} · ${D.parsed.desc}`:'Unrecognized code'):'Type a code or tap buttons. Digits = zone (pitcher\'s view).';
   renderSteps();
   const step=PC.scoreStep(pullDraft()),aims=aimSet();
-  const flagged=D.draft&&D.draft.calledFlag&&aims.length?`Aim ${aims.join('/')} kept · not a legal ${H(D.type||'')} target. `:'';
-  $('phase').innerHTML=tab==='bullpen'?bpPhase():step==='type'?'Pick the pitch type':step==='called'?'Tap the <b>called target</b> on the grid':step==='actual'?flagged+'Tap where it went':`Tap the result${aims.length?` · ${aims.join('/')} → ${locTxt(D.loc)}`:''}`;
+  const aimNote=PC.aimNote(pullDraft());
+  $('phase').innerHTML=aimNote?H(aimNote):tab==='bullpen'?bpPhase():step==='type'?'Pick the pitch type':step==='called'?'Tap the <b>called target</b> on the grid':step==='actual'?'Tap where it went':`Tap the result${aims.length?` · ${aims.join('/')} → ${locTxt(D.loc)}`:''}`;
   $('resBtns').classList.toggle('hide',!!D.ip);$('ipBtns').classList.toggle('hide',!D.ip);
   $('undo').textContent=D.loc?'Undo location':(editUndo?'Undo edit':tab==='bullpen'&&(D.type||D.target||D.callTxt)?'Undo step':'Undo');
   $('redo').disabled=!redoStack.length;$('pRedo').disabled=!redoStack.length;
@@ -67,7 +67,19 @@ function render(skipCallInput){const s=S();applyViewOnly(viewOnly());if(typeof r
   if(tab==='setup'){renderCodes();renderPitchers();renderRoster();$('cTypes').innerHTML=s.customTypes.map((c,i)=>`<span class="tag" data-ct="${i}">${H(c.code)} = ${H(c.name)} ✕</span> `).join('')||'None yet';
     $('storeMsg').textContent=store.isTest?'Test mode: storage untouched.':(storage?'Saved on this device (localStorage). Export a JSON backup regularly.':'Storage is blocked here – open in Safari (not private browsing).');}
   if(tab==='stats'){renderStats();renderHeat();}
-  renderSync();if(tab==='setup'&&!store.isTest&&document.activeElement!==$('teamCode'))$('teamCode').value=store.real.sync.teamCode||'';}
+  renderSync();if(tab==='setup'&&!store.isTest&&document.activeElement!==$('teamCode'))$('teamCode').value=store.real.sync.teamCode||'';fitPitcherFace();}
+// The closed pitcher control keeps the jersey. The font can shrink to 14px, then the name ellipsizes.
+function fitPitcherFace(){const sel=$('pitcher');if(!sel||!sel.options.length)return;const opt=sel.options[sel.selectedIndex];if(!opt||!opt.value)return;const p=pById(sel.value);if(!p)return;
+  const face=PC.pitcherFace(p);const name=face.name,jersey=face.num?'#'+face.num:'',full=face.label;sel.title=full;
+  const maxPx=document.body.classList.contains('entrymode')?16:19,minPx=14;const probe=fitPitcherFace.c||(fitPitcherFace.c=document.createElement('canvas').getContext('2d'));
+  const faceCs=()=>getComputedStyle(sel);
+  const room=()=>{const cs=faceCs();return sel.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);};
+  // The font shorthand is empty when tabular-nums is set, so measure from the longhands.
+  const fits=(px,text)=>{const cs=faceCs();probe.font=`${cs.fontStyle} ${cs.fontWeight} ${px}px ${cs.fontFamily}`;return probe.measureText(text).width<=room()-2;};
+  let px=maxPx;while(px>minPx&&!fits(px,full))px-=1;sel.style.fontSize=px+'px';
+  let text=full;if(!fits(px,full)&&jersey){const tail=' '+jersey;const ell=i=>(i<=0?'…':name.slice(0,i)+'…')+tail;let n=name.length;while(n>0&&!fits(px,ell(n)))n--;text=ell(n);if(!fits(px,text))text='…'+tail;}
+  opt.text=text;}
+addEventListener('resize',()=>fitPitcherFace());
 document.querySelector('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;tab=b.dataset.t;document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));resetDraft();render();scrollTo(0,0);});
 if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 render();doSync(false);

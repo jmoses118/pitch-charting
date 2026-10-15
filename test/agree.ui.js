@@ -39,7 +39,7 @@ if(SHOT){await p.screenshot({path:SHOT+'heat-landed.png'});}
 await p.click('#hvI');await w();const miss=await ev(()=>({t:document.getElementById('hSummary').textContent,cells:[...document.querySelectorAll('#hMap text')].map(e=>e.textContent)}));
 ok(miss.t==='Showing 6 of 6 pitches (the ones with an aim). Box = where she aimed · color = how far off.','Miss: shows all 6 aimed pitches → "'+miss.t+'"');
 {const lab=miss.cells.filter(t=>/off$|^Hit spot$|^Close$/.test(t));ok(!miss.cells.some(t=>/[✓✗.]\d|aimed|On spot/.test(t))&&lab.length===6&&lab.every(t=>/^(Hit spot|Close|[2-4] off)$/.test(t))&&miss.cells.filter(t=>/^1 pitch$/.test(t)).length===6,'Miss: kid-clear whole-box labels (Hit spot / Close / N off, "1 pitch") '+lab.join(','));}
-ok(await ev(()=>[missTxt(0),missTxt(1),missTxt(1.33),missTxt(1.5),missTxt(2.6),missTxt(4)].join('|'))==='Hit spot|Close|2 off|2 off|3 off|4 off','missTxt: avg 1.33 → "2 off" (never "1 off"), whole boxes');
+ok(await ev(()=>[PC.missTxt(0),PC.missTxt(1),PC.missTxt(1.33),PC.missTxt(1.5),PC.missTxt(2.6),PC.missTxt(4)].join('|'))==='Hit spot|Close|2 off|2 off|3 off|4 off','missTxt: avg 1.33 → "2 off" (never "1 off"), whole boxes');
 ok(!/squares/.test(await p.textContent('#hLegend')),'heat legend says boxes, not squares');
 ok(/Number = how many boxes she missed by\. "Close" = 1 box off – still on target\./.test(await p.textContent('#hLegend')),'Miss legend explains Close');
 ok(await ev(()=>[...document.querySelectorAll('#hMap text')].filter(e=>/spot|Close|off$/.test(e.textContent)).every(e=>{const c=e.getBBox();return parseFloat(e.style.fontSize)===4.6&&c.width<=20;})),'Miss labels 4.6px and fit their box');
