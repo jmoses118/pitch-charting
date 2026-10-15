@@ -5,7 +5,8 @@
 // fails until this file drops it. The token floor cannot drop below 30.
 // Renamed copies are checked after identifiers are blanked, which is what a
 // name-only scan misses.
-const fs=require('fs'),path=require('path'),os=require('os'),{execSync,spawnSync}=require('child_process');
+const fs=require('fs'),path=require('path'),os=require('os'),{execSync}=require('child_process');
+const {readBase}=require('./git-base.js');
 const repo=path.join(__dirname,'..');
 const MIN_TOKENS=30,MIN_LINES=5;
 const PRETTIER='prettier@3.6.2',JSCPD='jscpd@4.0.5';
@@ -17,7 +18,6 @@ function walk(dir){return fs.readdirSync(dir).flatMap(n=>{const p=path.join(dir,
 function copyJs(){const dir=fs.mkdtempSync(path.join(os.tmpdir(),'dup-'));fs.cpSync(path.join(repo,'js'),path.join(dir,'js'),{recursive:true});return dir;}
 function formatDir(dir){const files=walk(path.join(dir,'js'));try{execSync('npx --yes '+PRETTIER+' --write '+files.map(f=>JSON.stringify(f)).join(' '),{stdio:'pipe'});return '';}
   catch(e){const detail=((e.stderr&&e.stderr.toString())||e.message||'prettier failed').split('\n').map(s=>s.trim()).find(Boolean)||'prettier failed';return 'FAIL prettier '+detail;}}
-function gitBaseline(rel){const name=process.env.ARCH_BASE_REF||process.env.GITHUB_BASE_REF||'cursor/core-logic-consolidation-36f8';const ref=name.startsWith('origin/')?name:'origin/'+name;const r=spawnSync('git',['show',ref+':'+rel],{cwd:repo,encoding:'utf8'});if(r.status!==0||!r.stdout)return null;try{return JSON.parse(r.stdout);}catch(e){return null;}}
 function relJs(name){const n=String(name).replace(/\\/g,'/');const m=n.match(/(?:^|\/)(js\/.*)$/);return m?m[1]:n;}
 function side(file){return{file:relJs(file.name),start:file.start,end:file.end};}
 function key(s){return s.file+':'+s.start+'-'+s.end;}
@@ -44,7 +44,9 @@ function renameIds(code){return code.replace(/[A-Za-z_$][\w$]*/g,m=>RESERVED.has
 function namesClone(clones,plant,other){return clones.some(c=>[c.a.file,c.b.file].includes(plant)&&[c.a.file,c.b.file].includes(other));}
 
 const baseline=JSON.parse(fs.readFileSync(path.join(__dirname,'dup.baseline.json'),'utf8'));
-const baseLine=gitBaseline('test/dup.baseline.json');
+const baseRead=readBase(repo,'test/dup.baseline.json');
+if(!baseRead.ok){console.log('FAIL test/dup.baseline.json git show failed');process.exit(1);}
+const baseLine=baseRead.missing?null:baseRead.json;
 const formatted=copyJs();
 const pretty=formatDir(formatted);
 if(pretty){console.log(pretty);process.exit(1);}
