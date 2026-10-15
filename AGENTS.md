@@ -9,8 +9,8 @@ Search before writing a helper. Never copy a block between files.
 - One flow state machine: `js/core/flow.js`.
 - One location module: `js/core/location.js` (`calledOf`, `actualOf`).
 
-`js/core` never references `js/ui`. `js/ui` does not define `valid*`, `calc*`, or `*Of` rule functions.
+`js/core` never references `js/ui`. `js/ui` does not define `valid*`, `calc*`, or `*Of` rule functions. `js/ui` does not bind `PC`, copy `CH_TARGETS` or `LOW_RING`, or read `isZone`, `isStrike`, `GRID_XY`, `CH_TARGETS`, or `nearestTarget`, and `PC.aimRejectMsg` stays only at `coach.js` lines 85 and 88 and `shared.js` line 77; `test/dup.scan.js` fails any clone that is not in the shrink-only `test/dup.baseline.json` (`--min-tokens 30`).
 
 Every pull request cites the spec IDs it covers and adds the mapped tests first.
 
-These files are IIFEs, not ES modules, so an import linter cannot see a cross-file call. `test/arch.scan.js` is the check that fails the build: core files must not mention `js/ui`, and UI files must not define those rule functions. `jscpd` fails when a cloned block appears under `js/`.
+These files are IIFEs, not ES modules, so an import linter cannot see a cross-file call. `test/arch.scan.js` is the check that fails the build: core files must not mention `js/ui`, and UI files must not define those rule functions. `test/arch.negative.js` plants the copies that must fail. `test/dup.scan.js` runs `jscpd` on a Prettier copy and fails a clone that is not already listed.

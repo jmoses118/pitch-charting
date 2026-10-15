@@ -16,9 +16,9 @@ jobs:
       - name: Unit tests
         run: node --test test/logic.test.js
       - name: Architecture boundaries
-        run: node test/arch.scan.js
+        run: node test/arch.scan.js && node test/arch.negative.js
       - name: Duplication
-        run: npx --yes jscpd@4.0.5 js --threshold 0 --min-lines 5 --min-tokens 50 --reporters console
+        run: node test/dup.scan.js
   ui:
     # Playwright browser tests against a local static server (Supabase is blocked inside every test; test data only)
     runs-on: ubuntu-latest

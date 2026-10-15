@@ -1,5 +1,11 @@
 # Changelog
 
+## v65 – A bad aim stays marked
+### Changed
+- **RULE-4a.** A change-up aim that sits on the zone but is not a legal change-up box is kept when it comes from a file or another phone, and the chart marks it. A called box that is not on the zone is left blank.
+- **RULE-11a.** Two active pitchers cannot wear the same number. `0` and `00` are both allowed, and a blank number is allowed.
+- **ARCH-1.** The build fails if a screen copies the strike check, the change-up boxes, or the miss math.
+
 ## v64 – Shake-off keeps the aim
 ### Changed
 - **RULE-3d.** After a shake-off, the original aim stays filled in. If that box is not legal for the pitch she threw, it stays and the screen says so. She can still tap a new aim.

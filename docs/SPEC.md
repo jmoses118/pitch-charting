@@ -27,6 +27,7 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
 - **RULE-3c** A CH, drop or drop curve called low (7, 8, 9, 13, 14, 18) that lands in the dirt (31) counts as a reduced-severity miss, not a full way-off miss.
 - **RULE-3d** After a shake-off, the called location is the location re-signaled with the final pitch. If none was re-signaled, the original box stands.
 - **RULE-4** One shared location component and one location validator are used everywhere: scoring, editing, sync, and CSV import.
+- **RULE-4a** On CSV import and on a sync read, a called aim that is on the grid but fails `validCalled` is kept and flagged (`calledFlag`). It is not dropped. A called box that is not on the grid is stored as null.
 - **RULE-5** Only one phone can score a game or bullpen session. Every other phone sees it live and read-only.
 - **RULE-6** Undo and Redo cover both the pitch and its location.
 - **RULE-7** Every popup has a working Cancel that leaves the data unchanged.
@@ -34,6 +35,7 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
 - **RULE-9** CSV export is per pitcher per date. One shared CSV row builder produces every row.
 - **RULE-10** Players are shown by first name and jersey number (`pitcherLabel`), and CSV file names use the same. No surnames.
 - **RULE-11** Jim can edit a pitcher's jersey number. Cancel leaves it unchanged.
+- **RULE-11a** An active pitcher cannot share a jersey number with another active pitcher. `0` and `00` are both allowed and are not the same number. Empty is allowed. The check is `jerseyError` in `js/core/store.js`.
 - **RULE-12** The current branding stays.
 
 ## VIEW
@@ -65,14 +67,17 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | RULE-3c | unit: a CH, drop or drop curve called low that lands in 31 is a miss below way-off severity |
 | RULE-3d | unit: after a shake-off the called location is the re-signaled box, or the original box when none was re-signaled |
 | RULE-4 | unit: scoring, edit, sync and CSV import call the same validator with the same inputs and get the same results |
+| RULE-4a | unit: a CH called box 2 is kept, `calledFlag` is true, and an off-grid called box is null, on CSV import and on a sync read |
 | RULE-5 | `lock.ui.js` + `live.sync.js`: a second phone is read-only and sees pitches live |
 | RULE-6, RULE-7 | unit: redo/undo state; UI: Cancel on every popup leaves the state unchanged |
 | RULE-8 | `fit.ui.js`: no vertical scroll at 375, 390 and 430 px |
 | RULE-9 | unit: one row builder; export filtered to one pitcher and one date |
 | RULE-10 | unit: `pitcherLabel` and CSV file name include the jersey number; smoke: no surnames shown |
 | RULE-11, RULE-12 | UI: edit jersey number saves, and Cancel leaves it unchanged; smoke: branding unchanged |
+| RULE-11a | unit: `0` and `00` are allowed, empty is allowed, and a duplicate active number errors |
 | VIEW-1, VIEW-2 | `zonegfx.ui.js`: numbered, colored markers and list; one-tap scheduled start |
 | DoD | UI: `inning.e2e` (full inning) and `bullpen20.e2e` (20-pitch bullpen) at 390 px |
+| ARCH-1 | `test/arch.scan.js` passes on the tree. `test/arch.negative.js`: (1) `function strikeFor` and `const strikeFor=()=>`; (2) `PC.validCalled2=`, `PC['x']=`, `Object.assign(PC,{})`; (3) `[4,7,8,9,13,14,18]`, a shuffle, a string, and a Set; (4) `[13,18,14]` in any order, plus a string and a Set; (5) `PC.isZone`, `isStrike`, `CH_TARGETS`, `nearestTarget`, `PC['isZone']`, `PC?.isZone`; (6) `const {isZone}=PC` and `const P=PC`; (7) `GRID_XY` in `game.js` and a second `report.js` read outside `reportPNG`; (8) `validBox`; (9) core referencing `js/ui`; (10) a new `p.loc` read above the per-file baseline; (11) a clean copy passes; (12) a new `PC.aimRejectMsg` outside `coach.js` lines 85 and 88 and `shared.js` line 77. `test/dup.scan.js`: (a) a verbatim `pitchMiss` paste names both files; (b) the same paste with renamed identifiers; (c) a one-line copy after Prettier; (d) a renamed `strikeOf` body; (e) a clone not in `test/dup.baseline.json` fails while the real tree passes; (f) lowering the token floor or adding to the baseline fails |
 
 ## Architecture
 Each business rule lives in one `js/core` module. UI files render and forward events. They do not keep a second validator or a second copy of a rule.

@@ -35,6 +35,14 @@ test('RULE-11 jersey is 0–99, and an active number cannot be shared',()=>{
   st.archivePitcher(z.id);assert.equal(st.editPitcher(a.id,{num:'00'}).num,'00');
   assert.equal(st.addPitcher({name:'Bo',throws:'R'}).num,'');
 });
+test('RULE-11a: 0 and 00 are allowed, empty is allowed, and a duplicate active number errors',()=>{
+  assert.equal(PC.jerseyNum('0').ok,true);assert.equal(PC.jerseyNum('0').num,'0');
+  assert.equal(PC.jerseyNum('00').ok,true);assert.equal(PC.jerseyNum('00').num,'00');
+  assert.equal(PC.jerseyNum('').ok,true);assert.equal(PC.jerseyNum('').num,'');
+  assert.equal(PC.jerseyNum('  ').ok,true);
+  const st=PC.makeStore(mem());
+  assert.throws(()=>st.addPitcher({name:'Zoe',throws:'R',num:'45'}),/#45 is already Avery/);
+});
 test('add / edit / archive pitcher persists',()=>{const m=mem();const st=PC.makeStore(m);const p=st.addPitcher({name:'Kenzie',num:'7',throws:'L'});
   let saved=JSON.parse(m.getItem(PC.KEY));assert.ok(saved.pitchers.find(x=>x.name==='Kenzie'&&x.num==='7'&&x.throws==='L'));
   st.editPitcher(p.id,{num:'8',throws:'R'});st.archivePitcher(p.id);saved=JSON.parse(m.getItem(PC.KEY));const q=saved.pitchers.find(x=>x.id===p.id);assert.equal(q.num,'8');assert.equal(q.throws,'R');assert.equal(q.archived,true);
@@ -908,4 +916,12 @@ test('RULE-4: scoring, edit, sync and CSV import use one validator; a read keeps
   PC.mergeRemote(s,{pitches:[{id:'p1',mode:'game',game_id:'g',type:'FB',targets:[8],loc:5,inning:1,abn:1,result:'called',updated_at:'2026-10-14T12:00:00Z'}]});
   assert.equal(s.games[0].pitches[0].calledFlag,undefined);assert.deepEqual(s.games[0].pitches[0].targets,[8]);
   assert.equal(PC.calledOf({calledLoc:8,targets:[7,9]}),8);assert.equal(PC.calledOf({targets:[7,9]}),'7/9');assert.equal(PC.actualOf({actualLoc:31,loc:8}),31);assert.equal(PC.actualOf({loc:14}),14);
+});
+test('RULE-4a: CH box 2 is kept, calledFlag is true, and an off-grid called box is null',()=>{
+  const csv=PC.importSpots({type:'CH',call_target:'2',called_location:'2',location:'8'});
+  assert.ok(csv.targets.includes(2));assert.equal(csv.calledLoc,2);assert.equal(csv.calledFlag,true);
+  assert.equal(PC.importSpots({type:'CH',call_target:'2',called_location:'99',location:'8'}).calledLoc,null);
+  const sync=PC.rowPitch({id:'a',mode:'game',type:'CH',targets:[2],called_loc:2,loc:8,inning:1,abn:1});
+  assert.ok(sync.targets.includes(2));assert.equal(sync.calledLoc,2);assert.equal(sync.calledFlag,true);
+  assert.equal(PC.rowPitch({id:'b',mode:'game',type:'CH',targets:[2],called_loc:99,loc:8,inning:1,abn:1}).calledLoc,null);
 });
