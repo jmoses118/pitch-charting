@@ -77,6 +77,18 @@ function expectPass(name,dir,env){const r=run(dir,env);const ok=r.code===0&&/arc
 {const d=tree();const p=path.join(d,'js/core/calls.js');fs.writeFileSync(p,fs.readFileSync(p,'utf8').replace(/\.targets\b/g,'.boxes'));fs.mkdirSync(path.join(d,'test'));const cur=JSON.parse(fs.readFileSync(path.join(repo,'test/loc.baseline.json'),'utf8'));cur['js/core/calls.js']=0;fs.writeFileSync(path.join(d,'test/loc.baseline.json'),JSON.stringify(cur));expectPass('10b lowered loc baseline passes',d);}
 // (10c) a higher count than the base branch fails
 {const d=tree();fs.mkdirSync(path.join(d,'test'));const cur=JSON.parse(fs.readFileSync(path.join(repo,'test/loc.baseline.json'),'utf8'));fs.writeFileSync(path.join(d,'test/loc.baseline.json'),JSON.stringify(cur));execSync('git init -q',{cwd:d});execSync('git config user.email t@example.com',{cwd:d});execSync('git config user.name t',{cwd:d});execSync('git add test/loc.baseline.json',{cwd:d});execSync('git commit -q -m base',{cwd:d});execSync('git update-ref refs/remotes/origin/fixture HEAD',{cwd:d});cur['js/core/calls.js']=cur['js/core/calls.js']+1;fs.writeFileSync(path.join(d,'test/loc.baseline.json'),JSON.stringify(cur));append(d,'js/core/calls.js','\nfunction plantRise(p){return p.loc;}\n');expectFail('10c loc baseline rises vs base',d,'js/core/calls.js','rose',{ARCH_BASE_REF:'fixture'});}
+// (10d) raising sync.js 3→4 and adding a read must fail when git show cannot see the base
+{const d=tree();fs.mkdirSync(path.join(d,'test'));const cur=JSON.parse(fs.readFileSync(path.join(repo,'test/loc.baseline.json'),'utf8'));cur['js/core/sync.js']=4;fs.writeFileSync(path.join(d,'test/loc.baseline.json'),JSON.stringify(cur));append(d,'js/core/sync.js','\nfunction plantSync(p){return p.loc;}\n');expectFail('10d sync.js 3 to 4',d,'js/core/sync.js','git show',{ARCH_BASE_REF:'no-such-base',GITHUB_BASE_REF:'',GITHUB_EVENT_NAME:''});}
+// (22) nested destructure that pulls a banned member off an object holding PC
+{const d=tree();write(d,'js/ui/plant-nest.js','const {a:{isZone:z}}={a:PC};\n');expectFail('22 nested {a:{isZone:z}}={a:PC}',d,'js/ui/plant-nest.js');}
+// (23) object-property alias
+{const d=tree();write(d,'js/ui/plant-aliasobj.js','const o={p:PC};o.p.isZone();\n');expectFail('23 const o={p:PC}',d,'js/ui/plant-aliasobj.js');}
+// (24) compound assignment
+for(const src of ['PC.x+=1;\n','PC.x-=1;\n','PC.x||=1;\n','PC.x??=1;\n','PC.x++;\n','PC.x--;\n']){const d=tree();write(d,'js/ui/plant-op.js',src);expectFail('24 '+src.trim(),d,'js/ui/plant-op.js');}
+// (25) nested location destructure
+{const d=tree();append(d,'js/core/scoring.js','\nfunction plantNest(p){const {a:{loc}}={a:p};return loc;}\n');expectFail('25 const {a:{loc}}',d,'js/core/scoring.js');}
+// (26) computed pitch key
+{const d=tree();append(d,'js/core/scoring.js','\nfunction plantKey(p){return p[k];}\n');expectFail('26 p[k]',d,'js/core/scoring.js','non-literal');}
 // (11) a clean copy passes, including the allowlisted aimRejectMsg calls
 expectPass('11 clean copy',tree());
 
