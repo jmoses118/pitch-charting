@@ -1,5 +1,12 @@
 # Changelog
 
+## v59 – Bullpen has no strike
+### Changed
+- **FLOW-6.** `strikeOf` is null for a bullpen pitch. The session report, the log, and the bullpen CSV leave the strike column blank. Game strikes still follow the umpire.
+- **FLOW-6a.** `stripBullpenResults` sets its own done flag, so a second pass does not queue the same pitch again. A sync read drops a bullpen result. CI runs `20261014230000_bullpen_no_result.sql` on Postgres.
+- **FLOW-8.** `blankSession` is the new-session shape: pitches start empty and there is no batter.
+- Cache: `te-pitch-v59`.
+
 ## v58 – Bullpen has no result
 ### Changed
 - **FLOW-6.** A bullpen pitch is type, called location, actual location, then save. There is no ball/strike result and no default stamp.

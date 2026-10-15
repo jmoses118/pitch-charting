@@ -48,17 +48,18 @@ const FIRST_NAMES={p_woods:'Avery',p_crich:'Jules',p_larbus:'Reese'};
 const firstName=n=>String(n||'').trim().split(/\s+/)[0]||'';
 const pitcherLabel=p=>p?(firstName(p.name)||'?')+(p.num?' #'+p.num:''):'?';
 function clearPitchResult(p){if(!p)return false;const had=p.result!=null||p.ip!=null||p.end!=null||p.bpResult!=null;delete p.result;delete p.ip;delete p.end;delete p.bpResult;return had;}
-function stripBullpenResults(st){if(!st)return st;delete st.bpResult;const q=st.sync&&st.sync.queue;const mark=p=>{if(!p||!p.id||!q)return;q.pitches=q.pitches||{};q.pitches[p.id]=(q.pitches[p.id]||0)+1;};
+function stripBullpenResults(st){if(!st||st.migBpResult)return st;delete st.bpResult;const q=st.sync&&st.sync.queue;const mark=p=>{if(!p||!p.id||!q)return;q.pitches=q.pitches||{};q.pitches[p.id]=(q.pitches[p.id]||0)+1;};
   (st.sessions||[]).forEach(s=>{delete s.bpResult;(s.pitches||[]).forEach(p=>{if(clearPitchResult(p))mark(p);});});
-  (st.games||[]).forEach(g=>(g.pitches||[]).forEach(p=>{if(p.mode==='bullpen'&&clearPitchResult(p))mark(p);}));return st;}
+  (st.games||[]).forEach(g=>(g.pitches||[]).forEach(p=>{if(p.mode==='bullpen'&&clearPitchResult(p))mark(p);}));st.migBpResult=true;return st;}
+function blankSession(o){o=o||{};const s={id:o.id||null,date:o.date||null,started:o.started||null,scorer:o.scorer||null,pitches:[]};if(o.pitcherId)s.pitcherId=o.pitcherId;return s;}
 function ensureSync(st){
   // one-time: default pitchers stored with a surname (old phones / cloud) are trimmed to first name and pushed, so the cloud copy is scrubbed too
   if(!st.migNames2){(st.pitchers||[]).forEach(p=>{const f=FIRST_NAMES[p.id];if(f&&p.name!==f&&(firstName(p.name)===f||!st.migNames1)){p.name=f;if(st.sync)st.sync.queue.pitchers[p.id]=(st.sync.queue.pitchers[p.id]||0)+1;}});st.migNames1=true;st.migNames2=true;}
   // one-time: p_woods has no 'ace' tag, is #45 and throws L (queued so the cloud stays consistent)
   if(!st.migWoods1){const w=(st.pitchers||[]).find(p=>p.id==='p_woods');if(w){delete w.note;if(!w.num)w.num='45';w.throws='L';if(st.sync)st.sync.queue.pitchers[w.id]=(st.sync.queue.pitchers[w.id]||0)+1;}st.migWoods1=true;}if(!st.sync)st.sync={queue:{pitchers:{},games:{},sessions:{},pitches:{}},tomb:{},last:null,lastError:null,teamCode:'',deviceId:'d_'+uid()};
   TABLES.forEach(t=>{st.sync.queue[t]=st.sync.queue[t]||{};});st.notes=st.notes||[];st.settings=st.settings||{};if(!Array.isArray(st.settings.alerts))st.settings.alerts=DEFAULT_ALERTS.slice();if(!Array.isArray(st.settings.rest))st.settings.rest=DEFAULT_REST.map(x=>Object.assign({},x));st.settings.limits=Object.assign({},DEFAULT_LIMITS,st.settings.limits);if(typeof st.settings.showRest!=='boolean')st.settings.showRest=false;if(typeof st.settings.showBatterHand!=='boolean')st.settings.showBatterHand=false;
-  // FLOW-6a: bullpen has no ball/strike result. Strip saved bpResult and any stamped result, and queue those pitches so the next sync clears them.
-  if(!st.migBpResult){stripBullpenResults(st);st.migBpResult=true;}
+  // FLOW-6a: bullpen has no ball/strike result. The done flag lives inside the strip, so a second call does not queue again.
+  stripBullpenResults(st);
   // one-time: preload Jim's wristband (pushed only once edited, so a stale default never overwrites the cloud copy)
   if(!st.migSheets1){if(!Array.isArray(st.callSheets)||!st.callSheets.length){st.callSheets=[defaultCallSheet()];}if(!st.activeSheet)st.activeSheet=st.callSheets[0].id;st.migSheets1=true;}
   // first run with sync: give every pitch a uuid and queue everything once
@@ -70,5 +71,5 @@ function ensureSync(st){
 // ---------- notes (pitching coach / coach -> player's report) ----------
 const noteId=(o)=>o.sessionId?'n_'+o.sessionId+(o.pitcherId?'_'+o.pitcherId:''):'n_'+o.gameId+'_'+o.pitcherId;
 function findNote(st,o){return (st.notes||[]).find(n=>!n.deleted&&n.pitcherId===o.pitcherId&&(o.sessionId?n.sessionId===o.sessionId:n.gameId===o.gameId))||null;}
-Object.assign(PC,{KEY,ROSTER,uuid,isUUID,uid,defaultState,makeStore,FIRST_NAMES,firstName,pitcherLabel,ensureSync,stripBullpenResults,noteId,findNote});
+Object.assign(PC,{KEY,ROSTER,uuid,isUUID,uid,defaultState,makeStore,FIRST_NAMES,firstName,pitcherLabel,ensureSync,stripBullpenResults,blankSession,noteId,findNote});
 })(typeof window!=='undefined'?window:globalThis);

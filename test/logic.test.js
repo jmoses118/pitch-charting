@@ -14,12 +14,12 @@ test('ball four = walk',()=>{let c={b:0,s:0},o;for(let i=0;i<3;i++){o=PC.applyPi
 test('strike three = K (called or swinging)',()=>{let c=PC.applyPitch({b:0,s:0},'called');c=PC.applyPitch(c,'swinging');assert.equal(c.end,null);const o=PC.applyPitch(c,'called');assert.equal(o.end,'K');assert.equal(o.outs,1);});
 test('foul with two strikes keeps count; foul with <2 adds strike',()=>{let c=PC.applyPitch({b:1,s:0},'foul');assert.equal(c.s,1);c=PC.applyPitch(c,'foul');assert.equal(c.s,2);
   for(let i=0;i<5;i++){c=PC.applyPitch(c,'foul');assert.equal(c.s,2);assert.equal(c.end,null);}assert.equal(PC.isStrike('foul'),true);});
-test('pitch count matches GC (all pitches incl. fouls, in play, HBP; IBB no pitch)',()=>{const P=[];const add=(r,pid='A',x={})=>P.push(Object.assign({pitcherId:pid,result:r},x));
+test('pitch count matches GC (all pitches incl. fouls, in play, HBP; IBB no pitch)',()=>{const P=[];const add=(r,pid='A',x={})=>P.push(Object.assign({pitcherId:pid,result:r,inning:1,abn:1},x));
   ['ball','called','foul','foul','foul','inplay'].forEach(r=>add(r));add('hbp');add('ibb','A',{noPitch:true});add('ball','B');add('swinging','B');
   assert.equal(PC.pitchCount(P,'A'),7);assert.equal(PC.pitchCount(P,'B'),2);assert.equal(PC.pitchCount(P),9);
   const s=PC.summarize(P.filter(p=>p.pitcherId==='A'));assert.equal(s.n,7);assert.equal(s.strikes,5);});
 test('in play results and HBP',()=>{assert.equal(PC.applyPitch({b:0,s:0},'inplay','2B').end,'2B');assert.equal(PC.applyPitch({b:0,s:0},'inplay','FC').outs,1);assert.equal(PC.applyPitch({b:3,s:2},'hbp').end,'HBP');});
-test('first-pitch strike %',()=>{const s=PC.summarize([{result:'called',b:0,s:0},{result:'ball',b:1,s:0},{result:'ball',b:0,s:0}]);assert.equal(s.fpsPct,50);});
+test('first-pitch strike %',()=>{const s=PC.summarize([{result:'called',b:0,s:0,inning:1,abn:1},{result:'ball',b:1,s:0,inning:1,abn:1},{result:'ball',b:0,s:0,inning:1,abn:2}]);assert.equal(s.fpsPct,50);});
 test('defaults: no surnames (empty roster, first-name pitchers)',()=>{const s=PC.defaultState();assert.equal(s.roster.length,0);const w=s.pitchers.find(p=>p.id==='p_woods');assert.equal(w.throws,'L');assert.equal(w.num,'45');assert.equal(w.note,undefined);assert.deepEqual(s.pitchers.map(p=>p.name),['Avery','Jules','Reese']);assert.deepEqual(s.pitchers.map(p=>p.id),['p_woods','p_crich','p_larbus']);});
 test('add / edit / archive pitcher persists',()=>{const m=mem();const st=PC.makeStore(m);const p=st.addPitcher({name:'Kenzie',num:'7',throws:'L'});
   let saved=JSON.parse(m.getItem(PC.KEY));assert.ok(saved.pitchers.find(x=>x.name==='Kenzie'&&x.num==='7'&&x.throws==='L'));
@@ -33,7 +33,7 @@ test('CSV round trip',()=>{const csv=PC.toCSV([{mode:'game',batter:'O"Neil, J',p
 test('dropped 3rd: K for pitcher, no out, batter reaches, counts as pitch',()=>{const o=PC.applyPitch({b:1,s:2},'kd3');assert.equal(o.end,'K-D3');assert.equal(o.outs,0);assert.equal(o.s,3);assert.ok(PC.isStrike('kd3'));assert.equal(PC.pitchCount([{result:'kd3'}]),1);});
 test('FB IN stays mid inside edge: 6 RHB, 4 LHB',()=>{assert.deepEqual(PC.parseCall('FB IN','R').targets,[6]);assert.deepEqual(PC.parseCall('FBIN','L').targets,[4]);});
 test('Avery stays left-handed',()=>{assert.equal(PC.defaultState().pitchers.find(p=>p.id==='p_woods').throws,'L');});
-test('waste spots count as balls-zone and hit-the-spot',()=>{const c=PC.parseCall('FB A','R');const s=PC.summarize([{type:'FB',call:c.norm,targets:c.targets,loc:16,b:0,s:0},{type:'FB',call:'FB H+',targets:[15],loc:2,b:0,s:0}]);assert.equal(s.strikes,1);assert.equal(s.spotPct,50);});
+test('waste spots count as balls-zone and hit-the-spot',()=>{const c=PC.parseCall('FB A','R');const s=PC.summarize([{type:'FB',call:c.norm,targets:c.targets,loc:16,b:0,s:0,inning:1,abn:1},{type:'FB',call:'FB H+',targets:[15],loc:2,b:0,s:0,inning:1,abn:1}]);assert.equal(s.strikes,1);assert.equal(s.spotPct,50);});
 test('DC drop curve is its own type',()=>{const c=PC.parseCall('DC 8','R');assert.equal(c.type,'DC');assert.ok(PC.BASE_TYPES.some(t=>t.code==='DC'));const s=PC.summarize([{type:'DC',loc:8},{type:'DR',loc:8},{type:'CB',loc:7}]);assert.equal(s.byType.DC.n,1);assert.equal(s.byType.DR.n,1);assert.equal(s.byType.CB.n,1);});
 // ---------- sync ----------
 function fakeFetch(){const calls=[];const db={pitchers:{},games:{},sessions:{},pitches:{},call_sheets:{},notes:{},team_settings:{}};
@@ -192,7 +192,7 @@ test('game logic: no pitch after the at-bat ends; K-D3 thrown out; foul tip; dou
   let o=PC.applyPitch({b:1,s:2},'kd3out');assert.equal(o.end,'K');assert.equal(o.outs,1);assert.throws(()=>PC.applyPitch({b:0,s:1},'kd3out'));
   o=PC.applyPitch({b:0,s:1},'foultip');assert.equal(o.s,2);assert.equal(o.end,null);o=PC.applyPitch({b:2,s:2},'foultip');assert.equal(o.end,'K');assert.equal(o.outs,1);assert.ok(PC.isStrike('foultip'));
   o=PC.applyPitch({b:0,s:0},'inplay','DP');assert.equal(o.outs,2);assert.equal(o.end,'DP');
-  const s=PC.summarize([{result:'kd3out',end:'K'},{result:'foultip',end:'K'},{result:'kd3',end:'K-D3'}]);assert.equal(s.k,3);assert.equal(s.strikes,3);});
+  const s=PC.summarize([{result:'kd3out',end:'K',inning:1,abn:1},{result:'foultip',end:'K',inning:1,abn:1},{result:'kd3',end:'K-D3',inning:1,abn:1}]);assert.equal(s.k,3);assert.equal(s.strikes,3);});
 test('new pitcher requires a throwing hand',()=>{const st=PC.makeStore(mem());assert.throws(()=>st.addPitcher({name:'X'}));assert.throws(()=>st.addPitcher({name:'X',throws:''}));assert.equal(st.addPitcher({name:'X',throws:'L'}).throws,'L');});
 test('missData per-cell on-target count never exceeds pitches aimed there',()=>{const P=[[3,3],[3,2],[3,9],[3,5],[7,7]].map(([t,l])=>({p:{targets:[t],loc:l}}));const d=PC.missData(P,{});assert.equal(d.cells[3].n,4);assert.equal(d.cells[3].good,2);assert.equal(d.cells[7].good,1);for(const z in d.cells)assert.ok((d.cells[z].good||0)<=d.cells[z].n);});
 test('change-up rule: CH landing in top/middle row is a miss even on target; bottom row normal',()=>{
@@ -220,7 +220,7 @@ test('call sheets sync for coach only and round-trip',async()=>{const{st,ff,sy}=
   const{rows,held}=PC.buildRows(Object.assign(PC.defaultState(),{callSheets:[PC.defaultCallSheet()],sync:{role:'player',teamId:'t',pitcherId:'p_woods',queue:{call_sheets:{cs_wristband1:1}}}}));assert.equal((rows.call_sheets||[]).length,0,'players never push call sheets');});
 test('mid-game pitching change: each pitch keeps its own pitcher; count/state untouched; rows carry pitcher_id; switching back resumes',()=>{
   const g={id:'g_pc',lineup:Array.from({length:9},(_,i)=>({slot:i+1,name:'B'+i,hand:'R'})),pitches:[],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:0}};const c=g.cur;
-  const throwP=(pid,res,loc)=>{const before=JSON.stringify(c);const o=PC.applyPitch(c,res);const r={id:PC.uuid(),pitcherId:pid,type:'FB',loc,result:res,b:c.b,s:c.s,end:o.end,targets:[]};g.pitches.push(r);c.b=o.b;c.s=o.s;if(o.end){c.outs+=o.outs;c.b=0;c.s=0;c.abn++;c.slot++;}return before;};
+  const throwP=(pid,res,loc)=>{const before=JSON.stringify(c);const o=PC.applyPitch(c,res);const r={id:PC.uuid(),pitcherId:pid,type:'FB',loc,result:res,b:c.b,s:c.s,end:o.end,targets:[],inning:c.inning,abn:c.abn};g.pitches.push(r);c.b=o.b;c.s=o.s;if(o.end){c.outs+=o.outs;c.b=0;c.s=0;c.abn++;c.slot++;}return before;};
   ['called','swinging','swinging'].forEach(r=>throwP('p_woods',r,5));throwP('p_woods','ball',16);
   const snap=JSON.stringify(c);// switch mid at-bat (1-0): nothing in game state changes
   assert.equal(PC.pitchCount(g.pitches,'p_crich'),0);assert.equal(JSON.stringify(c),snap);
@@ -257,14 +257,14 @@ test('ring is competitive, way off is a miss, CH/drop low ring is good; raw stri
   assert.ok(!M(bp('FB',1,14)).good);assert.ok(M(bp('CH',2,2)).chUp&&!M(bp('CH',2,2)).good,'CH-up rule kept');
   // report: competitive % = strikes + ring / all; raw strike % visible; way-off count
   const L=[bp('FB',3,3),bp('FB',3,12),bp('FB',9,17),bp('CH',8,18),bp('FB',16,16),bp('FB',3,21),bp('FB',9,22),bp('FB',5,5),bp('FB',1,1),bp('FB',2,2)];
-  const r=PC.sessionReport(L,{p_larbus:'R'});assert.equal(r.n,10);assert.equal(r.strikes,4);assert.equal(r.strikePct,40);assert.equal(r.compPct,80);assert.equal(r.wayOff,2);
+  const r=PC.sessionReport(L,{p_larbus:'R'});assert.equal(r.n,10);assert.equal(r.strikes,0);assert.equal(r.strikePct,0);assert.equal(r.compPct,80);assert.equal(r.wayOff,2);
   assert.ok(r.feedback.some(x=>/2 pitches way off/.test(x)),JSON.stringify(r.feedback));assert.ok(!r.feedback.some(x=>/Only \d+% (strikes|competitive)/.test(x)),'40% strikes but 80% competitive -> no ding');
   assert.deepEqual(r.waste,{n:1,good:1});
   const md=PC.missData(L.map(p=>({p})));assert.equal(md.cells[3].land[21].n,1);assert.equal(md.cells[3].land[21].sev,3);assert.equal(md.cells[8].good,1,'CH low ring good on heat map');
   // drill-down landing data and actual heat data tolerate way-off spots
   assert.equal(PC.heatData(L.map(p=>({p})),{},'actual').total,8);assert.equal(PC.locInfo(21,'R').label,'way high (not competitive)');
   // bullpen summarize: raw strike %, competitive %, way off
-  const s=PC.summarize(L);assert.equal(s.strikePct,40);assert.equal(s.compPct,80);assert.equal(s.wayOff,2);
+  const s=PC.summarize(L);assert.equal(s.strikePct,0);assert.equal(PC.strikeOf(L[0]),null);assert.equal(s.compPct,80);assert.equal(s.wayOff,2);
   // game: strike % unchanged (GameChanger), low ring not auto-good, way off can be recorded and synced
   const g=L.map((p,i)=>Object.assign({},p,{abn:i,inning:1,result:PC.isZone(p.loc)?'called':'ball'}));assert.equal(PC.summarize(g).strikePct,40);assert.ok(!PC.pitchMiss(Object.assign({},bp('CH',1,14),{abn:1,inning:1}),'R').good);
   const st=PC.defaultState();st.sync={queue:{pitchers:{},games:{},sessions:{},pitches:{},call_sheets:{}},tomb:{}};PC.mergeRemote(st,{pitches:[{id:PC.uuid(),mode:'bullpen',session_id:'s1',pitcher_id:'p_woods',loc:22,targets:[8],type:'FB',ts:1}],sessions:[{id:'s1',date:'d'}]});
@@ -384,7 +384,7 @@ test('report strikes follow the umpire result in games, the zone in the bullpen 
   assert.equal(r.types.FB.stats.called, 1);
   assert.equal(PC.summarize(g).strikes, r.types.FB.stats.strikes); // Stats and report agree
   const bp = [ { type: 'FB', loc: 5, targets: [5] }, { type: 'FB', loc: 11, targets: [5] } ];
-  assert.equal(PC.sessionReport(bp, {}).types.FB.stats.strikes, 1); // bullpen: no result → zone decides
+  assert.equal(PC.strikeOf(bp[0]),null);assert.equal(PC.sessionReport(bp, {}).types.FB.stats.strikes, 0);
 });
 
 // ---------------- v39 (Code Reviewer fixes) ----------------
@@ -619,16 +619,18 @@ test('FLOW-6a: migration removes bpResult from stored sessions and pitches',()=>
   assert.equal(st.real.sessions[0].pitches[1].result,undefined);assert.equal(st.real.sessions[0].pitches[1].bpResult,undefined);
   assert.equal(st.real.games[0].pitches[0].result,'ball');assert.equal(st.real.games[0].pitches[1].result,undefined);
   assert.ok(st.real.sync.queue.pitches.p1);assert.ok(st.real.sync.queue.pitches.gb);assert.equal(st.real.sync.queue.pitches.gp,undefined);
+  const queued=st.real.sync.queue.pitches.p1;PC.stripBullpenResults(st.real);assert.equal(st.real.sync.queue.pitches.p1,queued);
+  const pulled=PC.rowPitch({id:'bp1',mode:'bullpen',type:'FB',loc:5,ts:1,result:'called',ip:'out',end_event:'K'});
+  assert.equal(pulled.result,undefined);assert.equal(pulled.ip,undefined);assert.equal(pulled.end,undefined);assert.equal(pulled.bpResult,undefined);
+  assert.equal(PC.rowPitch({id:'gp1',mode:'game',type:'FB',loc:5,ts:1,result:'ball',inning:1}).result,'ball');
 });
-test('FLOW-6a: SQL migration clears the Supabase bullpen results',()=>{const fs=require('fs'),path=require('path');
-  const sql=fs.readFileSync(path.join(__dirname,'..','supabase','migrations','20261014230000_bullpen_no_result.sql'),'utf8');
-  assert.match(sql,/update\s+public\.pitches/i);assert.match(sql,/result\s*=\s*null/i);assert.match(sql,/ip\s*=\s*null/i);assert.match(sql,/end_event\s*=\s*null/i);assert.match(sql,/mode\s*=\s*'bullpen'/);
-  const rows=[{mode:'bullpen',result:'ball',ip:'out',end_event:'K'},{mode:'game',result:'ball',ip:null,end_event:null}];
-  const cleared=rows.map(r=>r.mode==='bullpen'?{mode:r.mode,result:null,ip:null,end_event:null}:r);
-  assert.equal(cleared[0].result,null);assert.equal(cleared[0].ip,null);assert.equal(cleared[0].end_event,null);assert.equal(cleared[1].result,'ball');
+test('FLOW-6a: migration file is the one the Postgres CI job runs',()=>{const fs=require('fs'),path=require('path');
+  assert.equal(fs.existsSync(path.join(__dirname,'..','supabase','migrations','20261014230000_bullpen_no_result.sql')),true);
 });
-test('FLOW-8: new session has no batter',()=>{const st=PC.makeStore(mem());
+test('FLOW-8: a new session has no batter',()=>{const st=PC.makeStore(mem());
   assert.equal(st.real.sessions.length,0);assert.equal(st.real.settings.showBatterHand,false);
+  const s=PC.blankSession({id:'s_new',date:'2026-10-14',started:1,scorer:'phone'});
+  assert.deepEqual(s.pitches,[]);assert.equal(Object.hasOwn(s,'batter'),false);assert.equal(Object.hasOwn(s,'hand'),false);assert.equal(Object.hasOwn(s,'pitcherId'),false);
   assert.equal(PC.sessionHand(st.real.settings,'R'),'N');assert.equal(PC.sessionHand(st.real.settings,'L'),'N');
   assert.equal(PC.sessionHand({showBatterHand:true},'L'),'L');assert.equal(PC.sessionHand({showBatterHand:true},'R'),'R');assert.equal(PC.sessionHand({showBatterHand:true},'X'),'N');
 });
