@@ -2,7 +2,7 @@
 
 ## v72 – A file move with no edits is free
 ### Changed
-- **BRIEF-5.** The chart works the same. Moving a file without changing its text does not count toward the 300-line pull request limit when both paths are counted or both are under test. A long line that was already in the file can move with it. Moving a file out of test counts the whole file. A move that also changes the file counts only those changed lines, and a new line longer than 500 characters still fails.
+- **BRIEF-5.** The chart works the same. Moving a file without changing its text does not count toward the 300-line pull request limit when both paths are counted or both are under test. A long line that was already in the file can move with it. Moving a file out of test counts the whole file, even if that move also changes a line. A move that stays on a counted path and changes the file counts only those changed lines, and a new line longer than 500 characters still fails.
 
 ## v71 – The Game tab opens a picker
 ### Changed

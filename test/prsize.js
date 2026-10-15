@@ -76,9 +76,9 @@ function main(){
   if(!named.ok){console.log('FAIL pr size '+(named.error||'git diff failed'));process.exit(1);}
   const pure=new Set(), edited=new Map(), inbound=new Set();
   for(const mv of named.rows){
-    if(mv.score!=='100'){edited.set(mv.newPath, mv.oldPath);continue;}
-    if(excluded(mv.oldPath)===excluded(mv.newPath)){pure.add(mv.oldPath);pure.add(mv.newPath);continue;}
-    if(excluded(mv.oldPath)&&!excluded(mv.newPath))inbound.add(mv.newPath);
+    if(excluded(mv.oldPath)&&!excluded(mv.newPath)){inbound.add(mv.newPath);continue;}
+    if(mv.score==='100'&&excluded(mv.oldPath)===excluded(mv.newPath)){pure.add(mv.oldPath);pure.add(mv.newPath);continue;}
+    if(mv.score!=='100')edited.set(mv.newPath, mv.oldPath);
   }
   let total=0;
   const files=[];

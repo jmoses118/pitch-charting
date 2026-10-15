@@ -272,6 +272,18 @@ counted('BRIEF-5 a baseline image is counted','shots/home.baseline.png');
   done(dir);
 }
 {
+  const dir=repoDir();
+  writeRel(dir,'test/x.js',lines(12));
+  commit(dir,'base');
+  fs.mkdirSync(path.join(dir,'js'));
+  git(dir,'mv test/x.js js/x.js');
+  fs.appendFileSync(path.join(dir,'js','x.js'),'edited\n');
+  commit(dir,'head');
+  const r=run(sizeJs,dir);
+  say(r.code===0&&/pr size ok: 13 lines/.test(r.out),'BRIEF-5 an edited move from test/x.js to js/x.js counts the full file',r.out);
+  done(dir);
+}
+{
   const dir=emptyRepo();
   seed(dir);
   writeRel(dir,'test/git-base.js','function a(){return 1;}\n');
