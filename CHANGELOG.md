@@ -1,5 +1,10 @@
 # Changelog
 
+## v62 – One home for each rule
+### Changed
+- **ARCH-1.** `validSpot` calls `validActual`. The screen helpers that read the pitcher's hand and hit-test the zone are no longer named like rule functions. CI fails if `js/core` mentions `js/ui`, if `js/ui` defines a `valid*`, `calc*`, or `*Of` rule function, or if `jscpd` finds a clone under `js/`.
+- Cache: `te-pitch-v62`.
+
 ## v61 – Jersey number and tap targets
 ### Changed
 - **RULE-11.** A jersey is empty or 1–2 digits, and `00` is allowed. `jerseyNum` in `js/core/store.js` rejects `100`, `-1`, `abc`, and `4 5` with “Jersey number is 0–99 (00 is OK)” and the dialog stays open. An active pitcher cannot take another active pitcher’s number (`#45 is already Avery`); `0` and `00` stay distinct. The Game screen opens the same editor.

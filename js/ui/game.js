@@ -14,7 +14,7 @@ $('wbGo').onclick=wbRefGo;$('wbRef').addEventListener('keydown',e=>{if(e.key==='
 $('wbSheet').onchange=e=>{S().activeSheet=e.target.value;D.cell=null;save();render();};
 function renderWristband(){const show=tab==='game'&&!!game()&&role()==='coach';$('wbCard').classList.toggle('hide',!show);if(!show)return;const sh=curSheet();
   $('wbSheet').innerHTML=sheets().map(x=>`<option value="${H(x.id)}" ${sh&&x.id===sh.id?'selected':''}>${H(x.name)}</option>`).join('');if(!sh){$('wbTbl').innerHTML='';return;}
-  const h=curHand(),th=throwsOf(),ct=S().customTypes;
+  const h=curHand(),th=pitcherHand(),ct=S().customTypes;
   $('wbTbl').innerHTML=`<tr><th class="rh"></th>${sh.cols.map(c=>`<th>${H(c)}</th>`).join('')}</tr>`+sh.rows.map((row,r)=>`<tr class="${r%2?'b':''}"><th class="rh">${r+1}</th>${sh.cols.map((_,c)=>{const t=row[c]||'';const on=D.cell&&D.cell.sheet===sh.id&&D.cell.r===r&&D.cell.c===c;const bad=t.trim()&&!PC.parseCall(t,h,th,ct);
     return `<td class="${on?'on':''} ${bad?'bad':''}"><button data-r="${r}" data-c="${c}">${H(t)}</button></td>`;}).join('')}</tr>`).join('');}
 // game result — big buttons. Foul logs immediately; Early / On time / Late can update that pitch for a few seconds. In play opens the drill-down. Cancel logs nothing.
@@ -142,7 +142,7 @@ function openEdit(id){const hit=findPitch(id);if(!hit)return;if(!editAllowed(hit
 function pickEdit(z){z=+z;if(!PC.GRID_XY[z])return;editLoc=z;paintEdit();}
 function onPitchTap(e){const b=e.target.closest('[data-edit]');if(b)openEdit(b.dataset.edit);}
 $('log').addEventListener('click',onPitchTap);$('recent').addEventListener('click',onPitchTap);$('pitchList').addEventListener('click',onPitchTap);
-$('editZone').addEventListener('click',e=>{const svg=$('editZone');const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const m=svg.getScreenCTM();if(!m)return;const p=pt.matrixTransform(m.inverse());const z=zoneOf(p.x,p.y);if(z)pickEdit(z);});
+$('editZone').addEventListener('click',e=>{const svg=$('editZone');const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const m=svg.getScreenCTM();if(!m)return;const p=pt.matrixTransform(m.inverse());const z=zoneAt(p.x,p.y);if(z)pickEdit(z);});
 $('editWay').addEventListener('click',e=>{const b=e.target.closest('[data-z]');if(b)pickEdit(+b.dataset.z);});
 $('editAct').addEventListener('click',e=>{const b=e.target.closest('[data-z]');if(b)pickEdit(+b.dataset.z);});
 $('editDlg').addEventListener('close',()=>{const id=editId;editId=null;if($('editDlg').returnValue!=='ok')return;const hit=findPitch(id);

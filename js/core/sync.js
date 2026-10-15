@@ -3,9 +3,9 @@
 (function(root){
 'use strict';
 const PC=root.PC=root.PC||{};
-const {BB_TYPES,DEFAULT_ALERTS,DEFAULT_REST,DEFAULT_LIMITS,cleanLimit,GRID_XY}=PC;
+const {BB_TYPES,DEFAULT_ALERTS,DEFAULT_REST,DEFAULT_LIMITS,cleanLimit}=PC;
 // a valid spot on the grid: zone 1-9, ring 11-18, way off 21-24, in dirt 31, over catcher/backstop 32 (anything else from the cloud is dropped)
-const validSpot=z=>Number.isInteger(z)&&!!GRID_XY[z];
+const validSpot=z=>PC.validActual(z);
 // ---------- Cloud sync (Supabase REST, team code header checked by RLS) ----------
 const TABLES=['pitchers','games','sessions','pitches','call_sheets','notes','team_settings'];
 const keyOf={pitchers:'team_id,id',games:'team_id,id',sessions:'team_id,id',pitches:'id',call_sheets:'team_id,id',notes:'team_id,id',team_settings:'team_id,id'};

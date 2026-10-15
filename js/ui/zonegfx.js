@@ -49,4 +49,4 @@ function lastAbText(items){const p=items[items.length-1].p,end=p.end||p.ip||'';c
 const typeName=c=>{const t=allTypes().find(x=>x.code===c);return t?t.name:(c||'');};
 function renderRecent(){const r=recentFor();
   // a finished at-bat stays on the zone until the next pitch: say so, so 0-0 next to old balls never looks like a stuck count
-  const last=tab==='game'&&r.title==='Last at-bat'&&r.items.length,n=$('zoneNote');if(n){n.classList.toggle('hide',!last);n.textContent=last?lastAbText(r.items):'';}$('zone').classList.toggle('lastab',!!last);$('recentTitle').textContent=r.title||'Recent pitches';$('recent').innerHTML=recentRows(r.items,tab==='game',throwsOf());return r.items;}
+  const last=tab==='game'&&r.title==='Last at-bat'&&r.items.length,n=$('zoneNote');if(n){n.classList.toggle('hide',!last);n.textContent=last?lastAbText(r.items):'';}$('zone').classList.toggle('lastab',!!last);$('recentTitle').textContent=r.title||'Recent pitches';$('recent').innerHTML=recentRows(r.items,tab==='game',pitcherHand());return r.items;}

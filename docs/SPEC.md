@@ -73,3 +73,15 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | RULE-11, RULE-12 | UI: edit jersey number saves, and Cancel leaves it unchanged; smoke: branding unchanged |
 | VIEW-1, VIEW-2 | `zonegfx.ui.js`: numbered, colored markers and list; one-tap scheduled start |
 | DoD | UI: `inning.e2e` (full inning) and `bullpen20.e2e` (20-pitch bullpen) at 390 px |
+
+## Architecture
+Each business rule lives in one `js/core` module. UI files render and forward events. They do not keep a second validator or a second copy of a rule.
+
+| Module | Owns |
+|---|---|
+| `js/core/flow.js` | The one scoring state machine (`scoreApply`, `scoreTap`, `scoreStep`, `scoreCommit`) and the one location validator (`validCalled`, `validActual`). Portrait Game, the landscape coach screen, Bullpen, and any later view call this module. |
+| `js/core/location.js` | `calledOf` and `actualOf`, the one reading of a stored called spot and actual spot. |
+| `js/core/scoring.js` | Miss severity, the low-pitch bonus, and strike versus hit-spot. The penalty uses `calledTypeOf`. |
+| `js/core/csv.js` | `csvRow`, the one CSV row builder, and `calledTypeOf`. |
+| `js/core/store.js` | The roster, the jersey check, and the local save. |
+| `js/core/sync.js` | Row mapping and merge. A read keeps a grid aim that fails `validCalled` and sets `calledFlag`. |

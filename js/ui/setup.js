@@ -32,7 +32,7 @@ $('pDlg').addEventListener('close',()=>{if($('pDlg').returnValue!=='ok')return;c
   const err=PC.jerseyError(S().pitchers,o.num,pdEdit);if(err)return reopenPDlg(err);
   o.num=PC.jerseyNum(o.num).num;$('pdNum').removeAttribute('aria-invalid');
   if(pdEdit)store.editPitcher(pdEdit,o);else{const p=store.addPitcher(o);S().curPitcher=p.id;save();toast('Added '+PC.pitcherLabel(p)+(store.isTest?' (test only)':''));}
-  if(D.callTxt)D.parsed=PC.parseCall(D.callTxt,curHand(),throwsOf(),S().customTypes);render();});
+  if(D.callTxt)D.parsed=PC.parseCall(D.callTxt,curHand(),pitcherHand(),S().customTypes);render();});
 $('addP').onclick=()=>{if(role()==='coach')openPDlg();};$('addPQuick').onclick=()=>{if(role()==='coach')openPDlg();};
 $('jerseyEdit').onclick=()=>{if(role()!=='coach')return;const p=pById(curPitcherId());if(p)openPDlg(p);};
 function renderPitchers(){const row=p=>`<div class="prow"><span style="flex:1"><b>${H(PC.pitcherLabel(p))}</b> <span class="tag">${H(p.throws)}HP</span>${p.note?' <span class="tag">'+H(p.note)+'</span>':''}</span><button data-e="${H(p.id)}" aria-label="Edit ${H(PC.pitcherLabel(p))}">Edit</button><button data-a="${H(p.id)}">${p.archived?'Restore':'Archive'}</button></div>`;

@@ -32,7 +32,7 @@ function mine(){const r=role(),y=store.real.sync;if(r==='player')return y.pitche
 const vis=pid=>{const m=mine();return !m||m.includes(pid);};
 function curPitcherId(){const s=S();if(role()==='pcoach'){const m=mine();if(!m.includes(s.curPitcher))s.curPitcher=m.find(id=>pById(id))||m[0]||null;return s.curPitcher;}if(role()==='player'){const id=store.real.sync.pitcherId;if(id&&pById(id)){s.curPitcher=id;return id;}}if(!s.curPitcher||!pById(s.curPitcher)||pById(s.curPitcher).archived){const a=store.activePitchers()[0];s.curPitcher=a?a.id:null;}return s.curPitcher;}
 function curHand(){if(tab==='game'){const g=game();if(g){const b=g.lineup[g.cur.slot];return(g.cur.hand||(b&&b.hand)||'R');}}return PC.sessionHand(S().settings,bpHand);}
-function throwsOf(){const p=pById(curPitcherId());return p?p.throws:'R';}
+function pitcherHand(){const p=pById(curPitcherId());return p?p.throws:'R';}
 const buzz=p=>{try{if(navigator.vibrate)navigator.vibrate(p);}catch(e){}};
 function confirmSave(t){buzz(35);if(document.body.classList.contains('coachmode')&&typeof coachMsg==='function')return coachMsg('✓ Saved · '+t,'ok');let f=document.getElementById('flash');if(!f){f=document.createElement('div');f.id='flash';document.body.appendChild(f);}f.textContent='✓ '+t;f.classList.add('on');clearTimeout(f._t);f._t=setTimeout(()=>f.classList.remove('on'),700);}
 const oneHand=()=>S().oneHand!==false;
@@ -44,7 +44,7 @@ function resetDraft(){D.shook=null;D.cell=null;D.bb=null;D.sheet=false;D.aimEdit
 const ZX0=20,ZY0=24,CW=20,CHh=24;
 const QUAD={11:'M0 0H40V24H20V48H0Z',12:'M60 0H100V48H80V24H60Z',13:'M0 72H20V96H40V120H0Z',14:'M100 72V120H60V96H80V72Z',15:'M40 0H60V24H40Z',16:'M0 48H20V72H0Z',17:'M80 48H100V72H80Z',18:'M40 96H60V120H40Z'};
 const QLBL={11:[10,12],12:[90,12],13:[10,108],14:[90,108],15:[50,12],16:[10,60],17:[90,60],18:[50,108]};
-function zoneOf(x,y){if(x>=ZX0&&x<=80&&y>=ZY0&&y<=96){const c=Math.min(2,Math.floor((x-ZX0)/CW)),r=Math.min(2,Math.floor((y-ZY0)/CHh));return r*3+c+1;}
+function zoneAt(x,y){if(x>=ZX0&&x<=80&&y>=ZY0&&y<=96){const c=Math.min(2,Math.floor((x-ZX0)/CW)),r=Math.min(2,Math.floor((y-ZY0)/CHh));return r*3+c+1;}
   if(x<-14||x>114||y<-6||y>132)return null;
   if(x>=40&&x<=60)return y<60?15:18; if(y>=48&&y<=72)return x<50?16:17;
   return x<50?(y<60?11:13):(y<60?12:14);}
@@ -68,7 +68,7 @@ function zoneSVG(svg,hand,o={}){let h='';svg.setAttribute('viewBox',o.orient?ORI
   svg.innerHTML=h+(o.extra||'');}
 function drawZone(){const hand=curHand();let ex='';const tset=aimSet();
   const lab={};tset.forEach(z=>lab[z]='TARGET');
-  const items=renderRecent();zoneSVG($('zone'),hand,{labels:lab,throws:throwsOf(),orient:true,compact:true,extra:ballsSVG(items,throwsOf())});
+  const items=renderRecent();zoneSVG($('zone'),hand,{labels:lab,throws:pitcherHand(),orient:true,compact:true,extra:ballsSVG(items,pitcherHand())});
   tset.forEach(z=>{const e=$('zone').querySelector(`[data-z="${z}"]`);e&&e.classList.add('zt');});
   if(D.loc){const e=$('zone').querySelector(`[data-z="${D.loc}"]`);e&&e.classList.add(tset.includes(D.loc)?'zta':'za');}
   document.querySelectorAll('#wayBtns [data-z],#actBtns [data-z]').forEach(b=>b.classList.toggle('sel',+b.dataset.z===D.loc));}
@@ -82,13 +82,13 @@ function tapLoc(z){if(scoreGuard())return;const r=PC.scoreTap(pullDraft(),z);
   if(tab==='bullpen'){logBullpen();return;}
   D.sheet=true;D.foul=false;render();if(tab==='game')advance('result');}
 $('zone').addEventListener('click',e=>{const svg=$('zone');const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const p=pt.matrixTransform(svg.getScreenCTM().inverse());
-  const z=zoneOf(p.x,p.y);if(z)tapLoc(z);});
+  const z=zoneAt(p.x,p.y);if(z)tapLoc(z);});
 $('wayBtns').addEventListener('click',e=>{const b=e.target.closest('[data-z]');if(b)tapLoc(+b.dataset.z);});
 $('actBtns').addEventListener('click',e=>{const b=e.target.closest('[data-z]');if(b)tapLoc(+b.dataset.z);});
 // ---------- call entry ----------
 function clearEntry(){D.draft=blankDraft();mirrorDraft();D.sheet=false;}
-function setCall(t){D.callTxt=t;$('callTxt').value=t;D.parsed=PC.parseCall(t,curHand(),throwsOf(),S().customTypes);if(D.parsed)placeCall(D.parsed.type,D.parsed.targets.slice());else clearEntry();render();}
-$('callTxt').addEventListener('input',e=>{D.callTxt=e.target.value;D.parsed=PC.parseCall(D.callTxt,curHand(),throwsOf(),S().customTypes);if(D.parsed)placeCall(D.parsed.type,D.parsed.targets.slice());else clearEntry();render(true);});
+function setCall(t){D.callTxt=t;$('callTxt').value=t;D.parsed=PC.parseCall(t,curHand(),pitcherHand(),S().customTypes);if(D.parsed)placeCall(D.parsed.type,D.parsed.targets.slice());else clearEntry();render();}
+$('callTxt').addEventListener('input',e=>{D.callTxt=e.target.value;D.parsed=PC.parseCall(D.callTxt,curHand(),pitcherHand(),S().customTypes);if(D.parsed)placeCall(D.parsed.type,D.parsed.targets.slice());else clearEntry();render(true);});
 $('callAlt').addEventListener('click',e=>{const z=e.target.dataset.alt;if(!z||!D.parsed)return;D.parsed.targets=[+z];placeCall(D.parsed.type,[+z]);render();});
 $('callClr').onclick=()=>{setCall('');D.type=null;render();};
 $('callTypes').addEventListener('click',e=>{const c=e.target.dataset.c;if(!c)return;const suf=(D.parsed&&D.parsed.suffix)||'';setCall(c+(suf?(' '+suf):''));D.type=PC.normType(c,S().customTypes);render();});
@@ -133,7 +133,7 @@ $('types').addEventListener('click',e=>{const c=e.target.dataset.c;if(!c)return;
   placeCall(c,[]);render();if(tab==='game'&&D.type)advance('loc');});
 [['hL','L'],['hR','R'],['hN','N']].forEach(([id,h])=>$(id).onclick=()=>{$('batDlg').close('ok');setHand(h);});
 $('batTog').onclick=()=>openSheet($('batDlg'));$('bpTest').onclick=()=>toggleTest();
-function setHand(h){if(tab==='game'&&game()){game().cur.hand=h;dirty('games',game().id);save();}else bpHand=PC.sessionHand(S().settings,h);if(D.callTxt)D.parsed=PC.parseCall(D.callTxt,curHand(),throwsOf(),S().customTypes);render();}
+function setHand(h){if(tab==='game'&&game()){game().cur.hand=h;dirty('games',game().id);save();}else bpHand=PC.sessionHand(S().settings,h);if(D.callTxt)D.parsed=PC.parseCall(D.callTxt,curHand(),pitcherHand(),S().customTypes);render();}
 // ---------- record building ----------
 // the planned spot(s) for the pitch in progress: ✎ Aim / band-setup aim, else the call's own spot, else a tapped target
 // One flow draft. The screen reads it; it does not keep a second called/actual copy or a second validator.
