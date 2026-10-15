@@ -382,9 +382,18 @@ test('FLOW-13 createGame returns null until opponent and pitcher are set',()=>{c
   assert.equal(PC.gamePitcherId(g),'p_new');assert.equal(g.cur.pitcherId,'p_a');
   st.games.push({id:'sch',status:'scheduled',opponent:'Old',pitches:[]});const n2=st.games.length;
   const s=PC.createGame(st,{opponent:'Storm',pitcherId:'p_b',scheduledId:'sch',scorer:'phone',lineup:[{slot:1}]});
-  assert.equal(s.id,'sch');assert.equal(st.games.length,n2);assert.equal(st.games.filter(x=>x.id==='sch').length,1);
+  assert.equal(s.id,'sch');assert.equal(s.opponent,'Storm');assert.equal(st.games.length,n2);assert.equal(st.games.filter(x=>x.id==='sch').length,1);
   assert.equal(s.status,'active');assert.ok(s.started);assert.equal(s.cur.inning,1);assert.equal(s.cur.outs,0);assert.equal(s.cur.pitcherId,'p_b');assert.equal(st.activeGame,'sch');
   assert.equal(PC.createGame(st,{opponent:'Storm',pitcherId:'p_a',scheduledId:'missing'}),null);});
+test('VIEW-2 scheduledFor returns only that day\'s scheduled games',()=>{const st=PC.defaultState();
+  st.games.push(
+    {id:'g2',status:'scheduled',date:'2026-10-15',gameNo:'2',opponent:'Storm',pitches:[]},
+    {id:'g10',status:'scheduled',date:'2026-10-15',gameNo:'10',opponent:'Pride',pitches:[]},
+    {id:'later',status:'scheduled',date:'2026-10-16',gameNo:'1',opponent:'Later',pitches:[]},
+    {id:'live',status:'active',date:'2026-10-15',started:1,opponent:'Live',pitches:[]});
+  assert.deepEqual(PC.scheduledFor(st,'2026-10-15').map(g=>g.id),['g2','g10']);
+  assert.deepEqual(PC.scheduledFor(st,'2026-10-16').map(g=>g.id),['later']);
+  assert.deepEqual(PC.scheduledFor(null,'2026-10-15'),[]);});
 test('FLOW-13 pausedGames order is lastUsed, then started, then id',()=>{const st=PC.defaultState();
   st.games.push(
     {id:'10',started:10,status:'active',opponent:'A',cur:{pitcherId:'p_cur'},pitches:[{id:'p',pitcherId:'p_live',ts:100},{id:'dead',pitcherId:'p_dead',ts:900,deleted:true}]},
