@@ -917,6 +917,56 @@ test('RULE-4: scoring, edit, sync and CSV import use one validator; a read keeps
   assert.equal(s.games[0].pitches[0].calledFlag,undefined);assert.deepEqual(s.games[0].pitches[0].targets,[8]);
   assert.equal(PC.calledOf({calledLoc:8,targets:[7,9]}),8);assert.equal(PC.calledOf({targets:[7,9]}),'7/9');assert.equal(PC.actualOf({actualLoc:31,loc:8}),31);assert.equal(PC.actualOf({loc:14}),14);
 });
+test('RULE-4a: every SQL change-up target list matches PC.CH_TARGETS',()=>{
+  const fs=require('fs'),path=require('path');
+  const root=path.join(__dirname,'..');
+  const src=fs.readFileSync(path.join(root,'js','core','calls.js'),'utf8');
+  const declared=src.match(/const CH_TARGETS=\[([0-9,\s]+)\]/);
+  assert.ok(declared,'js/core/calls.js declares CH_TARGETS');
+  assert.deepEqual(declared[1].split(',').map(s=>+s.trim()),PC.CH_TARGETS);
+  const strip=t=>t.replace(/\/\*[\s\S]*?\*\//g,'').replace(/--[^\n]*/g,'');
+  const files=[];
+  (function walk(d){for(const n of fs.readdirSync(d)){const p=path.join(d,n);if(fs.statSync(p).isDirectory())walk(p);else if(n.endsWith('.sql'))files.push(p);}})(path.join(root,'supabase'));
+  const re=/not\s+in\s*\(\s*(\d+(?:\s*,\s*\d+)+)\s*\)/gi;
+  let n=0;
+  for(const file of files){
+    const live=strip(fs.readFileSync(file,'utf8'));
+    for(const stmt of live.split(';')){
+      if(!/type\s*=\s*'CH'/.test(stmt))continue;
+      re.lastIndex=0;
+      let m;while((m=re.exec(stmt))){
+        assert.deepEqual(m[1].split(',').map(s=>+s.trim()),PC.CH_TARGETS,path.relative(root,file));
+        n++;
+      }
+    }
+  }
+  assert.ok(n>=1,'a SQL change-up target list must stay tied to CH_TARGETS');
+});
+test('RULE-4a: db push does not delete pitches; the pending template deletes only owner-approved ids after a backup',()=>{
+  const fs=require('fs'),path=require('path');
+  const root=path.join(__dirname,'..');
+  const strip=t=>t.replace(/\/\*[\s\S]*?\*\//g,'').replace(/--[^\n]*/g,'');
+  const migDir=path.join(root,'supabase','migrations');
+  for(const name of fs.readdirSync(migDir)){
+    if(!name.endsWith('.sql'))continue;
+    const live=strip(fs.readFileSync(path.join(migDir,name),'utf8'));
+    assert.equal(/\bdelete\s+from\s+public\.pitches\b/i.test(live),false,name);
+  }
+  const pendingPath=path.join(root,'supabase','pending','delete_bad_aim_pitches.sql');
+  const pending=fs.readFileSync(pendingPath,'utf8');
+  const live=strip(pending);
+  assert.equal((live.match(/<OWNER-APPROVED IDS>/g)||[]).length,1);
+  assert.match(pending,/pg_dump|snapshot/i);
+  assert.match(live,/\bbegin\s*;/i);
+  assert.match(live,/\bcommit\s*;/i);
+  assert.match(live,/create temp table if not exists approved\s*\(\s*id uuid primary key\s*\)/i);
+  assert.match(live,/to_regclass\('public\.pitches_badaim_backup_YYYYMMDD'\) is null/i);
+  assert.match(live,/delete from public\.pitches p\s+using public\.pitches_badaim_backup_YYYYMMDD b/i);
+  assert.match(live,/raise exception/i);
+  assert.match(pending,/-- insert into public\.pitches\s+-- select \* from public\.pitches_badaim_backup_YYYYMMDD\s+-- on conflict \(id\) do nothing;/);
+  assert.equal(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(live),false);
+  assert.equal(fs.existsSync(path.join(migDir,'delete_bad_aim_pitches.sql')),false);
+});
 test('RULE-4a: CH box 2 is kept, calledFlag is true, and an off-grid called box is null',()=>{
   const csv=PC.importSpots({type:'CH',call_target:'2',called_location:'2',location:'8'});
   assert.ok(csv.targets.includes(2));assert.equal(csv.calledLoc,2);assert.equal(csv.calledFlag,true);

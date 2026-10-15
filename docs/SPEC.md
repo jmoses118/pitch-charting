@@ -27,7 +27,7 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
 - **RULE-3c** A CH, drop or drop curve called low (7, 8, 9, 13, 14, 18) that lands in the dirt (31) counts as a reduced-severity miss, not a full way-off miss.
 - **RULE-3d** After a shake-off, the called location is the location re-signaled with the final pitch. If none was re-signaled, the original box stands.
 - **RULE-4** One shared location component and one location validator are used everywhere: scoring, editing, sync, and CSV import.
-- **RULE-4a** On CSV import and on a sync read, a called aim that is on the grid but fails `validCalled` is kept and flagged (`calledFlag`). It is not dropped. A called box that is not on the grid is stored as null.
+- **RULE-4a** On CSV import and on a sync read, a called aim that is on the grid but fails `validCalled` is kept and flagged (`calledFlag`). It is not dropped. A called box that is not on the grid is stored as null. Pitches already saved with an illegal called aim stay. `supabase/migrations/20261015130000_delete_bad_aim_pitches.sql` is a no-op, so `supabase db push` does not delete them. A delete of owner-approved ids lives only in `supabase/pending/delete_bad_aim_pitches.sql`, which `supabase db push` does not apply. That script types the ids once, copies them into a backup, and deletes from the backup inside a transaction that rolls back unless the counts match. `supabase/preview_delete_bad_aim_pitches.sql` is the read-only list of the same rows.
 - **RULE-5** Only one phone can score a game or bullpen session. Every other phone sees it live and read-only.
 - **RULE-6** Undo and Redo cover both the pitch and its location.
 - **RULE-7** Every popup has a working Cancel that leaves the data unchanged.
@@ -67,7 +67,7 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | RULE-3c | unit: a CH, drop or drop curve called low that lands in 31 is a miss below way-off severity |
 | RULE-3d | unit: after a shake-off the called location is the re-signaled box, or the original box when none was re-signaled |
 | RULE-4 | unit: scoring, edit, sync and CSV import call the same validator with the same inputs and get the same results |
-| RULE-4a | unit: a CH called box 2 is kept, `calledFlag` is true, and an off-grid called box is null, on CSV import and on a sync read |
+| RULE-4a | unit: a CH called box 2 is kept, `calledFlag` is true, and an off-grid called box is null, on CSV import and on a sync read; SQL change-up target lists match `PC.CH_TARGETS`; Postgres: `test/badaim.pg.sh` keeps those rows and the preview still lists them |
 | RULE-5 | `lock.ui.js` + `live.sync.js`: a second phone is read-only and sees pitches live |
 | RULE-6, RULE-7 | unit: redo/undo state; UI: Cancel on every popup leaves the state unchanged |
 | RULE-8 | `fit.ui.js`: no vertical scroll at 375, 390 and 430 px; controls at least 48px; the portrait wristband shows all 8 columns with no sideways scroll (at <=390px wide, cells may be 42–44px wide, height stays 48); the SE coach screen (667×375) may use a 34px strike box; the location dot stays round and the box numbers are not squashed. `layout.ui.js`: at 375 and 390 at least 8 name characters plus `#12` are visible |

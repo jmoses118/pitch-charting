@@ -1,15 +1,14 @@
 #!/bin/bash
-# RULE-4a: the preview and the delete use the same called-aim predicate.
+# RULE-4a: illegal called aims are kept and flagged.
+# The file in supabase/migrations is a no-op. The preview still lists the rows.
 # This database is created for the check. Do not point it at production.
 set -euo pipefail
-norm() {
-  awk '
-    $0 ~ /^where \(/ {p=1}
-    p {print}
-    p && ($0 == ")" || $0 == ");") {exit}
-  ' "$1" | sed 's/);$/)/'
-}
-diff -u <(norm supabase/preview_delete_bad_aim_pitches.sql) <(norm supabase/migrations/20261015130000_delete_bad_aim_pitches.sql)
+mig=supabase/migrations/20261015130000_delete_bad_aim_pitches.sql
+live=$(sed -e '/\/\*/,/\*\//d' -e 's/--.*$//' "$mig")
+if printf '%s\n' "$live" | grep -qiE 'delete[[:space:]]+from'; then
+  echo "applied migration still deletes rows" >&2
+  exit 1
+fi
 psql -v ON_ERROR_STOP=1 <<'SQL'
 drop table if exists public.pitches, public.pitchers, public.games, public.sessions cascade;
 create table public.pitchers (team_id text not null, id text not null, name text not null, primary key (team_id, id));
@@ -48,11 +47,15 @@ preview=$(psql -tA -v ON_ERROR_STOP=1 -c "select string_agg(id::text, ',' order 
 sample=$(psql -tA -v ON_ERROR_STOP=1 -c "select pitcher || '|' || date || '|' || type || '|' || called_box || '|' || actual_box from ($q) q where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1'")
 test "$preview" = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1,aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa6,aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa7,aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa8"
 test "$sample" = "Avery|2026-10-14|CH|2|5"
-psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261015130000_delete_bad_aim_pitches.sql
+before=$(psql -tA -v ON_ERROR_STOP=1 -c "select string_agg(id::text, ',' order by id) from public.pitches")
+psql -v ON_ERROR_STOP=1 -f "$mig"
 kept=$(psql -tA -c "select string_agg(id::text, ',' order by id) from public.pitches")
 result=$(psql -tA -c "select result from public.pitches where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2'")
 after=$(psql -tA -c "select count(*) from ($q) q")
-test "$kept" = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2,aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3,aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa4,aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa5,aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa9"
+backups=$(psql -tA -c "select count(*) from pg_catalog.pg_class where relkind = 'r' and relname like 'pitches_badaim_backup%'")
+test "$before" = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1,aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2,aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3,aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa4,aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa5,aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa6,aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa7,aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa8,aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa9"
+test "$kept" = "$before"
 test "$result" = "called"
-test "$after" = "0"
-echo "RULE-4a postgres: preview ids match the deleted rows; legal aims and the game result stay"
+test "$after" = "4"
+test "$backups" = "0"
+echo "RULE-4a postgres: illegal aims stay; the preview still lists them; the applied migration deletes nothing"
