@@ -38,6 +38,11 @@ for(const [W,H] of SIZES){const tag=`${W}x${H}`;const {c,p,errs,native,vis,clk,s
       {id:'other1',started:5,status:'active',opponent:'Other',date:'2026-10-01',time:'12:00',homeAway:'home',scorer:'other-phone',lineup:[],pitches:[{id:'p2',pitcherId:'p_woods',ts:10,type:'FB'}],cur:{inning:2,outs:0,slot:0,b:0,s:0,abn:0,pitcherId:'p_woods'}}];
     __app.store.save();__app.render();});
   await p.waitForTimeout(150);
+  if((W===844&&H===390)||(W===667&&H===375)){
+    await p.evaluate(()=>scrollTo(0,0));
+    const see=await p.evaluate(()=>{const b=document.getElementById('pickNew').getBoundingClientRect(),nav=document.querySelector('nav').getBoundingClientRect().top,hdr=document.querySelector('header'),head=hdr.getBoundingClientRect().bottom;
+      return {on:b.height>=48&&b.top>=head-1&&b.bottom<=nav+1,pick:getComputedStyle(document.querySelector('.pickrow')).display==='none',wl:getComputedStyle(document.getElementById('wlMsg')).display==='none',sticky:getComputedStyle(hdr).position!=='sticky'};});
+    ok(see.on&&see.pick&&see.wl&&see.sticky,`${tag} Start new game is on screen without scrolling`);}
   const n=await p.$$eval('#pickList .resume',els=>els.length);const starts=await p.$$eval('#pickNew',els=>els.length);
   ok(n===3&&starts===1,'picker shows N Resume rows and one Start');
   ok(await st(()=>{const ids=[...document.querySelectorAll('#pickList [data-rg]')].map(b=>b.dataset.rg);return JSON.stringify(ids)===JSON.stringify(PC.pausedGames(__app.store.real).map(g=>g.id));}),`${tag} FLOW-13 rows follow pausedGames`);
@@ -45,7 +50,7 @@ for(const [W,H] of SIZES){const tag=`${W}x${H}`;const {c,p,errs,native,vis,clk,s
   ok(row.h>=56&&row.w>=row.lw-1,`${tag} FLOW-13 row is full width and at least 56px (${Math.round(row.w)}x${Math.round(row.h)})`);
   const resume=await p.$eval('#pickList .resume',e=>{e.scrollIntoView({block:'center'});const r=e.getBoundingClientRect();return {w:r.width,h:r.height,bg:getComputedStyle(e).backgroundColor};});
   ok(resume.w>=48&&resume.h>=48&&resume.bg==='rgb(30, 63, 208)',`${tag} FLOW-13 Resume is royal and at least 48px`);
-  const gap=await p.evaluate(()=>{const list=document.getElementById('pickList'),btn=document.getElementById('pickNew');btn.scrollIntoView({block:'center'});const rows=[...list.querySelectorAll('.grow')];const last=rows[rows.length-1].getBoundingClientRect();const b=btn.getBoundingClientRect();const listW=list.getBoundingClientRect().width;return {below:b.top-last.bottom,h:b.height,w:b.width,lw:listW};});
+  const gap=await p.evaluate(()=>{const list=document.getElementById('pickList'),btn=document.getElementById('pickNew');const rows=[...list.querySelectorAll('.grow')];rows[rows.length-1].scrollIntoView({block:'nearest'});const last=rows[rows.length-1].getBoundingClientRect();const b=btn.getBoundingClientRect();const listW=list.getBoundingClientRect().width;return {below:b.top-last.bottom,h:b.height,w:b.width,lw:listW};});
   ok(gap.h>=48&&gap.w>=gap.lw-1&&gap.below>=24,`${tag} FLOW-13 Start is full width, 48px, 24px below the list`);
   const draft=await p.$eval('[data-rg="draft1"]',e=>e.closest('.grow').textContent);
   ok(/Draft/.test(draft)&&!/\d+ pitches/.test(draft),`${tag} FLOW-15 draft badge and no pitch count`);
@@ -87,7 +92,12 @@ for(const [W,H] of SIZES){const tag=`${W}x${H}`;const {c,p,errs,native,vis,clk,s
     const scorer=await st(()=>__app.store.real.games.find(x=>x.id==='live1').scorer);
     await clk('#pickList [data-rg="live1"]');
     ok(await st(s=>window.__claims===0&&__app.store.real.games.find(x=>x.id==='live1').scorer===s,scorer),'FLOW-13 Resume does not call claimScoring');
-    await clk('#gEnd');ok(await st(()=>document.getElementById('askDlg').open&&document.getElementById('askT').textContent===PC.END_MSG),'FLOW-14 portrait End opens the ask');
+    const exitGap=await p.evaluate(()=>{const a=document.getElementById('gPause').getBoundingClientRect(),b=document.getElementById('gEnd').getBoundingClientRect();return b.left-a.right;});
+    ok(exitGap>=16,`FLOW-14 Exit and End game are ${Math.round(exitGap)}px apart`);
+    await p.evaluate(()=>{document.querySelector('#inGame details').open=true;});
+    await clk('#ibb');ok(await st(()=>{const b=document.getElementById('askOk');return /Intentional walk/.test(document.getElementById('askT').textContent)&&b.classList.contains('primary')&&!b.classList.contains('gdismiss');}),'intentional walk Yes is royal');
+    await clk('#askCancel');
+    await clk('#gEnd');ok(await st(()=>{const g=__app.store.real.games.find(x=>x.id==='live1'),t=document.getElementById('askT').textContent,b=document.getElementById('askOk');return document.getElementById('askDlg').open&&t===PC.endMsg(g)&&/Storm/.test(t)&&b.classList.contains('gdismiss')&&!b.classList.contains('primary');}),'FLOW-14 End names the opponent and Yes is danger');
     const nEnd=await st(()=>__app.store.real.games.length);await clk('#askOk');
     ok(await st(n=>{const g=__app.store.real.games.find(x=>x.id==='live1');return g.status==='final'&&__app.store.real.games.length===n;},nEnd),'FLOW-14 confirmed End sets final and keeps the row');
     await clk('#pickList [data-rg="other1"]');

@@ -385,15 +385,15 @@ test('FLOW-13 createGame returns null until opponent and pitcher are set',()=>{c
   assert.equal(s.id,'sch');assert.equal(s.opponent,'Storm');assert.equal(st.games.length,n2);assert.equal(st.games.filter(x=>x.id==='sch').length,1);
   assert.equal(s.status,'active');assert.ok(s.started);assert.equal(s.cur.inning,1);assert.equal(s.cur.outs,0);assert.equal(s.cur.pitcherId,'p_b');assert.equal(st.activeGame,'sch');
   assert.equal(PC.createGame(st,{opponent:'Storm',pitcherId:'p_a',scheduledId:'missing'}),null);});
-test('VIEW-2 scheduledFor returns only that day\'s scheduled games',()=>{const st=PC.defaultState();
+test('VIEW-2 todaysScheduled returns only that day\'s scheduled games',()=>{const st=PC.defaultState();
   st.games.push(
     {id:'g2',status:'scheduled',date:'2026-10-15',gameNo:'2',opponent:'Storm',pitches:[]},
     {id:'g10',status:'scheduled',date:'2026-10-15',gameNo:'10',opponent:'Pride',pitches:[]},
     {id:'later',status:'scheduled',date:'2026-10-16',gameNo:'1',opponent:'Later',pitches:[]},
     {id:'live',status:'active',date:'2026-10-15',started:1,opponent:'Live',pitches:[]});
-  assert.deepEqual(PC.scheduledFor(st,'2026-10-15').map(g=>g.id),['g2','g10']);
-  assert.deepEqual(PC.scheduledFor(st,'2026-10-16').map(g=>g.id),['later']);
-  assert.deepEqual(PC.scheduledFor(null,'2026-10-15'),[]);});
+  assert.deepEqual(PC.todaysScheduled(st,'2026-10-15').map(g=>g.id),['g2','g10']);
+  assert.deepEqual(PC.todaysScheduled(st,'2026-10-16').map(g=>g.id),['later']);
+  assert.deepEqual(PC.todaysScheduled(null,'2026-10-15'),[]);});
 test('FLOW-13 pausedGames order is lastUsed, then started, then id',()=>{const st=PC.defaultState();
   st.games.push(
     {id:'10',started:10,status:'active',opponent:'A',cur:{pitcherId:'p_cur'},pitches:[{id:'p',pitcherId:'p_live',ts:100},{id:'dead',pitcherId:'p_dead',ts:900,deleted:true}]},
@@ -408,7 +408,7 @@ test('FLOW-14 pauseGame keeps the row and endGame waits for confirmation',()=>{c
   const g=PC.createGame(st,{opponent:'Storm',pitcherId:'p_a',id:'g1'});assert.equal(PC.pauseGame(st).id,'g1');
   assert.equal(st.activeGame,null);assert.equal(st.games.length,1);assert.ok(!g.deleted);assert.equal(g.status,'active');
   assert.equal(PC.endGame(st,'g1',false),false);assert.equal(g.status,'active');assert.equal(st.games.length,1);
-  assert.equal(PC.endGame(st,'g1',true),true);assert.equal(g.status,'final');assert.ok(g.ended);assert.ok(!g.deleted);assert.equal(st.games.length,1);assert.equal(PC.END_MSG,'End this game? It stays in Stats.');});
+  assert.equal(PC.endGame(st,'g1',true),true);assert.equal(g.status,'final');assert.ok(g.ended);assert.ok(!g.deleted);assert.equal(st.games.length,1);assert.equal(PC.endMsg(g),'End game vs Storm? It stays in Stats.');});
 test('FLOW-15 canDiscard is the scoring phone and a draft',()=>{const st=PC.defaultState();
   const g=PC.createGame(st,{opponent:'Storm',pitcherId:'p_a',id:'g_d',scorer:'phone'});
   assert.equal(PC.canDiscard(g,'phone'),true);assert.equal(PC.canDiscard(g,'other'),false);
