@@ -1,0 +1,21 @@
+name: PR gate
+on:
+  pull_request_target:
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Fetch the pull request head
+        run: git fetch --no-tags origin "+pull/${{ github.event.pull_request.number }}/head:refs/pr/head"
+      - name: Size and changelog from the base scripts
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: refs/pr/head
+        run: node test/prsize.js && node test/changelog.js

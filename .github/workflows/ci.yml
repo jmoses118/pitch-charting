@@ -25,8 +25,6 @@ jobs:
       - name: Duplication
         run: node test/dup.scan.js
       - name: PR size and changelog
-        env:
-          PR_LINE_CAP: "300"
         run: node test/prsize.js && node test/changelog.js && node test/prgate.negative.js
   ui:
     # Playwright browser tests against a local static server (Supabase is blocked inside every test; test data only)

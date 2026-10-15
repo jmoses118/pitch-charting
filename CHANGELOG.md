@@ -2,7 +2,7 @@
 
 ## v68 – Pull requests note what changed
 ### Changed
-- The chart works the same. A pull request that changes more than 300 lines is stopped. Tests, sample files, lockfiles, and baseline pictures are not counted. Each pull request also needs a new changelog note that says what changed.
+- The chart works the same. A pull request that changes more than 300 lines is stopped. Files under test, and the lockfiles at the root of the repo, are not counted. Each pull request also needs a new changelog note that says what changed.
 
 ## v67 – Illegal aims stay in the database
 ### Changed
