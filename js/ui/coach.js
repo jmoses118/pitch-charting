@@ -10,7 +10,8 @@ function themeNow(){const t=PREF.get('theme','field');if(t!=='auto')return t;con
 function applyTheme(){const t=themeNow();document.documentElement.dataset.theme=t;const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==='field'?'#ffffff':'#000000';}
 applyTheme();
 // ---------- modes ----------
-const PORTRAIT=matchMedia('(orientation: portrait)');
+const LANDSCAPE=matchMedia('(orientation: landscape) and (max-height: 500px)'),PORTRAIT=matchMedia('(orientation: portrait)');
+// Landscape change is registered after render exists.
 PORTRAIT.addEventListener&&PORTRAIT.addEventListener('change',()=>render());
 const coachGame=lk=>!lk&&tab==='game'&&!!game()&&role()==='coach';
 let sideCard=null,cMsg=null;
