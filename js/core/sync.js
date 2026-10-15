@@ -3,9 +3,9 @@
 (function(root){
 'use strict';
 const PC=root.PC=root.PC||{};
-const {BB_TYPES,DEFAULT_ALERTS,DEFAULT_REST,DEFAULT_LIMITS,cleanLimit,GRID_XY}=PC;
+const {BB_TYPES,DEFAULT_ALERTS,DEFAULT_REST,DEFAULT_LIMITS,cleanLimit}=PC;
 // a valid spot on the grid: zone 1-9, ring 11-18, way off 21-24, in dirt 31, over catcher/backstop 32 (anything else from the cloud is dropped)
-const validSpot=z=>Number.isInteger(z)&&!!GRID_XY[z];
+const validSpot=z=>PC.validActual(z);
 // ---------- Cloud sync (Supabase REST, team code header checked by RLS) ----------
 const TABLES=['pitchers','games','sessions','pitches','call_sheets','notes','team_settings'];
 const keyOf={pitchers:'team_id,id',games:'team_id,id',sessions:'team_id,id',pitches:'id',call_sheets:'team_id,id',notes:'team_id,id',team_settings:'team_id,id'};
@@ -21,21 +21,24 @@ const SHOOK_TAG='⤺ ';
 // Edited flag rides on the same pitch row as loc (today's schema, no new column). A word joiner sits at the
 // end of call_raw so the shook prefix stays at the front and an older phone still sees the shake-off.
 const EDITED_TAG='\u2060';
+function rowShook(r,raw){return !!(r&&(r.shook===true||(typeof raw==='string'&&raw.startsWith(SHOOK_TAG))));}
 function pitchRow(p,ctx){const row=pitchRow0(p,ctx);if(p.shook){row.call_raw=SHOOK_TAG+(p.callRaw||p.call||'');if(ctx.shakeCol)row.shook=true;}else if(ctx.shakeCol)row.shook=false;
   if(p.edited)row.call_raw=(row.call_raw||'')+EDITED_TAG;
   // New chart columns exist only after 20261014180000_scoring_chart.sql. Until chartColumn is set, they stay on the phone.
-  if(ctx.chartCol){const aim=PC.calledOf(p),land=PC.actualOf(p);row.called_loc=typeof aim==='number'?aim:null;row.actual_loc=land==null?null:+land;row.foul_time=p.foulTime||null;row.wp_pb=p.wpPb||null;row.velo=p.velo==null||p.velo===''?null:+p.velo;}
+  if(ctx.chartCol){const called=PC.calledOf(p),actual=PC.actualOf(p);row.called_loc=typeof called==='number'?called:null;row.actual_loc=actual==null?null:+actual;row.foul_time=p.foulTime||null;row.wp_pb=p.wpPb||null;row.velo=p.velo==null||p.velo===''?null:+p.velo;}
   return row;}
 function pitchRow0(p,ctx){return{id:p.id,mode:ctx.mode,game_id:ctx.game_id||null,session_id:ctx.session_id||null,pitcher_id:p.pitcherId||null,ts:p.ts||null,hand:p.hand||null,type:p.type||null,call:p.call||null,call_raw:p.callRaw||null,
   targets:p.targets||[],loc:p.loc==null?null:p.loc,result:p.result||null,ip:p.ip||null,end_event:p.end||null,inning:p.inning==null?null:p.inning,outs_before:p.outsBefore==null?null:p.outsBefore,slot:p.slot==null?null:p.slot,
   batter:p.batter==null?null:p.batter,batter_num:p.batterNum==null?null:String(p.batterNum),b:p.b==null?null:p.b,s:p.s==null?null:p.s,abn:p.abn==null?null:p.abn,first_pitch:p.firstPitch==null?null:!!p.firstPitch,no_pitch:!!p.noPitch,prev_hand:p.prevHand||null,bb:BB_TYPES.includes(p.bb)?p.bb:null,deleted:!!p.deleted};}
 function rowPitch(r){let raw=r.call_raw,edited=false;if(typeof raw==='string'&&raw.endsWith(EDITED_TAG)){edited=true;raw=raw.slice(0,-EDITED_TAG.length);}
   // Read keeps a grid aim that fails validCalled and flags the row. Junk off the grid is dropped. Writes still use validCalled.
-  const calledType=r.type||'';const onGrid=z=>Number.isInteger(z)&&PC.validActual(z);
-  const spots=(Array.isArray(r.targets)?r.targets:[]).map(z=>+z).filter(onGrid);let calledFlag=spots.some(z=>!PC.validCalled(calledType,z));
-  let calledLoc=null;if(r.called_loc!=null&&r.called_loc!==''){const z=+r.called_loc;if(onGrid(z)){calledLoc=z;if(!PC.validCalled(calledType,z))calledFlag=true;}}
+  const shookNow=rowShook(r,raw);
+  const calledType=PC.calledTypeOf({type:r.type,calledType:r.called_type,shook:shookNow,call:r.call,hand:r.hand});const onGrid=z=>Number.isInteger(z)&&PC.validActual(z);
+  const spots=(Array.isArray(r.targets)?r.targets:[]).map(z=>+z).filter(onGrid);
+  let calledLoc=null;if(r.called_loc!=null&&r.called_loc!==''){const z=+r.called_loc;if(onGrid(z))calledLoc=z;}
+  const calledFlag=PC.aimFlag(calledType,calledLoc!=null?spots.concat(calledLoc):spots);
   const loc=r.loc!=null&&r.loc!==''&&onGrid(+r.loc)?+r.loc:null;
-  const p={id:r.id,ts:+r.ts||0,pitcherId:r.pitcher_id,hand:r.hand,type:r.type,call:r.call,callRaw:raw||null,targets:spots,loc,result:r.result,ip:r.ip,end:r.end_event,edited:edited};if(calledLoc!=null)p.calledLoc=calledLoc;if(calledFlag)p.calledFlag=true;if(BB_TYPES.includes(r.bb))p.bb=r.bb;if(r.shook===true||(typeof raw==='string'&&raw.startsWith(SHOOK_TAG))){p.shook=true;p.callRaw=typeof raw==='string'&&raw.startsWith(SHOOK_TAG)?raw.slice(SHOOK_TAG.length)||null:raw||null;}
+  const p={id:r.id,ts:+r.ts||0,pitcherId:r.pitcher_id,hand:r.hand,type:r.type,call:r.call,callRaw:raw||null,targets:spots,loc,result:r.result,ip:r.ip,end:r.end_event,edited:edited};if(calledLoc!=null)p.calledLoc=calledLoc;if(calledFlag)p.calledFlag=true;if(BB_TYPES.includes(r.bb))p.bb=r.bb;if(shookNow){p.shook=true;p.callRaw=typeof raw==='string'&&raw.startsWith(SHOOK_TAG)?raw.slice(SHOOK_TAG.length)||null:raw||null;}
   if(r.mode==='game')Object.assign(p,{inning:r.inning,outsBefore:r.outs_before,slot:r.slot,batter:r.batter,batterNum:r.batter_num,b:r.b,s:r.s,abn:r.abn,firstPitch:r.first_pitch,prevHand:r.prev_hand});else{p.b=0;p.s=0;delete p.result;delete p.ip;delete p.end;delete p.bpResult;}
   if(r.no_pitch)p.noPitch=true;p.mode=r.mode==='bullpen'?'bullpen':'game';
   if(r.actual_loc!=null&&r.actual_loc!==''&&onGrid(+r.actual_loc))p.actualLoc=+r.actual_loc;else if(p.loc!=null)p.actualLoc=p.loc;

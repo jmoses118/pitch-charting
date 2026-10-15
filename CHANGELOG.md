@@ -1,22 +1,51 @@
 # Changelog
 
-## v63 – Short-screen count row
+## v66 – 48px targets on a short phone
 ### Changed
-- On a phone 720px tall or shorter, the count row collapses so the zone stays above the tab bar. Shake-off stays 48px. Pitch chips on that short screen stay 44px.
+- **RULE-8.** On a 375px phone the pitch buttons, the pitcher row, Batter, Band, and Result are 48px again. The strike boxes are a little shorter so the zone still fits. The wristband shows all 8 columns with no sideways scroll; those cells stay 48px tall and may be a bit narrower. The pitch counts sit on their own line so a long pitcher name stays readable, and the jersey number stays on the end. Foul-timing chips leave after about 3 seconds, or when you tap the band or a result.
+- Cache: `te-pitch-v66`.
+
+## v65 – A bad aim stays marked
+### Changed
+- **RULE-4a.** A change-up aim that sits on the zone but is not a legal change-up box is kept when it comes from a file or another phone, and the chart marks it. A called box that is not on the zone is left blank.
+- **RULE-11a.** Two active pitchers cannot wear the same number. `0` and `00` are both allowed, and a blank number is allowed.
+- **ARCH-1.** The build fails if a screen copies the strike check, the change-up boxes, or the miss math.
+- Cache: `te-pitch-v65`.
+
+## v64 – Shake-off keeps the aim
+### Changed
+- **RULE-3d.** After a shake-off, the original aim stays filled in. If that box is not legal for the pitch she threw, it stays and the screen says so. She can still tap a new aim.
+- **RULE-4.** The chart, the edit sheet, the miss map, the summary, the CSV, and sync all read the same called box and the same landing box.
+- Cache: `te-pitch-v64`.
+
+## v63 – Short game screen keeps the zone on screen
+### Changed
+- **RULE-8.** On a short screen the inning bar takes less height, so the zone stays above the tab bar at 375px. The shake-off button stays 48px. The fit check also covers 430px.
 - Cache: `te-pitch-v63`.
 
-## v62 – Jersey number and tap targets
+## v63a – Short-screen count row
 ### Changed
-- **RULE-11, RULE-11a.** A jersey is empty or 1–2 digits, and `00` is allowed. `jerseyNum` in `js/core/store.js` rejects `100`, `-1`, `abc`, and `4 5` with “Jersey number is 0–99 (00 is OK)” and the dialog stays open. An active pitcher cannot take another active pitcher’s number (`#45 is already Avery`); `0` and `00` stay distinct. An archived pitcher does not block. The Game screen opens the same editor.
-- The batter-hand checkbox returns the page to the top. One bullpen pitch reads “1 pitch”. Pitcher, Band, Result, the batter chip, checkboxes, and wristband cells are at least 44px.
-- A CSV import still keeps a grid aim that fails `validCalled`, flags the row, and the toast counts those flagged rows.
+- On a phone 720px tall or shorter, the count row collapses so the zone stays above the tab bar. Shake-off stays 48px. Pitch chips on that short screen stay 44px.
+- Superseded by v66: those pitch chips are 48px, and the pitch counts sit on their own line.
+- Cache: `te-pitch-v63`.
+
+## v62 – One home for each rule
+### Changed
+- **ARCH-1.** `validSpot` calls `validActual`. The screen helpers that read the pitcher's hand and hit-test the zone are no longer named like rule functions. CI fails if `js/core` mentions `js/ui`, if `js/ui` defines a `valid*`, `calc*`, or `*Of` rule function, or if `jscpd` finds a clone under `js/`.
 - Cache: `te-pitch-v62`.
 
-## v61 – Illegal saved aims can be removed; a shake-off keeps the original box
+## v61 – Jersey number and tap targets
 ### Changed
-- **RULE-3d.** Picking the pitch she threw after a shake-off fills in the original aim. A tap that is not a legal aim for that pitch is where it went. A legal aim tap still replaces the box. An aim that is illegal for the new type is kept and flagged.
-- **RULE-4.** The pitch log, CSV row, sync row, miss math, and the edit sheet read called and actual boxes through `calledOf` and `actualOf`.
-- **RULE-4a.** Import and sync still keep and flag an illegal called aim. `supabase/migrations/20261015130000_delete_bad_aim_pitches.sql` deletes pitches already saved with one. It is not applied to production. `supabase/preview_delete_bad_aim_pitches.sql` lists those rows first.
+- **RULE-11.** A jersey is empty or 1–2 digits, and `00` is allowed. `jerseyNum` in `js/core/store.js` rejects `100`, `-1`, `abc`, and `4 5` with “Jersey number is 0–99 (00 is OK)” and the dialog stays open. An active pitcher cannot take another active pitcher’s number (`#45 is already Avery`); `0` and `00` stay distinct. The Game screen opens the same editor.
+- The batter-hand checkbox returns the page to the top. One bullpen pitch reads “1 pitch”. Pitcher, Band, Result, the batter chip, checkboxes, and wristband cells are at least 44px.
+- A CSV import still keeps a grid aim that fails `validCalled`, flags the row, and the toast counts those flagged rows.
+- Cache: `te-pitch-v61`.
+
+## v61a – Illegal saved aims can be removed; a shake-off keeps the original box
+### Changed
+- **RULE-3d.** Picking the pitch she threw after a shake-off fills in the original aim. A tap that is not a legal aim for that pitch is where it went. A legal aim tap still replaces the box. An aim that is illegal for the new type is kept and flagged. Superseded by v64.
+- **RULE-4.** The pitch log, CSV row, sync row, miss math, and the edit sheet read called and actual boxes through `calledOf` and `actualOf`. Superseded by v64.
+- **RULE-4a.** Import and sync still keep and flag an illegal called aim. Superseded by v65. `supabase/migrations/20261015130000_delete_bad_aim_pitches.sql` deletes pitches already saved with one. It is not applied to production. `supabase/preview_delete_bad_aim_pitches.sql` lists those rows first.
 - **RULE-11a.** Active jersey numbers are unique. Empty is allowed, `0` and `00` stay distinct, and an archived pitcher does not block.
 - Cache: `te-pitch-v61`.
 
@@ -28,7 +57,7 @@
 - **RULE-4.** A sync read and a CSV import keep a grid aim that fails the validator and flag the row. The import toast counts flagged rows. `csvRow` builds every export row. `calledOf` and `actualOf` live in `js/core/location.js`.
 - Cache: `te-pitch-v60`.
 
-## v60 – The game log asks scoring whether a pitch was a strike
+## v60a – The game log asks scoring whether a pitch was a strike
 ### Changed
 - **FLOW-6.** The pitch list uses `strikeOf` for a pitch that has no umpire result. A bullpen row stays blank. A game row is K or B from that helper.
 - Cache: `te-pitch-v60`.
@@ -48,7 +77,7 @@
 - **FLOW-8.** A new bullpen session has no batter. LHB and RHB show only when “Show LHB / RHB” is on.
 - Cache: `te-pitch-v58`.
 
-## v58 – The saved pitch comes from the scoring draft
+## v58a – The saved pitch comes from the scoring draft
 ### Changed
 - **FLOW-1.** A saved pitch's type, aim, landing, and called box are written only by `scoreCommit`. The shake-off lives on that same draft, so Cancel restores the call from it. The screen no longer keeps a second copy of the aim or the landing.
 - Cache: `te-pitch-v58`.

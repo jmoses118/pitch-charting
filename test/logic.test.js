@@ -35,6 +35,14 @@ test('RULE-11 jersey is 0–99, and an active number cannot be shared',()=>{
   st.archivePitcher(z.id);assert.equal(st.editPitcher(a.id,{num:'00'}).num,'00');
   assert.equal(st.addPitcher({name:'Bo',throws:'R'}).num,'');
 });
+test('RULE-11a: 0 and 00 are allowed, empty is allowed, and a duplicate active number errors',()=>{
+  assert.equal(PC.jerseyNum('0').ok,true);assert.equal(PC.jerseyNum('0').num,'0');
+  assert.equal(PC.jerseyNum('00').ok,true);assert.equal(PC.jerseyNum('00').num,'00');
+  assert.equal(PC.jerseyNum('').ok,true);assert.equal(PC.jerseyNum('').num,'');
+  assert.equal(PC.jerseyNum('  ').ok,true);
+  const st=PC.makeStore(mem());
+  assert.throws(()=>st.addPitcher({name:'Zoe',throws:'R',num:'45'}),/#45 is already Avery/);
+});
 test('add / edit / archive pitcher persists',()=>{const m=mem();const st=PC.makeStore(m);const p=st.addPitcher({name:'Kenzie',num:'7',throws:'L'});
   let saved=JSON.parse(m.getItem(PC.KEY));assert.ok(saved.pitchers.find(x=>x.name==='Kenzie'&&x.num==='7'&&x.throws==='L'));
   st.editPitcher(p.id,{num:'8',throws:'R'});st.archivePitcher(p.id);saved=JSON.parse(m.getItem(PC.KEY));const q=saved.pitchers.find(x=>x.id===p.id);assert.equal(q.num,'8');assert.equal(q.throws,'R');assert.equal(q.archived,true);
@@ -549,10 +557,10 @@ test('scoring flow: game requires a result, bullpen saves on the actual spot',()
   assert.equal(PC.hitSpot(hit),true);assert.equal(PC.pitchMiss(hit).sev,0);
   const miss=PC.scoreCommit(PC.scoreTap(PC.scoreApply({mode:'bullpen'},{op:'call',type:'CH',called:[8]}).draft,31).draft);
   assert.equal(PC.hitSpot(miss),false);assert.equal(PC.pitchMiss(miss).sev,2);
-  const sh=PC.scoreApply({mode:'game',type:'CH',called:[7]},{op:'shake',norm:'CH7',raw:'CH 7'});assert.equal(sh.step,'type');assert.deepEqual(sh.draft.shook.called,[7]);assert.equal(sh.draft.shook.prevType,'CH');assert.deepEqual(sh.draft.shook.prevCalled,[7]);
-  const restored=PC.scoreApply({mode:'game'},{op:'call',type:sh.draft.shook.prevType,called:sh.draft.shook.prevCalled});assert.equal(restored.draft.type,'CH');assert.deepEqual(restored.draft.called,[7]);assert.equal(restored.draft.shook,null);
-  const threw=PC.scoreApply(sh.draft,{op:'call',type:'FB',called:[]});assert.equal(threw.step,'called');
-  const fin=PC.scoreCommit(PC.scoreApply(PC.scoreTap(PC.scoreTap(threw.draft,5).draft,6).draft,{op:'result',result:'foul'}).draft);
+  const sh=PC.scoreApply({mode:'game',type:'CH',called:[7]},{op:'shake',norm:'CH7',raw:'CH 7'});assert.equal(sh.step,'type');assert.deepEqual(sh.draft.shook.called,[7]);
+  const threw=PC.scoreApply(sh.draft,{op:'call',type:'FB',called:[]});assert.equal(threw.step,'actual');assert.deepEqual(threw.draft.called,[7]);assert.ok(!threw.draft.calledFlag);
+  const reaim=PC.scoreApply(threw.draft,{op:'called',z:5});assert.deepEqual(reaim.draft.called,[5]);
+  const fin=PC.scoreCommit(PC.scoreApply(PC.scoreTap(reaim.draft,6).draft,{op:'result',result:'foul'}).draft);
   assert.deepEqual(fin.targets,[5]);assert.equal(fin.loc,6);assert.equal(fin.calledLoc,5);assert.equal(fin.shook,true);assert.equal(fin.result,'foul');
   const multi=PC.scoreCommit(PC.scoreApply(PC.scoreTap(PC.scoreApply({mode:'game'},{op:'call',type:'FB',called:[7,9]}).draft,8).draft,{op:'result',result:'ball'}).draft);
   assert.equal(multi.calledLoc,PC.nearestTarget([7,9],8));
@@ -812,20 +820,73 @@ test('RULE-3c: a low change, drop or drop curve in the dirt is a reduced miss',(
   assert.equal(PC.pitchMiss({type:'CH',targets:[8],loc:32}).sev,PC.WAY_SEV);
   assert.equal(PC.lowGood({type:'CH',targets:[8],loc:31}),false);
 });
-test('RULE-3d: a shake-off called location is the re-signaled box, or the original when none was',()=>{
-  const again=PC.scoreCommit({mode:'game',type:'FB',called:[5],actual:6,result:'foul',shook:{type:'CH',called:[7],norm:'CH7'}});
-  assert.deepEqual(again.targets,[5]);assert.equal(again.calledLoc,5);assert.equal(again.type,'FB');
-  const stood=PC.scoreCommit({mode:'game',type:'FB',called:[],actual:6,result:'foul',shook:{type:'CH',called:[7],norm:'CH7'}});
-  assert.deepEqual(stood.targets,[7]);assert.equal(stood.calledLoc,7);
+test('FLOW-1: scoreCommit is the chart record and has no calledType',()=>{
+  const game=PC.scoreCommit({mode:'game',type:'FB',called:[5],actual:6,result:'foul'});
+  assert.deepEqual(game,{type:'FB',targets:[5],loc:6,actualLoc:6,calledLoc:5,result:'foul',shook:false,ip:null,velo:null});
+  assert.equal(Object.hasOwn(game,'calledType'),false);
+  const pen=PC.scoreCommit({mode:'bullpen',type:'FB',called:[5],actual:6,result:'foul'});
+  assert.equal(pen.result,null);assert.equal(Object.hasOwn(pen,'calledType'),false);
+  assert.equal(PC.scoreCommit({mode:'game',type:'FB',called:[5],actual:null,result:'foul'}),null);
+});
+test('RULE-3d: a shake-off pre-fills the original aim, and a later aim tap can replace it',()=>{
+  const shook=PC.scoreApply({mode:'game',type:'CH',called:[7]},{op:'shake',norm:'CH7'});
+  const fb=PC.scoreApply(shook.draft,{op:'call',type:'FB',called:[]});
+  assert.deepEqual(fb.draft.called,[7]);assert.equal(fb.step,'actual');assert.ok(!fb.draft.calledFlag);
+  const fin=PC.scoreCommit(PC.scoreApply(PC.scoreTap(fb.draft,6).draft,{op:'result',result:'foul'}).draft);
+  assert.deepEqual(fin.targets,[7]);assert.equal(fin.calledLoc,7);assert.equal(fin.type,'FB');assert.equal(fin.shook,true);
+  const resignal=PC.scoreApply(shook.draft,{op:'call',type:'FB',called:[5]});
+  assert.deepEqual(resignal.draft.called,[5]);
+  const reaim=PC.scoreApply(fb.draft,{op:'called',z:5});
+  assert.deepEqual(reaim.draft.called,[5]);assert.ok(!reaim.draft.calledFlag);
+  const bare=PC.scoreApply(PC.scoreApply({mode:'game',type:'FB',called:[]},{op:'shake',norm:'FB'}).draft,{op:'call',type:'CH',called:[]});
+  assert.equal(bare.step,'called');assert.equal(PC.scoreCommit(bare.draft),null);
   assert.equal(PC.scoreStep({mode:'game',type:'FB',called:[],actual:6,shook:{type:'CH',called:[7]}}),'called');
-  assert.equal(PC.scoreCommit({mode:'game',type:'FB',called:[],actual:6,shook:{type:'CH',called:[]}}),null);
-  const shook=PC.scoreApply({mode:'game',type:'FB',called:[2]},{op:'shake',norm:'FB2',raw:'FB 2'});
-  const kept=PC.scoreApply(shook.draft,{op:'call',type:'CH',called:shook.draft.shook.called,keepAim:true});
-  assert.equal(kept.step,'actual');assert.deepEqual(kept.draft.called,[2]);assert.equal(kept.draft.calledFlag,true);
-  const dirt=PC.scoreTap(kept.draft,31);assert.equal(dirt.op,'actual');assert.equal(dirt.draft.actual,31);assert.deepEqual(dirt.draft.called,[2]);
-  const saved=PC.scoreCommit(PC.scoreApply(dirt.draft,{op:'result',result:'ball'}).draft);
-  assert.deepEqual(saved.targets,[2]);assert.equal(saved.loc,31);assert.equal(saved.calledFlag,true);assert.equal(saved.type,'CH');
-  const re=PC.scoreTap(kept.draft,8);assert.equal(re.op,'called');assert.deepEqual(re.draft.called,[8]);assert.equal(re.draft.calledFlag,false);assert.equal(re.draft.actual,null);
+  assert.equal(PC.scoreCommit({mode:'game',type:'FB',called:[],actual:6,result:'foul',shook:{type:'CH',called:[7]}}),null);
+});
+test('RULE-3d: FB box 2 shaken off and thrown as CH keeps the box and flags it',()=>{
+  const shook=PC.scoreApply({mode:'game',type:'FB',called:[2]},{op:'shake',norm:'FB2'});
+  const ch=PC.scoreApply(shook.draft,{op:'call',type:'CH',called:[]});
+  assert.deepEqual(ch.draft.called,[2]);assert.equal(ch.draft.calledFlag,true);
+  assert.equal(PC.aimFlag('CH',[2]),true);assert.equal(PC.aimFlag('CH',[8]),false);assert.equal(PC.aimFlag('FB',[2]),false);
+  assert.equal(PC.aimNote({type:'CH',called:[8,2]}),PC.aimRejectMsg('CH',2));assert.equal(PC.aimNote({type:'FB',called:[2]}),'');
+  assert.equal(PC.calledTypeOf({type:'FB',called_type:'CH'}),'FB');
+  const row=PC.scoreCommit(PC.scoreApply(PC.scoreTap(ch.draft,8).draft,{op:'result',result:'ball'}).draft);
+  assert.deepEqual(row.targets,[2]);assert.equal(row.calledFlag,true);assert.equal(row.type,'CH');
+  assert.equal(PC.importSpots({type:'FB',called_type:'CH',call_target:'2',location:'5'}).calledFlag,true);
+  assert.equal(PC.importSpots({type:'FB',called_type:'CH',shook:'1',call_target:'2',location:'5'}).calledFlag,false);
+  assert.equal(PC.rowPitch({id:'t',mode:'game',type:'FB',call:'CH2',targets:[2],loc:5,inning:1,abn:1}).calledFlag,true);
+  assert.equal(PC.rowPitch({id:'u',mode:'game',type:'FB',shook:true,call:'CH2',targets:[2],loc:5,inning:1,abn:1}).calledFlag,undefined);
+});
+test('RULE-4: calledLoc 4 and actualLoc 14 win over targets 8 and loc 8',()=>{
+  const p={type:'FB',targets:[8],loc:8,calledLoc:4,actualLoc:14,hand:'R',inning:1,abn:1};
+  assert.equal(PC.strikeOf(p),false);
+  const md=PC.missData([{p}]);assert.equal(md.cells[4].n,1);assert.equal(md.cells[8].n,0);
+  const sum=PC.summarize([p]);assert.ok(sum.byLoc['14']);assert.equal(sum.byLoc['8'],undefined);
+  const m=PC.pitchMiss(p);assert.equal(m.d,3);assert.equal(m.sev,3);
+  const row=PC.csvRow(p,{mode:'game'});assert.equal(row.called_location,4);assert.equal(row.actual_location,14);assert.equal(row.location,14);assert.equal(row.call_target,'4');
+  const wire=PC.pitchRow(p,{mode:'game',chartCol:true});assert.equal(wire.called_loc,4);assert.equal(wire.actual_loc,14);
+});
+test('RULE-4: two called boxes stay a list, and calledOf joins them',()=>{
+  const p={type:'FB',targets:[7,9],loc:6,hand:'R'};
+  assert.deepEqual(PC.calledBoxes(p),[7,9]);assert.equal(PC.calledOf(p),'7/9');
+  const row=PC.csvRow(p,{mode:'game'});assert.equal(row.called_location,'7/9');assert.equal(row.actual_location,6);assert.equal(row.location,6);
+  const wire=PC.pitchRow(p,{mode:'game',chartCol:true});assert.equal(wire.called_loc,null);assert.equal(wire.actual_loc,6);
+  const m=PC.pitchMiss(p);assert.equal(m.d,1);assert.equal(m.target,9);
+});
+test('edit sheet reads actualLoc before loc',()=>{
+  assert.equal(PC.actualOf({loc:5,actualLoc:31}),31);
+  assert.equal(PC.validActual(19),false);assert.equal(PC.validActual(31),true);
+  const p={id:'e',loc:5,actualLoc:31,targets:[8],result:'ball'};
+  assert.equal(PC.editActual(p,19),false);assert.equal(p.loc,5);assert.equal(p.actualLoc,31);assert.deepEqual(p.targets,[8]);assert.equal(p.edited,undefined);
+});
+test('missTxt rounds a fraction of a box up to the next whole box',()=>{
+  assert.deepEqual([0,.5,1,1.33,1.5,2.6,4,null].map(PC.missTxt),['Hit spot','Close','Close','2 off','2 off','3 off','4 off','']);
+});
+test('strikeOf is the umpire result, else the zone, and a bullpen pitch has none',()=>{
+  assert.equal(PC.strikeOf({loc:5,inning:1,abn:1}),true);
+  assert.equal(PC.strikeOf({loc:11,inning:1,abn:1}),false);
+  assert.equal(PC.strikeOf({loc:11,result:'called',inning:1,abn:1}),true);
+  assert.equal(PC.strikeOf({loc:5}),null);
 });
 test('RULE-3: penalty, bad aim, the low bonus and CSV share calledTypeOf',()=>{
   const shook={type:'FB',call:'CH8',calledType:'CH',shook:true,targets:[8],loc:2,hand:'R'};
@@ -855,4 +916,12 @@ test('RULE-4: scoring, edit, sync and CSV import use one validator; a read keeps
   PC.mergeRemote(s,{pitches:[{id:'p1',mode:'game',game_id:'g',type:'FB',targets:[8],loc:5,inning:1,abn:1,result:'called',updated_at:'2026-10-14T12:00:00Z'}]});
   assert.equal(s.games[0].pitches[0].calledFlag,undefined);assert.deepEqual(s.games[0].pitches[0].targets,[8]);
   assert.equal(PC.calledOf({calledLoc:8,targets:[7,9]}),8);assert.equal(PC.calledOf({targets:[7,9]}),'7/9');assert.equal(PC.actualOf({actualLoc:31,loc:8}),31);assert.equal(PC.actualOf({loc:14}),14);
+});
+test('RULE-4a: CH box 2 is kept, calledFlag is true, and an off-grid called box is null',()=>{
+  const csv=PC.importSpots({type:'CH',call_target:'2',called_location:'2',location:'8'});
+  assert.ok(csv.targets.includes(2));assert.equal(csv.calledLoc,2);assert.equal(csv.calledFlag,true);
+  assert.equal(PC.importSpots({type:'CH',call_target:'2',called_location:'99',location:'8'}).calledLoc,null);
+  const sync=PC.rowPitch({id:'a',mode:'game',type:'CH',targets:[2],called_loc:2,loc:8,inning:1,abn:1});
+  assert.ok(sync.targets.includes(2));assert.equal(sync.calledLoc,2);assert.equal(sync.calledFlag,true);
+  assert.equal(PC.rowPitch({id:'b',mode:'game',type:'CH',targets:[2],called_loc:99,loc:8,inning:1,abn:1}).calledLoc,null);
 });

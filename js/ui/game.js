@@ -5,7 +5,7 @@
 const sheets=()=>(S().callSheets||[]).filter(x=>!x.deleted);
 function curSheet(){const l=sheets();const p=curPitcherId();return l.find(x=>x.id===S().activeSheet)||l.find(x=>p&&x.pitcherId===p)||l[0]||null;}
 let lastCell=null; // for "Same call"
-function callCell(r,c){if(scoreGuard())return;const sh=curSheet();if(!sh)return;$('wbDet').open=false;const t=(sh.rows[r]||[])[c];if(t==null||!String(t).trim())return toast('Empty box');
+function callCell(r,c){if((clearFoulChips(),scoreGuard()))return;const sh=curSheet();if(!sh)return;$('wbDet').open=false;const t=(sh.rows[r]||[])[c];if(t==null||!String(t).trim())return toast('Empty box');
   if(!callOn){callOn=true;S().callOn=true;save();}D.cell={sheet:sh.id,r,c};lastCell={r,c};setCall(String(t));if(D.parsed){const band=PC.bandAim(sh,D.parsed);if(band)placeCall(D.parsed.type,[band]);}else toast(`Can't read "${t}"`);render();setTimeout(()=>advance('loc'),0);
   $('wbMsg').textContent=`${r+1}-${sh.cols[c]||c+1}: ${t}`+(D.parsed?(D.parsed.targets.length?` → zone ${D.parsed.targets.join('/')}`:' → no spot, tap target'):' (not understood)');render();}
 $('wbTbl').addEventListener('click',e=>{const b=e.target.closest('button[data-r]');if(b)callCell(+b.dataset.r,+b.dataset.c);});
@@ -14,7 +14,7 @@ $('wbGo').onclick=wbRefGo;$('wbRef').addEventListener('keydown',e=>{if(e.key==='
 $('wbSheet').onchange=e=>{S().activeSheet=e.target.value;D.cell=null;save();render();};
 function renderWristband(){const show=tab==='game'&&!!game()&&role()==='coach';$('wbCard').classList.toggle('hide',!show);if(!show)return;const sh=curSheet();
   $('wbSheet').innerHTML=sheets().map(x=>`<option value="${H(x.id)}" ${sh&&x.id===sh.id?'selected':''}>${H(x.name)}</option>`).join('');if(!sh){$('wbTbl').innerHTML='';return;}
-  const h=curHand(),th=throwsOf(),ct=S().customTypes;
+  const h=curHand(),th=pitcherHand(),ct=S().customTypes;
   $('wbTbl').innerHTML=`<tr><th class="rh"></th>${sh.cols.map(c=>`<th>${H(c)}</th>`).join('')}</tr>`+sh.rows.map((row,r)=>`<tr class="${r%2?'b':''}"><th class="rh">${r+1}</th>${sh.cols.map((_,c)=>{const t=row[c]||'';const on=D.cell&&D.cell.sheet===sh.id&&D.cell.r===r&&D.cell.c===c;const bad=t.trim()&&!PC.parseCall(t,h,th,ct);
     return `<td class="${on?'on':''} ${bad?'bad':''}"><button data-r="${r}" data-c="${c}">${H(t)}</button></td>`;}).join('')}</tr>`).join('');}
 // game result — big buttons. Foul logs immediately; Early / On time / Late can update that pitch for a few seconds. In play opens the drill-down. Cancel logs nothing.
@@ -25,7 +25,7 @@ function paintFoulChips(){const el=$('foulChips');if(!el)return;const on=!!foulW
   if(document.body.classList.contains('coachmode')){const band=document.querySelector('.cband');if(band){const r=band.getBoundingClientRect();const st=$('cStatus').getBoundingClientRect();el.style.right='auto';const h=el.offsetHeight||60;let left=Math.max(4,r.left),width=Math.max(148,Math.round(r.width));if(left+width>st.left-4)width=Math.max(148,st.left-4-left);el.style.left=left+'px';el.style.width=width+'px';let top=r.bottom+4;if(top+h>innerHeight-4)top=Math.max(4,r.bottom-h);if(top<r.top)top=r.top;el.style.top=top+'px';}}
   else{el.style.left='';el.style.width='';el.style.right='';el.style.top='';}}
 function clearFoulChips(){foulWatch=null;clearTimeout(foulTimer);paintFoulChips();}
-function armFoulChips(id){foulWatch=id;clearTimeout(foulTimer);foulTimer=setTimeout(clearFoulChips,5000);paintFoulChips();}
+function armFoulChips(id){foulWatch=id;clearTimeout(foulTimer);foulTimer=setTimeout(clearFoulChips,FOUL_CHIP_MS);paintFoulChips();}
 function applyFoulTime(ft){const g=game();if(!foulWatch||!g)return;const p=g.pitches.find(x=>x.id===foulWatch);if(!p){clearFoulChips();return;}
   p.foulTime=PC.cleanFoul(ft);dirty('pitches',p.id);save();paintFoulChips();}
 function persistRedo(){redoStack=PC.redoState(redoStack);if(store.isTest)return;store.real.redo=redoStack.slice();store.save();}
@@ -33,7 +33,7 @@ function loadRedo(){redoStack=PC.redoState(store.real&&store.real.redo);}
 function clearRedo(){redoStack=[];persistRedo();}
 function clearEditUndo(){editUndo=null;}
 function pushRedo(item){redoStack=PC.redoPush(redoStack,item);persistRedo();}
-$('resBtns').addEventListener('click',e=>{const r=e.target.closest('[data-r]');if(!r)return;if(PC.scoreStep(pullDraft())!=='result'){toast('Tap where it went first');return;}if(r.dataset.r==='inplay'){D.ip=true;D.foul=false;render();return;}recordGame(r.dataset.r);});
+$('resBtns').addEventListener('click',e=>{const r=e.target.closest('[data-r]');if(!r)return;if((clearFoulChips(),PC.scoreStep(pullDraft())!=='result')){toast('Tap where it went first');return;}if(r.dataset.r==='inplay'){D.ip=true;D.foul=false;render();return;}recordGame(r.dataset.r);});
 $('foulChips').addEventListener('click',e=>{const b=e.target.closest('[data-ft]');if(b)applyFoulTime(b.dataset.ft);});
 $('ipBtns').addEventListener('click',e=>{const bb=e.target.closest('[data-bb]');if(bb){D.bb=D.bb===bb.dataset.bb?null:bb.dataset.bb;document.querySelectorAll('#ipBtns [data-bb]').forEach(x=>x.classList.toggle('sel',x.dataset.bb===D.bb));return;}const ip=(e.target.closest('[data-ip]')||{}).dataset?.ip;if(ip==null)return;if(!ip){D.ip=false;render();return;}recordGame('inplay',ip);});
 let extraOpen=false;
@@ -41,11 +41,11 @@ $('moreTog').onclick=()=>{extraOpen=!extraOpen;$('pitchExtra').classList.toggle(
 document.querySelector('#pitchExtra').addEventListener('click',e=>{const b=e.target.closest('[data-flag]');if(!b)return;D.wpPb=D.wpPb===b.dataset.flag?null:b.dataset.flag;render();});
 $('velo').addEventListener('input',e=>{D.velo=e.target.value;});
 $('velo').addEventListener('change',e=>{const v=noteVelo(e.target.value);D.velo=v;e.target.value=v==null?'':v;});
-function recordGame(result,ip,noPitch){const g=game();if(!g||scoreGuard())return;if(!g.scorer)g.scorer=myDevice();const c=g.cur;if((result==='kd3'||result==='kd3out')&&c.s!==2){toast('Dropped 3rd strike only with 2 strikes');return;}if(g.ended){toast('Game is over');return;}let applied=null;if(!noPitch){applied=PC.scoreApply(pullDraft(),{op:'result',result,ip:ip||null});if(!applied.ok){toast({need_type:D.shook?'Pick the pitch she threw':'Pick the pitch type first',need_called:'Tap the called location first',need_actual:'Tap where it went first'}[applied.reason]||'Finish the pitch first');return;}}  if(c.outs>=3){toast('3 outs – tap Next inn first');return;}clearFoulChips();const b=g.lineup[c.slot]||{};
-  const r=noPitch?{id:PC.uuid(),ts:Date.now(),pitcherId:curPitcherId(),hand:curHand(),type:null,targets:[],loc:null,actualLoc:null,calledLoc:null,call:null,callRaw:null,wpPb:null,velo:null,noPitch:true}:pitchFromCommit(applied.draft);
-  if(!r)return;Object.assign(r,{inning:c.inning,outsBefore:c.outs,slot:c.slot,batter:b.name||'',batterNum:b.num||'',b:c.b,s:c.s,abn:c.abn,result,ip:ip||r.ip||null,firstPitch:c.b===0&&c.s===0,prevHand:c.hand||null});
-  let o;if(noPitch){o={b:c.b,s:c.s,end:'IBB',outs:0};}else{try{o=PC.applyPitch(c,result,ip);}catch(e){toast(String(e.message||e));return;}}
-  if(result==='inplay'&&D.bb)r.bb=D.bb;if(result==='inplay'&&D.spray)r.spray=D.spray;if(result==='foul')r.foulTime=null;r.mode='game';const inn0=c.inning;const pcBefore=PC.pitchCount(g.pitches,r.pitcherId);r.end=o.end;clearRedo();clearEditUndo();g.pitches.push(r);dirty('pitches',r.id);dirty('games',g.id);c.b=o.b;c.s=o.s;if(result==='foul')armFoulChips(r.id);
+function recordGame(result,ip,noPitch){const g=game();if(!g||scoreGuard())return;if(!g.scorer)g.scorer=myDevice();const c=g.cur;if((result==='kd3'||result==='kd3out')&&c.s!==2){toast('Dropped 3rd strike only with 2 strikes');return;}if(g.ended){toast('Game is over');return;}let applied=null;if(!noPitch){applied=PC.scoreApply(pullDraft(),{op:'result',result,ip:ip||null});if(!applied.ok){toast({need_type:D.shook?'Pick the pitch she threw':'Pick the pitch type first',need_called:'Tap the called location first',need_actual:'Tap where it went first'}[applied.reason]||'Finish the pitch first');return;}}if(c.outs>=3){toast('3 outs – tap Next inn first');return;}clearFoulChips();const b=g.lineup[c.slot]||{};
+  const r=Object.assign(baseRec(),{inning:c.inning,outsBefore:c.outs,slot:c.slot,batter:b.name||'',batterNum:b.num||'',b:c.b,s:c.s,abn:c.abn,result,ip:ip||null,firstPitch:c.b===0&&c.s===0,prevHand:c.hand||null});
+  if(applied){const chart=PC.scoreCommit(applied.draft);if(chart){r.type=chart.type;r.targets=chart.targets;r.loc=chart.loc;r.actualLoc=chart.actualLoc;r.calledLoc=chart.calledLoc;r.result=chart.result;if(result==='inplay')r.ip=ip||chart.ip||null;}}
+  let o;if(noPitch){o={b:c.b,s:c.s,end:'IBB',outs:0};r.noPitch=true;r.type=null;r.loc=null;r.call=null;r.targets=[];}else{try{o=PC.applyPitch(c,result,ip);}catch(e){toast(String(e.message||e));return;}}
+  if(result==='inplay'&&D.bb)r.bb=D.bb;if(result==='inplay'&&D.spray)r.spray=D.spray;if(result==='foul')r.foulTime=null;r.mode='game';if(noPitch){r.calledLoc=null;r.actualLoc=null;r.calledType=null;r.wpPb=null;r.velo=null;}const inn0=c.inning;const pcBefore=PC.pitchCount(g.pitches,r.pitcherId);r.end=o.end;clearRedo();clearEditUndo();g.pitches.push(r);dirty('pitches',r.id);dirty('games',g.id);c.b=o.b;c.s=o.s;if(result==='foul')armFoulChips(r.id);
   if(o.end){c.outs+=o.outs;let msg={BB:'Walk',K:'Strikeout',HBP:'Hit by pitch',IBB:'Intentional walk','K-D3':'Strikeout – reached on dropped 3rd',out:'Out',E:'Reached on error',FC:"Fielder's choice",DP:'Double play'}[o.end]||o.end;
     c.b=0;c.s=0;c.abn++;c.slot=(c.slot+1)%Math.max(1,g.lineup.length);c.hand=null;
     if(c.outs>=3){c.outs=0;c.inning++;msg+=' · side retired';sideCard={inning:inn0,gameId:g.id};}toast(msg);}
@@ -55,15 +55,15 @@ function recordGame(result,ip,noPitch){const g=game();if(!g||scoreGuard())return
 $('ibb').onclick=()=>{if(scoreGuard())return;if(confirm('Intentional walk (no pitches counted, per GC)?'))recordGame('ibb',null,true);};
 function undoLast(){if(scoreGuard())return;
   if(D.ip){D.ip=false;D.spray=null;render();return;}
-  if(D.draft&&D.draft.actual!=null){pushRedo({kind:'loc',loc:D.draft.actual,sheet:!!D.sheet});D.draft.actual=null;D.draft.result=null;D.sheet=false;render();toast('Location cleared');return;}
-  if(tab!=='game'&&((D.draft&&D.draft.called&&D.draft.called.length)||D.callTxt)){pushRedo({kind:'aim',called:aimSet(),callTxt:D.callTxt,type:D.type,parsed:D.parsed});if(D.draft&&D.draft.called&&D.draft.called.length)D.draft.called=[];else resetDraft();render();return;}
+  if(D.draft&&D.draft.actual!=null){pushRedo({kind:'loc',loc:D.draft.actual,sheet:!!D.sheet});D.draft.actual=null;D.draft.result=null;mirrorDraft();D.sheet=false;render();toast('Location cleared');return;}
+  if(tab!=='game'&&((D.draft&&D.draft.called&&D.draft.called.length)||D.callTxt)){pushRedo({kind:'aim',called:aimSet(),callTxt:D.callTxt,type:D.type,parsed:D.parsed});if(D.draft&&D.draft.called&&D.draft.called.length){D.draft.called=[];mirrorDraft();}else resetDraft();render();return;}
   if(editUndo){const snap=editUndo;if(undoEditSnap(snap)){toast('Location restored');return;}}
   if(tab==='game'){const g=game();if(!g||!g.pitches.length)return toast('Nothing to undo');const after={inning:g.cur.inning,outs:g.cur.outs,slot:g.cur.slot,b:g.cur.b,s:g.cur.s,abn:g.cur.abn,hand:g.cur.hand};const r=g.pitches.pop();store.tombstone(r,{mode:'game',game_id:g.id});dirty('games',g.id);
     Object.assign(g.cur,{inning:r.inning,outs:r.outsBefore,slot:r.slot,b:r.b,s:r.s,abn:r.abn,hand:r.prevHand});if(r.id===foulWatch)clearFoulChips();pushRedo({kind:'pitch',mode:'game',box:g.id,pitch:r,after});}
   else{const s=session();if(!s||!s.pitches.length)return toast('Nothing to undo');const r=s.pitches.pop();store.tombstone(r,{mode:'bullpen',session_id:s.id});pushRedo({kind:'pitch',mode:'bullpen',box:s.id,pitch:r});}
   resetDraft();save();render();toast('Last pitch undone');}
 function redoLast(){if(scoreGuard())return;const t=PC.redoPop(redoStack);redoStack=t.stack;persistRedo();const a=t.item;if(!a)return toast('Nothing to redo');
-  if(a.kind==='loc'){if(!D.draft)D.draft=blankDraft();D.draft.actual=a.loc;if(a.sheet)D.sheet=true;render();return;}
+  if(a.kind==='loc'){if(!D.draft)D.draft=blankDraft();D.draft.actual=a.loc;mirrorDraft();if(a.sheet)D.sheet=true;render();return;}
   if(a.kind==='aim'){D.callTxt=a.callTxt||'';D.parsed=a.parsed;$('callTxt').value=D.callTxt;takeDraft(PC.scoreApply({mode:tab==='bullpen'?'bullpen':'game'},{op:'call',type:a.type,called:a.called&&a.called.length?a.called:(a.target?[a.target]:[])}));render();return;}
   const box=a.mode==='game'?S().games.find(g=>g.id===a.box):S().sessions.find(s=>s.id===a.box);if(!box)return toast('Nothing to redo');
   store.untomb(a.pitch.id);box.pitches.push(a.pitch);dirty('pitches',a.pitch.id);if(a.mode==='game'&&a.after){Object.assign(box.cur,a.after);dirty('games',box.id);}
@@ -142,7 +142,7 @@ function openEdit(id){const hit=findPitch(id);if(!hit)return;if(!editAllowed(hit
 function pickEdit(z){z=+z;if(!PC.validActual(z))return;editLoc=z;paintEdit();}
 function onPitchTap(e){const b=e.target.closest('[data-edit]');if(b)openEdit(b.dataset.edit);}
 $('log').addEventListener('click',onPitchTap);$('recent').addEventListener('click',onPitchTap);$('pitchList').addEventListener('click',onPitchTap);
-$('editZone').addEventListener('click',e=>{const svg=$('editZone');const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const m=svg.getScreenCTM();if(!m)return;const p=pt.matrixTransform(m.inverse());const z=zoneOf(p.x,p.y);if(z)pickEdit(z);});
+$('editZone').addEventListener('click',e=>{const svg=$('editZone');const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const m=svg.getScreenCTM();if(!m)return;const p=pt.matrixTransform(m.inverse());const z=zoneAt(p.x,p.y);if(z)pickEdit(z);});
 $('editWay').addEventListener('click',e=>{const b=e.target.closest('[data-z]');if(b)pickEdit(+b.dataset.z);});
 $('editAct').addEventListener('click',e=>{const b=e.target.closest('[data-z]');if(b)pickEdit(+b.dataset.z);});
 $('editDlg').addEventListener('close',()=>{const id=editId;editId=null;if($('editDlg').returnValue!=='ok')return;const hit=findPitch(id);
@@ -153,3 +153,4 @@ $('editDlg').addEventListener('close',()=>{const id=editId;editId=null;if($('edi
   const snap={id:id,loc:prev,actualLoc:prevAct,calledLoc:prevCalled,edited:was};editUndo=snap;
   dirty('pitches',hit.p.id);save();render();undoToast('Location updated',()=>{if(undoEditSnap(snap))toast('Location restored');},5000);});
 loadRedo();
+const FOUL_CHIP_MS=3000;

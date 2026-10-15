@@ -88,7 +88,7 @@ function renderHeat(){const items0=PC.heatItems(S());const own=role()==='player'
     const col=miss?PC.missColor(c.avg):PC.heatColor(c.n,d.max);el.style.fill=col?col.fill:'#161b22';const tc=col?col.text:'#6e7681';
     const lbl=miss?(c.n?`Aimed at zone ${z}: ${c.n} pitch${c.n===1?'':'es'}, average miss ${c.avg} box${c.avg===1?'':'es'}, ${c.hit} hit exactly${c.mm?`, ${c.mm} souvenir${c.mm===1?'':'s'}`:''}`:`Zone ${z}: no pitches aimed here`):`Zone ${z}: ${c.n} pitch${c.n===1?'':'es'}`;
     el.innerHTML=`<title>${lbl}</title>`;el.setAttribute('aria-label',lbl);
-    if(miss){if(c.n){ex+=`<text x="${cx}" y="${cy-2.5}" style="fill:${tc};font-size:4.6px;font-weight:800;text-anchor:middle;dominant-baseline:middle;pointer-events:none">${missTxt(c.avg)}</text>`;
+    if(miss){if(c.n){ex+=`<text x="${cx}" y="${cy-2.5}" style="fill:${tc};font-size:4.6px;font-weight:800;text-anchor:middle;dominant-baseline:middle;pointer-events:none">${PC.missTxt(c.avg)}</text>`;
         ex+=`<text x="${cx}" y="${cy+4}" style="fill:${tc};font-size:4px;font-weight:700;text-anchor:middle;pointer-events:none">${pitchN(c.n)}</text>`;if(c.mm)ex+=`<text x="${cx}" y="${cy+9}" style="fill:${tc};font-size:3.8px;font-weight:800;text-anchor:middle;pointer-events:none">🎁${c.mm}</text>`;}}
     else ex+=`<text x="${cx}" y="${cy-1}" style="fill:${tc};font-size:7px;font-weight:800;text-anchor:middle;dominant-baseline:middle;pointer-events:none">${c.n||''}</text>`;
     ex+=`<text x="${cx+(z<10?8:7)}" y="${cy-(z<10?9:8)}" style="fill:${tc};opacity:.65;font-size:3.6px;text-anchor:end;pointer-events:none">${z}</text>`;});

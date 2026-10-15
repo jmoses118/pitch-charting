@@ -47,7 +47,18 @@ for(const [W,H,MIN,ZMIN,RESW] of [[844,390,48,48,48],[667,375,44,34,46]]){const 
   ok(await ev(()=>{const h=document.getElementById('cxHint').getBoundingClientRect(),c=document.getElementById('cxCount').getBoundingClientRect();return h.top>=c.bottom;}),`${tag}: confirmation never covers the count`);
   await ev(()=>armFoulChips('chip'));await wait(50);
   ok(await ev(()=>{const c=document.getElementById('foulChips').getBoundingClientRect();const s=document.getElementById('cStatus').getBoundingClientRect();const band=document.querySelector('.cband').getBoundingClientRect();const miss=(a,b)=>a.right<=b.left+1||a.left>=b.right-1||a.bottom<=b.top+1||a.top>=b.bottom-1;return miss(c,s)&&c.left>=band.left-2&&c.right<=band.right+2&&c.top>=band.bottom-c.height-4&&c.bottom<=innerHeight+1&&c.height>=48;}),`${tag}: foul chips sit at the bottom of the band, clear of the count`);
-  await ev(()=>clearFoulChips());
+  await p.click('#cBand button[data-r="0"][data-c="1"]');await wait(80);
+  ok(await ev(()=>document.getElementById('foulChips').classList.contains('hide')),`${tag}: a band tap dismisses the foul chips`);
+  await ev(()=>{resetDraft();lastCell={r:2,c:4};armFoulChips('chip');render();});await wait(40);
+  {const xy=await p.locator('#cRes [data-r="ball"]').boundingBox();await p.mouse.click(xy.x+xy.width/2,xy.y+xy.height/2);await wait(40);
+    ok(await ev(()=>document.getElementById('foulChips').classList.contains('hide')),`${tag}: a result tap dismisses the foul chips`);}
+  if(W===844){await ev(()=>{resetDraft();armFoulChips('chip');render();});await wait(40);
+    ok(!await ev(()=>document.getElementById('foulChips').classList.contains('hide')),`${tag}: foul chips show right away`);
+    await p.waitForTimeout(3200);
+    ok(await ev(()=>document.getElementById('foulChips').classList.contains('hide')),`${tag}: foul chips leave after about 3 seconds`);}
+  await ev(()=>{resetDraft();lastCell={r:2,c:4};render();});
+  const shkW=await ev(()=>{const e=document.querySelector('#cRes [data-cx=shake]');return e?e.getBoundingClientRect().width:0;});
+  ok(shkW>=48,`${tag}: coach Shake-off is ${shkW.toFixed(1)}px wide`);
   // ---- Same call, ✎ Aim, long-press ----
   await p.click('#cRes [data-cx="same"]');await wait();ok((await p.textContent('#cxCode')).replace(/\s+/g,' ').trim()==='3-05 Fb In',`${tag}: Same call repeats 3-05`);
   await p.click('#cRes [data-cx="aim"]');await wait();ok(/new aim/.test(await p.textContent('#cxHint')),`${tag}: ✎ Aim mode prompts for the new aim`);

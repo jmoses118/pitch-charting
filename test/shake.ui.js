@@ -1,7 +1,7 @@
-// v39 shake-off: the Shake-off button exists in BOTH layouts (portrait pitch flow + landscape coach screen next to
+// FLOW-10 shake-off: the Shake-off button exists in BOTH layouts (portrait pitch flow + landscape coach screen next to
 // Aim/Undo/Same) – regression guard so it can't silently disappear. Flow: call → Shake-off → pick type thrown →
 // where → result; Cancel; Undo; Stats "Shake-offs" section. Throwaway profile, Supabase blocked, test data only.
-// usage: node test/shake.ui.js <url>
+// FLOW-10: shake-off in portrait and landscape. usage: node test/shake.ui.js <url>
 const {chromium}=require('playwright-core');const {AUDIT}=require('./lib/audit');const BASE=process.argv[2]||'http://localhost:8766/';let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};
 // pixel layout audits depend on the installed fonts: they run locally (real fonts), CI checks behaviour only
 const SHOT=process.env.SHOT_DIR||'';if(SHOT)require('fs').mkdirSync(SHOT,{recursive:true});
@@ -16,7 +16,7 @@ for(const [W,H] of [[844,390],[667,375],[932,430]]){const tag=`${W}x${H}`;const 
   ok(await ev(()=>!!document.querySelector('#cRes [data-cx=shake]')&&['aim','undo','same'].every(k=>document.querySelector(`#cRes [data-cx=${k}]`))),`${tag} coach: Shake-off button next to Aim/Undo/Same (regression guard)`);
   ok(await ev(()=>document.querySelector('#cRes [data-cx=shake]').disabled),`${tag} coach: Shake-off disabled until a call is made`);
   await p.click('#cBand button[data-r="0"][data-c="6"]');await w();
-  {const r=await ev(()=>{const e=document.querySelector('#cRes [data-cx=shake]').getBoundingClientRect();return e.height>=44&&e.bottom<=innerHeight&&e.right<=innerWidth;});ok(r,`${tag} coach: Shake-off ≥44px and on screen`);}
+  {const r=await ev(()=>{const e=document.querySelector('#cRes [data-cx=shake]').getBoundingClientRect();return e.height>=48&&e.width>=48&&e.bottom<=innerHeight&&e.right<=innerWidth;});ok(r,`${tag} coach: Shake-off is 48×48 and on screen`);}
   {const pr=(process.env.CI?[]:await ev(AUDIT));ok(!pr.length,`${tag} coach: no clipping/overlap${pr.length?' → '+pr.slice(0,4).join(' | '):''}`);}
   if(SHOT)await p.screenshot({path:`${SHOT}coach-shake-button-${tag}.png`});
   // Cancel restores the call
@@ -27,7 +27,9 @@ for(const [W,H] of [[844,390],[667,375],[932,430]]){const tag=`${W}x${H}`;const 
   await p.click('#cRes [data-cx=unshake]');await w();ok(await ev(()=>!document.querySelector('#cRes [data-ty]')&&/CH7/.test(document.getElementById('cxCode').textContent)&&!!document.querySelector('#cRes [data-r=ball]')),`${tag} coach: Cancel goes back to the call`);
   // full flow: shake, threw FB, landed 5, foul
   await p.click('#cRes [data-cx=shake]');await w();await p.click('#cRes [data-ty=FB]');await w();
-  {const exp=W<700?'Aim?':'Tap the aim';const ht=(await p.textContent('#cxHint')).trim();ok(ht===exp||ht.endsWith(exp)||ht.includes(exp),`${tag} coach: after the thrown type, her aim is required ("${exp}") got "${ht}"`);}
+  ok(await ev(()=>{const d=pullDraft();return JSON.stringify(d.called)==='[7]'&&!d.calledFlag&&PC.scoreStep(d)==='actual';}),`${tag} coach: RULE-3d pre-fills aim 7`);
+  {const exp=W<700?'Where?':'Tap where it went';const ht=(await p.textContent('#cxHint')).trim();ok(ht===exp||ht.endsWith(exp)||ht.includes(exp),`${tag} coach: original aim stands, next is where it went ("${exp}") got "${ht}"`);}
+  await p.click('#cRes [data-cx=aim]');await w();
   await p.click('#cZone button[data-z="5"]');await w();
   await p.click('#cZone button[data-z="5"]');await w();
   if(SHOT)await p.screenshot({path:`${SHOT}coach-shake-threw-${tag}.png`});
@@ -35,6 +37,10 @@ for(const [W,H] of [[844,390],[667,375],[932,430]]){const tag=`${W}x${H}`;const 
   ok(JSON.stringify(await ev(last))===JSON.stringify({n:1,shook:true,call:'CH7',type:'FB',targets:[5],loc:5,result:'foul'}),`${tag} coach: logs called CH7, shook, threw FB aimed 5 landed 5, foul ${JSON.stringify(await ev(last))}`);
   ok(await ev(()=>!!document.querySelector('#cRes [data-cx=shake]')),`${tag} coach: next pitch starts fresh`);
   await p.click('#cRes [data-cx=undo]');await w(250);ok(await ev(()=>__app.store.real.games[0].pitches.length===0),`${tag} coach: Undo removes the shake-off pitch`);
+  await ev(()=>{curSheet().rows[0][0]='FB 2';});await ev(()=>callCell(0,0));await w();
+  await p.click('#cRes [data-cx=shake]');await w();await p.click('#cRes [data-ty=CH]');await w();
+  {const msg=await ev(()=>PC.aimRejectMsg('CH',2));const ht=(await p.textContent('#cxHint')).trim();
+    ok(await ev(()=>{const d=pullDraft();return d.called[0]===2&&d.calledFlag===true&&PC.scoreStep(d)==='actual';})&&ht===msg,`${tag} coach: FB2 shaken to CH keeps box 2 (${ht})`);}
   ok(!errs.length,`${tag}: no page errors ${errs.join('|')}`);await c.close();}
 // ---- portrait ----
 for(const [W,H] of [[390,844],[375,667],[430,932]]){const tag=`${W}x${H}`;const c=await ctx(W,H);const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));const ev=(f,a)=>p.evaluate(f,a),w=ms=>p.waitForTimeout(ms||150);
@@ -53,10 +59,17 @@ for(const [W,H] of [[390,844],[375,667],[430,932]]){const tag=`${W}x${H}`;const 
   {const pr=(process.env.CI?[]:await ev(AUDIT));ok(!pr.length,`${tag}: no clipping/overlap${pr.length?' → '+pr.slice(0,4).join(' | '):''}`);}
   if(SHOT){await ev(()=>{scrollTo(0,0);document.getElementById('toast').classList.remove('on');});await w(300);await p.screenshot({path:`${SHOT}game-shake-${tag}.png`});}
   await p.click('#shakeCancel');await w();ok(await ev(()=>document.getElementById('shakeBar').classList.contains('hide')&&D.type==='CH'),`${tag}: Cancel restores the call`);
+  await ev(()=>{curSheet().rows[0][0]='FB 2';});await ev(()=>callCell(0,0));await w();
+  await p.click('#shakeBtn');await w();await p.click('#types [data-c=CH]');await w();
+  {const msg=await ev(()=>PC.aimRejectMsg('CH',2));
+    ok(await ev(()=>{const d=pullDraft();return d.type==='CH'&&d.called[0]===2&&d.calledFlag===true&&PC.scoreStep(d)==='actual';})&&(await p.textContent('#phase'))===msg,`${tag}: FB2 shaken to CH keeps box 2`);}
+  await p.click('#shakeCancel');await w();await ev(()=>callCell(0,6));await w();
   await p.click('#shakeBtn');await w();await ev(()=>recordGame('ball'));ok(await ev(()=>__app.store.real.games[0].pitches.length===0),`${tag}: won't log until she picks the pitch thrown`);
-  await p.click('#types [data-c=DR]');await w();await ev(()=>tapLoc(13));await ev(()=>recordGame('swinging'));ok(await ev(()=>__app.store.real.games[0].pitches.length===0),`${tag}: won't log until she taps where it went`);
+  await p.click('#types [data-c=DR]');await w();
+  ok(await ev(()=>{const d=pullDraft();return JSON.stringify(d.called)==='[7]'&&!d.calledFlag&&PC.scoreStep(d)==='actual';}),`${tag}: RULE-3d pre-fills the CH7 aim`);
+  await ev(()=>recordGame('swinging'));ok(await ev(()=>__app.store.real.games[0].pitches.length===0),`${tag}: won't log until she taps where it went`);
   await ev(()=>tapLoc(13));await ev(()=>recordGame('swinging'));await w();
-  ok(JSON.stringify(await ev(last))===JSON.stringify({n:1,shook:true,call:'CH7',type:'DR',targets:[13],loc:13,result:'swinging'}),`${tag}: logs called CH7, shook, threw DR aimed 13 ${JSON.stringify(await ev(last))}`);
+  ok(JSON.stringify(await ev(last))===JSON.stringify({n:1,shook:true,call:'CH7',type:'DR',targets:[7],loc:13,result:'swinging'}),`${tag}: logs called CH7, shook, threw DR landed 13 ${JSON.stringify(await ev(last))}`);
   // a followed call, then stats
   await ev(()=>{callCell(0,6);tapLoc(7);recordGame('called');});
   await p.click('nav [data-t="stats"]');await w(300);

@@ -26,16 +26,16 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
 - **RULE-3b** The ring boxes just outside the zone (11–18) remain valid called targets.
 - **RULE-3c** A CH, drop or drop curve called low (7, 8, 9, 13, 14, 18) that lands in the dirt (31) counts as a reduced-severity miss, not a full way-off miss.
 - **RULE-3d** After a shake-off, the called location is the location re-signaled with the final pitch. If none was re-signaled, the original box stands.
-- **RULE-4** One shared location component and one location validator are used everywhere: scoring, editing, sync, and CSV import. Called and actual boxes are read through `calledOf` and `actualOf`.
-- **RULE-4a** A CSV import or a sync read keeps a called aim that fails `validCalled` and flags that row. The scoring screen still rejects that aim on a new write. Pitches already saved with an illegal called aim are test data. `supabase/migrations/20261015130000_delete_bad_aim_pitches.sql` deletes them. That file is not applied to production from here. `supabase/preview_delete_bad_aim_pitches.sql` is the read-only list of the same rows.
+- **RULE-4** One shared location component and one location validator are used everywhere: scoring, editing, sync, and CSV import.
+- **RULE-4a** On CSV import and on a sync read, a called aim that is on the grid but fails `validCalled` is kept and flagged (`calledFlag`). It is not dropped. A called box that is not on the grid is stored as null.
 - **RULE-5** Only one phone can score a game or bullpen session. Every other phone sees it live and read-only.
 - **RULE-6** Undo and Redo cover both the pitch and its location.
 - **RULE-7** Every popup has a working Cancel that leaves the data unchanged.
-- **RULE-8** The scoring screen fits on one iPhone screen without scrolling at widths of 375, 390 and 430 px. It uses compact pitch buttons, slim pitcher and count bars, and a large zone.
+- **RULE-8** The scoring screen fits on one iPhone screen without scrolling at widths of 375, 390 and 430 px. It uses compact pitch buttons, slim pitcher and count bars, and a large zone. Portrait wristband height stays 48. At <=390px wide, cells may be 42–44px wide so all 8 columns, plus the row and column headers, fit with no sideways scroll. On the SE coach screen (667×375) the strike box may be 34px; that is the SE exception.
 - **RULE-9** CSV export is per pitcher per date. One shared CSV row builder produces every row.
 - **RULE-10** Players are shown by first name and jersey number (`pitcherLabel`), and CSV file names use the same. No surnames.
 - **RULE-11** Jim can edit a pitcher's jersey number. Cancel leaves it unchanged.
-- **RULE-11a** Two active pitchers cannot share a jersey number. An empty number is allowed. `0` and `00` are different numbers. An archived pitcher does not block the number. The message names the other pitcher by first name.
+- **RULE-11a** An active pitcher cannot share a jersey number with another active pitcher. `0` and `00` are both allowed and are not the same number. Empty is allowed. The check is `jerseyError` in `js/core/store.js`.
 - **RULE-12** The current branding stays.
 
 ## VIEW
@@ -67,13 +67,26 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | RULE-3c | unit: a CH, drop or drop curve called low that lands in 31 is a miss below way-off severity |
 | RULE-3d | unit: after a shake-off the called location is the re-signaled box, or the original box when none was re-signaled |
 | RULE-4 | unit: scoring, edit, sync and CSV import call the same validator with the same inputs and get the same results |
-| RULE-4a | unit: import and sync keep an illegal called aim and flag the row; Postgres: `test/badaim.pg.sh` deletes only those rows and the preview lists the same ids |
+| RULE-4a | unit: a CH called box 2 is kept, `calledFlag` is true, and an off-grid called box is null, on CSV import and on a sync read |
 | RULE-5 | `lock.ui.js` + `live.sync.js`: a second phone is read-only and sees pitches live |
 | RULE-6, RULE-7 | unit: redo/undo state; UI: Cancel on every popup leaves the state unchanged |
-| RULE-8 | `fit.ui.js`: no vertical scroll at 375, 390 and 430 px |
+| RULE-8 | `fit.ui.js`: no vertical scroll at 375, 390 and 430 px; controls at least 48px; the portrait wristband shows all 8 columns with no sideways scroll (at <=390px wide, cells may be 42–44px wide, height stays 48); the SE coach screen (667×375) may use a 34px strike box; the location dot stays round and the box numbers are not squashed. `layout.ui.js`: at 375 and 390 at least 8 name characters plus `#12` are visible |
 | RULE-9 | unit: one row builder; export filtered to one pitcher and one date |
 | RULE-10 | unit: `pitcherLabel` and CSV file name include the jersey number; smoke: no surnames shown |
 | RULE-11, RULE-12 | UI: edit jersey number saves, and Cancel leaves it unchanged; smoke: branding unchanged |
-| RULE-11a | unit: an active jersey is unique, empty is allowed, `0` and `00` differ, and an archived pitcher does not block |
+| RULE-11a | unit: `0` and `00` are allowed, empty is allowed, and a duplicate active number errors |
 | VIEW-1, VIEW-2 | `zonegfx.ui.js`: numbered, colored markers and list; one-tap scheduled start |
 | DoD | UI: `inning.e2e` (full inning) and `bullpen20.e2e` (20-pitch bullpen) at 390 px |
+| ARCH-1 | `test/arch.scan.js` passes on the tree. Negative cases are `test/arch.negative.js` and `test/dup.scan.js`. |
+
+## Architecture
+Each business rule lives in one `js/core` module. UI files render and forward events. They do not keep a second validator or a second copy of a rule.
+
+| Module | Owns |
+|---|---|
+| `js/core/flow.js` | The one scoring state machine (`scoreApply`, `scoreTap`, `scoreStep`, `scoreCommit`) and the one location validator (`validCalled`, `validActual`). Portrait Game, the landscape coach screen, Bullpen, and any later view call this module. |
+| `js/core/location.js` | `calledOf` and `actualOf`, the one reading of a stored called spot and actual spot. |
+| `js/core/scoring.js` | Miss severity, the low-pitch bonus, and strike versus hit-spot. The penalty uses `calledTypeOf`. |
+| `js/core/csv.js` | `csvRow`, the one CSV row builder, and `calledTypeOf`. |
+| `js/core/store.js` | The roster, the jersey check, and the local save. |
+| `js/core/sync.js` | Row mapping and merge. A read keeps a grid aim that fails `validCalled` and sets `calledFlag`. |
