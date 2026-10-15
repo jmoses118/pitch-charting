@@ -1,5 +1,10 @@
 # Changelog
 
+## v63 – Short game screen keeps the zone on screen
+### Changed
+- **RULE-8.** On a short screen the inning bar and the shake-off button take less height, so the zone stays above the tab bar at 375px. The fit check also covers 430px.
+- Cache: `te-pitch-v63`.
+
 ## v62 – One home for each rule
 ### Changed
 - **ARCH-1.** `validSpot` calls `validActual`. The screen helpers that read the pitcher's hand and hit-test the zone are no longer named like rule functions. CI fails if `js/core` mentions `js/ui`, if `js/ui` defines a `valid*`, `calc*`, or `*Of` rule function, or if `jscpd` finds a clone under `js/`.

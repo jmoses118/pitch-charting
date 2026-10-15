@@ -1,10 +1,11 @@
-// One-screen pitch entry: at 390x844 and 375x667 (iPhone SE) the pitch chips and the whole zone sit inside the viewport
+// RULE-8: the scoring screen fits on one iPhone screen without scrolling at 375, 390, and 430 px.
+// 390x844, 375x667 (iPhone SE), and 430x932. Pitch chips and the whole zone sit inside the viewport
 // with no scrolling, in Bullpen and Game; tap boxes stay >= 48px; result picker is a bottom sheet; wristband one tap away.
 // Throwaway profile, Supabase blocked, test data only. usage: node test/fit.ui.js <url>
 const {chromium}=require('playwright-core');const BASE=process.argv[2]||'http://localhost:8766/';let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};
 const GAME={id:'g1',date:'2026-10-13',opponent:'Storm',homeAway:'away',status:'active',started:1,lineup:[{slot:1,name:'B1',num:'1',hand:'R'},{slot:2,name:'B2',num:'2',hand:'L'}],cur:{inning:2,outs:1,slot:0,b:1,s:1,abn:3},pitches:[]};
 (async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});
-for(const [W,H] of [[390,844],[375,667]]){const tag=`${W}x${H}`;
+for(const [W,H] of [[390,844],[375,667],[430,932]]){const tag=`${W}x${H}`;
   const c=await b.newContext({viewport:{width:W,height:H},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());await c.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));
   const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());const ev=(f,a)=>p.evaluate(f,a);
   await p.goto(BASE);await ev(()=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';S.customTypes=[{code:'SC',name:'Screwball'}];__app.store.save();__app.render();});
