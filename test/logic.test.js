@@ -814,7 +814,7 @@ test('RULE-3c: a low change, drop or drop curve in the dirt is a reduced miss',(
 });
 test('FLOW-1: scoreCommit is the chart record and has no calledType',()=>{
   const game=PC.scoreCommit({mode:'game',type:'FB',called:[5],actual:6,result:'foul'});
-  assert.equal(game.type,'FB');assert.deepEqual(game.targets,[5]);assert.equal(game.loc,6);assert.equal(game.actualLoc,6);assert.equal(game.calledLoc,5);assert.equal(game.result,'foul');assert.equal(game.shook,false);
+  assert.deepEqual(game,{type:'FB',targets:[5],loc:6,actualLoc:6,calledLoc:5,result:'foul',shook:false,ip:null,velo:null});
   assert.equal(Object.hasOwn(game,'calledType'),false);
   const pen=PC.scoreCommit({mode:'bullpen',type:'FB',called:[5],actual:6,result:'foul'});
   assert.equal(pen.result,null);assert.equal(Object.hasOwn(pen,'calledType'),false);
@@ -840,6 +840,8 @@ test('RULE-3d: FB box 2 shaken off and thrown as CH keeps the box and flags it',
   const ch=PC.scoreApply(shook.draft,{op:'call',type:'CH',called:[]});
   assert.deepEqual(ch.draft.called,[2]);assert.equal(ch.draft.calledFlag,true);
   assert.equal(PC.aimFlag('CH',[2]),true);assert.equal(PC.aimFlag('CH',[8]),false);assert.equal(PC.aimFlag('FB',[2]),false);
+  assert.equal(PC.aimNote({type:'CH',called:[8,2]}),PC.aimRejectMsg('CH',2));assert.equal(PC.aimNote({type:'FB',called:[2]}),'');
+  assert.equal(PC.calledTypeOf({type:'FB',called_type:'CH'}),'FB');
   const row=PC.scoreCommit(PC.scoreApply(PC.scoreTap(ch.draft,8).draft,{op:'result',result:'ball'}).draft);
   assert.deepEqual(row.targets,[2]);assert.equal(row.calledFlag,true);assert.equal(row.type,'CH');
   assert.equal(PC.importSpots({type:'FB',called_type:'CH',call_target:'2',location:'5'}).calledFlag,true);
@@ -848,10 +850,12 @@ test('RULE-3d: FB box 2 shaken off and thrown as CH keeps the box and flags it',
   assert.equal(PC.rowPitch({id:'u',mode:'game',type:'FB',shook:true,call:'CH2',targets:[2],loc:5,inning:1,abn:1}).calledFlag,undefined);
 });
 test('RULE-4: calledLoc 4 and actualLoc 14 win over targets 8 and loc 8',()=>{
-  const p={type:'FB',targets:[8],loc:8,calledLoc:4,actualLoc:14,hand:'R'};
-  assert.equal(PC.calledOf(p),4);assert.equal(PC.actualOf(p),14);
-  const m=PC.pitchMiss(p);assert.equal(m.d,3);assert.equal(m.sev,3);assert.equal(PC.hitSpot(p),false);
-  const row=PC.csvRow(p,{mode:'game'});assert.equal(row.called_location,4);assert.equal(row.actual_location,14);assert.equal(row.location,14);
+  const p={type:'FB',targets:[8],loc:8,calledLoc:4,actualLoc:14,hand:'R',inning:1,abn:1};
+  assert.equal(PC.strikeOf(p),false);
+  const md=PC.missData([{p}]);assert.equal(md.cells[4].n,1);assert.equal(md.cells[8].n,0);
+  const sum=PC.summarize([p]);assert.ok(sum.byLoc['14']);assert.equal(sum.byLoc['8'],undefined);
+  const m=PC.pitchMiss(p);assert.equal(m.d,3);assert.equal(m.sev,3);
+  const row=PC.csvRow(p,{mode:'game'});assert.equal(row.called_location,4);assert.equal(row.actual_location,14);assert.equal(row.location,14);assert.equal(row.call_target,'4');
   const wire=PC.pitchRow(p,{mode:'game',chartCol:true});assert.equal(wire.called_loc,4);assert.equal(wire.actual_loc,14);
 });
 test('RULE-4: two called boxes stay a list, and calledOf joins them',()=>{

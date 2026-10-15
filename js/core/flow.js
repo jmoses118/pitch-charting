@@ -29,6 +29,7 @@ function validCalled(type,z){z=+z;if(!PC.GRID_XY[z])return false;if(PC.isWay(z)|
 function validActual(z){return !!PC.GRID_XY[+z];}
 // One bad-aim check for commit, CSV import, and sync. True when any box fails validCalled.
 function aimFlag(type,boxes){return (boxes||[]).some(z=>!validCalled(type,z));}
+function aimNote(draft){const boxes=((draft&&draft.called)||[]).map(z=>+z).filter(z=>Number.isFinite(z));const bad=boxes.find(z=>!validCalled(draft.type,z));return bad==null?'':PC.aimRejectMsg(draft.type,bad);}
 function fail(op,d,reason){return{ok:false,op,draft:d,step:scoreStep(d),reason};}
 function scoreApply(draft,ev){const d=clone(draft);ev=ev||{};const op=ev.op;
   if(op==='call'){d.type=ev.type||null;const raw=Array.isArray(ev.called)?ev.called:[];const nums=raw.map(z=>+z).filter(z=>Number.isFinite(z));
@@ -38,7 +39,7 @@ function scoreApply(draft,ev){const d=clone(draft);ev=ev||{};const op=ev.op;
     if(aimFlag(d.type,d.called))d.calledFlag=true;else delete d.calledFlag;
     d.actual=null;d.result=null;d.ip=null;d.aimEdit=false;
     return{ok:!!d.type,op,draft:d,step:scoreStep(d),reason:d.type?null:'need_type'};}
-  if(op==='called'){if(!d.type)return fail(op,d,'need_type');const z=+ev.z;if(!validCalled(d.type,z))return fail(op,d,'bad_target');d.called=[z];d.aimEdit=false;if(aimFlag(d.type,d.called))d.calledFlag=true;else delete d.calledFlag;return{ok:true,op,draft:d,step:scoreStep(d),reason:null};}
+  if(op==='called'){if(!d.type)return fail(op,d,'need_type');const z=+ev.z;if(!validCalled(d.type,z))return fail(op,d,'bad_target');d.called=[z];d.aimEdit=false;delete d.calledFlag;return{ok:true,op,draft:d,step:scoreStep(d),reason:null};}
   if(op==='actual'){if(!d.type)return fail(op,d,'need_type');if(!d.called.length)return fail(op,d,'need_called');const z=+ev.z;if(!validActual(z))return fail(op,d,'bad_actual');
     // FLOW-1: one toggle. A second tap of the same actual location clears it. A different cell replaces it.
     if(d.actual===z){d.actual=null;d.result=null;d.ip=null;}else d.actual=z;
@@ -60,5 +61,5 @@ function scoreCommit(d){d=clone(d);const boxes=d.called.slice();
   const row={type:d.type,targets:boxes,loc:d.actual,actualLoc:d.actual,calledLoc:PC.nearestTarget(boxes,d.actual),result:d.mode==='bullpen'?null:d.result,ip:d.ip||null,shook:!!d.shook,velo:d.velo};
   if(aimFlag(d.type,boxes))row.calledFlag=true;
   return row;}
-Object.assign(PC,{FLOW,GAME_RESULTS,flowSteps,flowLabel,scoreStep,scoreApply,scoreTap,scoreCommit,validCalled,validActual,aimFlag});
+Object.assign(PC,{FLOW,GAME_RESULTS,flowSteps,flowLabel,scoreStep,scoreApply,scoreTap,scoreCommit,validCalled,validActual,aimFlag,aimNote});
 })(typeof window!=='undefined'?window:globalThis);
