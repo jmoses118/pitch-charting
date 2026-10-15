@@ -34,7 +34,7 @@ function recentRows(items,isGame,throws){if(!items.length)return `<li class="emp
     return `<li><button type="button" class="rrow" data-edit="${H(p.id)}" aria-label="Fix location for pitch ${no}${p.edited?', from video':''}"><svg viewBox="-8 -8 16 16" class="badge" aria-hidden="true">${ballSVG(0,0,no,mark,5.2)}</svg><span class="r-main"><b>${H(res)}</b> <span class="pedit" aria-hidden="true">✎</span> <span class="mut">${H(p.type?typ:'No type')}</span>${editedMark(p)}</span><span class="r-loc mut">aim ${H(aim)} → ${H(p.loc?locTxt(p.loc):'–')}</span></button></li>`;}).join('');}
 // One row in the game log and the Stats pitch list. Newest-first is the caller's job; i is the pitch's place in the at-bat order.
 function pitchLine(p,i,mode){const who=mode==='game'?H(String(pName(p.pitcherId)).split(' ')[0])+' vs '+H(p.batter||'–')+': ':'';
-  const res=p.result?(RESULT_SHORT[p.result]||p.result)+(p.ip?' '+p.ip:''):(mode==='bullpen'||PC.isBullpenPitch(p)?'':(p.loc!=null?(PC.isZone(p.loc)?'K':'B'):''));
+  const strike=PC.strikeOf(p);const res=p.result?(RESULT_SHORT[p.result]||p.result)+(p.ip?' '+p.ip:''):(strike==null||p.loc==null?'':(strike?'K':'B'));
   const aimN=p.calledLoc!=null?p.calledLoc:(p.targets&&p.targets.length?p.targets.join('/'):'');
   const act=p.actualLoc!=null?locTxt(p.actualLoc):(p.loc!=null?locTxt(p.loc):'');
   const aimBit=mode==='stats'?`<span class="plist-aim">aim ${H(aimN===''?'–':aimN)} → ${H(act===''?'–':act)}</span>`:'';

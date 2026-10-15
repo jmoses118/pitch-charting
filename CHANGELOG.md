@@ -1,5 +1,10 @@
 # Changelog
 
+## v60 – The game log asks scoring whether a pitch was a strike
+### Changed
+- **FLOW-6.** The pitch list uses `strikeOf` for a pitch that has no umpire result. A bullpen row stays blank. A game row is K or B from that helper.
+- Cache: `te-pitch-v60`.
+
 ## v59 – Bullpen has no strike
 ### Changed
 - **FLOW-6.** `strikeOf` is null for a bullpen pitch. The session report, the log, and the bullpen CSV leave the strike column blank. Game strikes still follow the umpire.
