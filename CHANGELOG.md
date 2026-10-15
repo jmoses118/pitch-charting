@@ -1,5 +1,9 @@
 # Changelog
 
+## v72 – Builder docs point at the current rules
+### Changed
+- The chart works the same. Agent notes now name each module and the rule it owns. The product spec and the scoring notes are the current rules, including hit spot, miss severity, competitive %, and strike %. Older architecture, lesson, design, and testing write-ups sit in docs/archive. Builders should not read this changelog unless asked.
+
 ## v71 – The Game tab opens a picker
 ### Changed
 - Tapping Game opens a list of games in progress. Start new game asks for the opponent and the pitcher before it creates anything. A draft can be discarded. Ending a game still asks first.

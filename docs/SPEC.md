@@ -4,6 +4,7 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
 
 ## FLOW: one state machine
 - **FLOW-1** Every scoring screen uses one shared pitch-entry state machine: portrait Game, landscape coach Game, Bullpen, and any later view. No screen has its own step logic. This replaces both `bullpenStep`/`bullpenTap` in `js/core/game.js` and the game steps in the UI scripts. A `js/core/flow.js` may already exist on the `fix/redesign-bugs` branch; build on it.
+- **FLOW-1a** `scoreCommit` alone writes `targets`, `loc`, `actualLoc`, and `calledLoc`. Intentional walk stays outside that machine.
 - **FLOW-2 (Game order)** A game pitch goes through these steps in order: 1) call the pitch type; 2) called location; 3) actual location (zone, off-grid ring, dirt, or backstop); 4) result (ball, strike, foul, in play, and so on).
 - **FLOW-3** The called location is placed automatically from the wristband aim. The user can override it by hand.
 - **FLOW-4** The result menu opens only after the actual-location tap. It never covers the zone before that tap.
@@ -18,6 +19,7 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
 - **FLOW-11 (optional)** Velocity can be typed in.
 - **FLOW-12 (optional, Game only)** After the result, the user can add: ball-in-play detail, foul timing (early, on time, or late), contact type, and a WP/PB flag. None of these blocks saving.
 - **FLOW-13** Tapping Game opens a picker, not a game. The picker lists each in-progress game with Resume, plus a separate Start new game. No game is created until the opponent and pitcher are confirmed. `createGame` returns null until both are set. A blank opponent toasts "Enter the opponent". A blank pitcher toasts "Pick a pitcher".
+- **FLOW-13a** The paused card is gone. The picker is the list.
 - **FLOW-14** Exiting a game saves it and never deletes it. Exit is pause. A game ends only through End game plus a confirmation. The ended game stays in Stats.
 - **FLOW-15** A game with no pitches is a draft. The picker can resume or discard it. Discard asks first, sets `deleted`, and only the scoring phone can do it, and only while the game is still empty. A draft is still in progress: it locks the bullpen, and another phone sees it view-only.
 
@@ -31,15 +33,27 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
 - **RULE-3d** After a shake-off, the called location is the location re-signaled with the final pitch. If none was re-signaled, the original box stands.
 - **RULE-4** One shared location component and one location validator are used everywhere: scoring, editing, sync, and CSV import.
 - **RULE-4a** On CSV import and on a sync read, a called aim that is on the grid but fails `validCalled` is kept and flagged (`calledFlag`). It is not dropped. A called box that is not on the grid is stored as null. Pitches already saved with an illegal called aim stay. `supabase/migrations/20261015130000_delete_bad_aim_pitches.sql` is a no-op, so `supabase db push` does not delete them. A delete of owner-approved ids lives only in `supabase/pending/delete_bad_aim_pitches.sql`, which `supabase db push` does not apply. That script types the ids once, copies them into a backup, and deletes from the backup inside a transaction that rolls back unless the counts match. `supabase/preview_delete_bad_aim_pitches.sql` is the read-only list of the same rows.
+- **RULE-4b** The edit sheet reads `actualOf` (`actualLoc`, then `loc`).
 - **RULE-5** Only one phone can score a game or bullpen session. Every other phone sees it live and read-only.
+- **RULE-5a** `box.scorer` is that phone's `sync.deviceId`. A box with no owner stays open until a recorded pitch sets it. Take over calls `claimScoring` (`js/core/modes.js`). `scorerOfRow` is in `js/core/sync.js`. Games store the owner on `games.cur.scorer`.
 - **RULE-6** Undo and Redo cover both the pitch and its location.
+- **RULE-6a** Redo keeps at most 10 items on this phone (`state.redo`). It is not synced. A new pitch clears it.
 - **RULE-7** Every popup has a working Cancel that leaves the data unchanged.
+- **RULE-7a** Escape and a backdrop tap cancel the same way. Save runs only when the dialog returns ok.
 - **RULE-8** The scoring screen fits on one iPhone screen without scrolling at widths of 375, 390 and 430 px. It uses compact pitch buttons, slim pitcher and count bars, and a large zone. Portrait wristband height stays 48. At <=390px wide, cells may be 42–44px wide so all 8 columns, plus the row and column headers, fit with no sideways scroll. On the SE coach screen (667×375) the strike box may be 34px; that is the SE exception.
+- **RULE-8a** On the landscape coach screen, band and zone cells are 48px at 844×390 and about 40px at 667×375.
 - **RULE-9** CSV export is per pitcher per date. One shared CSV row builder produces every row.
 - **RULE-10** Players are shown by first name and jersey number (`pitcherLabel`), and CSV file names use the same. No surnames.
 - **RULE-11** Jim can edit a pitcher's jersey number. Cancel leaves it unchanged.
 - **RULE-11a** An active pitcher cannot share a jersey number with another active pitcher. `0` and `00` are both allowed and are not the same number. Empty is allowed. The check is `jerseyError` in `js/core/store.js`.
 - **RULE-12** The current branding stays.
+
+## SCORING
+`docs/SCORING.md` states these same rules and stays current. Code: `js/core/scoring.js` and `js/core/grid.js`.
+- **SCORE-1 (Hit spot)** `PC.hitSpot` is `pitchMiss(p).d === 0` and not a change-up up. Stats, the report, and Game marks share it. A shake-off with no aim is left out.
+- **SCORE-2 (Miss severity)** `pitchMiss` is the only severity: squares to the nearest called target. Box 5 when 5 was not called is `MAX_MISS` (4). A change-up up is at least 2. An uncalled way-off, dirt, or backstop is `WAY_SEV` (3). Good is 0 or 1. RULE-3c and FLOW-7a adjust the low change-up.
+- **SCORE-3 (Competitive %)** Zone (1–9) or ring (11–18) landings, divided by all pitches. Way off, dirt, and backstop are not competitive.
+- **SCORE-4 (Strike %)** Game strike % follows the umpire result. Location does not change it. Bullpen has no strike result (FLOW-6) and leads with hit-spot % (FLOW-7).
 
 ## VIEW
 - **VIEW-1** The zone is shown Gameday-style, from the catcher's eye. Each pitch is a small numbered softball colored by its result. The pitch list sits under the zone.
@@ -53,6 +67,11 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
 - **INFRA-3** Production Supabase is used only when the page hostname is in `pcPickConfig.PROD.hosts`. The project ref, URL, and publishable key are defined once on `pcPickConfig.PROD` in `js/core/config.js`. Every other build uses the local address or `PC_SUPABASE_URL` / `PC_SUPABASE_ANON_KEY`, and shows a banner that cloud sync is not the live database.
 - A database URL is refused when `new URL(url.toLowerCase()).hostname` contains the production project ref. The app then uses the local address with an empty key. The scoring screen and the coach screen hide that banner so the zone still fits.
 - A migration is exempt from that scan only when the same path exists on the base branch with identical bytes. A new file is scanned even when its timestamp is old. Leave an applied migration byte-identical. CI applies `supabase/migrations` only when the database host is `localhost` or `127.0.0.1`. The production schema changes only when a Supabase preview branch is merged.
+
+## SYNC
+- **SYNC-1** A refused push (any 4xx) is retried row by row and quarantined in `sync.rejected`. Push halts only when every row fails auth and `whoami` says the code is invalid or the role changed. Keep, retry, or discard applies on Apply. Cancel changes nothing.
+- **SYNC-2** Pull uses `sync.seen`, then `updated_at` at or after seen minus 2 minutes, paged by `(updated_at, id)`. `seen` resets when the team or role changes. Merge is last-writer-wins, including sessions and `games.cur`. `rowPitch` keeps a `validActual` spot. Dates are `PC.localDate`.
+- **SYNC-3** `team_settings` is coach-only and is never pushed by mark-all-dirty.
 
 ## Definition of done (v1)
 On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen can both be scored end to end with no bugs. Every requirement ID maps to at least one automated test, and all of those tests pass in CI.
@@ -89,6 +108,20 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | FLOW-15 | unit: discard pushes `deleted` and a pull does not bring the game back; the stats scope omits the draft. The picker check is `modes.ui.js` "picker shows N Resume rows and one Start" |
 | DoD | UI: `inning.e2e` (full inning) and `bullpen20.e2e` (20-pitch bullpen) at 390 px |
 | ARCH-1 | `test/arch.scan.js` passes on the tree. Negative cases are `test/arch.negative.js` and `test/dup.scan.js`. |
+| FLOW-1a | unit: “FLOW-1: scoreCommit is the chart record” |
+| FLOW-13a | `test/modes.ui.js` “picker shows N Resume rows and one Start” |
+| RULE-4b | unit: “edit sheet reads actualLoc before loc”; `test/editpitch.ui.js` |
+| RULE-5a | unit: “scoring lock: only the starting phone scores” |
+| RULE-6a | unit: “redo list persists on this phone, stays capped at 10, and is not synced” |
+| RULE-7a | `test/sheets.ui.js`: Cancel, Escape, and backdrop leave data unchanged |
+| RULE-8a | `test/coach.ui.js` at 844×390 and 667×375 |
+| SCORE-1 | unit: “hitSpot uses pitchMiss” |
+| SCORE-2 | unit: “ring is competitive, way off is a miss” |
+| SCORE-3 | unit: that ring test; `test/wayoff.ui.js` competitive 67% |
+| SCORE-4 | unit: “report strikes follow the umpire result”; `test/flow.ui.js` |
+| SYNC-1 | unit: “push: a 403 row is retried row by row”; “every row 401”; “rejected rows: list, retry” |
+| SYNC-2 | unit: “pull: incremental since last updated_at”; “sessions: last writer wins”; “rowPitch keeps every valid spot”; “localDate” |
+| SYNC-3 | unit: “team settings sync: coach only… never pushed by markAllDirty” |
 | INFRA-3 | `test/prodref.test.js`: a non-production host shows the sync-off warning and does not point at production; an uppercase production URL and a split project ref are refused; a migration on the base branch with identical bytes is exempt; a backdated new migration is not; `test/pg-migrate.sh` allows only `localhost` or `127.0.0.1` |
 | BRIEF-1, BRIEF-2, BRIEF-3, BRIEF-4, BRIEF-5, BRIEF-6, BRIEF-7, BRIEF-8 | `AGENTS.md` Standard builder brief. BRIEF-5 is `test/prsize.js` and `test/prgate.negative.js`. BRIEF-7 is `test/changelog.js` and `test/prgate.negative.js`. BRIEF-6 is not enforced in this tree. |
 
