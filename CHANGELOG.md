@@ -1,5 +1,12 @@
 # Changelog
 
+## v72 – A file move with no edits is free
+### Changed
+- **BRIEF-5.** The chart works the same. A word-for-word file move does not count toward the 300-line limit when both paths are counted or both are under test.
+- A long line that was already in the file can move with it.
+- Moving a file out of test counts the whole file, even if that move also changes a line.
+- A move that stays on a counted path counts only the changed lines. A new line longer than 500 characters still fails.
+
 ## v71 – The Game tab opens a picker
 ### Changed
 - Tapping Game opens a list of games in progress. Start new game asks for the opponent and the pitcher before it creates anything. A draft can be discarded. Ending a game still asks first.

@@ -2,6 +2,7 @@
 // Merge-main counts only the pull request. Cap edits, nested test/fixture/lock
 // paths, .gitattributes binary and -diff, a .wasm, a symlink, a submodule,
 // a minified line, ## v5, a renamed heading, and a cache-only line must fail.
+// A word-for-word rename passes. An edited rename counts only that edit.
 const fs=require('fs'),path=require('path'),os=require('os'),{spawnSync,execSync}=require('child_process');
 const {DEFAULT_CAP}=require('./prsize.js');
 const repo=path.join(__dirname,'..');
@@ -222,6 +223,64 @@ counted('BRIEF-5 a baseline image is counted','shots/home.baseline.png');
   const dir=withRepo(d=>writeRel(d,'test/min.js','m'.repeat(800)+'\n'));
   const r=run(sizeJs,dir);
   say(r.code===0&&/pr size ok: 0 lines/.test(r.out),'BRIEF-5 a minified line under test/ is not counted',r.out);
+  done(dir);
+}
+{
+  const dir=repoDir();
+  writeRel(dir,'wide.js','m'.repeat(600)+'\n');
+  commit(dir,'long');
+  fs.mkdirSync(path.join(dir,'pkg'));
+  git(dir,'mv wide.js pkg/wide.js');
+  commit(dir,'head');
+  const r=run(sizeJs,dir);
+  say(r.code===0&&/pr size ok: 0 lines/.test(r.out),'BRIEF-5 a pure rename of a 600-char line passes',r.out);
+  done(dir);
+}
+{
+  const dir=repoDir();
+  writeRel(dir,'note.js',lines(40));
+  commit(dir,'long');
+  fs.mkdirSync(path.join(dir,'pkg'));
+  git(dir,'mv note.js pkg/note.js');
+  fs.appendFileSync(path.join(dir,'pkg','note.js'),'edited\n');
+  commit(dir,'head');
+  const r=run(sizeJs,dir);
+  say(r.code===0&&/pr size ok: 1 lines/.test(r.out),'BRIEF-5 a rename with one edited line counts 1',r.out);
+  done(dir);
+}
+{
+  const dir=repoDir();
+  writeRel(dir,'note.js',Array.from({length:20},(_,i)=>'line '+i+' '+'x'.repeat(80)).join('\n')+'\n');
+  commit(dir,'long');
+  fs.mkdirSync(path.join(dir,'pkg'));
+  git(dir,'mv note.js pkg/note.js');
+  fs.appendFileSync(path.join(dir,'pkg','note.js'),'m'.repeat(600)+'\n');
+  commit(dir,'head');
+  const r=run(sizeJs,dir);
+  say(r.code!==0&&r.out.includes('minified line')&&r.out.includes('pkg/note.js'),'BRIEF-5 a rename that adds a 600-char line fails',r.out);
+  done(dir);
+}
+{
+  const dir=repoDir();
+  writeRel(dir,'test/x.js',lines(12));
+  commit(dir,'base');
+  fs.mkdirSync(path.join(dir,'js'));
+  git(dir,'mv test/x.js js/x.js');
+  commit(dir,'head');
+  const r=run(sizeJs,dir);
+  say(r.code===0&&/pr size ok: 12 lines/.test(r.out),'BRIEF-5 an R100 from test/x.js to js/x.js counts the full file',r.out);
+  done(dir);
+}
+{
+  const dir=repoDir();
+  writeRel(dir,'test/x.js',lines(12));
+  commit(dir,'base');
+  fs.mkdirSync(path.join(dir,'js'));
+  git(dir,'mv test/x.js js/x.js');
+  fs.appendFileSync(path.join(dir,'js','x.js'),'edited\n');
+  commit(dir,'head');
+  const r=run(sizeJs,dir);
+  say(r.code===0&&/pr size ok: 13 lines/.test(r.out),'BRIEF-5 an edited move from test/x.js to js/x.js counts the full file',r.out);
   done(dir);
 }
 {
