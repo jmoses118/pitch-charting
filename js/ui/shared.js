@@ -9,7 +9,7 @@ const S=()=>store.state;
 const dirty=(k,id)=>{store.markDirty(k,id);};
 const save=()=>{schedSync();if(!store.save()&&!store.isTest&&!store.saveOk)toast('Not saving: storage blocked. Open in Safari (not private).');};
 let tab='game';
-const D={type:null,callTxt:'',parsed:null,target:null,called:[],loc:null,aim:null,aimEdit:false,ip:false,foul:false,foulTime:null,wpPb:null,velo:null}; // screen copy of the one flow draft
+const D={callTxt:'',parsed:null,ip:false,foul:false,foulTime:null,wpPb:null,velo:null}; // screen extras; the pitch in progress lives only on D.draft
 let callOn=false,bpHand='N'; // bullpen default: no batter (in/away calls map as RHB)
 // every dialog/sheet: Cancel, Escape and a tap on the backdrop close it without saving (returnValue 'cancel')
 function openSheet(d){d.returnValue='';d.showModal();}
@@ -39,7 +39,7 @@ const oneHand=()=>S().oneHand!==false;
 function advance(step){if(!oneHand())return;if(document.body.classList.contains('entrymode')){if(scrollY)scrollTo(0,0);return;} // one-screen entry: everything is already in view
   const el=step==='loc'?$('zone'):step==='result'?$('resBtns'):($('wbCard')&&!$('wbCard').classList.contains('hide')?$('wbCard'):$('types'));if(el&&el.scrollIntoView)setTimeout(()=>el.scrollIntoView({behavior:'auto',block:step==='result'?'end':'start'}),30);}
 function pcCheck(pid,before,after){ensureSettings();const th=S().settings.alerts;const a=PC.alertLevel(before,th),b=PC.alertLevel(after,th);if(b.lvl>a.lvl){buzz([220,90,220]);toast(`⚠️ ${pName(pid)} has thrown ${after} pitches (alert at ${b.at})`);}}
-function resetDraft(){D.shook=null;D.cell=null;D.bb=null;D.sheet=false;D.aimEdit=false;D.spray=null;D.foul=false;D.foulTime=null;D.wpPb=null;D.velo=null;D.draft=blankDraft();mirrorDraft();Object.assign(D,{callTxt:'',parsed:null,ip:false});$('callTxt').value='';const vel=$('velo');if(vel)vel.value='';}
+function resetDraft(){D.cell=null;D.bb=null;D.sheet=false;D.spray=null;D.foul=false;D.foulTime=null;D.wpPb=null;D.velo=null;D.draft=blankDraft();Object.assign(D,{callTxt:'',parsed:null,ip:false});$('callTxt').value='';const vel=$('velo');if(vel)vel.value='';}
 // ---------- zone ----------
 const ZX0=20,ZY0=24,CW=20,CHh=24;
 const QUAD={11:'M0 0H40V24H20V48H0Z',12:'M60 0H100V48H80V24H60Z',13:'M0 72H20V96H40V120H0Z',14:'M100 72V120H60V96H80V72Z',15:'M40 0H60V24H40Z',16:'M0 48H20V72H0Z',17:'M80 48H100V72H80Z',18:'M40 96H60V120H40Z'};
@@ -86,7 +86,7 @@ $('zone').addEventListener('click',e=>{const svg=$('zone');const pt=svg.createSV
 $('wayBtns').addEventListener('click',e=>{const b=e.target.closest('[data-z]');if(b)tapLoc(+b.dataset.z);});
 $('actBtns').addEventListener('click',e=>{const b=e.target.closest('[data-z]');if(b)tapLoc(+b.dataset.z);});
 // ---------- call entry ----------
-function clearEntry(){D.draft=blankDraft();mirrorDraft();D.sheet=false;}
+function clearEntry(){D.draft=blankDraft();D.sheet=false;}
 function setCall(t){D.callTxt=t;$('callTxt').value=t;D.parsed=PC.parseCall(t,curHand(),throwsOf(),S().customTypes);if(D.parsed)placeCall(D.parsed.type,D.parsed.targets.slice());else clearEntry();render();}
 $('callTxt').addEventListener('input',e=>{D.callTxt=e.target.value;D.parsed=PC.parseCall(D.callTxt,curHand(),throwsOf(),S().customTypes);if(D.parsed)placeCall(D.parsed.type,D.parsed.targets.slice());else clearEntry();render(true);});
 $('callAlt').addEventListener('click',e=>{const z=e.target.dataset.alt;if(!z||!D.parsed)return;D.parsed.targets=[+z];placeCall(D.parsed.type,[+z]);render();});
@@ -135,25 +135,34 @@ $('types').addEventListener('click',e=>{const c=e.target.dataset.c;if(!c)return;
 $('batTog').onclick=()=>openSheet($('batDlg'));$('bpTest').onclick=()=>toggleTest();
 function setHand(h){if(tab==='game'&&game()){game().cur.hand=h;dirty('games',game().id);save();}else bpHand=h;if(D.callTxt)D.parsed=PC.parseCall(D.callTxt,h,throwsOf(),S().customTypes);render();}
 // ---------- record building ----------
-// the planned spot(s) for the pitch in progress: ✎ Aim / band-setup aim, else the call's own spot, else a tapped target
-// One flow draft. The screen reads it; it does not keep a second called/actual copy or a second validator.
+// One flow draft. Screen names (D.type, D.loc, D.shook) read and write that object. They are not a second copy.
 function blankDraft(){return{mode:tab==='bullpen'?'bullpen':'game',type:null,called:[],actual:null,result:null,ip:null,shook:null,velo:null,aimEdit:false};}
-function mirrorDraft(){const d=D.draft||blankDraft();D.draft=d;D.type=d.type;D.called=(d.called||[]).slice();D.loc=d.actual;D.aimEdit=!!d.aimEdit;const one=D.called.length===1?D.called[0]:null;D.aim=one;D.target=one;}
-// Screen fields write back into the one draft. They are not a second copy and not a second validator.
-function trackDraft(key,draftKey){let slot=D[key];Object.defineProperty(D,key,{configurable:true,enumerable:true,get(){return slot;},set(v){slot=(v==null||v==='')?null:v;if(D.draft)D.draft[draftKey]=slot;}});}
-trackDraft('type','type');trackDraft('loc','actual');trackDraft('aimEdit','aimEdit');
+function ensureDraft(){if(!D.draft)D.draft=blankDraft();return D.draft;}
+function oneAim(){const c=D.draft&&D.draft.called;return c&&c.length===1?c[0]:null;}
+function setOneAim(v){ensureDraft().called=v==null||v===''?[]:[v];}
+Object.defineProperty(D,'type',{configurable:true,enumerable:true,get(){return D.draft?D.draft.type:null;},set(v){ensureDraft().type=v||null;}});
+Object.defineProperty(D,'loc',{configurable:true,enumerable:true,get(){return D.draft?D.draft.actual:null;},set(v){ensureDraft().actual=v==null||v===''?null:v;}});
+Object.defineProperty(D,'aimEdit',{configurable:true,enumerable:true,get(){return !!(D.draft&&D.draft.aimEdit);},set(v){ensureDraft().aimEdit=!!v;}});
+Object.defineProperty(D,'called',{configurable:true,enumerable:true,get(){return (D.draft&&D.draft.called)||[];},set(v){ensureDraft().called=Array.isArray(v)?v.slice():[];}});
+Object.defineProperty(D,'aim',{configurable:true,enumerable:true,get:oneAim,set:setOneAim});
+Object.defineProperty(D,'target',{configurable:true,enumerable:true,get:oneAim,set:setOneAim});
+Object.defineProperty(D,'shook',{configurable:true,enumerable:true,get(){return D.draft?D.draft.shook:null;},set(v){const d=ensureDraft();if(!v){d.shook=null;return;}
+  const called=Array.isArray(v.called)?v.called.slice():(Array.isArray(v.targets)?v.targets.slice():[]);
+  d.shook={type:v.type||null,called,norm:v.norm||null,raw:v.raw||v.norm||null,prevType:v.prevType||v.type||null,prevCalled:Array.isArray(v.prevCalled)?v.prevCalled.slice():called.slice()};}});
 if(!D.draft)D.draft=blankDraft();
-function takeDraft(r){if(r&&r.draft){D.draft=r.draft;mirrorDraft();}return r;}
+function takeDraft(r){if(r&&r.draft)D.draft=r.draft;return r;}
 function aimSet(){return ((D.draft&&D.draft.called)||[]).slice();}
-function pushCalled(arr){const type=(D.draft&&D.draft.type)||D.type||null;takeDraft(PC.scoreApply({mode:tab==='bullpen'?'bullpen':'game',type,velo:D.velo==null?null:D.velo},{op:'call',type,called:arr||[]}));}
-function placeCall(type,boxes){const r=PC.scoreApply({mode:tab==='bullpen'?'bullpen':'game'},{op:'call',type:type||null,called:boxes||[]});if(!r.ok){D.draft=blankDraft();mirrorDraft();D.sheet=false;return r;}takeDraft(r);D.sheet=false;D.ip=false;return r;}
-function pullDraft(){if(!D.draft)D.draft=blankDraft();const d=D.draft;const shook=D.shook?{type:D.shook.type||null,called:(D.shook.targets||[]).slice(),norm:D.shook.norm||null,raw:D.shook.raw||D.shook.norm||null}:d.shook;
-  return{mode:tab==='bullpen'?'bullpen':'game',type:D.shook?(D.type||d.type||null):d.type,called:(d.called||[]).slice(),actual:d.actual==null?null:d.actual,result:d.result||null,ip:d.ip||null,velo:D.velo==null?null:D.velo,aimEdit:!!d.aimEdit,shook};}
-function calledLocNow(loc){const t=D.shook?(D.shook.targets||[]):aimSet();return PC.nearestTarget(t.length?t:(callOn&&D.parsed&&D.parsed.targets)||[],loc==null?null:loc);}
+function pushCalled(arr){const type=D.type||null;takeDraft(PC.scoreApply({mode:tab==='bullpen'?'bullpen':'game',type,velo:D.velo==null?null:D.velo},{op:'call',type,called:arr||[]}));}
+function placeCall(type,boxes){const r=PC.scoreApply({mode:tab==='bullpen'?'bullpen':'game'},{op:'call',type:type||null,called:boxes||[]});if(!r.ok){D.draft=blankDraft();D.sheet=false;return r;}takeDraft(r);D.sheet=false;D.ip=false;return r;}
+function pullDraft(){const d=ensureDraft();const sk=d.shook;
+  return{mode:tab==='bullpen'?'bullpen':'game',type:d.type||null,called:(d.called||[]).slice(),actual:d.actual==null?null:d.actual,result:d.result||null,ip:d.ip||null,velo:D.velo==null?null:D.velo,aimEdit:!!d.aimEdit,
+    shook:sk?{type:sk.type||null,called:(sk.called||[]).slice(),norm:sk.norm||null,raw:sk.raw||null,prevType:sk.prevType||null,prevCalled:(sk.prevCalled||[]).slice()}:null};}
 // A typed velocity outside 20–110 is dropped, and the coach hears about it once. Empty stays empty with no message.
 function noteVelo(raw){if(raw==null||String(raw).trim()==='')return null;const v=PC.cleanVelo(raw);if(v==null)toast('Velocity must be between 20 and 110. Not saved.',2200);return v;}
-function baseRec(){const loc=D.loc||null;return{id:PC.uuid(),ts:Date.now(),pitcherId:curPitcherId(),hand:curHand(),type:D.shook?D.type||null:D.type||(D.parsed&&D.parsed.type)||null,
-  call:D.shook?D.shook.norm:callOn&&D.parsed?D.parsed.norm:null,callRaw:D.shook?D.shook.raw:callOn&&D.callTxt?D.callTxt:null,targets:aimSet(),loc,calledLoc:calledLocNow(loc),actualLoc:loc,calledType:D.shook?(D.shook.type||null):((D.parsed&&D.parsed.type)||D.type||null),wpPb:PC.cleanFlag(D.wpPb),velo:noteVelo(D.velo),...(D.shook?{shook:true}:{})};}
+// Chart fields come only from scoreCommit. Identity (who, when, the wristband text) is attached here.
+function pitchFromCommit(draft){const chart=PC.scoreCommit(draft);if(!chart)return null;const sk=draft&&draft.shook;
+  return{id:PC.uuid(),ts:Date.now(),pitcherId:curPitcherId(),hand:curHand(),type:chart.type,targets:(chart.targets||[]).slice(),loc:chart.loc,actualLoc:chart.actualLoc,calledLoc:chart.calledLoc,result:chart.result,ip:chart.ip||null,
+    call:sk?(sk.norm||null):(callOn&&D.parsed?D.parsed.norm:null),callRaw:sk?(sk.raw||sk.norm||null):(callOn&&D.callTxt?D.callTxt:null),wpPb:PC.cleanFlag(D.wpPb),velo:noteVelo(chart.velo),...(chart.shook?{shook:true}:{})};}
 // ---------- test mode ----------
 function toggleTest(){if(store.isTest){if(!confirm('Exit test mode? Everything from this test is discarded.'))return;store.exitTest();resetDraft();if(typeof loadRedo==='function')loadRedo();toast('Test data cleared');}
   else{store.enterTest();resetDraft();redoStack=[];toast('TEST MODE – nothing is saved');}render();}
@@ -208,9 +217,8 @@ addEventListener('resize',()=>fitZone());
 // D.shook keeps the coach's call (type + aim); she then picks the type thrown, and the pitch is scored against
 // her own aim (unknown = no aim). Cancel restores the call; after recording, Undo removes the pitch as usual.
 function shakeOff(){if(scoreGuard())return;if(tab!=='game'||!game()||D.shook)return;if(!D.parsed)return toast('Tap the wristband call first');
-  const prev=aimSet();const prevType=D.type;const r=PC.scoreApply(pullDraft(),{op:'shake',norm:D.parsed.norm,raw:D.callTxt||D.parsed.norm});
-  D.shook={norm:D.parsed.norm,raw:D.callTxt||D.parsed.norm,type:D.parsed.type,targets:prev.slice(),prevType,prevCalled:prev.slice()};takeDraft(r);D.sheet=false;D.ip=false;buzz(15);if(typeof cMsg!=='undefined')cMsg=null;render();}
-function cancelShake(){if(!D.shook)return;const prev=D.shook;D.shook=null;takeDraft(PC.scoreApply({mode:'game'},{op:'call',type:prev.prevType,called:prev.prevCalled||[]}));render();toast('Shake-off canceled');}
+  takeDraft(PC.scoreApply(pullDraft(),{op:'shake',norm:D.parsed.norm,raw:D.callTxt||D.parsed.norm}));D.sheet=false;D.ip=false;buzz(15);if(typeof cMsg!=='undefined')cMsg=null;render();}
+function cancelShake(){if(!D.shook)return;const prev=D.shook;takeDraft(PC.scoreApply({mode:'game'},{op:'call',type:prev.prevType,called:prev.prevCalled||[]}));render();toast('Shake-off canceled');}
 function renderShake(){const g=tab==='game'&&!!game()&&role()==='coach'&&!viewOnly();
   // Always keep Shake-off in the stepline during a coach game (disabled until a call) so the zone never jumps
   $('shakeBtn').classList.toggle('hide',!g||!!D.shook);$('shakeBtn').disabled=!D.parsed||!!D.shook;

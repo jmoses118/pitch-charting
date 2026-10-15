@@ -16,7 +16,8 @@ function clone(d){d=d||{};
   return{mode:d.mode==='bullpen'?'bullpen':'game',type:d.type||null,called,
     actual:d.actual==null||!Number.isFinite(+d.actual)?null:+d.actual,
     result:d.result||null,ip:d.ip||null,
-    shook:d.shook?{type:d.shook.type||null,called:(d.shook.called||[]).map(z=>+z).filter(z=>Number.isFinite(z)),norm:d.shook.norm||null,raw:d.shook.raw||null}:null,
+    // prevType / prevCalled stay on the shake so Cancel can put the call back. They are not a second shake object.
+    shook:d.shook?{type:d.shook.type||null,called:(d.shook.called||d.shook.targets||[]).map(z=>+z).filter(z=>Number.isFinite(z)),norm:d.shook.norm||null,raw:d.shook.raw||null,prevType:d.shook.prevType||d.shook.type||null,prevCalled:(d.shook.prevCalled||d.shook.called||d.shook.targets||[]).map(z=>+z).filter(z=>Number.isFinite(z))}:null,
     velo:d.velo==null?null:d.velo,aimEdit:!!d.aimEdit};}
 function scoreStep(d){d=d||{};const steps=flowSteps(d.mode);
   if(!d.type)return 'type';
@@ -38,7 +39,7 @@ function scoreApply(draft,ev){const d=clone(draft);ev=ev||{};const op=ev.op;
     if(d.actual===z){d.actual=null;d.result=null;d.ip=null;}else d.actual=z;
     return{ok:true,op,draft:d,step:scoreStep(d),reason:null};}
   if(op==='result'){if(d.mode==='bullpen')return fail(op,d,'no_result');if(!d.type)return fail(op,d,'need_type');if(!d.called.length)return fail(op,d,'need_called');if(d.actual==null)return fail(op,d,'need_actual');if(GAME_RESULTS.indexOf(ev.result)<0)return fail(op,d,'bad_result');d.result=ev.result;d.ip=ev.result==='inplay'?(ev.ip||null):null;return{ok:true,op,draft:d,step:scoreStep(d),reason:null};}
-  if(op==='shake'){if(!d.type)return fail(op,d,'need_type');d.shook={type:d.type,called:d.called.slice(),norm:ev.norm||null,raw:ev.raw||null};d.type=null;d.called=[];d.actual=null;d.result=null;d.ip=null;d.aimEdit=false;return{ok:true,op,draft:d,step:scoreStep(d),reason:null};}
+  if(op==='shake'){if(!d.type)return fail(op,d,'need_type');d.shook={type:d.type,called:d.called.slice(),norm:ev.norm||null,raw:ev.raw||null,prevType:d.type,prevCalled:d.called.slice()};d.type=null;d.called=[];d.actual=null;d.result=null;d.ip=null;d.aimEdit=false;return{ok:true,op,draft:d,step:scoreStep(d),reason:null};}
   if(op==='velo'){d.velo=ev.velo==null?null:ev.velo;return{ok:true,op,draft:d,step:scoreStep(d),reason:null};}
   if(op==='ip'){if(d.result!=='inplay')return fail(op,d,'need_result');d.ip=ev.ip||null;return{ok:true,op,draft:d,step:scoreStep(d),reason:null};}
   return fail(op,d,'bad_op');}

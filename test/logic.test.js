@@ -528,7 +528,8 @@ test('scoring flow: game requires a result, bullpen saves on the actual spot',()
   assert.equal(PC.hitSpot(hit),true);assert.equal(PC.pitchMiss(hit).sev,0);
   const miss=PC.scoreCommit(PC.scoreTap(PC.scoreApply({mode:'bullpen'},{op:'call',type:'CH',called:[8]}).draft,31).draft);
   assert.equal(PC.hitSpot(miss),false);assert.equal(PC.pitchMiss(miss).sev,PC.MAX_MISS-1);
-  const sh=PC.scoreApply({mode:'game',type:'CH',called:[7]},{op:'shake',norm:'CH7',raw:'CH 7'});assert.equal(sh.step,'type');assert.deepEqual(sh.draft.shook.called,[7]);
+  const sh=PC.scoreApply({mode:'game',type:'CH',called:[7]},{op:'shake',norm:'CH7',raw:'CH 7'});assert.equal(sh.step,'type');assert.deepEqual(sh.draft.shook.called,[7]);assert.equal(sh.draft.shook.prevType,'CH');assert.deepEqual(sh.draft.shook.prevCalled,[7]);
+  const restored=PC.scoreApply({mode:'game'},{op:'call',type:sh.draft.shook.prevType,called:sh.draft.shook.prevCalled});assert.equal(restored.draft.type,'CH');assert.deepEqual(restored.draft.called,[7]);assert.equal(restored.draft.shook,null);
   const threw=PC.scoreApply(sh.draft,{op:'call',type:'FB',called:[]});assert.equal(threw.step,'called');
   const fin=PC.scoreCommit(PC.scoreApply(PC.scoreTap(PC.scoreTap(threw.draft,5).draft,6).draft,{op:'result',result:'foul'}).draft);
   assert.deepEqual(fin.targets,[5]);assert.equal(fin.loc,6);assert.equal(fin.calledLoc,7);assert.equal(fin.shook,true);assert.equal(fin.result,'foul');

@@ -61,7 +61,7 @@ A live game or bullpen session is scored from **one phone only** – the phone t
 - This replaces the v39-draft "phone that has seen more pitches wins" rule (`cur.pn` / `curNewer`), which is removed.
 
 ## Shake-off (v39)
-- Draft state `D.shook` = the coach's call (`norm`, `raw`, type, aim) captured by `shakeOff()` (shared.js); `cancelShake()` restores it; `resetDraft` clears it. `baseRec` then writes `shook:true`, `call`/`callRaw` = coach call, `type` = thrown, `targets` = her own aim only (`aimSet` ignores the call while shaking off). `recordGame` refuses a shake-off until a thrown type is picked. Undo removes it like any pitch.
+- The shake-off lives on the flow draft (`draft.shook`: `norm`, `raw`, the called type, `called`, plus `prevType` / `prevCalled` so Cancel can put the call back). `resetDraft` replaces the draft. `pitchFromCommit` writes `shook:true`, `call`/`callRaw` = coach call, `type` = thrown, `targets` = her own aim only. `recordGame` refuses a shake-off until a thrown type is picked. Undo removes it like any pitch.
 - UI: portrait `#shakeBtn` (pitch flow) + `#shakeBar` (call, Cancel); coach `[data-cx=shake]` next to Aim/Undo/Same, then a thrown-type picker (`[data-ty]`) with ✕ Cancel. Stats `#sShakeCard` and the bullpen report use `shakeHTML()` → `PC.shakeoffs`.
 - Sync: the flag travels as a `⤺ ` prefix on `pitches.call_raw` (`PC.SHOOK_TAG`). `shakeColumn:true` in `config.js` also writes `pitches.shook`. Apply `supabase/migrations/20261014140000_shake_off.sql` before merge.
 
@@ -87,4 +87,4 @@ One state machine in `js/core/flow.js`. Portrait Game, the landscape coach Game 
 - **Bullpen success** is hit-spot % (`PC.hitSpot`: the actual spot is one of the called spots, and a change-up up in the zone does not count). The live bullpen line, a bullpen Stats scope, and the session report lead with that. Game Stats keep strike %.
 - Landing on a called dirt or way-off spot is severity 0. The same landing aimed somewhere else stays `WAY_SEV`.
 - **Optional, and they do not reorder the required steps:** shake-off (the coach's call is stored, then the thrown pitch walks type → her own called spot → actual → game result), velocity, in-play contact and the play, and editing a past actual location (`PC.editActual`). Intentional walk stays outside the machine.
-- `PC.scoreCommit` is the one writer of `targets` (her called spots), `loc` / `actualLoc`, and `calledLoc` (on a shake-off, the coach's box nearest the landing). A future overlay should call the same four functions and not invent a third path.
+- `PC.scoreCommit` is the one writer of `targets` (her called spots), `loc` / `actualLoc`, and `calledLoc` (on a shake-off, the coach's box nearest the landing). `pitchFromCommit` copies that chart onto the saved pitch and does not compute a second aim or a second called type. A future overlay should call the same functions and not invent a third path.

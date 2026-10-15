@@ -1,5 +1,10 @@
 # Changelog
 
+## v58 – The saved pitch comes from the scoring draft
+### Changed
+- **FLOW-1.** A saved pitch's type, aim, landing, and called box are written only by `scoreCommit`. The shake-off lives on that same draft, so Cancel restores the call from it. The screen no longer keeps a second copy of the aim or the landing.
+- Cache: `te-pitch-v58`.
+
 ## v57 – One draft, one actual-location toggle
 ### Changed
 - **FLOW-1.** A second tap of the actual location clears it inside `scoreTap`. The coach screen no longer keeps its own toggle. The entry screen keeps one flow draft.
