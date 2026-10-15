@@ -17,7 +17,7 @@ Each module is an IIFE that reads dependencies from the shared `PC` namespace (`
 
 1. **grid.js** – single source of truth for the location grid: zone 1–9, ring 11–18, way-off 21–24, actual-only 31 (in dirt) and 32 (over catcher/backstop), `GRID_XY` lattice, `MAX_MISS`, `missDist`, `locInfo`, `pct`.
 2. **calls.js** – pitch types, call codes (Jim's wristband language), call-code parsing, wristband/call sheet defaults. `canAim` / `aimOpts` stay the zone-and-ring rule (change-ups only 4, 7, 8, 9, 13, 14, 18) for band setup and the wristband.
-3. **flow.js** – the one scoring state machine. `flowSteps('game')` is `type → called → actual → result`. `flowSteps('bullpen')` stops after `actual` and then saves. `scoreApply` / `scoreTap` / `scoreStep` / `scoreCommit` are the only step rules. Portrait, the landscape coach screen, bullpen, and a future overlay all call this module. They do not keep a second copy of the order.
+3. **flow.js** – the one scoring state machine. `flowSteps('game')` is `type → called → actual → result`. `flowSteps('bullpen')` stops after `actual` and then saves. `scoreApply` / `scoreTap` / `scoreStep` / `scoreCommit` are the only step rules. Portrait, the landscape coach screen, bullpen, and any later view all call this module. They do not keep a second copy of the order.
 4. **game.js** – count logic (GameChanger aligned), results, at-bat ends, batted-ball types. Pitch entry is only `flow.js`.
 5. **scoring.js** – all scoring rules: miss severity (`pitchMiss` is the only severity source), souvenir, CH-low, ring/way-off, competitive %, heat maps, reports, summaries, K credit, count stats, trends, alert levels. Report, heat map and stats all call these same functions.
 6. **csv.js** – CSV export/import.
@@ -75,7 +75,7 @@ A live game or bullpen session is scored from **one phone only** – the phone t
 - A bullpen pitch has no ball/strike result. `stripBullpenResults` deletes a saved `bpResult` and any stamped `result` on bullpen pitches (locally, and queued so the next sync clears them). `supabase/migrations/20261014230000_bullpen_no_result.sql` clears the same rows in Supabase. Do not apply that file to production until this build goes live. A new bullpen session has no batter. LHB/RHB show only when `settings.showBatterHand` is on.
 
 ## Scoring flow (v48)
-One state machine in `js/core/flow.js`. Portrait Game, the landscape coach Game screen, Bullpen, and a future overlay call `PC.scoreApply`, `PC.scoreTap`, `PC.scoreStep`, and `PC.scoreCommit`. There is no second screen and no second copy of the step order.
+One state machine in `js/core/flow.js`. Portrait Game, the landscape coach Game screen, Bullpen, and any later view call `PC.scoreApply`, `PC.scoreTap`, `PC.scoreStep`, and `PC.scoreCommit`. There is no second screen and no second copy of the step order.
 
 | Mode | Required steps | Save |
 |---|---|---|
