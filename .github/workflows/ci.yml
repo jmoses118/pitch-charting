@@ -66,4 +66,4 @@ jobs:
           PGHOST: localhost
           PGUSER: postgres
           PGDATABASE: pitch
-        run: bash test/flow6a.pg.sh
+        run: bash test/flow6a.pg.sh && bash test/badaim.pg.sh

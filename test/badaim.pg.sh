@@ -1,0 +1,58 @@
+#!/bin/bash
+# RULE-4a: the preview and the delete use the same called-aim predicate.
+# This database is created for the check. Do not point it at production.
+set -euo pipefail
+norm() {
+  awk '
+    $0 ~ /^where \(/ {p=1}
+    p {print}
+    p && ($0 == ")" || $0 == ");") {exit}
+  ' "$1" | sed 's/);$/)/'
+}
+diff -u <(norm supabase/preview_delete_bad_aim_pitches.sql) <(norm supabase/migrations/20261015130000_delete_bad_aim_pitches.sql)
+psql -v ON_ERROR_STOP=1 <<'SQL'
+drop table if exists public.pitches, public.pitchers, public.games, public.sessions cascade;
+create table public.pitchers (team_id text not null, id text not null, name text not null, primary key (team_id, id));
+create table public.games (team_id text not null, id text not null, date text, primary key (team_id, id));
+create table public.sessions (team_id text not null, id text not null, date text, primary key (team_id, id));
+create table public.pitches (
+  id uuid primary key,
+  team_id text not null,
+  mode text not null,
+  game_id text,
+  session_id text,
+  pitcher_id text,
+  type text,
+  targets int[],
+  loc int,
+  called_loc int,
+  actual_loc int,
+  result text
+);
+insert into public.pitchers (team_id, id, name) values ('t', 'p_woods', 'Avery Woods');
+insert into public.games (team_id, id, date) values ('t', 'g1', '2026-10-14');
+insert into public.sessions (team_id, id, date) values ('t', 's1', '2026-10-13');
+insert into public.pitches (id, team_id, mode, game_id, session_id, pitcher_id, type, targets, loc, called_loc, actual_loc, result) values
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1', 't', 'game', 'g1', null, 'p_woods', 'CH', '{2}', 5, 2, 5, 'ball'),
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2', 't', 'game', 'g1', null, 'p_woods', 'FB', '{2}', 2, 2, 2, 'called'),
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3', 't', 'bullpen', null, 's1', 'p_woods', 'CH', '{8}', 8, 8, 8, null),
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa4', 't', 'game', 'g1', null, 'p_woods', 'FB', '{12}', 12, 12, 12, 'ball'),
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa5', 't', 'game', 'g1', null, 'p_woods', 'FB', null, 5, null, 5, 'called'),
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa6', 't', 'game', 'g1', null, 'p_woods', 'FB', '{31}', 31, 31, 31, 'ball'),
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa7', 't', 'bullpen', null, 's1', 'p_woods', 'FB', '{21}', 21, null, 21, null),
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa8', 't', 'game', 'g1', null, 'p_woods', 'CH', '{4,2}', 8, null, 8, 'foul'),
+  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa9', 't', 'game', 'g1', null, 'p_woods', 'FB', '{5}', 31, 5, 31, 'ball');
+SQL
+q=$(sed -e '/^--/d' -e 's/order by p.id;//' supabase/preview_delete_bad_aim_pitches.sql)
+preview=$(psql -tA -v ON_ERROR_STOP=1 -c "select string_agg(id::text, ',' order by id) from ($q) q")
+sample=$(psql -tA -v ON_ERROR_STOP=1 -c "select pitcher || '|' || date || '|' || type || '|' || called_box || '|' || actual_box from ($q) q where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1'")
+test "$preview" = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1,aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa6,aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa7,aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa8"
+test "$sample" = "Avery|2026-10-14|CH|2|5"
+psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261015130000_delete_bad_aim_pitches.sql
+kept=$(psql -tA -c "select string_agg(id::text, ',' order by id) from public.pitches")
+result=$(psql -tA -c "select result from public.pitches where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2'")
+after=$(psql -tA -c "select count(*) from ($q) q")
+test "$kept" = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2,aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3,aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa4,aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa5,aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa9"
+test "$result" = "called"
+test "$after" = "0"
+echo "RULE-4a postgres: preview ids match the deleted rows; legal aims and the game result stay"

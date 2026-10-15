@@ -17,7 +17,7 @@ function ballSVG(x,y,no,mark,r){r=r||4.6;const k=r/4.6;
     `<text class="num" y=".3">${no}</text>`+
     (mark==='souvenir'?`<path class="souv" d="M4.6 -6.6l.9 1.9 2 .3-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.3z"/>`:'')+`</g>`;}
 // markers for numbered pitches [{p,no}] with deterministic spreading when several land in the same box
-function ballsSVG(items,throws){const seen={};return items.map(({p,no})=>{const xy=markPos(p.loc);if(!xy)return'';const k=seen[p.loc]=(seen[p.loc]||0)+1;const j=JITTER[(k-1)%JITTER.length];
+function ballsSVG(items,throws){const seen={};return items.map(({p,no})=>{const loc=PC.actualOf(p);const xy=markPos(loc);if(!xy)return'';const k=seen[loc]=(seen[loc]||0)+1;const j=JITTER[(k-1)%JITTER.length];
   return ballSVG(xy[0]+j[0],xy[1]+j[1],no,PC.pitchMark(p,throws));}).join('');}
 // home plate seen from the mound (flat front edge toward the pitcher, point toward the catcher), plus the one-box-off ring frame
 const PLATE_SVG=`<g class="orient" aria-hidden="true"><rect class="ringframe" x="0" y="0" width="100" height="120" rx="1.5"/>`+
@@ -38,7 +38,8 @@ function pitchLine(p,i,mode){const who=mode==='game'?H(String(pName(p.pitcherId)
   const aimRaw=PC.calledOf(p);const aimN=aimRaw==null?'':aimRaw;
   const act=landed!=null?locTxt(landed):'';
   const aimBit=mode==='stats'?`<span class="plist-aim">aim ${H(aimN===''?'–':aimN)} → ${H(act===''?'–':act)}</span>`:'';
-  return `<button type="button" class="plist" data-edit="${H(p.id)}" aria-label="Fix location for pitch ${i+1}${p.edited?', from video':''}"><span class="pedit" aria-hidden="true">✎</span><span class="n">${i+1}</span><span class="plist-main">${who}${p.call?'<b>['+H(p.call)+']</b> ':''}${H(p.type||'')}${p.loc?' <span class="tag">'+H(locTxt(p.loc))+'</span>':''}${p.targets&&p.targets.length&&p.loc?(PC.hitSpot(p)?' ✓':' ✗'):''} ${aimBit} ${editedMark(p)}</span><span class="plist-res">${H(res)}${p.end?' · <b>'+H(p.end)+'</b>':''}</span>${p.result!=null&&p.b!=null?`<span class="tag">${H(p.b)}-${H(p.s)}</span>`:''}</button>`;}
+  const spot=PC.actualOf(p);const aimed=PC.calledOf(p);
+  return `<button type="button" class="plist" data-edit="${H(p.id)}" aria-label="Fix location for pitch ${i+1}${p.edited?', from video':''}"><span class="pedit" aria-hidden="true">✎</span><span class="n">${i+1}</span><span class="plist-main">${who}${p.call?'<b>['+H(p.call)+']</b> ':''}${H(p.type||'')}${spot!=null?' <span class="tag">'+H(locTxt(spot))+'</span>':''}${aimed!=null&&spot!=null?(PC.hitSpot(p)?' ✓':' ✗'):''} ${aimBit} ${editedMark(p)}</span><span class="plist-res">${H(res)}${p.end?' · <b>'+H(p.end)+'</b>':''}</span>${p.result!=null&&p.b!=null?`<span class="tag">${H(p.b)}-${H(p.s)}</span>`:''}</button>`;}
 // current at-bat (or the last one, right after it ends) / current session, newest last
 function recentFor(){if(tab==='game'){const g=game();if(!g)return{items:[],title:''};const P=g.pitches.filter(p=>!p.noPitch);let ab=P.filter(p=>p.abn===g.cur.abn),title='This at-bat';
     if(!ab.length&&P.length){const last=P[P.length-1].abn;ab=P.filter(p=>p.abn===last);title='Last at-bat';}return{items:PC.recentPitches(ab),title};}

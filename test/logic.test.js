@@ -805,6 +805,13 @@ test('RULE-3d: a shake-off called location is the re-signaled box, or the origin
   assert.deepEqual(stood.targets,[7]);assert.equal(stood.calledLoc,7);
   assert.equal(PC.scoreStep({mode:'game',type:'FB',called:[],actual:6,shook:{type:'CH',called:[7]}}),'called');
   assert.equal(PC.scoreCommit({mode:'game',type:'FB',called:[],actual:6,shook:{type:'CH',called:[]}}),null);
+  const shook=PC.scoreApply({mode:'game',type:'FB',called:[2]},{op:'shake',norm:'FB2',raw:'FB 2'});
+  const kept=PC.scoreApply(shook.draft,{op:'call',type:'CH',called:shook.draft.shook.called,keepAim:true});
+  assert.equal(kept.step,'actual');assert.deepEqual(kept.draft.called,[2]);assert.equal(kept.draft.calledFlag,true);
+  const dirt=PC.scoreTap(kept.draft,31);assert.equal(dirt.op,'actual');assert.equal(dirt.draft.actual,31);assert.deepEqual(dirt.draft.called,[2]);
+  const saved=PC.scoreCommit(PC.scoreApply(dirt.draft,{op:'result',result:'ball'}).draft);
+  assert.deepEqual(saved.targets,[2]);assert.equal(saved.loc,31);assert.equal(saved.calledFlag,true);assert.equal(saved.type,'CH');
+  const re=PC.scoreTap(kept.draft,8);assert.equal(re.op,'called');assert.deepEqual(re.draft.called,[8]);assert.equal(re.draft.calledFlag,false);assert.equal(re.draft.actual,null);
 });
 test('RULE-3: penalty, bad aim, the low bonus and CSV share calledTypeOf',()=>{
   const shook={type:'FB',call:'CH8',calledType:'CH',shook:true,targets:[8],loc:2,hand:'R'};

@@ -127,7 +127,7 @@ $('limWk').onchange=e=>{ensureSettings().limits.weekend=PC.cleanLimit(e.target.v
 $('showRest').onchange=e=>{ensureSettings().showRest=e.target.checked;saveSettings();};
 $('callOn').onchange=e=>{callOn=e.target.checked;S().callOn=callOn;save();render();};
 $('types').addEventListener('click',e=>{const c=e.target.dataset.c;if(!c)return;
-  if(D.shook){takeDraft(PC.scoreApply(pullDraft(),{op:'call',type:c,called:[]}));D.sheet=false;D.ip=false;render();return;}
+  if(D.shook){const keep=(D.shook.called||[]).slice();const r=PC.scoreApply(pullDraft(),{op:'call',type:c,called:keep,keepAim:true});takeDraft(r);if(r.draft&&r.draft.calledFlag)toast('Aim '+(keep.join('/')||'?')+' is not a legal '+c+' target. Kept and flagged.',2200);D.sheet=false;D.ip=false;render();return;}
   if(!D.shook&&callOn&&D.parsed){const next=tab==='bullpen'||D.type!==c?c:null;if(!next){clearEntry();render();return;}placeCall(next,D.parsed.targets||[]);render();return;}
   if(tab!=='bullpen'&&D.type===c){clearEntry();render();return;}
   placeCall(c,[]);render();if(tab==='game'&&D.type)advance('loc');});
@@ -155,14 +155,15 @@ function aimSet(){return ((D.draft&&D.draft.called)||[]).slice();}
 function pushCalled(arr){const type=D.type||null;takeDraft(PC.scoreApply({mode:tab==='bullpen'?'bullpen':'game',type,velo:D.velo==null?null:D.velo},{op:'call',type,called:arr||[]}));}
 function placeCall(type,boxes){const r=PC.scoreApply({mode:tab==='bullpen'?'bullpen':'game'},{op:'call',type:type||null,called:boxes||[]});if(!r.ok){D.draft=blankDraft();D.sheet=false;return r;}takeDraft(r);D.sheet=false;D.ip=false;return r;}
 function pullDraft(){const d=ensureDraft();const sk=d.shook;
-  return{mode:tab==='bullpen'?'bullpen':'game',type:d.type||null,called:(d.called||[]).slice(),actual:d.actual==null?null:d.actual,result:d.result||null,ip:d.ip||null,velo:D.velo==null?null:D.velo,aimEdit:!!d.aimEdit,
+  // prefill and calledFlag have to travel with the draft. A tap reads this copy, and a missing prefill turns the first aim tap into the landing.
+  return{mode:tab==='bullpen'?'bullpen':'game',type:d.type||null,called:(d.called||[]).slice(),actual:d.actual==null?null:d.actual,result:d.result||null,ip:d.ip||null,velo:D.velo==null?null:D.velo,aimEdit:!!d.aimEdit,calledFlag:!!d.calledFlag,prefill:!!d.prefill,
     shook:sk?{type:sk.type||null,called:(sk.called||[]).slice(),norm:sk.norm||null,raw:sk.raw||null,prevType:sk.prevType||null,prevCalled:(sk.prevCalled||[]).slice()}:null};}
 // A typed velocity outside 20–110 is dropped, and the coach hears about it once. Empty stays empty with no message.
 function noteVelo(raw){if(raw==null||String(raw).trim()==='')return null;const v=PC.cleanVelo(raw);if(v==null)toast('Velocity must be between 20 and 110. Not saved.',2200);return v;}
 // Chart fields come only from scoreCommit. Identity (who, when, the wristband text) is attached here.
 function pitchFromCommit(draft){const chart=PC.scoreCommit(draft);if(!chart)return null;const sk=draft&&draft.shook;
   return{id:PC.uuid(),ts:Date.now(),pitcherId:curPitcherId(),hand:curHand(),type:chart.type,targets:(chart.targets||[]).slice(),loc:chart.loc,actualLoc:chart.actualLoc,calledLoc:chart.calledLoc,result:chart.result,ip:chart.ip||null,
-    call:sk?(sk.norm||null):(callOn&&D.parsed?D.parsed.norm:null),callRaw:sk?(sk.raw||sk.norm||null):(callOn&&D.callTxt?D.callTxt:null),wpPb:PC.cleanFlag(D.wpPb),velo:noteVelo(chart.velo),...(chart.shook?{shook:true}:{})};}
+    call:sk?(sk.norm||null):(callOn&&D.parsed?D.parsed.norm:null),callRaw:sk?(sk.raw||sk.norm||null):(callOn&&D.callTxt?D.callTxt:null),wpPb:PC.cleanFlag(D.wpPb),velo:noteVelo(chart.velo),...(chart.shook?{shook:true}:{}),...(chart.calledFlag?{calledFlag:true}:{})};}
 // ---------- test mode ----------
 function toggleTest(){if(store.isTest){if(!confirm('Exit test mode? Everything from this test is discarded.'))return;store.exitTest();resetDraft();if(typeof loadRedo==='function')loadRedo();toast('Test data cleared');}
   else{store.enterTest();resetDraft();redoStack=[];toast('TEST MODE – nothing is saved');}render();}
