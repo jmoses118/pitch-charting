@@ -1,5 +1,25 @@
 # Changelog
 
+## v60 – The game log asks scoring whether a pitch was a strike
+### Changed
+- **FLOW-6.** The pitch list uses `strikeOf` for a pitch that has no umpire result. A bullpen row stays blank. A game row is K or B from that helper.
+- Cache: `te-pitch-v60`.
+
+## v59 – Bullpen has no strike
+### Changed
+- **FLOW-6.** `strikeOf` is null for a bullpen pitch. The session report, the log, and the bullpen CSV leave the strike column blank. Game strikes still follow the umpire.
+- **FLOW-6a.** `stripBullpenResults` sets its own done flag, so a second pass does not queue the same pitch again. A sync read drops a bullpen result. CI runs `20261014230000_bullpen_no_result.sql` on Postgres.
+- **FLOW-8.** `blankSession` is the new-session shape: pitches start empty and there is no batter.
+- Cache: `te-pitch-v59`.
+
+## v58 – Bullpen has no result
+### Changed
+- **FLOW-6.** A bullpen pitch is type, called location, actual location, then save. There is no ball/strike result and no default stamp.
+- **FLOW-6a.** Opening the app deletes a saved `bpResult` and any result stored on a bullpen pitch, and queues those pitches. `supabase/migrations/20261014230000_bullpen_no_result.sql` clears the same rows in Supabase. That file is not applied to production from here.
+- **FLOW-7.** A bullpen pitch is a success when it hits its spot, including a bottom-row aim that lands in that box. Stats stay on hit-spot %. A change, drop, or drop curve that lands in 13, 14, or 18 is still a good pitch.
+- **FLOW-8.** A new bullpen session has no batter. LHB and RHB show only when “Show LHB / RHB” is on.
+- Cache: `te-pitch-v58`.
+
 ## v58 – The saved pitch comes from the scoring draft
 ### Changed
 - **FLOW-1.** A saved pitch's type, aim, landing, and called box are written only by `scoreCommit`. The shake-off lives on that same draft, so Cancel restores the call from it. The screen no longer keeps a second copy of the aim or the landing.

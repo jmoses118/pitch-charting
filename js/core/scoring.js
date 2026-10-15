@@ -55,9 +55,8 @@ function heatColor(n,max){if(!n||!max)return null;const t=Math.min(1,n/max);cons
 function kCredit(all){const m=new Map();(all||[]).forEach((p,i)=>{if(!p||(p.end!=='K'&&p.end!=='K-D3'))return;let by=p.pitcherId;
   if(p.abn!=null&&p.s===2){let s=p.s;for(let j=i-1;j>=0;j--){const q=all[j];if(!q||q.abn!==p.abn||q.inning!==p.inning||q.slot!==p.slot||q.s>s||q.end)break;s=q.s;if(q.s<2&&!q.noPitch){by=q.pitcherId;break;}}}
   m.set(p,by);});return m;}
-// strike = the umpire's result when there is one (game); a bullpen pitch has no result, so it's a strike when it lands in the zone.
-// Single source for Game count stats, Stats and the per-pitch report so they always agree.
-const strikeOf=p=>p.result?isStrike(p.result):isZone(p.loc);
+// Game strike = the umpire's result when there is one, otherwise the zone. A bullpen pitch has no strike.
+const strikeOf=p=>isBullpenPitch(p)?null:(p.result?isStrike(p.result):isZone(p.loc));
 function summarize(pitches,opt){const P=pitches.filter(countsAsPitch);
   const fp=P.filter(p=>p.firstPitch!==undefined?p.firstPitch:(p.b===0&&p.s===0));
   const called=P.filter(p=>p.targets&&p.targets.length&&p.loc!=null);

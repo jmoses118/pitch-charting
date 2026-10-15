@@ -29,6 +29,7 @@ function render(skipCallInput){const s=S();applyViewOnly(viewOnly());if(typeof r
   $('schedList').innerHTML=sch.map(x=>`<div class="prow"><button data-sg="${H(x.id)}" class="primary startg"><b>Start</b> ${H((x.date||'').slice(5))} ${H(x.time||'')} ${vsAt(x)} ${H(x.opponent)}<br><small>${[x.gameNo,x.field,x.location].filter(Boolean).map(H).join(' · ')}</small></button>${x.link&&/^https:\/\//.test(x.link)?`<a href="${H(x.link)}" target="_blank" rel="noopener" class="gclink">GC</a>`:''}</div>`).join('');
   if(tab==='game'&&!g){renderLineupForm();if(!$('gDate').value)$('gDate').value=today();}
   const hand=curHand();$('batTog').textContent=(hand==='N'?'Batter: none':hand==='L'?'Batter: LHB':'Batter: RHB')+' ▾';$('batTog').setAttribute('aria-label','Batter: '+(hand==='N'?'none':hand==='L'?'left-handed':'right-handed')+' – change');$('hL').classList.toggle('sel',hand==='L');$('hR').classList.toggle('sel',hand==='R');$('hN').classList.toggle('sel',hand==='N');$('hN').classList.toggle('hide',tab==='game');
+  const showHands=tab!=='bullpen'||!!(S().settings&&S().settings.showBatterHand);$('hL').classList.toggle('hide',!showHands);$('hR').classList.toggle('hide',!showHands);if($('bpHands'))$('bpHands').checked=!!(S().settings&&S().settings.showBatterHand);
   $('bpTest').textContent=store.isTest?'🧪 Test mode ON – tap to exit (discard)':'🧪 Start test mode (not saved)';$('bpTest').style.background=store.isTest?'var(--red)':'';$('bpTest').setAttribute('aria-pressed',String(store.isTest));
   if(g){const c=g.cur;$('inn').textContent=c.inning;$('cnt').textContent=c.b+'-'+c.s;$('outs').innerHTML=[0,1,2].map(i=>`<span class="${i<c.outs?'on':''}"></span>`).join('');
     $('pc').textContent=PC.pitchCount(g.pitches,cp);
@@ -55,7 +56,6 @@ function render(skipCallInput){const s=S();applyViewOnly(viewOnly());if(typeof r
   if(typeof placeScoreDock==='function')placeScoreDock();
   document.querySelectorAll('#pitchExtra [data-flag]').forEach(b=>b.classList.toggle('sel',b.dataset.flag===D.wpPb));
   if(document.activeElement!==$('velo'))$('velo').value=D.velo==null?'':D.velo;
-  document.querySelectorAll('#bpRes [data-bpr]').forEach(b=>b.classList.toggle('sel',b.dataset.bpr===(S().bpResult||'')));
   const wbOn=!$('wbCard').classList.contains('hide');$('wbTog').classList.toggle('hide',!wbOn);if(!wbOn)$('wbDet').open=false;
   renderModes(lk,showEntry);drawZone();fitZone();if(typeof paintFoulChips==='function')paintFoulChips();
   // log

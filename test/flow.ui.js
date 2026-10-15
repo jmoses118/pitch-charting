@@ -84,5 +84,11 @@ const spot=async p=>p.evaluate(()=>({called:(D.called||[]).slice(),actual:D.loc,
   const pen=await p3.evaluate(()=>{const x=(__app.store.state.sessions.at(-1)||{pitches:[]}).pitches.at(-1);return x&&{called:x.targets,actual:x.loc,result:x.result};});
   ok(pen&&pen.called[0]===8&&pen.actual===14&&pen.result==null,'FLOW-1 bullpen saved the same called box and actual spot '+JSON.stringify(pen));
   ok(pen.called[0]===portrait.called[0]&&pen.actual===portrait.actual,'FLOW-1 bullpen matches portrait and landscape');
+  await p3.click('#batTog');await p3.waitForTimeout(200);
+  const hidden=await p3.evaluate(()=>{const on=id=>{const e=document.getElementById(id);return e.offsetParent!==null;};return{n:on('hN'),l:on('hL'),r:on('hR')};});
+  ok(hidden.n&&!hidden.l&&!hidden.r,'FLOW-8 LHB/RHB hidden until the setting is on '+JSON.stringify(hidden));
+  await p3.click('#batDlg button[value=cancel]');await p3.click('#bpHands');await p3.waitForTimeout(150);await p3.click('#batTog');await p3.waitForTimeout(200);
+  const shown=await p3.evaluate(()=>{const on=id=>{const e=document.getElementById(id);return e.offsetParent!==null;};return{n:on('hN'),l:on('hL'),r:on('hR')};});
+  ok(shown.n&&shown.l&&shown.r,'FLOW-8 LHB/RHB shown with the setting on '+JSON.stringify(shown));
   ok(!errs3.length,'FLOW-1 bullpen: no page errors');await c3.close();}
 await b.close();console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);})().catch(e=>{console.error(e);process.exit(1);});

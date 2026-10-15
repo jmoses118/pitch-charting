@@ -48,9 +48,7 @@
   <div class="row" style="margin-top:8px"><button id="lkPauseG" class="primary" style="flex:1">Pause game</button><button id="lkEndG" class="danger" style="flex:1">End game</button></div>
   <button id="lkGoG" class="ghost" style="width:100%;margin-top:8px">Back to the game</button></div>
  <div class="card" id="bpCard"><div class="titleblock"><div id="bpTitle" class="title">Bullpen</div><div class="mut" id="bpSum"></div></div>
-  <div class="lbl" style="margin-top:8px">Default result</div>
-  <div class="seg" id="bpRes" role="group" aria-label="Bullpen result default"><button type="button" data-bpr="" class="sel">Off</button><button type="button" data-bpr="ball">Ball</button><button type="button" data-bpr="called">Strike</button></div>
-  <div class="mut">Optional. New bullpen pitches use Ball or Strike until you change it. Batter side stays off until you open Batter.</div>
+  <label class="check" style="margin-top:8px"><input type="checkbox" id="bpHands"> Show LHB / RHB <span class="mut">off by default — a new session has no batter</span></label>
   <div class="row stack"><button id="bpEnd" class="success" style="flex:2">End session</button><button id="bpPause" class="ghost" style="flex:1">Pause</button><button id="bpNew" class="ghost" style="flex:1">New</button></div>
   <button id="bpResume" class="hide" style="width:100%;margin-top:8px"></button>
   <button id="bpTest" class="link" style="width:100%;margin-top:4px" aria-pressed="false"></button></div>
