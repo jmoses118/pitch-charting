@@ -18,7 +18,7 @@ Open `AGENTS.md`, then the spec IDs the task touches. Current rules are `docs/SP
 
 Each `js/core` file owns the rule IDs on its line. UI files render and forward events. They do not own a rule.
 
-New IDs in `docs/SPEC.md`: FLOW-1a, FLOW-13a, RULE-4b, RULE-5a, RULE-6a, RULE-7a, RULE-8a, SCORE-1 through SCORE-4, SYNC-1 through SYNC-3. `docs/SCORING.md` uses the same SCORE numbers.
+IDs live in `docs/SPEC.md`: FLOW-1a, FLOW-13a, RULE-4b, RULE-5a, RULE-6a, RULE-7a, RULE-8a, SCORE-1 through SCORE-4, SYNC-1 through SYNC-3, VIEW-3. SCORE-1 through SCORE-4 are worded in `docs/SCORING.md`.
 
 - `js/core/config.js` — INFRA-3. `pcPickConfig` is the one database target.
 - `js/core/grid.js` — the location lattice (`GRID_XY`, zone, ring, way off, dirt, backstop) that SCORE-2 and SCORE-3 use.
@@ -30,7 +30,7 @@ New IDs in `docs/SPEC.md`: FLOW-1a, FLOW-13a, RULE-4b, RULE-5a, RULE-6a, RULE-7a
 - `js/core/csv.js` — RULE-9 and RULE-10. `csvRow` is the one CSV row builder. `calledTypeOf` lives here.
 - `js/core/workload.js` — today's pitch count, the Fri–Sun weekend count, and the soft day and weekend alerts.
 - `js/core/sync.js` — SYNC-1, SYNC-2, SYNC-3, and RULE-4a. `scorerOfRow` is the lock's row reader (RULE-5a).
-- `js/core/modes.js` — FLOW-13, FLOW-13a, FLOW-14, FLOW-15, RULE-5, and RULE-5a. `createGame`, `endGame`, `discardGame`, `pauseGame`, and the scoring lock.
+- `js/core/modes.js` — FLOW-13, FLOW-13a, FLOW-14, FLOW-15, VIEW-3, RULE-5, and RULE-5a. `createGame`, `endGame`, `discardGame`, `pauseGame`, `todaysScheduled`, and the scoring lock.
 - `js/core/store.js` — RULE-10, RULE-11, and RULE-11a. Roster, `jerseyError`, and the local save.
 
 - `js/ui/shared.js` — DOM helpers, the store, roles, the zone, banners, and sync. `tapLoc` is one `aimRejectMsg` call.
@@ -63,23 +63,13 @@ These files are IIFEs, not ES modules, so an import linter cannot see a cross-fi
 
 ## Where the rules live
 
-`docs/SPEC.md` holds the FLOW, RULE, VIEW, INFRA, SCORE, and SYNC IDs. `docs/SCORING.md` is the other current rule doc: SCORE-1 hit spot, SCORE-2 miss severity, SCORE-3 competitive %, SCORE-4 strike %, and the grid, change-up aim, and shake-off notes. `docs/DESIGN.md` is the current visual system. `docs/TESTING.md` is how to run the checks.
+`docs/SPEC.md` holds the FLOW, RULE, VIEW, INFRA, SCORE, and SYNC IDs. `docs/SCORING.md` holds the SCORE-1 through SCORE-4 wording, plus the grid, change-up aim, and shake-off notes. `LESSONS.md` is the live regression log. `docs/DESIGN.md` is the current visual system. `docs/TESTING.md` is how to run the checks.
 
 Nothing else is normative. CHANGELOG.md is history for the gate, not a builder reading. Do not read it unless asked. BRIEF-7 still needs a new plain-English line on every pull request.
 
-- FLOW-1a — `scoreCommit` is the only writer of the called and actual spots.
-- FLOW-13a — the paused card is gone; the picker is the list.
-- RULE-4b — the edit sheet follows `actualOf`.
-- RULE-5a — one scoring phone, `box.scorer`, take over through `claimScoring`.
-- RULE-6a — redo stays on this phone, capped at 10.
-- RULE-7a — Escape and a backdrop tap cancel.
-- RULE-8a — coach cells are 48px, or about 40px on the SE landscape screen.
-- SCORE-1 hit spot, SCORE-2 miss severity, SCORE-3 competitive %, SCORE-4 strike %.
-- SYNC-1 refused rows retry one by one. SYNC-2 pull is incremental. SYNC-3 team settings are coach-only.
-
 ## Standard builder brief
 
-- **BRIEF-1.** Read AGENTS.md, then the spec IDs you touch.
+- **BRIEF-1.** Read AGENTS.md and `LESSONS.md`, then the spec IDs you touch. Every bug that reaches Jim gets a lesson entry plus a regression test.
 - **BRIEF-2.** Post a short plan (files, shared modules, tests) before coding.
 - **BRIEF-3.** Write tests first and cite rule IDs.
 - **BRIEF-4.** One small task.

@@ -31,7 +31,7 @@ Coaches create codes in Setup → Access codes (`coach_create_code` RPC). Codes 
 
 ## Development
 - Unit tests: `node --test test/logic.test.js` (runs in CI on every PR). See [docs/TESTING.md](docs/TESTING.md).
-- Rules: [AGENTS.md](AGENTS.md), [docs/SPEC.md](docs/SPEC.md), and [docs/SCORING.md](docs/SCORING.md). History in [docs/archive/](docs/archive/) and [CHANGELOG.md](CHANGELOG.md) is not a builder reading.
+- Rules: [AGENTS.md](AGENTS.md), [docs/SPEC.md](docs/SPEC.md), [docs/SCORING.md](docs/SCORING.md), and [LESSONS.md](LESSONS.md). History in [docs/archive/](docs/archive/) and [CHANGELOG.md](CHANGELOG.md) is not a builder reading.
 
 ## Process and deploy
 - All changes go through a feature branch + pull request; no direct pushes to `main`.

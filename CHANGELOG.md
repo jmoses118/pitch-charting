@@ -1,5 +1,9 @@
 # Changelog
 
+## v73 – Lessons stay next to the builder notes
+### Changed
+- The chart works the same. The lesson log stays at the root, and a bug that reaches Jim gets a lesson entry plus a regression test. The architecture notes moved word for word. The Game tab lists only today's scheduled games.
+
 ## v72 – Builder docs point at the current rules
 ### Changed
 - The chart works the same. Agent notes now name each module and the rule it owns. The product spec and the scoring notes are the current rules, including hit spot, miss severity, competitive %, and strike %. Older architecture, lesson, design, and testing write-ups sit in docs/archive. Builders should not read this changelog unless asked.

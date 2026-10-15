@@ -1,6 +1,6 @@
 # Scoring rules
 
-All rules live in `js/core/grid.js` and `js/core/scoring.js`; report, heat map and stats share them. SCORE-1 through SCORE-4 are also stated in `docs/SPEC.md`. The rest of this file is current too.
+All rules live in `js/core/grid.js` and `js/core/scoring.js`; report, heat map and stats share them. SPEC.md lists SCORE-1 through SCORE-4. The wording of those four rules is in this file. The rest of this file is current too.
 
 ## Grid (pitcher's view)
 - **Zone** 1–9 (3×3), **5** = middle-middle.

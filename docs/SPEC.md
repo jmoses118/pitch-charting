@@ -4,7 +4,7 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
 
 ## FLOW: one state machine
 - **FLOW-1** Every scoring screen uses one shared pitch-entry state machine: portrait Game, landscape coach Game, Bullpen, and any later view. No screen has its own step logic. This replaces both `bullpenStep`/`bullpenTap` in `js/core/game.js` and the game steps in the UI scripts. A `js/core/flow.js` may already exist on the `fix/redesign-bugs` branch; build on it.
-- **FLOW-1a** `scoreCommit` alone writes `targets`, `loc`, `actualLoc`, and `calledLoc`. Intentional walk stays outside that machine.
+- **FLOW-1a** `scoreCommit` is the only writer of `loc` / `actualLoc` while charting; `editActual` (`js/core/game.js:44`) is the only edit path; sync and CSV import also write them.
 - **FLOW-2 (Game order)** A game pitch goes through these steps in order: 1) call the pitch type; 2) called location; 3) actual location (zone, off-grid ring, dirt, or backstop); 4) result (ball, strike, foul, in play, and so on).
 - **FLOW-3** The called location is placed automatically from the wristband aim. The user can override it by hand.
 - **FLOW-4** The result menu opens only after the actual-location tap. It never covers the zone before that tap.
@@ -41,7 +41,7 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
 - **RULE-7** Every popup has a working Cancel that leaves the data unchanged.
 - **RULE-7a** Escape and a backdrop tap cancel the same way. Save runs only when the dialog returns ok.
 - **RULE-8** The scoring screen fits on one iPhone screen without scrolling at widths of 375, 390 and 430 px. It uses compact pitch buttons, slim pitcher and count bars, and a large zone. Portrait wristband height stays 48. At <=390px wide, cells may be 42–44px wide so all 8 columns, plus the row and column headers, fit with no sideways scroll. On the SE coach screen (667×375) the strike box may be 34px; that is the SE exception.
-- **RULE-8a** On the landscape coach screen, band and zone cells are 48px at 844×390 and about 40px at 667×375.
+- **RULE-8a** On the landscape coach screen, 844×390 keeps band, zone, and results at least 48px. At 667×375 the minima are band 44, zone 34, and results 46 (`test/coach.ui.js`).
 - **RULE-9** CSV export is per pitcher per date. One shared CSV row builder produces every row.
 - **RULE-10** Players are shown by first name and jersey number (`pitcherLabel`), and CSV file names use the same. No surnames.
 - **RULE-11** Jim can edit a pitcher's jersey number. Cancel leaves it unchanged.
@@ -49,15 +49,12 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
 - **RULE-12** The current branding stays.
 
 ## SCORING
-`docs/SCORING.md` states these same rules and stays current. Code: `js/core/scoring.js` and `js/core/grid.js`.
-- **SCORE-1 (Hit spot)** `PC.hitSpot` is `pitchMiss(p).d === 0` and not a change-up up. Stats, the report, and Game marks share it. A shake-off with no aim is left out.
-- **SCORE-2 (Miss severity)** `pitchMiss` is the only severity: squares to the nearest called target. Box 5 when 5 was not called is `MAX_MISS` (4). A change-up up is at least 2. An uncalled way-off, dirt, or backstop is `WAY_SEV` (3). Good is 0 or 1. RULE-3c and FLOW-7a adjust the low change-up.
-- **SCORE-3 (Competitive %)** Zone (1–9) or ring (11–18) landings, divided by all pitches. Way off, dirt, and backstop are not competitive.
-- **SCORE-4 (Strike %)** Game strike % follows the umpire result. Location does not change it. Bullpen has no strike result (FLOW-6) and leads with hit-spot % (FLOW-7).
+SCORE-1, SCORE-2, SCORE-3, and SCORE-4 are in `docs/SCORING.md`.
 
 ## VIEW
 - **VIEW-1** The zone is shown Gameday-style, from the catcher's eye. Each pitch is a small numbered softball colored by its result. The pitch list sits under the zone.
 - **VIEW-2** As in GameChanger, a scheduled game starts with one tap, and the result buttons are big.
+- **VIEW-3** The Game tab lists only today's scheduled games. Jim's ruling, 2026-10-15. `todaysScheduled` keeps scheduled rows whose date is that day.
 
 ## LATER (out of scope for v1: do not build)
 - The overlay view: a big zone with floating count, pitcher and pitch widgets, the batter's last-at-bat widget, and a lineup edit menu.
@@ -103,6 +100,7 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | RULE-11, RULE-12 | UI: edit jersey number saves, and Cancel leaves it unchanged; smoke: branding unchanged |
 | RULE-11a | unit: `0` and `00` are allowed, empty is allowed, and a duplicate active number errors |
 | VIEW-1, VIEW-2 | `zonegfx.ui.js`: numbered, colored markers and list; one-tap scheduled start |
+| VIEW-3 | unit: “VIEW-2 todaysScheduled returns only that day's scheduled games” |
 | FLOW-13 | unit: `createGame` returns null until the opponent and pitcher are set; a scheduled id starts that row; the toast leaves the game list unchanged |
 | FLOW-14 | unit: pause keeps the row; `endGame` waits for confirmation |
 | FLOW-15 | unit: discard pushes `deleted` and a pull does not bring the game back; the stats scope omits the draft. The picker check is `modes.ui.js` "picker shows N Resume rows and one Start" |
@@ -114,7 +112,7 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | RULE-5a | unit: “scoring lock: only the starting phone scores” |
 | RULE-6a | unit: “redo list persists on this phone, stays capped at 10, and is not synced” |
 | RULE-7a | `test/sheets.ui.js`: Cancel, Escape, and backdrop leave data unchanged |
-| RULE-8a | `test/coach.ui.js` at 844×390 and 667×375 |
+| RULE-8a | `test/coach.ui.js` line 9: 844×390 is 48; 667×375 is band ≥44, zone ≥34, results ≥46 |
 | SCORE-1 | unit: “hitSpot uses pitchMiss” |
 | SCORE-2 | unit: “ring is competitive, way off is a miss” |
 | SCORE-3 | unit: that ring test; `test/wayoff.ui.js` competitive 67% |
