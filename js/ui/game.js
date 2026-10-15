@@ -136,10 +136,10 @@ function paintEdit(){const hit=findPitch(editId);if(!hit)return;const p=hit.p,th
   document.querySelectorAll('#editWay [data-z],#editAct [data-z]').forEach(b=>b.classList.toggle('sel',+b.dataset.z===editLoc));
   $('editPick').textContent=editLoc!=null?'Actual location: '+locTxt(editLoc):'Tap where it actually went';}
 function openEdit(id){const hit=findPitch(id);if(!hit)return;if(!editAllowed(hit))return toast('Only the scoring phone can change a pitch.');
-  editId=id;editLoc=hit.p.loc!=null?hit.p.loc:(hit.p.actualLoc!=null?hit.p.actualLoc:null);
+  editId=id;editLoc=PC.actualOf(hit.p);
   $('editSub').textContent='Aim and result stay the same.';
   paintEdit();openSheet($('editDlg'));}
-function pickEdit(z){z=+z;if(!PC.GRID_XY[z])return;editLoc=z;paintEdit();}
+function pickEdit(z){z=+z;if(!PC.validActual(z))return;editLoc=z;paintEdit();}
 function onPitchTap(e){const b=e.target.closest('[data-edit]');if(b)openEdit(b.dataset.edit);}
 $('log').addEventListener('click',onPitchTap);$('recent').addEventListener('click',onPitchTap);$('pitchList').addEventListener('click',onPitchTap);
 $('editZone').addEventListener('click',e=>{const svg=$('editZone');const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const m=svg.getScreenCTM();if(!m)return;const p=pt.matrixTransform(m.inverse());const z=zoneAt(p.x,p.y);if(z)pickEdit(z);});

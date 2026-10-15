@@ -15,21 +15,26 @@ function parseCSV(txt){const rows=[];let row=[],f='',q=false;for(let i=0;i<txt.l
   else if(ch==='"')q=true;else if(ch===','){row.push(f);f='';}else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&txt[i+1]==='\n')i++;row.push(f);rows.push(row);row=[];f='';}else f+=ch;}
   if(f!==''||row.length){row.push(f);rows.push(row);}
   const h=rows.shift()||[];return rows.filter(r=>r.length>1).map(r=>Object.fromEntries(h.map((k,i)=>[k,r[i]])));}
-// RULE-3: after a shake-off the called type is the pitch she threw. The abandoned call and a stored calledType are ignored.
-function calledTypeOf(p){if(!p)return '';if(p.shook)return String(p.type||'');if(p.calledType)return String(p.calledType);
+// RULE-3: after a shake-off the called type is the pitch she threw. A called_type column counts when she did not shake it off.
+function shookPitch(p){if(!p||p.shook==null||p.shook==='')return false;if(p.shook===true||p.shook===1)return true;return /^(1|true|yes)$/i.test(String(p.shook).trim());}
+function calledTypeOf(p){if(!p)return '';if(shookPitch(p))return String(p.type||'');
+  const named=p.calledType!=null&&String(p.calledType).trim()!==''?String(p.calledType).trim():(p.called_type!=null&&String(p.called_type).trim()!==''?String(p.called_type).trim():'');
+  if(named)return named;
   if(p.call&&typeof PC.parseCall==='function'){const parsed=PC.parseCall(p.call,p.hand||'R','R',[]);if(parsed&&parsed.type)return parsed.type;}
   if(p.type)return String(p.type);return '';}
 function csvRow(p,box){p=p||{};box=box||{};const pm=box.pitcher||{};const game=box.mode==='game';
-  const desc=p.loc!=null&&typeof PC.locInfo==='function'?PC.locInfo(p.loc,p.hand,pm.throws).label:'';
-  const hit=p.targets&&p.targets.length&&p.loc!=null?(PC.hitSpot(p)?1:0):'';
-  const chart={called_location:p.calledLoc!=null?p.calledLoc:'',actual_location:p.actualLoc!=null?p.actualLoc:(p.loc!=null?p.loc:''),foul_time:p.foulTime||'',wp_pb:p.wpPb||'',velocity:p.velo!=null&&p.velo!==''?p.velo:'',called_type:calledTypeOf(p),shook:p.shook?1:'',from_video:p.edited?1:''};
-  if(!game)return Object.assign({mode:'bullpen',session:box.session||'',date:box.date||'',pitcher:pm.name||'',pitcher_num:pm.num!=null?pm.num:'',throws:pm.throws||'',bats:p.hand||'',pitch_no:box.pitch_no!=null?box.pitch_no:'',call:p.call||'',call_target:(p.targets||[]).join('/'),type:p.type||'',location:p.loc!=null?p.loc:'',location_desc:desc,result:'',strike:'',hit_spot:hit,ts:p.ts?new Date(p.ts).toISOString():''},chart);
-  return Object.assign({mode:'game',game_id:box.game_id||'',date:box.date||'',opponent:box.opponent||'',event:box.event||'',home_away:box.home_away||'',session:'',pitcher:pm.name||'',pitcher_num:pm.num!=null?pm.num:'',throws:pm.throws||'',inning:p.inning!=null?p.inning:'',outs_before:p.outsBefore!=null?p.outsBefore:'',lineup_slot:p.slot!=null?p.slot+1:'',batter:p.batter||'',batter_num:p.batterNum!=null?p.batterNum:'',bats:p.hand||'',balls_before:p.b!=null?p.b:'',strikes_before:p.s!=null?p.s:'',pitch_no:box.pitch_no!=null?box.pitch_no:'',pitcher_pitch_no:box.pitcher_pitch_no!=null?box.pitcher_pitch_no:'',call:p.call||'',call_target:(p.targets||[]).join('/'),type:p.type||'',location:p.loc!=null?p.loc:'',location_desc:desc,result:p.noPitch?'ibb':(p.result||''),in_play:p.ip||'',strike:p.noPitch?'':(typeof PC.isStrike==='function'&&PC.isStrike(p.result)?1:0),hit_spot:hit,ab_end:p.end||'',ts:p.ts?new Date(p.ts).toISOString():''},chart);}
+  const called=PC.calledOf(p),actual=PC.actualOf(p);
+  const desc=actual!=null&&typeof PC.locInfo==='function'?PC.locInfo(actual,p.hand,pm.throws).label:'';
+  const hit=PC.calledBoxes(p).length&&actual!=null?(PC.hitSpot(p)?1:0):'';
+  const chart={called_location:called==null?'':called,actual_location:actual==null?'':actual,foul_time:p.foulTime||'',wp_pb:p.wpPb||'',velocity:p.velo!=null&&p.velo!==''?p.velo:'',called_type:calledTypeOf(p),shook:p.shook?1:'',from_video:p.edited?1:''};
+  if(!game)return Object.assign({mode:'bullpen',session:box.session||'',date:box.date||'',pitcher:pm.name||'',pitcher_num:pm.num!=null?pm.num:'',throws:pm.throws||'',bats:p.hand||'',pitch_no:box.pitch_no!=null?box.pitch_no:'',call:p.call||'',call_target:(p.targets||[]).join('/'),type:p.type||'',location:actual==null?'':actual,location_desc:desc,result:'',strike:'',hit_spot:hit,ts:p.ts?new Date(p.ts).toISOString():''},chart);
+  return Object.assign({mode:'game',game_id:box.game_id||'',date:box.date||'',opponent:box.opponent||'',event:box.event||'',home_away:box.home_away||'',session:'',pitcher:pm.name||'',pitcher_num:pm.num!=null?pm.num:'',throws:pm.throws||'',inning:p.inning!=null?p.inning:'',outs_before:p.outsBefore!=null?p.outsBefore:'',lineup_slot:p.slot!=null?p.slot+1:'',batter:p.batter||'',batter_num:p.batterNum!=null?p.batterNum:'',bats:p.hand||'',balls_before:p.b!=null?p.b:'',strikes_before:p.s!=null?p.s:'',pitch_no:box.pitch_no!=null?box.pitch_no:'',pitcher_pitch_no:box.pitcher_pitch_no!=null?box.pitcher_pitch_no:'',call:p.call||'',call_target:(p.targets||[]).join('/'),type:p.type||'',location:actual==null?'':actual,location_desc:desc,result:p.noPitch?'ibb':(p.result||''),in_play:p.ip||'',strike:p.noPitch?'':(typeof PC.isStrike==='function'&&PC.isStrike(p.result)?1:0),hit_spot:hit,ab_end:p.end||'',ts:p.ts?new Date(p.ts).toISOString():''},chart);}
 function csvChart(p){const r=csvRow(p,{mode:'game'});return{called_location:r.called_location,actual_location:r.actual_location,foul_time:r.foul_time,wp_pb:r.wp_pb,velocity:r.velocity,called_type:r.called_type,shook:r.shook,from_video:r.from_video};}
 // Import and sync keep a grid aim that fails validCalled and flag the row. Non-grid junk is dropped. Scoring writes still reject it.
-function importSpots(r){r=r||{};const type=r.type||'';const keep=z=>Number.isInteger(z)&&typeof PC.validActual==='function'&&PC.validActual(z);
-  const targets=String(r.call_target||'').split(/[^\d]+/).map(z=>+z).filter(keep);let calledFlag=targets.some(z=>!PC.validCalled(type,z));
-  let calledLoc=null;if(r.called_location!=null&&String(r.called_location).trim()!==''){const z=+r.called_location;if(keep(z)){calledLoc=z;if(!PC.validCalled(type,z))calledFlag=true;}}
+function importSpots(r){r=r||{};const type=PC.calledTypeOf(r);const keep=z=>Number.isInteger(z)&&typeof PC.validActual==='function'&&PC.validActual(z);
+  const targets=String(r.call_target||'').split(/[^\d]+/).map(z=>+z).filter(keep);
+  let calledLoc=null;if(r.called_location!=null&&String(r.called_location).trim()!==''){const z=+r.called_location;if(keep(z))calledLoc=z;}
+  const calledFlag=PC.aimFlag(type,calledLoc!=null?targets.concat(calledLoc):targets);
   let loc=null;if(r.location!=null&&String(r.location).trim()!==''){const z=+r.location;if(keep(z))loc=z;}
   let actualLoc=null;if(r.actual_location!=null&&String(r.actual_location).trim()!==''){const z=+r.actual_location;if(keep(z))actualLoc=z;}else if(loc!=null)actualLoc=loc;
   return{targets,calledLoc,loc,actualLoc,calledFlag};}

@@ -17,7 +17,7 @@ function clone(d){d=d||{};
     actual:d.actual==null||!Number.isFinite(+d.actual)?null:+d.actual,
     result:d.result||null,ip:d.ip||null,
     shook:d.shook?{type:d.shook.type||null,called:(d.shook.called||[]).map(z=>+z).filter(z=>Number.isFinite(z)),norm:d.shook.norm||null,raw:d.shook.raw||null}:null,
-    velo:d.velo==null?null:d.velo,aimEdit:!!d.aimEdit};}
+    velo:d.velo==null?null:d.velo,aimEdit:!!d.aimEdit,...(d.calledFlag?{calledFlag:true}:{})};}
 function scoreStep(d){d=d||{};const steps=flowSteps(d.mode);
   if(!d.type)return 'type';
   if(!(d.called&&d.called.length))return 'called';
@@ -27,11 +27,18 @@ function scoreStep(d){d=d||{};const steps=flowSteps(d.mode);
 // RULE-3a: dirt, way off and the backstop are actual locations only. RULE-1: a change-up aim is 4, 7, 8, 9, 13, 14, 18.
 function validCalled(type,z){z=+z;if(!PC.GRID_XY[z])return false;if(PC.isWay(z)||PC.isActualOnly(z))return false;if(!(PC.isZone(z)||PC.isOut(z)))return false;if(type==='CH'&&!(PC.CH_TARGETS||[]).includes(z))return false;return true;}
 function validActual(z){return !!PC.GRID_XY[+z];}
+// One bad-aim check for commit, CSV import, and sync. True when any box fails validCalled.
+function aimFlag(type,boxes){return (boxes||[]).some(z=>!validCalled(type,z));}
 function fail(op,d,reason){return{ok:false,op,draft:d,step:scoreStep(d),reason};}
 function scoreApply(draft,ev){const d=clone(draft);ev=ev||{};const op=ev.op;
-  if(op==='call'){d.type=ev.type||null;const raw=Array.isArray(ev.called)?ev.called:[];d.called=raw.map(z=>+z).filter(z=>validCalled(d.type,z));d.actual=null;d.result=null;d.ip=null;d.aimEdit=false;
+  if(op==='call'){d.type=ev.type||null;const raw=Array.isArray(ev.called)?ev.called:[];const nums=raw.map(z=>+z).filter(z=>Number.isFinite(z));
+    // RULE-3d: no new aim after a shake-off keeps the original box, even when the new type cannot be called there.
+    if(d.shook&&!nums.length&&d.type)d.called=(d.shook.called||[]).map(z=>+z).filter(z=>Number.isFinite(z));
+    else d.called=nums.filter(z=>validCalled(d.type,z));
+    if(aimFlag(d.type,d.called))d.calledFlag=true;else delete d.calledFlag;
+    d.actual=null;d.result=null;d.ip=null;d.aimEdit=false;
     return{ok:!!d.type,op,draft:d,step:scoreStep(d),reason:d.type?null:'need_type'};}
-  if(op==='called'){if(!d.type)return fail(op,d,'need_type');const z=+ev.z;if(!validCalled(d.type,z))return fail(op,d,'bad_target');d.called=[z];d.aimEdit=false;return{ok:true,op,draft:d,step:scoreStep(d),reason:null};}
+  if(op==='called'){if(!d.type)return fail(op,d,'need_type');const z=+ev.z;if(!validCalled(d.type,z))return fail(op,d,'bad_target');d.called=[z];d.aimEdit=false;if(aimFlag(d.type,d.called))d.calledFlag=true;else delete d.calledFlag;return{ok:true,op,draft:d,step:scoreStep(d),reason:null};}
   if(op==='actual'){if(!d.type)return fail(op,d,'need_type');if(!d.called.length)return fail(op,d,'need_called');const z=+ev.z;if(!validActual(z))return fail(op,d,'bad_actual');
     // FLOW-1: one toggle. A second tap of the same actual location clears it. A different cell replaces it.
     if(d.actual===z){d.actual=null;d.result=null;d.ip=null;}else d.actual=z;
@@ -45,13 +52,13 @@ function scoreTap(draft,z){const d=clone(draft);if(d.aimEdit)return scoreApply(d
   if(step==='type')return{ok:false,reason:'need_type',step,draft:d,op:null};
   if(step==='called')return scoreApply(d,{op:'called',z});
   return scoreApply(d,{op:'actual',z});}
-// RULE-3d: after a shake-off the called location is the box re-signaled with the final pitch.
-// When she did not re-signal, the original box stands. The screen still requires the aim tap.
-function scoreCommit(d){d=clone(d);const her=d.called.slice();const original=d.shook&&d.shook.called?d.shook.called.slice():[];const boxes=her.length?her:(d.shook?original:[]);
+// The call step already copied a shake-off's original box onto called. Commit does not read shook.called.
+function scoreCommit(d){d=clone(d);const boxes=d.called.slice();
   if(!boxes.length||!d.type||d.actual==null)return null;
   if(flowSteps(d.mode).indexOf('result')>=0&&!d.result)return null;
-  if(!d.shook&&scoreStep(d)!=='done')return null;
-  if(d.shook&&her.length&&scoreStep(d)!=='done')return null;
-  return{type:d.type,targets:boxes,loc:d.actual,actualLoc:d.actual,calledLoc:PC.nearestTarget(boxes,d.actual),result:d.mode==='bullpen'?null:d.result,ip:d.ip||null,shook:!!d.shook,velo:d.velo};}
-Object.assign(PC,{FLOW,GAME_RESULTS,flowSteps,flowLabel,scoreStep,scoreApply,scoreTap,scoreCommit,validCalled,validActual});
+  if(scoreStep(d)!=='done')return null;
+  const row={type:d.type,targets:boxes,loc:d.actual,actualLoc:d.actual,calledLoc:PC.nearestTarget(boxes,d.actual),result:d.mode==='bullpen'?null:d.result,ip:d.ip||null,shook:!!d.shook,velo:d.velo};
+  if(aimFlag(d.type,boxes))row.calledFlag=true;
+  return row;}
+Object.assign(PC,{FLOW,GAME_RESULTS,flowSteps,flowLabel,scoreStep,scoreApply,scoreTap,scoreCommit,validCalled,validActual,aimFlag});
 })(typeof window!=='undefined'?window:globalThis);

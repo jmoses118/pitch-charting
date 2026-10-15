@@ -1,5 +1,11 @@
 # Changelog
 
+## v64 – Shake-off keeps the aim
+### Changed
+- **RULE-3d.** After a shake-off, the original aim stays filled in. If that box is not legal for the pitch she threw, it stays and the screen says so. She can still tap a new aim.
+- **RULE-4.** The chart, the edit sheet, the CSV, and sync all read the same called box and the same landing box.
+- Cache: `te-pitch-v64`.
+
 ## v63 – Short game screen keeps the zone on screen
 ### Changed
 - **RULE-8.** On a short screen the inning bar takes less height, so the zone stays above the tab bar at 375px. The shake-off button stays 48px. The fit check also covers 430px.

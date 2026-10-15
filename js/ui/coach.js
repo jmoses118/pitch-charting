@@ -28,7 +28,7 @@ function hintText(){const cmp=$('coach').classList.contains('compact');if(sideCa
   const step=PC.scoreStep(pullDraft());
   if(step==='type')return['1',cmp?'Tap a cell':'Tap a wristband cell'];
   if(step==='called')return['2',cmp?'Aim?':'Tap the aim'];if(step==='actual')return['2',cmp?'Where?':'Tap where it went'];return['3',cmp?'Result?':'Tap the result'];}
-function renderHint(){const e=$('cxHint');if(!e)return;if(cMsg&&(!D.aimEdit||cMsg.kind==='warn')){e.className='cs-hint msg '+cMsg.kind;e.textContent=cMsg.t;return;}const h=hintText();e.className='cs-hint';e.innerHTML=h?`<span class="cs-n">${H(h[0])}</span>${H(h[1])}`:'';}
+function renderHint(){const e=$('cxHint');if(!e)return;if(D.draft&&D.draft.calledFlag&&D.called&&D.called.length){e.className='cs-hint msg warn';e.textContent=PC.aimRejectMsg(D.type,D.called[0]);return;}if(cMsg&&(!D.aimEdit||cMsg.kind==='warn')){e.className='cs-hint msg '+cMsg.kind;e.textContent=cMsg.t;return;}const h=hintText();e.className='cs-hint';e.innerHTML=h?`<span class="cs-n">${H(h[0])}</span>${H(h[1])}`:'';}
 function sizeCoach(){const sh=curSheet(),cols=sh?Math.max(...sh.rows.map(r=>r.length),1):8,rows=sh?sh.rows.length:7;const el=$('coach'),cs=getComputedStyle(el);
   const padX=parseFloat(cs.paddingLeft)+parseFloat(cs.paddingRight),padY=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom);
   const W=el.clientWidth-padX,Hh=el.clientHeight-padY,compact=W+padX<700,GAP=7,HDR=24,LN=1.5,RH=compact?20:28,RES=compact?98:106,KMAX=compact?44:48;
