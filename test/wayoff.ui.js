@@ -5,7 +5,7 @@ await c.route(/supabase\.co/,r=>r.abort());await c.addInitScript(()=>localStorag
 const tap=async s=>{await p.$eval(s,e=>e.scrollIntoView({block:'center'}));await p.click(s,{force:true});await p.waitForTimeout(80);};
 await p.goto(BASE);await p.click('nav [data-t="bullpen"]');await p.click('#bpTest');ok(await p.isVisible('#testbar'),'test mode');
 const pen=async(t,aim,land)=>{await tap(`#types [data-c="${t}"]`);await tap(`#zone [data-z="${aim}"]`);await tap(land>20?`#wayBtns [data-z="${land}"]`:`#zone [data-z="${land}"]`);};
-await tap('#types [data-c="FB"]');await tap('#wayBtns [data-z="21"]');const t0=await p.evaluate(()=>(__app.store.state.sessions.at(-1)?.pitches||[]).length);ok(t0===0,'a called way-off spot waits for the actual location');await tap('#undo');await tap('#zone [data-z="3"]');await tap('#zone [data-z="3"]');
+await tap('#types [data-c="FB"]');await tap('#wayBtns [data-z="21"]');const t0=await p.evaluate(()=>({n:(__app.store.state.sessions.at(-1)?.pitches||[]).length,called:(D.called||[]).slice()}));ok(t0.n===0&&!t0.called.length,'way off is not a called target and does not save');await tap('#zone [data-z="3"]');await tap('#zone [data-z="3"]');
 await pen('FB',3,12);await pen('FB',3,21);await pen('CH',8,18);await pen('FB',9,22);await pen('FB',16,16);
 const P=await p.evaluate(()=>__app.store.state.sessions.at(-1).pitches.map(x=>x.loc));ok(JSON.stringify(P)==='[3,12,21,18,22,16]','logged locs '+JSON.stringify(P));
 const log=await p.textContent('#log');ok(/way high/.test(log)&&/way low/.test(log),'log shows way high / way low');

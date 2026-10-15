@@ -37,6 +37,8 @@ jobs:
         run: node test/flow.ui.js http://localhost:8766/
       - name: Sheets, recent list, and fit
         run: node test/sheets.ui.js http://localhost:8766/ && node test/zonegfx.ui.js http://localhost:8766/ && node test/fit.ui.js http://localhost:8766/
+      - name: Way-off and actual-only locations
+        run: node test/wayoff.ui.js http://localhost:8766/
   flow6a:
     name: FLOW-6a Postgres
     runs-on: ubuntu-latest
@@ -64,4 +66,4 @@ jobs:
           PGHOST: localhost
           PGUSER: postgres
           PGDATABASE: pitch
-        run: bash test/flow6a.pg.sh
+        run: bash test/flow6a.pg.sh && bash test/badaim.pg.sh

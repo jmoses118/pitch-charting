@@ -46,7 +46,8 @@ function render(skipCallInput){const s=S();applyViewOnly(viewOnly());if(typeof r
   $('callDesc').textContent=D.callTxt?(D.parsed?`${D.parsed.norm} = ${types.find(t=>t.code===D.parsed.type)?.name||D.parsed.type}${D.parsed.targets.length?' → zone '+D.parsed.targets.join('/'):' → tap target on grid'}${D.target?' '+D.target:''} · ${D.parsed.desc}`:'Unrecognized code'):'Type a code or tap buttons. Digits = zone (pitcher\'s view).';
   renderSteps();
   const step=PC.scoreStep(pullDraft()),aims=aimSet();
-  $('phase').innerHTML=tab==='bullpen'?bpPhase():step==='type'?'Pick the pitch type':step==='called'?'Tap the <b>called target</b> on the grid':step==='actual'?'Tap where it went':`Tap the result${aims.length?` · ${aims.join('/')} → ${locTxt(D.loc)}`:''}`;
+  const flagged=D.draft&&D.draft.calledFlag&&aims.length?`Aim ${aims.join('/')} kept · not a legal ${H(D.type||'')} target. `:'';
+  $('phase').innerHTML=tab==='bullpen'?bpPhase():step==='type'?'Pick the pitch type':step==='called'?'Tap the <b>called target</b> on the grid':step==='actual'?flagged+'Tap where it went':`Tap the result${aims.length?` · ${aims.join('/')} → ${locTxt(D.loc)}`:''}`;
   $('resBtns').classList.toggle('hide',!!D.ip);$('ipBtns').classList.toggle('hide',!D.ip);
   $('undo').textContent=D.loc?'Undo location':(editUndo?'Undo edit':tab==='bullpen'&&(D.type||D.target||D.callTxt)?'Undo step':'Undo');
   $('redo').disabled=!redoStack.length;$('pRedo').disabled=!redoStack.length;

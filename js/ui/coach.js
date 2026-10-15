@@ -27,7 +27,7 @@ function hintText(){const cmp=$('coach').classList.contains('compact');if(sideCa
   if(!curSheet())return['1',cmp?'No sheet':'Add a call sheet'];
   const step=PC.scoreStep(pullDraft());
   if(step==='type')return['1',cmp?'Tap a cell':'Tap a wristband cell'];
-  if(step==='called')return['2',cmp?'Aim?':'Tap the aim'];if(step==='actual')return['2',cmp?'Where?':'Tap where it went'];return['3',cmp?'Result?':'Tap the result'];}
+  if(step==='called'||(D.draft&&D.draft.prefill&&D.loc==null))return['2',cmp?'Aim?':'Tap the aim'];if(step==='actual')return['2',cmp?'Where?':'Tap where it went'];return['3',cmp?'Result?':'Tap the result'];}
 function renderHint(){const e=$('cxHint');if(!e)return;if(cMsg&&(!D.aimEdit||cMsg.kind==='warn')){e.className='cs-hint msg '+cMsg.kind;e.textContent=cMsg.t;return;}const h=hintText();e.className='cs-hint';e.innerHTML=h?`<span class="cs-n">${H(h[0])}</span>${H(h[1])}`:'';}
 function sizeCoach(){const sh=curSheet(),cols=sh?Math.max(...sh.rows.map(r=>r.length),1):8,rows=sh?sh.rows.length:7;const el=$('coach'),cs=getComputedStyle(el);
   const padX=parseFloat(cs.paddingLeft)+parseFloat(cs.paddingRight),padY=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom);
@@ -62,7 +62,7 @@ function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,h
   document.querySelectorAll('#cContact [data-bb]').forEach(b=>b.classList.toggle('on',b.dataset.bb===D.bb));
   // zone
   const am=new Set(aims);$('cZone').innerHTML=Z5.map(row=>row.map(z=>{const isA=am.has(z),isL=D.loc===z;
-    return `<button type="button" data-z="${z}" class="${z<10?'zi':'zr'}${isA?' aim':''}${isA&&D.aimEdit?' editing':''}${D.aimEdit&&!PC.targetOk(D.type,z)?' noaim':''}${isL?' act':''}" aria-label="Zone ${z}${isA?', aim':''}${isL?', landed':''}"><span>${z}</span>${isA?'<small>AIM</small>':''}</button>`;}).join('')).join('');
+    return `<button type="button" data-z="${z}" class="${z<10?'zi':'zr'}${isA?' aim':''}${isA&&D.aimEdit?' editing':''}${D.aimEdit&&!PC.validCalled(D.type,z)?' noaim':''}${isL?' act':''}" aria-label="Zone ${z}${isA?', aim':''}${isL?', landed':''}"><span>${z}</span>${isA?'<small>AIM</small>':''}</button>`;}).join('')).join('');
   $('cZone').classList.toggle('editing',!!D.aimEdit);
   // results (or in-play outcomes)
   const two=c.s===2;const ur=`<button data-cx="undo" aria-label="Undo last pitch">↶<small>Undo</small></button><button data-cx="redo" aria-label="Redo" ${redoStack.length?'':'disabled'}>↷<small>Redo</small></button>`;
@@ -82,10 +82,10 @@ function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,h
 $('cBand').addEventListener('click',e=>{if(viewOnly()){toast(PC.SCORING_ELSEWHERE);return;}const b=e.target.closest('button[data-r]');if(b&&!b.disabled){sideCard=null;cMsg=null;callCell(+b.dataset.r,+b.dataset.c);}});
 let lpT=null,lpDone=false; // long-press (≥400 ms) on a zone cell sets the aim directly
 const zoneBtn=e=>e.target.closest('#cZone button[data-z]');
-$('cZone').addEventListener('pointerdown',e=>{if(viewOnly())return;const b=zoneBtn(e);if(!b)return;lpDone=false;clearTimeout(lpT);lpT=setTimeout(()=>{if(!pullDraft().type)return;lpDone=true;const r=PC.scoreApply(pullDraft(),{op:'called',z:+b.dataset.z});if(!r.ok){coachMsg($('coach').classList.contains('compact')?PC.CH_AIM_TINY:PC.CH_AIM_SHORT,'warn');return;}takeDraft(r);buzz(15);render();coachMsg('✎ Aim → '+b.dataset.z);},400);});
+$('cZone').addEventListener('pointerdown',e=>{if(viewOnly())return;const b=zoneBtn(e);if(!b)return;lpDone=false;clearTimeout(lpT);lpT=setTimeout(()=>{if(!pullDraft().type)return;lpDone=true;const r=PC.scoreApply(pullDraft(),{op:'called',z:+b.dataset.z});if(!r.ok){coachMsg(PC.aimRejectMsg(pullDraft().type,+b.dataset.z,$('coach').classList.contains('compact')?'tiny':'short'),'warn');return;}takeDraft(r);buzz(15);render();coachMsg('✎ Aim → '+b.dataset.z);},400);});
 ['pointerup','pointerleave','pointercancel'].forEach(t=>$('cZone').addEventListener(t,()=>clearTimeout(lpT)));
 function coachZoneAct(z,aimEdit){const cmp=$('coach').classList.contains('compact');const draft=pullDraft();draft.aimEdit=!!aimEdit;const r=PC.scoreTap(draft,z);
-  if(!r.ok){if(r.reason==='bad_target')coachMsg(cmp?PC.CH_AIM_TINY:PC.CH_AIM_SHORT,'warn');else if(r.reason==='need_type')coachMsg(cmp?'Threw?':'Pick the pitch first','warn');else if(r.reason==='need_called')coachMsg(cmp?'Aim?':'Tap the aim first','warn');return;}
+  if(!r.ok){if(r.reason==='bad_target')coachMsg(PC.aimRejectMsg(draft.type,z,cmp?'tiny':'short'),'warn');else if(r.reason==='need_type')coachMsg(cmp?'Threw?':'Pick the pitch first','warn');else if(r.reason==='need_called')coachMsg(cmp?'Aim?':'Tap the aim first','warn');return;}
   takeDraft(r);
   if(r.op==='called'){render();coachMsg('✎ Aim → '+z);return;}
   if(typeof clearFoulChips==='function')clearFoulChips();if(r.draft.actual==null)D.sheet=false;render();}
@@ -93,7 +93,7 @@ $('cZone').addEventListener('click',e=>{if(viewOnly()){toast(PC.SCORING_ELSEWHER
 $('cRes').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;sideCard=null;
   if(b.dataset.r){if(PC.scoreStep(pullDraft())!=='result'){coachMsg($('coach').classList.contains('compact')?'Where?':'Tap where it went first','warn');return;}if(b.dataset.r==='inplay'){D.ip=true;render();return;}recordGame(b.dataset.r);return;}
   if(b.dataset.ip){recordGame('inplay',b.dataset.ip);return;}
-  if(b.dataset.ty){takeDraft(PC.scoreApply(pullDraft(),{op:'call',type:b.dataset.ty,called:[]}));D.sheet=false;render();return;}
+  if(b.dataset.ty){const keep=D.shook?(D.shook.called||[]).slice():[];const r=PC.scoreApply(pullDraft(),{op:'call',type:b.dataset.ty,called:keep,keepAim:!!D.shook});takeDraft(r);if(r.draft&&r.draft.calledFlag)coachMsg('Aim '+(keep.join('/')||'?')+' kept · not a legal '+b.dataset.ty+' target','warn');D.sheet=false;render();return;}
   const x=b.dataset.cx;if(x==='shake')return shakeOff();if(x==='unshake')return cancelShake();if(x==='take')return openTakeover();if(x==='back'){D.ip=false;D.spray=null;render();}else if(x==='aim'){D.aimEdit=!D.aimEdit;render();}else if(x==='undo')undoLast();else if(x==='redo')redoLast();else if(x==='same'&&lastCell)callCell(lastCell.r,lastCell.c);});
 $('cAct').addEventListener('click',e=>{if(viewOnly()){toast(PC.SCORING_ELSEWHERE);return;}const b=e.target.closest('[data-z]');if(!b)return;sideCard=null;coachZoneAct(+b.dataset.z,false);});
 $('cContact').addEventListener('click',e=>{const b=e.target.closest('[data-bb]');if(!b)return;D.bb=D.bb===b.dataset.bb?null:b.dataset.bb;render();});
@@ -118,7 +118,7 @@ let bandSheetId=null;
 function openBandSetup(id){const sh=id?sheets().find(x=>x.id===id):curSheet();bandSheetId=sh&&sh.id;if(!sh)return toast('Add a call sheet first');const u=PC.unmappedCells(sh,S().customTypes);const total=sh.rows.reduce((n,r)=>n+r.filter(t=>String(t||'').trim()).length,0);
   $('bandT').textContent='Band setup · '+sh.name;$('bandSub').textContent=u.length?`${total-u.reduce((n,x)=>n+x.cells.length,0)} of ${total} cells already map from the call text. These have a pitch type but no spot – pick an aim once (same text shares one choice). Saved on this phone.`:'Every cell already maps to a spot.';
   // a saved aim this pitch type can't use (e.g. an old high change-up aim) is flagged on its row, never dropped silently
-  const was=x=>{const v=sh.aims&&x.norm in sh.aims?+sh.aims[x.norm]:null;return v>0&&!PC.targetOk(x.type,v)?v:null;};const nBad=u.filter(was).length;
+  const was=x=>{const v=sh.aims&&x.norm in sh.aims?+sh.aims[x.norm]:null;return v>0&&!PC.validCalled(x.type,v)?v:null;};const nBad=u.filter(was).length;
   if(nBad)$('bandSub').textContent+=` ${nBad} change-up aim${nBad===1?' needs':'s need'} a new low box.`;
   $('bandList').innerHTML=u.map(x=>{const old=was(x);const v=sh.aims&&x.norm in sh.aims&&!old?+sh.aims[x.norm]:'';return `<div class="bandrow${old?' bandbad':''}"><div class="bandcells"><b>${x.cells.map(H).join(', ')}</b> <span class="tag">${H(x.text)}</span>${x.type==='CH'?`<div class="mut bandnote">${H(PC.CH_BAND_NOTE)}</div>`:''}${old?`<div class="bandwas">Was zone ${old} – change-ups can't aim high. Pick a low box.</div>`:''}</div>
     <label class="bandsel">Aim <select data-norm="${H(x.norm)}" aria-label="Aim for ${H(x.text)}"><option value="" ${v===''?'selected':''}>Pick…</option><option value="0" ${v===0?'selected':''}>No spot</option>${PC.aimOpts(x.type).map(z=>`<option value="${z}" ${v===z?'selected':''}>Zone ${z}</option>`).join('')}</select></label></div>`;}).join('');

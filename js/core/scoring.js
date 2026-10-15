@@ -23,20 +23,28 @@ const CH_MIN_SEV=2;
 // "Good" / on target = severity 0 or 1 (hit the spot or 1 box off). Single source for report, heat map, drill-down.
 const GOOD_MAX_SEV=1;const isGoodSev=sev=>sev!=null&&sev<=GOOD_MAX_SEV;
 // "Waste pitch" = every intended spot is in the ring (11-18); reported separately ("off-plate spots on target").
-const wasteAim=p=>!!(p&&p.targets&&p.targets.length&&p.targets.every(z=>isOut(z)));
+const aims=p=>typeof PC.aimsOf==='function'?PC.aimsOf(p):[];
+const land=p=>typeof PC.landOf==='function'?PC.landOf(p):(p&&p.loc!=null?p.loc:null);
+const wasteAim=p=>!!(aims(p).length&&aims(p).every(z=>isOut(z)));
 const isBullpenPitch=p=>p&&p.abn==null&&p.inning==null;
 // Jim's ring rules (Oct 2026): ring 11-18 is competitive and scored by normal distance (within 1 box = on target).
 // Way off (21-24) is always a miss at WAY_SEV (not a souvenir), whatever the target.
 // CH / drop / drop curve landing in the bottom ring (13, 18, 14) is a good pitch (bullpen). CH-up rule still applies.
-const WAY_SEV=MAX_MISS-1;const LOW_RING=[13,18,14],LOW_TYPES=['CH','DR','DC'];
-const lowGood=p=>isBullpenPitch(p)&&LOW_TYPES.includes(p.type)&&LOW_RING.includes(p.loc);
-function adjSev(p,sev){const aimedHere=p.targets&&p.targets.some(z=>+z===+p.loc);if((isWay(p.loc)||isActualOnly(p.loc))&&!aimedHere)return WAY_SEV;if(lowGood(p))return Math.min(sev,1);return sev;}
-const chUp=p=>p&&p.type==='CH'&&!isWay(p.loc)&&!isActualOnly(p.loc)&&GRID_XY[p.loc]!=null&&GRID_XY[p.loc][1]<=2;
+const WAY_SEV=MAX_MISS-1;const LOW_RING=[13,18,14],LOW_TYPES=['CH','DR','DC'],LOW_CALL=[7,8,9,13,14,18];
+// Called type is the one helper in csv.js. A shake-off uses the pitch she threw, not the abandoned call.
+const penaltyType=p=>typeof PC.calledTypeOf==='function'?String(PC.calledTypeOf(p)||''):String((p&&p.type)||'');
+const calledLow=p=>aims(p).some(z=>LOW_CALL.includes(z));
+// FLOW-7a: bullpen only, called in 7/8/9/13/14/18, lands in 13/14/18, called type CH/DR/DC.
+const lowGood=p=>isBullpenPitch(p)&&LOW_TYPES.includes(penaltyType(p))&&calledLow(p)&&LOW_RING.includes(land(p));
+// RULE-3c: that same low call landing in the dirt is a miss, one step under a full way-off.
+const dirtSoft=p=>land(p)===31&&LOW_TYPES.includes(penaltyType(p))&&calledLow(p);
+function adjSev(p,sev){const loc=land(p);if(dirtSoft(p))return Math.min(sev,WAY_SEV-1);const aimedHere=aims(p).some(z=>z===loc);if((isWay(loc)||isActualOnly(loc))&&!aimedHere)return WAY_SEV;if(lowGood(p))return Math.min(sev,1);return sev;}
+const chUp=p=>{const loc=land(p);return !!(p&&penaltyType(p)==='CH'&&!isWay(loc)&&!isActualOnly(loc)&&GRID_XY[loc]!=null&&GRID_XY[loc][1]<=2);};
 function missData(items,f){const q=heatFilter(items,f);const cells={};ALL_CELLS.forEach(z=>cells[z]={n:0,sum:0,hit:0,avg:null,mm:0});let total=0,mm=0,chu=0;
   // one source of truth for severity: pitchMiss (souvenir, CH-up, way-off, low-ring rules all live there)
-  q.forEach(({p})=>{const m=pitchMiss(p);if(!m)return;const t=p.targets,d=m.d,sev=m.sev,mmMiss=m.mm,up=m.chUp;total++;if(mmMiss)mm++;if(up)chu++;
+  q.forEach(({p})=>{const m=pitchMiss(p);if(!m)return;const t=aims(p),loc=land(p),d=m.d,sev=m.sev,mmMiss=m.mm,up=m.chUp;total++;if(mmMiss)mm++;if(up)chu++;
     t.forEach(z=>{const c=cells[z];if(!c)return;c.n++;c.sum+=sev;if(d===0&&!up)c.hit++;if(isGoodSev(sev))c.good=(c.good||0)+1;if(mmMiss)c.mm++;if(up)c.chUp=(c.chUp||0)+1;
-      const L=(c.land=c.land||{});const e=(L[p.loc]=L[p.loc]||{n:0,sev:0,mm:0,chUp:0});e.n++;e.sev=Math.max(e.sev,sev);if(mmMiss)e.mm++;if(up)e.chUp++;});});
+      const L=(c.land=c.land||{});const e=(L[loc]=L[loc]||{n:0,sev:0,mm:0,chUp:0});e.n++;e.sev=Math.max(e.sev,sev);if(mmMiss)e.mm++;if(up)e.chUp++;});});
   ALL_CELLS.forEach(z=>{const c=cells[z];if(c.n)c.avg=Math.round(10*c.sum/c.n)/10;});return{cells,total,matched:q.length,mm,chUp:chu};}
 // one sentence that always accounts for every pitch: shown + left out (no aim in Miss, no location in Landed)
 const pz=n=>`${n} pitch${n===1?'':'es'}`;
@@ -56,7 +64,7 @@ function kCredit(all){const m=new Map();(all||[]).forEach((p,i)=>{if(!p||(p.end!
   if(p.abn!=null&&p.s===2){let s=p.s;for(let j=i-1;j>=0;j--){const q=all[j];if(!q||q.abn!==p.abn||q.inning!==p.inning||q.slot!==p.slot||q.s>s||q.end)break;s=q.s;if(q.s<2&&!q.noPitch){by=q.pitcherId;break;}}}
   m.set(p,by);});return m;}
 // Game strike = the umpire's result when there is one, otherwise the zone. A bullpen pitch has no strike.
-const strikeOf=p=>isBullpenPitch(p)?null:(p.result?isStrike(p.result):isZone(p.loc));
+const strikeOf=p=>isBullpenPitch(p)?null:(p.result?isStrike(p.result):isZone(land(p)));
 function summarize(pitches,opt){const P=pitches.filter(countsAsPitch);
   const fp=P.filter(p=>p.firstPitch!==undefined?p.firstPitch:(p.b===0&&p.s===0));
   const called=P.filter(p=>p.targets&&p.targets.length&&p.loc!=null);
@@ -74,14 +82,14 @@ function summarize(pitches,opt){const P=pitches.filter(countsAsPitch);
 // ---------- Bullpen session report ----------
 // Per called pitch: d = squares from nearest target; sev = d, except landing in 5 when aimed elsewhere = MAX_MISS (middle-middle mistake).
 // "Good" = sev <= 1 (on target or 1 square off).
-function pitchMiss(p,throws){throws=throws||p.throws;const t=p.targets&&p.targets.length?p.targets:null;if(!t||p.loc==null||!GRID_XY[p.loc])return null;let best=null,bt=null;
-  t.forEach(z=>{const d=missDist(p.loc,z);if(d!=null&&(best==null||d<best)){best=d;bt=z;}});if(best==null)return null;
-  const mm=p.loc===5&&!t.includes(5);const up=chUp(p);let sev=mm?MAX_MISS:best;if(up)sev=Math.max(sev,CH_MIN_SEV);sev=adjSev(p,sev);const way=isWay(p.loc);const a=GRID_XY[p.loc],b=GRID_XY[bt];const dx=a[0]-b[0],dy=a[1]-b[1];
+function pitchMiss(p,throws){throws=throws||p.throws;const t=aims(p);const loc=land(p);if(!t.length||loc==null||!GRID_XY[loc])return null;let best=null,bt=null;
+  t.forEach(z=>{const d=missDist(loc,z);if(d!=null&&(best==null||d<best)){best=d;bt=z;}});if(best==null)return null;
+  const mm=loc===5&&!t.includes(5);const up=chUp(p);let sev=mm?MAX_MISS:best;if(up)sev=Math.max(sev,CH_MIN_SEV);sev=adjSev(p,sev);const way=isWay(loc);const a=GRID_XY[loc],b=GRID_XY[bt];const dx=a[0]-b[0],dy=a[1]-b[1];
   const hand=p.hand==='L'?'L':'R';// no batter -> RHB for in/away
   const toward3B=dx>0;// pitcher's view: +x = 3B side, where an RHB stands
   const noBat=p.hand!=='L'&&p.hand!=='R'&&(throws==='L'||throws==='R');
   const horiz=dx===0?null:noBat?((dx>0)===(gloveCol(throws)===2)?'glove side':'arm side'):((toward3B===(hand==='R'))?'in':'away');const vert=dy===0?null:(dy<0?'up':'down');
-  return{d:best,sev,mm,chUp:up,badAim:t.some(z=>!PC.targetOk(p.type,z)),way,low:lowGood(p),waste:wasteAim(p),good:isGoodSev(sev),target:bt,vert,horiz};}
+  return{d:best,sev,mm,chUp:up,badAim:t.some(z=>!PC.validCalled(penaltyType(p),z)),way,low:lowGood(p),waste:wasteAim(p),good:isGoodSev(sev),target:bt,vert,horiz};}
 // hit the spot = exactly on a target, by the same rule as the report (a change-up up in the zone never counts as a hit).
 // One rule for Stats Spot%, the report's Bullseyes and the Game marks.
 const hitSpot=p=>{const m=pitchMiss(p);return !!m&&m.d===0&&!m.chUp;};
@@ -179,5 +187,5 @@ function shakeoffs(pitches){const P=(pitches||[]).filter(p=>!p.deleted&&countsAs
   return{n:S.length,shook:shakeLine(S),followed:shakeLine(F),
     list:S.map(p=>{const q=prevOf(p);return{id:p.id,called:p.call||p.callRaw||'?',thrown:(p.type||'?')+(p.loc!=null?' '+p.loc:''),count:(p.b!=null&&p.s!=null)?`${p.b}-${p.s}`:'',
       prev:q?`${q.type||'?'} · ${outcomeOf(q)}`:'',outcome:outcomeOf(p),inning:p.inning,batter:p.batter||''};})};}
-Object.assign(PC,{shakeoffs,shakeLine,isHard,heatSummary,strikeOf,hitSpot,MISS_DIRS,topDir,bestWeak,pitchMark,MARK_LABEL,recentPitches,heatItems,HEAT_KEYS,heatFilter,heatData,CH_MIN_SEV,GOOD_MAX_SEV,isGoodSev,wasteAim,isBullpenPitch,WAY_SEV,LOW_RING,LOW_TYPES,lowGood,adjSev,chUp,missData,MISS_SCALE,missColor,VIRIDIS,heatColor,kCredit,summarize,pitchMiss,grpStats,TYPE_NAME,FIX,sessionReport,typeFeedback,COUNTS,countStats,trendPoints});
+Object.assign(PC,{shakeoffs,shakeLine,isHard,heatSummary,strikeOf,hitSpot,MISS_DIRS,topDir,bestWeak,pitchMark,MARK_LABEL,recentPitches,heatItems,HEAT_KEYS,heatFilter,heatData,CH_MIN_SEV,GOOD_MAX_SEV,isGoodSev,wasteAim,isBullpenPitch,WAY_SEV,LOW_RING,LOW_TYPES,LOW_CALL,penaltyType,lowGood,adjSev,chUp,missData,MISS_SCALE,missColor,VIRIDIS,heatColor,kCredit,summarize,pitchMiss,grpStats,TYPE_NAME,FIX,sessionReport,typeFeedback,COUNTS,countStats,trendPoints});
 })(typeof window!=='undefined'?window:globalThis);

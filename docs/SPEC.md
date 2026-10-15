@@ -26,7 +26,8 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
 - **RULE-3b** The ring boxes just outside the zone (11–18) remain valid called targets.
 - **RULE-3c** A CH, drop or drop curve called low (7, 8, 9, 13, 14, 18) that lands in the dirt (31) counts as a reduced-severity miss, not a full way-off miss.
 - **RULE-3d** After a shake-off, the called location is the location re-signaled with the final pitch. If none was re-signaled, the original box stands.
-- **RULE-4** One shared location component and one location validator are used everywhere: scoring, editing, sync, and CSV import.
+- **RULE-4** One shared location component and one location validator are used everywhere: scoring, editing, sync, and CSV import. Called and actual boxes are read through `calledOf` and `actualOf`.
+- **RULE-4a** A CSV import or a sync read keeps a called aim that fails `validCalled` and flags that row. The scoring screen still rejects that aim on a new write. Pitches already saved with an illegal called aim are test data. `supabase/migrations/20261015130000_delete_bad_aim_pitches.sql` deletes them. That file is not applied to production from here. `supabase/preview_delete_bad_aim_pitches.sql` is the read-only list of the same rows.
 - **RULE-5** Only one phone can score a game or bullpen session. Every other phone sees it live and read-only.
 - **RULE-6** Undo and Redo cover both the pitch and its location.
 - **RULE-7** Every popup has a working Cancel that leaves the data unchanged.
@@ -34,6 +35,7 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
 - **RULE-9** CSV export is per pitcher per date. One shared CSV row builder produces every row.
 - **RULE-10** Players are shown by first name and jersey number (`pitcherLabel`), and CSV file names use the same. No surnames.
 - **RULE-11** Jim can edit a pitcher's jersey number. Cancel leaves it unchanged.
+- **RULE-11a** Two active pitchers cannot share a jersey number. An empty number is allowed. `0` and `00` are different numbers. An archived pitcher does not block the number. The message names the other pitcher by first name.
 - **RULE-12** The current branding stays.
 
 ## VIEW
@@ -65,11 +67,13 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | RULE-3c | unit: a CH, drop or drop curve called low that lands in 31 is a miss below way-off severity |
 | RULE-3d | unit: after a shake-off the called location is the re-signaled box, or the original box when none was re-signaled |
 | RULE-4 | unit: scoring, edit, sync and CSV import call the same validator with the same inputs and get the same results |
+| RULE-4a | unit: import and sync keep an illegal called aim and flag the row; Postgres: `test/badaim.pg.sh` deletes only those rows and the preview lists the same ids |
 | RULE-5 | `lock.ui.js` + `live.sync.js`: a second phone is read-only and sees pitches live |
 | RULE-6, RULE-7 | unit: redo/undo state; UI: Cancel on every popup leaves the state unchanged |
 | RULE-8 | `fit.ui.js`: no vertical scroll at 375, 390 and 430 px |
 | RULE-9 | unit: one row builder; export filtered to one pitcher and one date |
 | RULE-10 | unit: `pitcherLabel` and CSV file name include the jersey number; smoke: no surnames shown |
 | RULE-11, RULE-12 | UI: edit jersey number saves, and Cancel leaves it unchanged; smoke: branding unchanged |
+| RULE-11a | unit: an active jersey is unique, empty is allowed, `0` and `00` differ, and an archived pitcher does not block |
 | VIEW-1, VIEW-2 | `zonegfx.ui.js`: numbered, colored markers and list; one-tap scheduled start |
 | DoD | UI: `inning.e2e` (full inning) and `bullpen20.e2e` (20-pitch bullpen) at 390 px |

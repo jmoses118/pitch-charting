@@ -1,6 +1,6 @@
 // v48 scoring flow: one machine, per mode.
 // Game cannot save without an actual location, and the result sheet stays closed until that tap.
-// Bullpen saves on the actual spot (no ball/strike) and a dirt-on-dirt pitch is a hit.
+// Bullpen saves on the actual spot (no ball/strike). Dirt is an actual location only (RULE-3a). A bottom-row aim that lands there is a hit.
 // usage: node test/flow.ui.js <url>
 const {chromium}=require('playwright-core');const fs=require('fs');const BASE=process.argv[2]||'http://127.0.0.1:8766/';
 const SHOT='/opt/cursor/artifacts/screenshots';fs.mkdirSync(SHOT,{recursive:true});
@@ -47,10 +47,13 @@ for(const [W,H] of [[375,667],[390,844],[430,932]]){const tag=`${W}x${H}`;
   const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));const ev=f=>p.evaluate(f);
   await p.goto(BASE);await p.click('nav [data-t="bullpen"]');await p.waitForTimeout(200);
   await p.click('#types [data-c="CH"]');await p.click('#actBtns [data-z="31"]');await p.waitForTimeout(100);
-  ok(await ev(()=>D.called[0]===31&&D.loc==null&&(__app.store.state.sessions.at(-1)?.pitches.length||0)===0),'bullpen: dirt aim does not save yet');
-  await p.click('#actBtns [data-z="31"]');await p.waitForTimeout(200);
+  ok(await ev(()=>!(D.called||[]).length&&D.loc==null&&(__app.store.state.sessions.at(-1)?.pitches.length||0)===0),'RULE-3a: dirt is not a called target and does not save');
+  ok(/where it went/.test(await p.textContent('#toast')||''),'RULE-3a: dirt tap says it is where the pitch went');
+  await tapZ(p,14);await p.waitForTimeout(100);
+  ok(await ev(()=>D.called[0]===14&&D.loc==null),'bullpen: bottom-row aim does not save yet');
+  await tapZ(p,14);await p.waitForTimeout(200);
   const row=await ev(()=>{const x=(__app.store.state.sessions.at(-1)||{pitches:[]}).pitches.at(-1);return x&&{type:x.type,targets:x.targets,loc:x.loc,result:x.result==null,hit:PC.hitSpot(x)};});
-  ok(JSON.stringify(row)===JSON.stringify({type:'CH',targets:[31],loc:31,result:true,hit:true}),'bullpen: dirt on dirt is a hit and has no ball/strike '+JSON.stringify(row));
+  ok(JSON.stringify(row)===JSON.stringify({type:'CH',targets:[14],loc:14,result:true,hit:true}),'bullpen: bottom-row hit has no ball/strike '+JSON.stringify(row));
   const sum=await p.textContent('#bpSum');
   ok(/hit spot/i.test(sum)&&!/strike/i.test(sum),'bullpen line leads with hit spot, not strike % ('+sum+')');
   await p.click('nav [data-t="stats"]');await p.waitForTimeout(200);await p.selectOption('#sScope','bullpen');await p.waitForTimeout(150);

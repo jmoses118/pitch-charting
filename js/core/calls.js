@@ -30,12 +30,11 @@ const CALL_SUFFIX={
 // 4/7 (middle-away / low-away side), 7-8-9 (bottom row) and 13-18-14 (just below the knees). Every target picker uses aimOpts().
 const CH_TARGETS=[4,7,8,9,13,14,18];
 const AIM_ALL=[1,2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18];
-const targetOk=(type,z)=>type!=='CH'||CH_TARGETS.includes(+z);
-// A called aim is a zone or ring box the pitch type is allowed to aim at. Way off, in dirt and over the catcher are actual locations only.
-const canAim=(type,z)=>{z=+z;return (PC.isZone(z)||PC.isOut(z))&&targetOk(type,z);};
-const aimOpts=type=>AIM_ALL.filter(z=>targetOk(type,z));
+// One validator lives in flow.js. These pickers only ask it.
+const aimOpts=type=>AIM_ALL.filter(z=>PC.validCalled(type,z));
 const CH_AIM_MSG='Change-ups are aimed low: 4, 7, 8, 9 or 13, 14, 18';
 const ACTUAL_ONLY_MSG='In dirt and over the catcher are where it went, not an aim';
+function aimRejectMsg(type,z,compact){if(PC.isWay(+z)||PC.isActualOnly(+z))return ACTUAL_ONLY_MSG;return compact==='tiny'?CH_AIM_TINY:compact==='short'?CH_AIM_SHORT:CH_AIM_MSG;}
 // short forms for the coach status strip, where the faded boxes already show which ones are allowed
 const CH_AIM_SHORT='Change-up: aim low',CH_AIM_TINY='CH: aim low',CH_BAND_NOTE='Change-ups aim low: 4, 7, 8, 9, 13, 14 or 18.';
 function parseCall(code,hand,throws,custom){if(code==null)return null;const hand0=hand;hand=hand==='L'?'L':'R';throws=throws==='L'?'L':'R';
@@ -54,7 +53,7 @@ function parseCall(code,hand,throws,custom){if(code==null)return null;const hand
   else if(type==='CB'){targets=throws==='L'?[9]:[7];alts=throws==='L'?[6]:[4];desc=`glove side of ${throws}HP (alt ${alts[0]})`;} // RHP glove side = pitcher's left: 7 (alt 4); LHP: 9 (alt 6)
   else desc='no location';
   // a change-up call that names a high spot (e.g. CH H+, CH H, CH 2) keeps its type but gets no spot: flagged, never aimed up
-  let chHigh=false;if(type==='CH'&&targets.some(z=>!targetOk(type,z))){chHigh=true;targets=targets.filter(z=>targetOk(type,z));alts=alts.filter(z=>targetOk(type,z));desc='change-up is never aimed up – pick a low box';waste=false;}
+  let chHigh=false;if(type==='CH'&&targets.some(z=>!PC.validCalled(type,z))){chHigh=true;targets=targets.filter(z=>PC.validCalled(type,z));alts=alts.filter(z=>PC.validCalled(type,z));desc='change-up is never aimed up – pick a low box';waste=false;}
   const norm=type+(suf?(/^\d+$/.test(suf)?suf:' '+(suf==='I'?'IN':suf)):'');
   return{type,suffix:suf==='I'?'IN':suf,targets,alts,waste,desc,norm,chHigh};}
 // Jim's catcher wristband (rows 1-7 x columns 01-08), transcribed from his photo
@@ -71,7 +70,7 @@ const cellCode=(sheet,r,c)=>`${r+1}-${(sheet&&sheet.cols&&sheet.cols[c])||String
 function unmappedCells(sheet,custom){const g={};((sheet&&sheet.rows)||[]).forEach((row,r)=>(row||[]).forEach((t,c)=>{const p=parseCall(t,'R','R',custom);
   if(p&&!p.targets.length)(g[p.norm]=g[p.norm]||{norm:p.norm,type:p.type,text:String(t).trim(),cells:[]}).cells.push(cellCode(sheet,r,c));}));return Object.values(g);}
 // aim chosen in band setup for an unmapped call (sheet.aims[norm] = zone, 0 = "no spot"); null when none
-function bandAim(sheet,parsed){if(!parsed||parsed.targets.length||!sheet||!sheet.aims)return null;const v=+sheet.aims[parsed.norm];return v>0&&targetOk(parsed.type,v)?v:null;}
+function bandAim(sheet,parsed){if(!parsed||parsed.targets.length||!sheet||!sheet.aims)return null;const v=+sheet.aims[parsed.norm];return v>0&&PC.validCalled(parsed.type,v)?v:null;}
 const bandSetupDone=(sheet,custom)=>unmappedCells(sheet,custom).every(u=>!!sheet.aims&&u.norm in sheet.aims);
-Object.assign(PC,{CH_TARGETS,AIM_ALL,targetOk,canAim,aimOpts,CH_AIM_MSG,ACTUAL_ONLY_MSG,CH_AIM_SHORT,CH_AIM_TINY,CH_BAND_NOTE,BASE_TYPES,ALIAS,normType,CALL_SUFFIX,parseCall,WRISTBAND_1,sheetCols,defaultCallSheet,parseCellRef,cellCode,unmappedCells,bandAim,bandSetupDone});
+Object.assign(PC,{CH_TARGETS,AIM_ALL,aimOpts,aimRejectMsg,CH_AIM_MSG,ACTUAL_ONLY_MSG,CH_AIM_SHORT,CH_AIM_TINY,CH_BAND_NOTE,BASE_TYPES,ALIAS,normType,CALL_SUFFIX,parseCall,WRISTBAND_1,sheetCols,defaultCallSheet,parseCellRef,cellCode,unmappedCells,bandAim,bandSetupDone});
 })(typeof window!=='undefined'?window:globalThis);
