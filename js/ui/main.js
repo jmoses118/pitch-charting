@@ -67,7 +67,19 @@ function render(skipCallInput){const s=S();applyViewOnly(viewOnly());if(typeof r
   if(tab==='setup'){renderCodes();renderPitchers();renderRoster();$('cTypes').innerHTML=s.customTypes.map((c,i)=>`<span class="tag" data-ct="${i}">${H(c.code)} = ${H(c.name)} ✕</span> `).join('')||'None yet';
     $('storeMsg').textContent=store.isTest?'Test mode: storage untouched.':(storage?'Saved on this device (localStorage). Export a JSON backup regularly.':'Storage is blocked here – open in Safari (not private browsing).');}
   if(tab==='stats'){renderStats();renderHeat();}
-  renderSync();if(tab==='setup'&&!store.isTest&&document.activeElement!==$('teamCode'))$('teamCode').value=store.real.sync.teamCode||'';}
+  renderSync();if(tab==='setup'&&!store.isTest&&document.activeElement!==$('teamCode'))$('teamCode').value=store.real.sync.teamCode||'';fitPitcherFace();}
+// The closed pitcher control keeps the jersey. The font can shrink to 14px, then the name ellipsizes.
+function fitPitcherFace(){const sel=$('pitcher');if(!sel||!sel.options.length)return;const opt=sel.options[sel.selectedIndex];if(!opt||!opt.value)return;const p=pById(sel.value);if(!p)return;
+  const name=PC.firstName(p.name)||'?';const jersey=p.num?'#'+p.num:'';const full=jersey?name+' '+jersey:name;sel.title=full;
+  const maxPx=document.body.classList.contains('entrymode')?16:19,minPx=14;const probe=fitPitcherFace.c||(fitPitcherFace.c=document.createElement('canvas').getContext('2d'));
+  const faceCs=()=>getComputedStyle(sel);
+  const room=()=>{const cs=faceCs();return sel.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);};
+  // The font shorthand is empty when tabular-nums is set, so measure from the longhands.
+  const fits=(px,text)=>{const cs=faceCs();probe.font=`${cs.fontStyle} ${cs.fontWeight} ${px}px ${cs.fontFamily}`;return probe.measureText(text).width<=room()-2;};
+  let px=maxPx;while(px>minPx&&!fits(px,full))px-=1;sel.style.fontSize=px+'px';
+  let text=full;if(!fits(px,full)&&jersey){const tail=' '+jersey;const ell=i=>(i<=0?'…':name.slice(0,i)+'…')+tail;let n=name.length;while(n>0&&!fits(px,ell(n)))n--;text=ell(n);if(!fits(px,text))text='…'+tail;}
+  opt.text=text;}
+addEventListener('resize',()=>fitPitcherFace());
 document.querySelector('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;tab=b.dataset.t;document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));resetDraft();render();scrollTo(0,0);});
 if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 render();doSync(false);

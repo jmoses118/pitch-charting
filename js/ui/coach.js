@@ -31,7 +31,7 @@ function hintText(){const cmp=$('coach').classList.contains('compact');if(sideCa
 function renderHint(){const e=$('cxHint');if(!e)return;const note=PC.aimNote(pullDraft());if(note){e.className='cs-hint msg warn';e.textContent=note;return;}const d=pullDraft();if(cMsg&&(!d.aimEdit||cMsg.kind==='warn')){e.className='cs-hint msg '+cMsg.kind;e.textContent=cMsg.t;return;}const h=hintText();e.className='cs-hint';e.innerHTML=h?`<span class="cs-n">${H(h[0])}</span>${H(h[1])}`:'';}
 function sizeCoach(){const sh=curSheet(),cols=sh?Math.max(...sh.rows.map(r=>r.length),1):8,rows=sh?sh.rows.length:7;const el=$('coach'),cs=getComputedStyle(el);
   const padX=parseFloat(cs.paddingLeft)+parseFloat(cs.paddingRight),padY=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom);
-  const W=el.clientWidth-padX,Hh=el.clientHeight-padY,compact=W+padX<700,GAP=7,HDR=24,LN=1.5,RH=compact?20:28,RES=compact?98:106,KMAX=compact?44:48;
+  const W=el.clientWidth-padX,Hh=el.clientHeight-padY,compact=W+padX<700,GAP=compact?5:7,HDR=24,LN=1.5,RH=compact?20:28,RES=compact?102:106,KMAX=compact?44:48;
   // padding already holds the safe-area insets; count the (rows+1)/(cols+1) 1.5px grid lines so the band never runs into the home bar
   const LH=(rows+1)*LN,LW=(cols+1)*LN,mid=z=>Math.round(z*3+z*4/3+8);
   let k=Math.min(KMAX,Math.floor((Hh-HDR-LH)/rows)),z=48;
@@ -90,6 +90,7 @@ function coachZoneAct(z,aimEdit){const cmp=$('coach').classList.contains('compac
   if(r.op==='called'){render();coachMsg('✎ Aim → '+z);return;}
   if(typeof clearFoulChips==='function')clearFoulChips();if(r.draft.actual==null)D.sheet=false;render();}
 $('cZone').addEventListener('click',e=>{if(viewOnly()){toast(PC.SCORING_ELSEWHERE);return;}const b=zoneBtn(e);if(!b)return;if(lpDone){lpDone=false;return;}sideCard=null;coachZoneAct(+b.dataset.z,D.aimEdit);});
+$('cRes').addEventListener('pointerdown',e=>{const direct=e.target.closest&&e.target.closest('[data-r]');const hit=direct||[...e.currentTarget.querySelectorAll('button[data-r]')].find(btn=>{const q=btn.getBoundingClientRect();return e.clientX>=q.left&&e.clientX<=q.right&&e.clientY>=q.top&&e.clientY<=q.bottom;});if(hit)clearFoulChips();});
 $('cRes').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;sideCard=null;
   if(b.dataset.r){if(PC.scoreStep(pullDraft())!=='result'){coachMsg($('coach').classList.contains('compact')?'Where?':'Tap where it went first','warn');return;}if(b.dataset.r==='inplay'){D.ip=true;render();return;}recordGame(b.dataset.r);return;}
   if(b.dataset.ip){recordGame('inplay',b.dataset.ip);return;}

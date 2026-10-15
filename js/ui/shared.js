@@ -41,27 +41,28 @@ function advance(step){if(!oneHand())return;if(document.body.classList.contains(
 function pcCheck(pid,before,after){ensureSettings();const th=S().settings.alerts;const a=PC.alertLevel(before,th),b=PC.alertLevel(after,th);if(b.lvl>a.lvl){buzz([220,90,220]);toast(`⚠️ ${pName(pid)} has thrown ${after} pitches (alert at ${b.at})`);}}
 function resetDraft(){D.shook=null;D.cell=null;D.bb=null;D.sheet=false;D.aimEdit=false;D.spray=null;D.foul=false;D.foulTime=null;D.wpPb=null;D.velo=null;D.draft=blankDraft();mirrorDraft();Object.assign(D,{callTxt:'',parsed:null,ip:false});$('callTxt').value='';const vel=$('velo');if(vel)vel.value='';}
 // ---------- zone ----------
-const ZX0=20,ZY0=24,CW=20,CHh=24;
-const QUAD={11:'M0 0H40V24H20V48H0Z',12:'M60 0H100V48H80V24H60Z',13:'M0 72H20V96H40V120H0Z',14:'M100 72V120H60V96H80V72Z',15:'M40 0H60V24H40Z',16:'M0 48H20V72H0Z',17:'M80 48H100V72H80Z',18:'M40 96H60V120H40Z'};
-const QLBL={11:[10,12],12:[90,12],13:[10,108],14:[90,108],15:[50,12],16:[10,60],17:[90,60],18:[50,108]};
-function zoneAt(x,y){if(x>=ZX0&&x<=80&&y>=ZY0&&y<=96){const c=Math.min(2,Math.floor((x-ZX0)/CW)),r=Math.min(2,Math.floor((y-ZY0)/CHh));return r*3+c+1;}
-  if(x<-14||x>114||y<-6||y>132)return null;
-  if(x>=40&&x<=60)return y<60?15:18; if(y>=48&&y<=72)return x<50?16:17;
-  return x<50?(y<60?11:13):(y<60?12:14);}
+// Strike rows are 22.5 tall and 20 wide, so a 48px-wide box is about 54px tall. Uniform scaling only.
+const ZX0=20,ZY0=22.5,CW=20,CHh=22.5,RH=22.5,GRID_H=RH*5,ZONE_MID=RH*2.5;
+const QUAD={11:`M0 0H40V${RH}H20V${2*RH}H0Z`,12:`M60 0H100V${2*RH}H80V${RH}H60Z`,13:`M0 ${3*RH}H20V${4*RH}H40V${GRID_H}H0Z`,14:`M100 ${3*RH}V${GRID_H}H60V${4*RH}H80V${3*RH}Z`,15:`M40 0H60V${RH}H40Z`,16:`M0 ${2*RH}H20V${3*RH}H0Z`,17:`M80 ${2*RH}H100V${3*RH}H80Z`,18:`M40 ${4*RH}H60V${GRID_H}H40Z`};
+const QLBL={11:[10,RH/2],12:[90,RH/2],13:[10,4.5*RH],14:[90,4.5*RH],15:[50,RH/2],16:[10,ZONE_MID],17:[90,ZONE_MID],18:[50,4.5*RH]};
+function zoneAt(x,y){const y2=ZY0+3*CHh;if(x>=ZX0&&x<=ZX0+3*CW&&y>=ZY0&&y<=y2){const c=Math.min(2,Math.floor((x-ZX0)/CW)),r=Math.min(2,Math.floor((y-ZY0)/CHh));return r*3+c+1;}
+  if(x<-14||x>114||y<-6||y>GRID_H+12)return null;
+  if(x>=40&&x<=60)return y<ZONE_MID?15:18; if(y>=2*RH&&y<=3*RH)return x<50?16:17;
+  return x<50?(y<ZONE_MID?11:13):(y<ZONE_MID?12:14);}
 const center=z=>z<10?[ZX0+((z-1)%3+.5)*CW,ZY0+(((z-1)/3|0)+.5)*CHh]:QLBL[z];
-function zoneSVG(svg,hand,o={}){let h='';svg.setAttribute('viewBox',o.orient?ORIENT_VIEWBOX:PLAIN_VIEWBOX);const ly=o.orient?ORIENT_LABEL_Y:128;
+function zoneSVG(svg,hand,o={}){let h='';svg.setAttribute('preserveAspectRatio','xMidYMid meet');svg.setAttribute('viewBox',o.orient?ORIENT_VIEWBOX:PLAIN_VIEWBOX);const ly=o.orient?ORIENT_LABEL_Y:PLAIN_LABEL_Y;
   for(const q in QUAD)h+=`<path data-z="${q}" class="zb" d="${QUAD[q]}" stroke="#0d1117" stroke-width=".8"/>`;
   for(let i=0;i<9;i++)h+=`<rect data-z="${i+1}" class="zs" x="${ZX0+(i%3)*CW}" y="${ZY0+((i/3)|0)*CHh}" width="${CW}" height="${CHh}" stroke="#0d1117" stroke-width=".8"/>`;
   if(o.orient)h+=PLATE_SVG+(o.noSide?'':batterSVG(hand));
-  h+='<path class="zframe" d="M20 24H80V96H20Z" fill="none" stroke="#e6edf3" stroke-width="1"/>';
+  h+=`<path class="zframe" d="M${ZX0} ${ZY0}H${ZX0+3*CW}V${ZY0+3*CHh}H${ZX0}Z" fill="none" stroke="#e6edf3" stroke-width="1"/>`;
   const lab=o.labels||{};
   if(!o.noNums)for(const q in QLBL)h+=`<text class="zl" x="${QLBL[q][0]}" y="${QLBL[q][1]-(lab[q]?3:0)}">${q}</text>${lab[q]?`<text class="zl" style="font-size:5px;fill:#8fb0ff" x="${QLBL[q][0]}" y="${QLBL[q][1]+4}">${lab[q]}</text>`:''}`;
   if(!o.noNums)for(let i=1;i<=9;i++){const[c,r]=center(i);h+=`<text class="zl" x="${c}" y="${r-(lab[i]?3:0)}">${i}</text>${lab[i]?`<text class="zl" style="font-size:5px;fill:#8fb0ff" x="${c}" y="${r+5}">${lab[i]}</text>`:''}`;}
   // side labels by handedness (RHB stands on pitcher's right)
-  if(o.noSide)h+=`<text class="side" transform="translate(-8 60) rotate(-90)">1B side</text><text class="side" transform="translate(108 60) rotate(90)">3B side</text>`;
+  if(o.noSide)h+=`<text class="side" transform="translate(-8 ${ZONE_MID}) rotate(-90)">1B side</text><text class="side" transform="translate(108 ${ZONE_MID}) rotate(90)">3B side</text>`;
   else{  const inRight=PC.insideCol(hand)===2;
   const gl=hand==='N'&&(o.throws==='L'||o.throws==='R');const gR=o.throws==='L';
-  h+=gl?`<text class="side" transform="translate(-8 60) rotate(-90)">${gR?'ARM':'GLOVE'}</text><text class="side" transform="translate(108 60) rotate(90)">${gR?'GLOVE':'ARM'}</text>`:`<text class="side" transform="translate(-8 60) rotate(-90)">${inRight?'AWAY':'IN'}</text><text class="side" transform="translate(108 60) rotate(90)">${inRight?'IN':'AWAY'}</text>`;
+  h+=gl?`<text class="side" transform="translate(-8 ${ZONE_MID}) rotate(-90)">${gR?'ARM':'GLOVE'}</text><text class="side" transform="translate(108 ${ZONE_MID}) rotate(90)">${gR?'GLOVE':'ARM'}</text>`:`<text class="side" transform="translate(-8 ${ZONE_MID}) rotate(-90)">${inRight?'AWAY':'IN'}</text><text class="side" transform="translate(108 ${ZONE_MID}) rotate(90)">${inRight?'IN':'AWAY'}</text>`;
   if(o.compact)h+=`<text class="side" style="fill:${hand==='N'?'#8b949e':'#5b8cff'};font-size:5px;text-anchor:end" x="112" y="${ly}">${hand==='N'?(gl?`No batter · ${o.throws}HP`:'No batter · as RHB'):`${hand==='L'?'LHB':'RHB'} ${inRight?'▶':'◀'}`}</text>`;
   else h+=hand==='N'?`<text class="side" style="fill:#8b949e;font-size:5px" x="50" y="${ly}">${gl?`No batter · glove / arm side (${o.throws}HP)`:'No batter · in/away shown as RHB'}</text>`:`<text class="side" style="fill:#5b8cff;font-size:5.5px" x="${inRight?88:12}" y="${ly}">${hand==='L'?'LHB':'RHB'} ${inRight?'▶':'◀'}</text><text class="side" x="${inRight?12:88}" y="${ly}" style="opacity:.5">${inRight?'LHB side':'RHB side'}</text>`;
   }

@@ -16,7 +16,7 @@ for(const [W,H] of [[844,390],[667,375],[932,430]]){const tag=`${W}x${H}`;const 
   ok(await ev(()=>!!document.querySelector('#cRes [data-cx=shake]')&&['aim','undo','same'].every(k=>document.querySelector(`#cRes [data-cx=${k}]`))),`${tag} coach: Shake-off button next to Aim/Undo/Same (regression guard)`);
   ok(await ev(()=>document.querySelector('#cRes [data-cx=shake]').disabled),`${tag} coach: Shake-off disabled until a call is made`);
   await p.click('#cBand button[data-r="0"][data-c="6"]');await w();
-  {const r=await ev(()=>{const e=document.querySelector('#cRes [data-cx=shake]').getBoundingClientRect();return e.height>=44&&e.bottom<=innerHeight&&e.right<=innerWidth;});ok(r,`${tag} coach: Shake-off ≥44px and on screen`);}
+  {const r=await ev(()=>{const e=document.querySelector('#cRes [data-cx=shake]').getBoundingClientRect();return e.height>=48&&e.width>=48&&e.bottom<=innerHeight&&e.right<=innerWidth;});ok(r,`${tag} coach: Shake-off is 48×48 and on screen`);}
   {const pr=(process.env.CI?[]:await ev(AUDIT));ok(!pr.length,`${tag} coach: no clipping/overlap${pr.length?' → '+pr.slice(0,4).join(' | '):''}`);}
   if(SHOT)await p.screenshot({path:`${SHOT}coach-shake-button-${tag}.png`});
   // Cancel restores the call

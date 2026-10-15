@@ -45,7 +45,7 @@ jobs:
       - name: Shared scoring flow
         run: node test/flow.ui.js http://localhost:8766/
       - name: Sheets, recent list, and fit
-        run: node test/sheets.ui.js http://localhost:8766/ && node test/zonegfx.ui.js http://localhost:8766/ && node test/fit.ui.js http://localhost:8766/
+        run: node test/sheets.ui.js http://localhost:8766/ && node test/zonegfx.ui.js http://localhost:8766/ && node test/fit.ui.js http://localhost:8766/ && node test/layout.ui.js http://localhost:8766/
       - name: Way-off and actual-only locations
         run: node test/wayoff.ui.js http://localhost:8766/
       - name: Jersey number

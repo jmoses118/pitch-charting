@@ -40,7 +40,7 @@ The app is used on an iPhone, one-handed, in a dugout, often in direct sun. It i
 Rule: on a 390×844 phone (and 375×667 for an SE), everything needed to log a pitch is visible without scrolling. `test/fit.ui.js` checks this.
 - **Order** (`body.entrymode`, flex `order`): slim header → sticky entry bar (pitch chips + step line) → zone → way-off row → [secondary cards: recent pitches, session/game controls, call sheet, log].
 - **Slim header:** pitcher select, `.wlmini` workload counts (colored at the warn/limit levels) and the sync chip in compact form (`☁ ✓`, `☁ 3` pending, `☁ !` error). The brand row hides while charting.
-- **Pitch chips** (`.chips`): 44px pill buttons (48px in one-hand mode, 42px on short screens), abbreviations only with the full name as the label. The row scrolls sideways and has no visible scrollbar.
+- **Pitch chips** (`.chips`): 48px pill buttons, abbreviations only with the full name as the label. The row scrolls sideways and has no visible scrollbar.
 - **Step line** (`.stepline`): a 2px three-segment progress line plus `button.mini` actions (Band, Result). The hint text is one ellipsized line and is hidden under 720px tall.
 - **Zone sizing** (`fitZone()`): height = viewport − zone top − tab bar − way row, clamped so a strike-zone box is ≥ `ZONE_MIN_BOX` (48px). The `.zchip` **Batter** chip is placed in viewBox space (−13…30, 124+), which is clear of every tap box. It opens `#batDlg`, a sheet with a `.seg3` choice (No batter / LHB / RHB; no "No batter" in a game).
 - **Bottom sheets** (`.bsheet`, `body.wbopen #wbCard`): fixed to the bottom over the tab bar (z-index above `nav`), with a grab handle and a close button. The result sheet uses 56px buttons in 3 columns (64px in one-hand mode).
@@ -58,7 +58,7 @@ Rule: on a 390×844 phone (and 375×667 for an SE), everything needed to log a p
   - Pitcher row: the picker sizes to its content and never truncates; the add (+) button sits beside it.
   - Not charting: the full workload sentence is on its own line.
   - Charting: the logo row hides, the sync chip moves (compact) next to the picker, and the short "Today n · Wknd n" counts wrap rather than squeeze the name.
-- **No text may clip or ellipsize unintentionally** on any tab or state at 375×667, 390×844 and 430×932, and no controls may overlap. `test/layout.ui.js` enforces this; horizontal scrollers (pitch chips, wristband table) are the only exceptions.
+- **No text may clip or ellipsize unintentionally** on any tab or state at 375×667, 390×844 and 430×932, and no controls may overlap. `test/layout.ui.js` enforces this. The pitch-type row is the sideways scroller. The portrait wristband does not scroll sideways: at 375px its cells are 48px tall and about 42–44px wide so all 8 columns fit (a RULE-8 exception, like the coach SE band). A pitcher name that cannot fit at 14px ellipsizes and keeps the jersey number.
 
 ## Coach screen (v37)
 Landscape only (`(orientation: landscape) and (max-height: 500px)`). The grid is `auto | --mid | 106px`: band table, then status + zone, then results. `sizeCoach()` sets `--k` (band cell) and `--z` (zone cell): 48px at 844x390 and about 40px at 667x375. Palettes are set with `html[data-theme=field|night]` (Auto switches by time). Result tokens use Okabe-Ito colours. Band setup maps cells that have no zone to a spot (or no spot) once per sheet. The bullpen pad (`#bpPad`, `body.padmode`) is fixed above the nav, and fitZone subtracts `--pad-h`.
