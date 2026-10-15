@@ -1,5 +1,10 @@
 # Changelog
 
+## v68 – Checks and local copies stay off the live database
+### Changed
+- The public site is the only copy that talks to the live database. On a computer, in CI, and on any other address, the app uses a local or staging database instead. CI builds that throwaway database from the migration files.
+- Cache: `te-pitch-v68`.
+
 ## v67 – Illegal aims stay in the database
 ### Changed
 - **RULE-4a.** `supabase/migrations/20261015130000_delete_bad_aim_pitches.sql` is a no-op, so `supabase db push` does not delete a pitch whose called aim fails the change-up rule. Those rows stay and stay flagged. `supabase/pending/delete_bad_aim_pitches.sql` is the hand-run template: the owner-approved ids are typed once, copied into `pitches_badaim_backup_YYYYMMDD`, and deleted from that backup inside a transaction that rolls back unless the counts match. The placeholder stays unfilled. `supabase/preview_delete_bad_aim_pitches.sql` is unchanged.

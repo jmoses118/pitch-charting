@@ -19,7 +19,7 @@ jobs:
       - name: Syntax check
         run: for f in logic.js sw.js js/core/*.js js/ui/*.js; do node --check "$f"; done
       - name: Unit tests
-        run: node --test test/logic.test.js
+        run: node --test test/logic.test.js test/prodref.test.js
       - name: Architecture boundaries
         run: node test/arch.scan.js && node test/arch.negative.js
       - name: Duplication
@@ -75,10 +75,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install psql
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
-      - name: Clear bullpen results and assert game results stay
+      - name: Apply migrations, then run the database checks
         env:
           PGPASSWORD: postgres
           PGHOST: localhost
           PGUSER: postgres
           PGDATABASE: pitch
-        run: bash test/flow6a.pg.sh && bash test/badaim.pg.sh && bash test/pendingbadaim.pg.sh
+        run: bash test/pg-migrate.sh && bash test/flow6a.pg.sh && bash test/badaim.pg.sh && bash test/pendingbadaim.pg.sh
