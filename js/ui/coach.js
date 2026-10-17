@@ -187,7 +187,9 @@ function fitCoachCol(compact, z, k, cols, RH, LW, Hh, bandH, STH, ZG, ACT, set) 
   set("--sth", STH);
   set("--bandw", RH + LW + cols * k);
   set("--colh", compact ? Hh : bandH);
-  const bh = $("cBand").getBoundingClientRect().height;
+  const box = $("cBand").getBoundingClientRect();
+  const bh = box.height;
+  if (box.width > 0) set("--bandw", box.width);
   const zoneH = (13 * z) / 3 + 8;
   const need0 = STH + ZG + zoneH + ZG + ACT;
   const zg = need0 > bh + 2 ? Math.max(4, ZG - (need0 - bh) / 2) : ZG;

@@ -500,3 +500,4 @@ details.arch{margin-top:8px}details.arch>summary{min-height:48px;display:flex;al
 .coach:not(.compact) .crcol>.cres{align-self:stretch;align-content:stretch;grid-auto-rows:1fr;height:100%}
 .coach:not(.compact) .cmenu{min-height:48px;min-width:48px}
 .coach:not(.compact) .cstatus{gap:0}
+body.mirror .coach{grid-template-columns:var(--mid,216px) var(--res,106px) var(--bandw,auto)}
