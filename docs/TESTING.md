@@ -24,7 +24,7 @@ Check no codes leaked: `grep -rqF "$PC_TEST_COACH" .` must find nothing.
 ## coach.ui.js / lib/audit.js (v37)
 `coach.ui.js` checks the landscape coach screen at 844x390 (cells at least 48px) and 667x375 (at least 40px). It covers the flow, ✎ Aim, long-press, in play + spray, Undo, Same, band setup cancel/save, the side-retired card, theme, mirror and the portrait rotate prompt. With `SHOT_DIR` set it saves screenshots. `test/lib/audit.js` holds the shared clipping/overlap audit used by layout.ui.js and coach.ui.js.
 
-`layout.ui.js` checks the iPhone 17 Pro Max coach screen. Under 400px tall (Safari toolbar showing in landscape), zone cells may be 46px or more; otherwise the 48px floor applies.
+`layout.ui.js` checks the iPhone 17 Pro Max coach screen. Under 400px tall the zone floor is 46px; at 400px or taller it is 48px. Jim approved this on 2026-10-17. The SE screen (667×375, under 700px wide) keeps its existing strike box. Exact sizes are checked at 956px wide for heights 360, 375, 399, 400, and 401.
 
 coach.ui.js also checks: Keep charting contrast (≥10:1), no zone/status shift after band and zone taps, simulated iPhone safe-area insets (47/47/21), game menu fit/3-col/End away from Cancel, sticky band-setup footer, ⋯ ≥44px, row headers kept, and in the bullpen pad Way buttons ≥48 tall, all types incl. SC, and a confirmation that doesn't cover the zone.
 

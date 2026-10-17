@@ -58,11 +58,13 @@ function sizeCoach() {
   const LH = (rows + 1) * LN,
     LW = (cols + 1) * LN;
   const mid = (z) => Math.round(z * 3 + (z * 4) / 3 + 8);
-  const zFor = (h) => Math.floor((h - STH - ZG - 8 - ACT - ZG - 1) / (13 / 3));
+  const zFor = (h) => coachZFor(h, STH, ZG, ACT);
   let k = Math.min(KMAX, Math.floor((Hh - HDR - LH) / rows));
   let bandH = HDR + LH + rows * k;
   let z = zFor(compact ? Hh : bandH);
-  if (!compact) z = Math.max(z, Math.min(v("--c-zfloor"), zFor(Hh)));
+  // Under 400px the floor is 46. At 400 or taller it is 48. Compact skips it.
+  const zName = el.clientHeight < 400 ? "--c-zfloor-short" : "--c-zfloor";
+  if (!compact) z = Math.max(z, v(zName));
   z = Math.min(ZMAX, z);
   const wide = (W - RH - 2 * GAP - RES - cols * k - LW - 8) / (13 / 3);
   if (compact) z = Math.min(z, Math.floor(wide));
@@ -75,9 +77,7 @@ function sizeCoach() {
   set("--k", k);
   set("--z", z);
   set("--mid", mid(z));
-  set("--rh", RH);
-  set("--res", RES);
-  fitCoachCol(compact, z, k, cols, RH, LW, Hh, bandH, STH, ZG, ACT, set);
+  fitCoachCol({ compact, z, k, cols, RH, LW, Hh, bandH, STH, ZG, ACT, set, v });
 }
 function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,hand=curHand(),cp=curPitcherId();
   document.body.classList.toggle('mirror',PREF.get('mirror','0')==='1');
@@ -183,17 +183,33 @@ $('thSel').onchange=e=>{PREF.set('theme',e.target.value);applyTheme();render();}
 $('csBand').onclick=()=>openBandSetup(typeof csCur==='function'&&csCur()?csCur().id:null);
 document.querySelectorAll('.thseg [data-th]').forEach(b=>b.onclick=()=>{PREF.set('theme',b.dataset.th);applyTheme();render();});
 function renderDisplayPrefs(){const th=PREF.get('theme','field');document.querySelectorAll('.thseg [data-th]').forEach(b=>{b.classList.toggle('on',b.dataset.th===th);b.setAttribute('aria-pressed',b.dataset.th===th);});$('thSel').value=th;$('mirrorChk').checked=PREF.get('mirror','0')==='1';}
-function fitCoachCol(compact, z, k, cols, RH, LW, Hh, bandH, STH, ZG, ACT, set) {
-  set("--sth", STH);
-  set("--bandw", RH + LW + cols * k);
-  set("--colh", compact ? Hh : bandH);
+function coachZoneH(z) {
+  return (13 * z) / 3 + 8;
+}
+function coachZFor(h, sth, zg, act) {
+  const room = h - sth - zg - act - zg - 1;
+  let z = 0;
+  while (coachZoneH(z + 1) <= room) z += 1;
+  return z;
+}
+function fitCoachCol(o) {
+  let z = o.z;
+  if (!o.compact) {
+    const fit = Math.min(o.v("--c-zfloor"), coachZFor(o.Hh, o.STH, o.ZG, o.ACT));
+    if (fit > z) {
+      z = fit;
+      o.set("--z", z);
+      o.set("--mid", Math.round(z * 3 + (z * 4) / 3 + 8));
+    }
+  }
+  o.set("--bandw", o.RH + o.LW + o.cols * o.k);
+  o.set("--colh", o.compact ? o.Hh : o.bandH);
   const box = $("cBand").getBoundingClientRect();
   const bh = box.height;
-  if (box.width > 0) set("--bandw", box.width);
-  const zoneH = (13 * z) / 3 + 8;
-  const need0 = STH + ZG + zoneH + ZG + ACT;
-  const zgMin = parseFloat(getComputedStyle($("coach")).getPropertyValue("--c-zgap-min")) || 0;
-  const zg = need0 > bh + 2 ? Math.max(zgMin, ZG - (need0 - bh) / 2) : ZG;
-  if (!compact && bh > 0) set("--zgap", zg);
-  if (!compact && bh > 0) set("--colh", Math.max(bh, STH + zg + zoneH + zg + ACT));
+  if (box.width > 0) o.set("--bandw", box.width);
+  const zoneH = coachZoneH(z);
+  const need0 = o.STH + o.ZG + zoneH + o.ZG + o.ACT;
+  const zg = need0 > bh + 2 ? Math.max(o.v("--c-zgap-min"), o.ZG - (need0 - bh) / 2) : o.ZG;
+  if (!o.compact && bh > 0) o.set("--zgap", zg);
+  if (!o.compact && bh > 0) o.set("--colh", Math.max(bh, o.STH + zg + zoneH + zg + o.ACT));
 }

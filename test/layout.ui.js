@@ -121,6 +121,20 @@ async function coach956(b,{W,H,L,R,B,theme,mirror,shift}){
   ok(!errs.length,`${tag}: no page errors `+errs.join('|'));
   await c.close();
 }
+// RULE-8: exact zone size on both sides of 400px tall. 46 under 400, 48 at 400 and taller, then the height formula.
+const ZONE956=[[360,46],[375,46],[399,49],[400,49],[401,50]];
+for(const [H,want] of ZONE956){
+  const c=await b.newContext({viewport:{width:956,height:H},isMobile:true,hasTouch:true,deviceScaleFactor:3,userAgent:IOS_UA});
+  await c.route(/supabase\.co/,r=>r.abort());
+  const p=await c.newPage();p.on('dialog',d=>d.accept());
+  await p.goto(BASE);
+  await p.evaluate(g=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Jules',num:'5',throws:'R'}];S.curPitcher='p_a';S.games.push(g);S.activeGame='g1';__app.store.save();__app.render();},GAME956);
+  await p.click('nav [data-t="game"]').catch(()=>{});await p.waitForTimeout(250);
+  const z=await p.evaluate(()=>{const coach=document.getElementById('coach');const box=document.querySelector('#cZone .zi').getBoundingClientRect();
+    return{px:getComputedStyle(coach).getPropertyValue('--z').trim(),w:box.width,h:box.height,ch:coach.clientHeight,compact:coach.classList.contains('compact')};});
+  ok(!z.compact&&z.ch===H&&z.px===want+'px'&&Math.abs(z.w-want)<=0.5&&Math.abs(z.h-want)<=0.5,`956x${H}: zone is ${want}px (--z ${z.px}, box ${z.w.toFixed(2)}×${z.h.toFixed(2)}, client ${z.ch})`);
+  await c.close();
+}
 for(const [L,R,B] of [[0,0,0],[62,0,21],[0,62,21],[62,62,21]])await coach956(b,{W:956,H:440,L,R,B,theme:'field',mirror:false,shift:true});
 await coach956(b,{W:956,H:384,L:62,R:0,B:0,theme:'field',mirror:false,shift:false});
 await coach956(b,{W:956,H:440,L:62,R:62,B:21,theme:'night',mirror:false,shift:true});

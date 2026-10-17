@@ -1,3 +1,9 @@
+## Gotchas
+
+A spec exception must be implemented as an explicit rule in code (a named CSS variable or branch) and tested with exact values on both sides of the boundary, never accepted because one screen size happens to land on the number. bug-landscape-956: the 46px under-400px floor passed at 384 by coincidence and broke at 375/360.
+PR body claims like "unchanged" must be verified with a pixel diff before posting.
+bug-landscape-956 reached Jim on his iPhone 17 Pro Max. The wristband left dead strips, the results sat low, and In dirt sat below the band. Regression: test/layout.ui.js.
+
 A migration that deletes every pitch with an illegal aim reached main via #14's history in supabase/migrations/20261015130000_delete_bad_aim_pitches.sql (the file itself merged in #24). supabase db push applies that folder. Those rows stay and are flagged. An owner-approved delete names the ids once, copies that set into a backup, and deletes from the backup inside a transaction that rolls back unless the approved, backup, and deleted counts match. Regression: test/pendingbadaim.pg.sh.
 The edit sheet used to open on loc when actualLoc disagreed; it follows actualOf. Regression: test/logic.test.js “edit sheet reads actualLoc before loc” and test/editpitch.ui.js.
 A shake-off used to demand a new aim; the original box stays, and a later aim tap can still replace it. Regression: test/logic.test.js RULE-3d and test/shake.ui.js.
