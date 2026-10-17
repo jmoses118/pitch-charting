@@ -287,7 +287,7 @@ body.mirror .coach .cband{order:3}body.mirror .coach .cres,body.mirror .coach .c
 html[data-theme="night"] .coach,html:not([data-theme]) .coach{--c-band-hdr:#1D2636;--c-band-line:#C3CAD6;--c-band-cell:#0D121B;--c-band-text:#fff}
 html[data-theme="night"] #cBand td button.on{background:#3A5CF0}
 .coach.dim .cband{opacity:.45}
-.cmid{position:relative;display:flex;flex-direction:column;gap:8px;width:var(--mid,216px)}
+.cmid{position:relative;display:flex;flex-direction:column;gap:var(--zgap,var(--c-zgap,8px));width:var(--mid,216px)}
 .cstatus{background:#1C1C1C;color:#fff;border-left:5px solid var(--c-royal);border-radius:12px;padding:1px 4px 1px 6px;height:var(--sth,100px);flex:0 0 auto;display:flex;flex-direction:column;gap:1px;overflow:hidden}
 html[data-theme="night"] .cstatus{background:#0D121B;border:1px solid #34445E;border-left:5px solid #3A5CF0}
 .cs-top{display:flex;align-items:center;gap:3px;font-size:12px;line-height:16px;white-space:nowrap}.cs-top b{flex:0 0 auto}
@@ -487,3 +487,16 @@ html[data-theme="field"] .gdismiss{color:var(--c-danger);border-color:var(--c-da
 #cmPause{width:100%;min-height:48px;margin-top:16px}
 @media (max-height:720px){#editZone{width:276px;height:auto;max-width:100%}}
 details.arch{margin-top:8px}details.arch>summary{min-height:48px;display:flex;align-items:center;font-weight:700;font-size:var(--fs-md);cursor:pointer}
+
+/* bug-landscape-956: coach layout sizes (moved out of coach.js) + column alignment */
+.coach{--c-gap:7px;--c-hdr:24px;--c-rh:28px;--c-res:106px;--c-kmax:56px;--c-zmax:56px;--c-sth:100px;--c-act:48px;--c-zgap:8px;
+  inset:0 0 auto 0;height:100vh;height:100svh;grid-template-columns:var(--bandw,auto) var(--mid,216px) var(--res,106px)}
+.coach:not(.compact){align-content:center}
+.coach.compact{--c-gap:5px;--c-rh:20px;--c-res:102px;--c-kmax:44px;--c-zmax:48px;--c-sth:112px}
+#cBand{width:auto}
+.coach:not(.compact) .cmid{height:var(--colh)}
+.coach:not(.compact) .cmid>.cslot{margin-top:auto}
+.coach:not(.compact) .crcol{height:var(--colh);align-self:start}
+.coach:not(.compact) .crcol>.cres{align-self:stretch;align-content:stretch;grid-auto-rows:1fr;height:100%}
+.coach:not(.compact) .cmenu{min-height:48px;min-width:48px}
+.coach:not(.compact) .cstatus{gap:0}

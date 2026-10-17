@@ -1,5 +1,10 @@
 # Changelog
 
+## v72 – The coach screen lines up on a large phone
+### Changed
+- **RULE-8.** On an iPhone 17 Pro Max turned sideways, the wristband fills its column, the results line up with the status card, and In dirt sits on the bottom of the band. The screen keeps its height when the Safari toolbar shows and hides.
+- Cache: `te-pitch-v70`.
+
 ## v71 – The Game tab opens a picker
 ### Changed
 - Tapping Game opens a list of games in progress. Start new game asks for the opponent and the pitcher before it creates anything. A draft can be discarded. Ending a game still asks first.
