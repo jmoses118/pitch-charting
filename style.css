@@ -489,11 +489,13 @@ html[data-theme="field"] .gdismiss{color:var(--c-danger);border-color:var(--c-da
 details.arch{margin-top:8px}details.arch>summary{min-height:48px;display:flex;align-items:center;font-weight:700;font-size:var(--fs-md);cursor:pointer}
 
 /* bug-landscape-956: coach layout sizes (moved out of coach.js) + column alignment */
-.coach{--c-gap:7px;--c-hdr:24px;--c-rh:28px;--c-res:106px;--c-kmax:56px;--c-zmax:56px;--c-sth:100px;--c-act:48px;--c-zgap:8px;
+.coach{--c-gap:7px;--c-hdr:24px;--c-rh:28px;--c-res:106px;--c-kmax:56px;--c-zmax:56px;--c-sth:100px;--c-act:48px;--c-zgap:8px;--c-zfloor:48px;--c-zgap-min:4px;
   inset:0 0 auto 0;height:100vh;height:100svh;grid-template-columns:var(--bandw,auto) var(--mid,216px) var(--res,106px)}
 .coach:not(.compact){align-content:center}
-.coach.compact{--c-gap:5px;--c-rh:20px;--c-res:102px;--c-kmax:44px;--c-zmax:48px;--c-sth:112px}
+.coach.compact{--c-gap:5px;--c-rh:20px;--c-res:102px;--c-kmax:44px;--c-zmax:48px;--c-sth:112px;
+  grid-template-columns:auto var(--mid,216px) var(--res,106px)}
 #cBand{width:auto}
+.coach.compact #cBand{width:100%}
 .coach:not(.compact) .cmid{height:var(--colh)}
 .coach:not(.compact) .cmid>.cslot{margin-top:auto}
 .coach:not(.compact) .crcol{height:var(--colh);align-self:start}

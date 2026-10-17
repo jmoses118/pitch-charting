@@ -96,7 +96,7 @@ async function coach956(b,{W,H,L,R,B,theme,mirror,shift}){
   ok(Math.abs(g.actB)<=2&&Math.abs(g.dl)<=2&&Math.abs(g.dr)<=2,`${tag}: dirt/over-catcher align to zone + band (bottom ${g.actB.toFixed(1)}, L ${g.dl.toFixed(1)}, R ${g.dr.toFixed(1)})`);
   ok(g.sw<=g.iw+1&&!g.offL&&!g.offR,`${tag}: no sideways scroll`);
   ok(g.minTap>=48,`${tag}: band, results, dirt and menu ≥48px (${g.minTap.toFixed(1)})`);
-  ok(H>=400?g.zoneTap>=48:g.zoneTap>=44,`${tag}: zone target ${g.zoneTap.toFixed(1)}px`);
+  ok(H>=400?g.zoneTap>=48:g.zoneTap>=46,`${tag}: zone target ${g.zoneTap.toFixed(1)}px`);
   if(mirror)ok(g.mirror&&g.band.l>g.st.l,`${tag}: band sits on the right`);
   if(shift){
     const snap=()=>p.evaluate(()=>{const R=s=>{const e=document.querySelector(s);const r=e.getBoundingClientRect();return{l:+r.left.toFixed(1),t:+r.top.toFixed(1),r:+r.right.toFixed(1),b:+r.bottom.toFixed(1)};};

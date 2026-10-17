@@ -62,7 +62,7 @@ function sizeCoach() {
   let k = Math.min(KMAX, Math.floor((Hh - HDR - LH) / rows));
   let bandH = HDR + LH + rows * k;
   let z = zFor(compact ? Hh : bandH);
-  if (!compact) z = Math.max(z, Math.min(48, zFor(Hh)));
+  if (!compact) z = Math.max(z, Math.min(v("--c-zfloor"), zFor(Hh)));
   z = Math.min(ZMAX, z);
   const wide = (W - RH - 2 * GAP - RES - cols * k - LW - 8) / (13 / 3);
   if (compact) z = Math.min(z, Math.floor(wide));
@@ -192,7 +192,8 @@ function fitCoachCol(compact, z, k, cols, RH, LW, Hh, bandH, STH, ZG, ACT, set) 
   if (box.width > 0) set("--bandw", box.width);
   const zoneH = (13 * z) / 3 + 8;
   const need0 = STH + ZG + zoneH + ZG + ACT;
-  const zg = need0 > bh + 2 ? Math.max(4, ZG - (need0 - bh) / 2) : ZG;
+  const zgMin = parseFloat(getComputedStyle($("coach")).getPropertyValue("--c-zgap-min")) || 0;
+  const zg = need0 > bh + 2 ? Math.max(zgMin, ZG - (need0 - bh) / 2) : ZG;
   if (!compact && bh > 0) set("--zgap", zg);
   if (!compact && bh > 0) set("--colh", Math.max(bh, STH + zg + zoneH + zg + ACT));
 }

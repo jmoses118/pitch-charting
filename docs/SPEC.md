@@ -34,7 +34,7 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
 - **RULE-5** Only one phone can score a game or bullpen session. Every other phone sees it live and read-only.
 - **RULE-6** Undo and Redo cover both the pitch and its location.
 - **RULE-7** Every popup has a working Cancel that leaves the data unchanged.
-- **RULE-8** The scoring screen fits on one iPhone screen without scrolling at widths of 375, 390 and 430 px. It uses compact pitch buttons, slim pitcher and count bars, and a large zone. Portrait wristband height stays 48. At <=390px wide, cells may be 42–44px wide so all 8 columns, plus the row and column headers, fit with no sideways scroll. On the SE coach screen (667×375) the strike box may be 34px; that is the SE exception.
+- **RULE-8** The scoring screen fits on one iPhone screen without scrolling at widths of 375, 390 and 430 px. It uses compact pitch buttons, slim pitcher and count bars, and a large zone. Portrait wristband height stays 48. At <=390px wide, cells may be 42–44px wide so all 8 columns, plus the row and column headers, fit with no sideways scroll. On the SE coach screen (667×375) the strike box may be 34px; that is the SE exception. Under 400px tall (Safari toolbar showing in landscape), zone cells may be 46px or more; otherwise the 48px floor applies.
 - **RULE-9** CSV export is per pitcher per date. One shared CSV row builder produces every row.
 - **RULE-10** Players are shown by first name and jersey number (`pitcherLabel`), and CSV file names use the same. No surnames.
 - **RULE-11** Jim can edit a pitcher's jersey number. Cancel leaves it unchanged.
@@ -78,7 +78,7 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | RULE-4a | unit: a CH called box 2 is kept, `calledFlag` is true, and an off-grid called box is null, on CSV import and on a sync read; SQL change-up target lists match `PC.CH_TARGETS`; Postgres: `test/badaim.pg.sh` keeps those rows and the preview still lists them |
 | RULE-5 | `lock.ui.js` + `live.sync.js`: a second phone is read-only and sees pitches live |
 | RULE-6, RULE-7 | unit: redo/undo state; UI: Cancel on every popup leaves the state unchanged |
-| RULE-8 | `fit.ui.js`: no vertical scroll at 375, 390 and 430 px; controls at least 48px; the portrait wristband shows all 8 columns with no sideways scroll (at <=390px wide, cells may be 42–44px wide, height stays 48); the SE coach screen (667×375) may use a 34px strike box; the location dot stays round and the box numbers are not squashed. `layout.ui.js`: at 375 and 390 at least 8 name characters plus `#12` are visible |
+| RULE-8 | `fit.ui.js`: no vertical scroll at 375, 390 and 430 px; controls at least 48px; the portrait wristband shows all 8 columns with no sideways scroll (at <=390px wide, cells may be 42–44px wide, height stays 48); the SE coach screen (667×375) may use a 34px strike box; the location dot stays round and the box numbers are not squashed. `layout.ui.js`: at 375 and 390 at least 8 name characters plus `#12` are visible; on the landscape coach screen, zone cells are at least 48px, or 46px when the screen is under 400px tall |
 | RULE-9 | unit: one row builder; export filtered to one pitcher and one date |
 | RULE-10 | unit: `pitcherLabel` and CSV file name include the jersey number; smoke: no surnames shown |
 | RULE-11, RULE-12 | UI: edit jersey number saves, and Cancel leaves it unchanged; smoke: branding unchanged |
