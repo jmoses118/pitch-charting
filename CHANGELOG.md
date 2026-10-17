@@ -5,6 +5,7 @@
 - **RULE-8.** On an iPhone 17 Pro Max turned sideways, the wristband fills its column, the results line up with the status card, and In dirt sits on the bottom of the band. The screen keeps its height when the Safari toolbar shows and hides.
 - 844×390, no insets: band cells 48px → 49px, results 50px below the status card → lined up with it, In dirt 12px below the band → on the band, ⋯ Game 44px → 48px.
 - On a landscape coach screen at least 700px wide and shorter than 400px, strike-zone cells are 46px where that fits, and smaller only when the screen cannot fit 46px. At 400px or taller they are at least 48px. The iPhone SE coach screen stays as it was. Jim approved fit-first on 2026-10-17. On those very short screens, In dirt may sit a few pixels below the band.
+- At 844×360 and 932×360, In dirt and the results stay on the screen.
 - Cache: `te-pitch-v70`.
 
 ## v71 – The Game tab opens a picker

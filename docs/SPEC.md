@@ -81,7 +81,7 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | RULE-4a | unit: a CH called box 2 is kept, `calledFlag` is true, and an off-grid called box is null, on CSV import and on a sync read; SQL change-up target lists match `PC.CH_TARGETS`; Postgres: `test/badaim.pg.sh` keeps those rows and the preview still lists them |
 | RULE-5 | `lock.ui.js` + `live.sync.js`: a second phone is read-only and sees pitches live |
 | RULE-6, RULE-7 | unit: redo/undo state; UI: Cancel on every popup leaves the state unchanged |
-| RULE-8 | `fit.ui.js`: no vertical scroll at 375, 390 and 430 px; controls at least 48px; the portrait wristband shows all 8 columns with no sideways scroll (at <=390px wide, cells may be 42–44px wide, height stays 48); the SE coach screen (667×375) may use a 34px strike box; the location dot stays round and the box numbers are not squashed. `layout.ui.js`: at 375 and 390 at least 8 name characters plus `#12` are visible. 46px under 400 where it fits (Jim 2026-10-17, fit-first). SE unchanged |
+| RULE-8 | `fit.ui.js`: no vertical scroll at 375, 390 and 430 px; controls at least 48px; the portrait wristband shows all 8 columns with no sideways scroll (at <=390px wide, cells may be 42–44px wide, height stays 48); the SE coach screen (667×375) may use a 34px strike box; the location dot stays round and the box numbers are not squashed. `layout.ui.js`: at 375 and 390 at least 8 name characters plus `#12` are visible |
 | RULE-9 | unit: one row builder; export filtered to one pitcher and one date |
 | RULE-10 | unit: `pitcherLabel` and CSV file name include the jersey number; smoke: no surnames shown |
 | RULE-11, RULE-12 | UI: edit jersey number saves, and Cancel leaves it unchanged; smoke: branding unchanged |
@@ -94,6 +94,8 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | ARCH-1 | `test/arch.scan.js` passes on the tree. Negative cases are `test/arch.negative.js` and `test/dup.scan.js`. |
 | INFRA-3 | `test/prodref.test.js`: a non-production host shows the sync-off warning and does not point at production; an uppercase production URL and a split project ref are refused; a migration on the base branch with identical bytes is exempt; a backdated new migration is not; `test/pg-migrate.sh` allows only `localhost` or `127.0.0.1` |
 | BRIEF-1, BRIEF-2, BRIEF-3, BRIEF-4, BRIEF-5, BRIEF-6, BRIEF-7, BRIEF-8 | `AGENTS.md` Standard builder brief. BRIEF-5 is `test/prsize.js` and `test/prgate.negative.js`. BRIEF-7 is `test/changelog.js` and `test/prgate.negative.js`. BRIEF-6 is not enforced in this tree. |
+
+RULE-8 coach zone floor, same tests: under 400px tall, zone cells are 46px where it fits; smaller only when the screen cannot fit 46px (approved by Jim 2026-10-17, fit-first). The SE screen is unchanged. Exact sizes are checked at 956 and 844 wide. 844×360 and 932×360 keep every coach button on screen.
 
 ## Architecture
 Each business rule lives in one `js/core` module. UI files render and forward events. They do not keep a second validator or a second copy of a rule.

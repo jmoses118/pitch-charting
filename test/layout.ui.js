@@ -122,8 +122,8 @@ async function coach956(b,{W,H,L,R,B,theme,mirror,shift}){
   await c.close();
 }
 // RULE-8: exact zone size. Under 400px, 46px where it fits (Jim 2026-10-17, fit-first).
-// Bare 956×360 is 43. 46 still fits at 956×375 with no home bar, at 956×384, and at 844×390 with 47/47/21.
-const ZONE956=[[956,360,0,0,0,43],[956,375,0,0,0,46],[956,384,0,0,0,46],[956,375,62,0,0,46],[956,384,62,0,0,46],[956,399,0,0,0,49],[956,400,0,0,0,49],[956,401,0,0,0,50],[844,390,47,47,21,46]];
+// The same heights are checked at 956 and 844 wide. Bare 360 is 43. 46 still fits at 375 with no home bar, at 384, and at 844×390 with 47/47/21.
+const ZONE956=[[956,360,0,0,0,43],[956,375,0,0,0,46],[956,384,0,0,0,46],[956,375,62,0,0,46],[956,384,62,0,0,46],[956,399,0,0,0,49],[956,400,0,0,0,49],[956,401,0,0,0,50],[844,360,0,0,0,43],[844,375,0,0,0,46],[844,384,0,0,0,46],[844,399,0,0,0,49],[844,400,0,0,0,49],[844,401,0,0,0,50],[844,390,47,47,21,46]];
 for(const [W,H,L,R,Btm,want] of ZONE956){
   const c=await b.newContext({viewport:{width:W,height:H},isMobile:true,hasTouch:true,deviceScaleFactor:3,userAgent:IOS_UA});
   await c.route(/supabase\.co/,r=>r.abort());
@@ -167,6 +167,8 @@ async function coachFits(b,W,H,L,R,Btm){
   await c.close();
 }
 for(const [W,H] of [[956,360],[956,375]])for(const [L,R,Btm] of [[62,0,0],[62,62,21]])await coachFits(b,W,H,L,R,Btm);
+// 844×360 and 932×360: In dirt and the results used to end 2px off the screen.
+for(const W of [844,932])await coachFits(b,W,360,0,0,0);
 for(const [L,R,B] of [[0,0,0],[62,0,21],[0,62,21],[62,62,21]])await coach956(b,{W:956,H:440,L,R,B,theme:'field',mirror:false,shift:true});
 await coach956(b,{W:956,H:384,L:62,R:0,B:0,theme:'field',mirror:false,shift:false});
 await coach956(b,{W:956,H:440,L:62,R:62,B:21,theme:'night',mirror:false,shift:true});
