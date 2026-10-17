@@ -62,9 +62,9 @@ function sizeCoach() {
   let k = Math.min(KMAX, Math.floor((Hh - HDR - LH) / rows));
   let bandH = HDR + LH + rows * k;
   let z = zFor(compact ? Hh : bandH);
-  // Under 400px the floor is 46. At 400 or taller it is 48. Compact skips it.
   const zName = el.clientHeight < 400 ? "--c-zfloor-short" : "--c-zfloor";
-  if (!compact) z = Math.max(z, v(zName));
+  // prettier-ignore
+  if (!compact) z = Math.max(z, Math.min(v(zName), coachZFor(Hh, STH, v("--c-zgap-min"), ACT)));
   z = Math.min(ZMAX, z);
   const wide = (W - RH - 2 * GAP - RES - cols * k - LW - 8) / (13 / 3);
   if (compact) z = Math.min(z, Math.floor(wide));

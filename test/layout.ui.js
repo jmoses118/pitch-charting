@@ -121,20 +121,52 @@ async function coach956(b,{W,H,L,R,B,theme,mirror,shift}){
   ok(!errs.length,`${tag}: no page errors `+errs.join('|'));
   await c.close();
 }
-// RULE-8: exact zone size on both sides of 400px tall. 46 under 400, 48 at 400 and taller, then the height formula.
-const ZONE956=[[360,46],[375,46],[399,49],[400,49],[401,50]];
-for(const [H,want] of ZONE956){
-  const c=await b.newContext({viewport:{width:956,height:H},isMobile:true,hasTouch:true,deviceScaleFactor:3,userAgent:IOS_UA});
+// RULE-8: exact zone size. Under 400px, 46px where it fits (Jim 2026-10-17, fit-first).
+// Bare 956×360 is 43. 46 still fits at 956×375 with no home bar, at 956×384, and at 844×390 with 47/47/21.
+const ZONE956=[[956,360,0,0,0,43],[956,375,0,0,0,46],[956,384,0,0,0,46],[956,375,62,0,0,46],[956,384,62,0,0,46],[956,399,0,0,0,49],[956,400,0,0,0,49],[956,401,0,0,0,50],[844,390,47,47,21,46]];
+for(const [W,H,L,R,Btm,want] of ZONE956){
+  const c=await b.newContext({viewport:{width:W,height:H},isMobile:true,hasTouch:true,deviceScaleFactor:3,userAgent:IOS_UA});
   await c.route(/supabase\.co/,r=>r.abort());
   const p=await c.newPage();p.on('dialog',d=>d.accept());
+  if(L||R||Btm){const cdp=await c.newCDPSession(p);await cdp.send('Emulation.setSafeAreaInsetsOverride',{insets:{top:0,left:L,right:R,bottom:Btm}});}
   await p.goto(BASE);
   await p.evaluate(g=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Jules',num:'5',throws:'R'}];S.curPitcher='p_a';S.games.push(g);S.activeGame='g1';__app.store.save();__app.render();},GAME956);
-  await p.click('nav [data-t="game"]').catch(()=>{});await p.waitForTimeout(250);
+  if(!await p.evaluate(()=>document.body.classList.contains('coachmode')))await p.click('nav [data-t="game"]').catch(()=>{});
+  await p.waitForTimeout(250);
   const z=await p.evaluate(()=>{const coach=document.getElementById('coach');const box=document.querySelector('#cZone .zi').getBoundingClientRect();
     return{px:getComputedStyle(coach).getPropertyValue('--z').trim(),w:box.width,h:box.height,ch:coach.clientHeight,compact:coach.classList.contains('compact')};});
-  ok(!z.compact&&z.ch===H&&z.px===want+'px'&&Math.abs(z.w-want)<=0.5&&Math.abs(z.h-want)<=0.5,`956x${H}: zone is ${want}px (--z ${z.px}, box ${z.w.toFixed(2)}×${z.h.toFixed(2)}, client ${z.ch})`);
+  ok(!z.compact&&z.ch===H&&z.px===want+'px'&&Math.abs(z.w-want)<=0.5&&Math.abs(z.h-want)<=0.5,`${W}x${H} inset ${L}/${R}/${Btm}: zone is ${want}px (--z ${z.px}, box ${z.w.toFixed(2)}×${z.h.toFixed(2)}, client ${z.ch})`);
   await c.close();
 }
+// Notch-only (62/0/0) and both sides plus the home bar (62/62/21). Buttons stay on screen. In dirt may sit below the band.
+async function coachFits(b,W,H,L,R,Btm){
+  const tag=`${W}x${H} inset ${L}/${R}/${Btm}`;
+  const c=await b.newContext({viewport:{width:W,height:H},isMobile:true,hasTouch:true,deviceScaleFactor:3,userAgent:IOS_UA});
+  await c.route(/supabase\.co/,r=>r.abort());
+  const p=await c.newPage();p.on('dialog',d=>d.accept());
+  const cdp=await c.newCDPSession(p);
+  await cdp.send('Emulation.setSafeAreaInsetsOverride',{insets:{top:0,left:L,right:R,bottom:Btm}});
+  await p.goto(BASE);
+  await p.evaluate(g=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Jules',num:'5',throws:'R'}];S.curPitcher='p_a';S.games.push(g);S.activeGame='g1';__app.store.save();__app.render();},GAME956);
+  if(!await p.evaluate(()=>document.body.classList.contains('coachmode')))await p.click('nav [data-t="game"]').catch(()=>{});
+  await p.waitForTimeout(250);
+  const g=await p.evaluate(home=>{
+    const btns=[...document.querySelectorAll('#coach button')].filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0;});
+    const bad=[];
+    for(const e of btns){const r=e.getBoundingClientRect();
+      const off=r.left<-.5||r.top<-.5||r.right>innerWidth+.5||r.bottom>innerHeight+.5;
+      const homeBar=r.bottom>innerHeight-home+.5;
+      if(off||homeBar)bad.push((e.getAttribute('aria-label')||e.textContent||'').trim().slice(0,24));}
+    const de=document.documentElement;
+    return{n:btns.length,bad,scroll:de.scrollWidth>innerWidth+1||de.scrollHeight>innerHeight+1,
+      band:!!document.querySelector('#cBand td button'),zone:!!document.querySelector('#cZone button'),
+      res:!!document.querySelector('#cRes button'),act:!!document.querySelector('#cAct button'),menu:!!document.getElementById('cxMenu')};
+  },Btm);
+  ok(g.band&&g.zone&&g.res&&g.act&&g.menu&&g.n>0&&!g.bad.length,`${tag}: every coach button is inside the viewport and above the home-bar inset${g.bad.length?' → '+g.bad.slice(0,4).join(' | '):''} (${g.n})`);
+  ok(!g.scroll,`${tag}: no scrolling`);
+  await c.close();
+}
+for(const [W,H] of [[956,360],[956,375]])for(const [L,R,Btm] of [[62,0,0],[62,62,21]])await coachFits(b,W,H,L,R,Btm);
 for(const [L,R,B] of [[0,0,0],[62,0,21],[0,62,21],[62,62,21]])await coach956(b,{W:956,H:440,L,R,B,theme:'field',mirror:false,shift:true});
 await coach956(b,{W:956,H:384,L:62,R:0,B:0,theme:'field',mirror:false,shift:false});
 await coach956(b,{W:956,H:440,L:62,R:62,B:21,theme:'night',mirror:false,shift:true});
