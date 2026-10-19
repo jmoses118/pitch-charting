@@ -30,25 +30,63 @@ function hintText(){const cmp=$('coach').classList.contains('compact');if(sideCa
   if(step==='type')return['1',cmp?'Tap a cell':'Tap a wristband cell'];
   if(step==='called')return['2',cmp?'Aim?':'Tap the aim'];if(step==='actual')return['2',cmp?'Where?':'Tap where it went'];return['3',cmp?'Result?':'Tap the result'];}
 function renderHint(){const e=$('cxHint');if(!e)return;const note=PC.aimNote(pullDraft());if(note){e.className='cs-hint msg warn';e.textContent=note;return;}const d=pullDraft();if(cMsg&&(!d.aimEdit||cMsg.kind==='warn')){e.className='cs-hint msg '+cMsg.kind;e.textContent=cMsg.t;return;}const h=hintText();e.className='cs-hint';e.innerHTML=h?`<span class="cs-n">${H(h[0])}</span>${H(h[1])}`:'';}
-function sizeCoach(){const sh=curSheet(),cols=sh?Math.max(...sh.rows.map(r=>r.length),1):8,rows=sh?sh.rows.length:7;const el=$('coach'),cs=getComputedStyle(el);
-  const padX=parseFloat(cs.paddingLeft)+parseFloat(cs.paddingRight),padY=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom);
-  const W=el.clientWidth-padX,Hh=el.clientHeight-padY,compact=W+padX<700,GAP=compact?5:7,HDR=24,LN=1.5,RH=compact?20:28,RES=compact?102:106,KMAX=compact?44:48;
-  // padding already holds the safe-area insets; count the (rows+1)/(cols+1) 1.5px grid lines so the band never runs into the home bar
-  const LH=(rows+1)*LN,LW=(cols+1)*LN,mid=z=>Math.round(z*3+z*4/3+8);
-  let k=Math.min(KMAX,Math.floor((Hh-HDR-LH)/rows)),z=48;
-  const STH=compact?112:100,ACT=48,ZONEGAP=8;z=Math.min(48,Math.floor((Hh-STH-8-8-ACT-ZONEGAP-1)/(13/3)));el.style.setProperty('--sth',STH+'px');
-  if(compact)z=Math.min(z,Math.floor((W-RH-2*GAP-RES-cols*k-LW-8)/(13/3)));
-  else if(RH+LW+cols*k+GAP+mid(z)+GAP+RES>W){const f=(W-RH-LW-2*GAP-RES-8)/(cols+13/3);k=Math.min(k,Math.floor(f));z=Math.min(z,Math.floor(f));}
-  el.classList.toggle('compact',compact);$('cxMenu').textContent=compact?'⋯':'⋯ Game';
-  el.style.setProperty('--k',k+'px');el.style.setProperty('--z',z+'px');el.style.setProperty('--mid',mid(z)+'px');el.style.setProperty('--rh',RH+'px');el.style.setProperty('--res',RES+'px');}
+function sizeCoach() {
+  const sh = curSheet(),
+    cols = sh ? Math.max(...sh.rows.map((r) => r.length), 1) : 8,
+    rows = sh ? sh.rows.length : 7;
+  const el = $("coach"),
+    cs = getComputedStyle(el);
+  const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+  const padY = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+  const W = el.clientWidth - padX,
+    Hh = el.clientHeight - padY;
+  const compact = W + padX < 700;
+  el.classList.toggle("compact", compact);
+  el.style.removeProperty("--zgap");
+  const v = (n) => parseFloat(getComputedStyle(el).getPropertyValue(n)) || 0;
+  const GAP = v("--c-gap"),
+    HDR = v("--c-hdr"),
+    LN = 1.5;
+  const RH = v("--c-rh"),
+    RES = v("--c-res");
+  const KMAX = v("--c-kmax"),
+    ZMAX = v("--c-zmax");
+  const STH = v("--c-sth"),
+    ACT = v("--c-act"),
+    ZG = v("--c-zgap");
+  const set = (n, x) => el.style.setProperty(n, x + "px");
+  const LH = (rows + 1) * LN,
+    LW = (cols + 1) * LN;
+  const mid = (z) => Math.round(z * 3 + (z * 4) / 3 + 8);
+  const zFor = (h) => coachZFor(h, STH, ZG, ACT);
+  let k = Math.min(KMAX, Math.floor((Hh - HDR - LH) / rows));
+  let bandH = HDR + LH + rows * k;
+  let z = zFor(compact ? Hh : bandH);
+  const zName = el.clientHeight < 400 ? "--c-zfloor-short" : "--c-zfloor";
+  // prettier-ignore
+  if (!compact) z = Math.max(z, Math.min(v(zName), coachZFor(Hh, STH, v("--c-zgap-min"), ACT)));
+  z = Math.min(ZMAX, z);
+  const wide = (W - RH - 2 * GAP - RES - cols * k - LW - 8) / (13 / 3);
+  if (compact) z = Math.min(z, Math.floor(wide));
+  const f = (W - RH - LW - 2 * GAP - RES) / (cols + 13 / 3);
+  const over = RH + LW + cols * k + GAP + mid(z) + GAP + RES > W;
+  if (over) k = Math.min(k, Math.floor(f));
+  if (over) bandH = HDR + LH + rows * k;
+  if (over) z = Math.min(z, Math.floor(f), zFor(bandH));
+  $("cxMenu").textContent = compact ? "⋯" : "⋯ Game";
+  set("--k", k);
+  set("--z", z);
+  set("--mid", mid(z));
+  fitCoachCol({ compact, z, k, cols, RH, LW, Hh, bandH, STH, ZG, ACT, set, v });
+}
 function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,hand=curHand(),cp=curPitcherId();
-  document.body.classList.toggle('mirror',PREF.get('mirror','0')==='1');sizeCoach();
+  document.body.classList.toggle('mirror',PREF.get('mirror','0')==='1');
   // band
   $('cNoBand').classList.toggle('hide',!!sh);$('cBand').classList.toggle('hide',!sh);
   if(sh){const cols=sh.cols&&sh.cols.length?sh.cols:PC.sheetCols(Math.max(...sh.rows.map(r=>r.length)));
     $('cBand').innerHTML=`<thead><tr><th class="corner" aria-hidden="true"></th>${cols.map(x=>`<th scope="col">${H(x)}</th>`).join('')}</tr></thead><tbody>`+sh.rows.map((row,r)=>`<tr><th scope="row">${r+1}</th>${cols.map((_,ci)=>{const t=(row[ci]||'').trim();const on=D.cell&&D.cell.sheet===sh.id&&D.cell.r===r&&D.cell.c===ci;
       return `<td><button data-r="${r}" data-c="${ci}" class="${on?'on':''}" aria-pressed="${on}" aria-label="${H(PC.cellCode(sh,r,ci))} ${H(t||'empty')}" ${t?'':'disabled'}>${H(t)}</button></td>`;}).join('')}</tr>`).join('')+'</tbody>';}
-  $('coach').classList.toggle('dim',!!(D.aimEdit||D.ip));
+  $('coach').classList.toggle('dim',!!(D.aimEdit||D.ip));sizeCoach();
   // status
   const pit=S().pitchers.find(p=>p.id===cp);$('cxPitcher').textContent=pit?PC.pitcherLabel(pit):'Pick a pitcher';$('cxInn').textContent=inningTag(g);const cmp=$('coach').classList.contains('compact');$('cxOuts').textContent=cmp?'●'.repeat(c.outs)+'○'.repeat(Math.max(0,3-c.outs)):c.outs+(c.outs===1?' out':' outs');$('cxOuts').setAttribute('aria-label',c.outs+' out'+(c.outs===1?'':'s'));$('cxCount').textContent=c.b+'-'+c.s;
   const b=g.lineup[c.slot]||{};$('cxBat').innerHTML=cmp?`<b>${b.num?'#'+H(b.num):H(b.name||'Batter '+(c.slot+1))}</b> · ${hand==='L'?'LHB':'RHB'} · <span title="Pitches">⚾ ${PC.pitchCount(g.pitches,cp)}</span>`:`<span class="ic" aria-hidden="true">👤</span><b>${b.num?'#'+H(b.num)+' ':''}${H(b.name||'Batter '+(c.slot+1))}</b> · ${hand==='L'?'LHB':'RHB'} · <span title="Pitches">⚾ ${PC.pitchCount(g.pitches,cp)}</span>`;
@@ -145,3 +183,33 @@ $('thSel').onchange=e=>{PREF.set('theme',e.target.value);applyTheme();render();}
 $('csBand').onclick=()=>openBandSetup(typeof csCur==='function'&&csCur()?csCur().id:null);
 document.querySelectorAll('.thseg [data-th]').forEach(b=>b.onclick=()=>{PREF.set('theme',b.dataset.th);applyTheme();render();});
 function renderDisplayPrefs(){const th=PREF.get('theme','field');document.querySelectorAll('.thseg [data-th]').forEach(b=>{b.classList.toggle('on',b.dataset.th===th);b.setAttribute('aria-pressed',b.dataset.th===th);});$('thSel').value=th;$('mirrorChk').checked=PREF.get('mirror','0')==='1';}
+function coachZoneH(z) {
+  return (13 * z) / 3 + 8;
+}
+function coachZFor(h, sth, zg, act) {
+  const room = h - sth - zg - act - zg - 1;
+  let z = 0;
+  while (coachZoneH(z + 1) <= room) z += 1;
+  return z;
+}
+function fitCoachCol(o) {
+  let z = o.z;
+  if (!o.compact) {
+    const fit = Math.min(o.v("--c-zfloor"), coachZFor(o.Hh, o.STH, o.ZG, o.ACT));
+    if (fit > z) {
+      z = fit;
+      o.set("--z", z);
+      o.set("--mid", Math.round(z * 3 + (z * 4) / 3 + 8));
+    }
+  }
+  o.set("--bandw", o.RH + o.LW + o.cols * o.k);
+  o.set("--colh", o.compact ? o.Hh : o.bandH);
+  const box = $("cBand").getBoundingClientRect();
+  const bh = box.height;
+  if (box.width > 0) o.set("--bandw", box.width);
+  const zoneH = coachZoneH(z);
+  const need0 = o.STH + o.ZG + zoneH + o.ZG + o.ACT;
+  const zg = need0 > bh + 2 ? Math.max(o.v("--c-zgap-min"), o.ZG - (need0 - bh) / 2) : o.ZG;
+  if (!o.compact && bh > 0) o.set("--zgap", zg);
+  if (!o.compact && bh > 0) o.set("--colh", Math.max(bh, o.STH + zg + zoneH + zg + o.ACT));
+}

@@ -1,11 +1,24 @@
 # Changelog
 
-## v72 – A file move with no edits is free
+## v76 – A file move counts only when the bytes match
 ### Changed
-- **BRIEF-5.** The chart works the same. A word-for-word file move does not count toward the 300-line limit when both paths are counted or both are under test.
-- A long line that was already in the file can move with it.
-- Moving a file out of test counts the whole file, even if that move also changes a line.
-- A move that stays on a counted path counts only the changed lines. A new line longer than 500 characters still fails.
+- **BRIEF-5.** The chart works the same. A word-for-word file move is free only when the two copies are the same bytes, and both paths are counted or both are under test.
+- Reordering lines is not word-for-word. That move counts every deleted line and every added line.
+- Moving a file into test counts the old file. Moving a file out of test counts the new file.
+- A move that changes any byte counts the whole old file plus the whole new file. A new line longer than 500 characters still fails.
+- The workflow file is a gate file, so moving it is not free.
+
+## v75 – Old backup tables are removed
+### Changed
+- Jim approved deleting four leftover backup tables from 15 October 2026: the full copies of pitches, sessions, games, and notes. The live tables stay. The migration drops only those four copies.
+
+## v74 – The coach screen lines up on a large phone
+### Changed
+- **RULE-8.** On an iPhone 17 Pro Max turned sideways, the wristband fills its column, the results line up with the status card, and In dirt sits on the bottom of the band. The screen keeps its height when the Safari toolbar shows and hides.
+- 844×390, no insets: band cells 48px → 49px, results 50px below the status card → lined up with it, In dirt 12px below the band → on the band, ⋯ Game 44px → 48px.
+- On a landscape coach screen at least 700px wide and shorter than 400px, strike-zone cells are 46px where that fits, and smaller only when the screen cannot fit 46px. At 400px or taller they are at least 48px. The iPhone SE coach screen stays as it was. Jim approved fit-first on 2026-10-17. On those very short screens, In dirt may sit a few pixels below the band.
+- At 844×360 and 932×360, In dirt and the results stay on the screen.
+- Cache: `te-pitch-v70`.
 
 ## v71 – The Game tab opens a picker
 ### Changed

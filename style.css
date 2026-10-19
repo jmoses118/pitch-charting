@@ -274,12 +274,17 @@ html[data-theme="field"] #flash{background:#0E5A24}
 html[data-theme="night"]{--c-bg:#000000}
 /* ---------- coach pitch-calling screen (landscape) ---------- */
 body.coachmode{padding:0;overflow:hidden}body.coachmode header,body.coachmode main,body.coachmode nav,body.coachmode #toast,body.coachmode #flash{display:none!important}
-.coach{position:fixed;inset:0;z-index:7;display:grid;grid-template-columns:auto var(--mid,216px) var(--res,106px);gap:7px;justify-content:center;align-items:start;background:var(--c-bg);
+.coach{position:fixed;z-index:7;display:grid;justify-content:center;align-items:start;background:var(--c-bg);
+  --c-gap:7px;--c-hdr:24px;--c-rh:28px;--c-res:106px;--c-kmax:56px;--c-zmax:56px;--c-sth:100px;--c-act:48px;--c-zgap:8px;--c-zfloor:48px;--c-zfloor-short:46px;--c-zgap-min:4px;
+  /* 100vh is the fallback. 100svh holds the height when the Safari toolbar shows and hides. */
+  inset:0 0 auto 0;height:100vh;height:100svh;gap:var(--c-gap,7px);
+  grid-template-columns:var(--bandw,auto) var(--mid,216px) var(--c-res,106px);
   padding:4px max(6px,env(safe-area-inset-right)) max(4px,env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left))}
 body.mirror .coach .cband{order:3}body.mirror .coach .cres,body.mirror .coach .crcol{order:1}
+body.mirror .coach{grid-template-columns:var(--mid,216px) var(--c-res,106px) var(--bandw,auto)}
 #cBand{border-collapse:collapse;table-layout:fixed}
 #cBand th{text-align:center;background:var(--c-band-hdr,#E9ECF2);color:var(--c-text);font-weight:800;border:1.5px solid var(--c-band-line,#1C1C1C);padding:0}
-#cBand thead th{height:24px;font-size:15px}#cBand tbody th{width:var(--rh,28px);font-size:17px}#cBand th.corner{width:var(--rh,28px)}
+#cBand thead th{height:24px;font-size:15px}#cBand tbody th{width:var(--c-rh,28px);font-size:17px}#cBand th.corner{width:var(--c-rh,28px)}
 #cBand td{border:1.5px solid var(--c-band-line,#1C1C1C);padding:0;width:var(--k);height:var(--k)}
 #cBand td button{display:block;width:var(--k);height:var(--k);min-height:0;border:0;border-radius:0;padding:0 1px;background:var(--c-band-cell,#fff);color:var(--c-band-text,#1C1C1C);font-weight:800;font-size:calc(var(--k)*.27);line-height:1.05;white-space:nowrap;overflow:hidden}
 #cBand td button.on{background:var(--c-royal);color:#fff}
@@ -287,8 +292,8 @@ body.mirror .coach .cband{order:3}body.mirror .coach .cres,body.mirror .coach .c
 html[data-theme="night"] .coach,html:not([data-theme]) .coach{--c-band-hdr:#1D2636;--c-band-line:#C3CAD6;--c-band-cell:#0D121B;--c-band-text:#fff}
 html[data-theme="night"] #cBand td button.on{background:#3A5CF0}
 .coach.dim .cband{opacity:.45}
-.cmid{position:relative;display:flex;flex-direction:column;gap:8px;width:var(--mid,216px)}
-.cstatus{background:#1C1C1C;color:#fff;border-left:5px solid var(--c-royal);border-radius:12px;padding:1px 4px 1px 6px;height:var(--sth,100px);flex:0 0 auto;display:flex;flex-direction:column;gap:1px;overflow:hidden}
+.cmid{position:relative;display:flex;flex-direction:column;gap:var(--zgap,var(--c-zgap,8px));width:var(--mid,216px)}
+.cstatus{background:#1C1C1C;color:#fff;border-left:5px solid var(--c-royal);border-radius:12px;padding:1px 4px 1px 6px;height:var(--c-sth,100px);flex:0 0 auto;display:flex;flex-direction:column;gap:1px;overflow:hidden}
 html[data-theme="night"] .cstatus{background:#0D121B;border:1px solid #34445E;border-left:5px solid #3A5CF0}
 .cs-top{display:flex;align-items:center;gap:3px;font-size:12px;line-height:16px;white-space:nowrap}.cs-top b{flex:0 0 auto}
 .cchip{border:1.5px solid #C3CAD6;border-radius:8px;padding:0 4px;font-size:12px;white-space:nowrap;font-weight:700;line-height:16px}
@@ -487,3 +492,16 @@ html[data-theme="field"] .gdismiss{color:var(--c-danger);border-color:var(--c-da
 #cmPause{width:100%;min-height:48px;margin-top:16px}
 @media (max-height:720px){#editZone{width:276px;height:auto;max-width:100%}}
 details.arch{margin-top:8px}details.arch>summary{min-height:48px;display:flex;align-items:center;font-weight:700;font-size:var(--fs-md);cursor:pointer}
+
+/* bug-landscape-956: compact keeps the old column; wide screens align to the measured band */
+.coach:not(.compact){align-content:center}
+.coach.compact{--c-gap:5px;--c-rh:20px;--c-res:102px;--c-kmax:44px;--c-zmax:48px;--c-sth:112px;
+  grid-template-columns:auto var(--mid,216px) var(--c-res,106px)}
+#cBand{width:auto}
+.coach.compact #cBand{width:100%}
+.coach:not(.compact) .cmid{height:var(--colh)}
+.coach:not(.compact) .cmid>.cslot{margin-top:auto}
+.coach:not(.compact) .crcol{height:var(--colh);align-self:start}
+.coach:not(.compact) .crcol>.cres{align-self:stretch;align-content:stretch;grid-auto-rows:1fr;height:100%}
+.coach:not(.compact) .cmenu{min-height:48px;min-width:48px}
+.coach:not(.compact) .cstatus{gap:0}

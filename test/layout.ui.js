@@ -61,4 +61,116 @@ for(const [label,arg] of [['plain',null],['staging override','https://staging-ex
     const s=await p.evaluate(()=>{const el=document.getElementById('envBar');return {host:location.hostname,banner:window.PC_CONFIG.banner,shown:getComputedStyle(el).display!=='none'&&el.getBoundingClientRect().height>1};});
     ok(s.host==='jmoses118.github.io'&&s.banner===''&&!s.shown,`live host ${label} ${tab}: banner hidden`);}
   ok(!errs.length,`live host ${label}: no page errors `+errs.join('|'));await c.close();}
+// RULE-8 / bug-landscape-956: iPhone 17 Pro Max coach screen (956×440). The wristband fills its column,
+// results line up with the status card, In dirt sits on the band, and a 440→384→440 toolbar change does not leave a shift.
+const IOS_UA='Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1';
+const GAME956={id:'g1',date:'2026-10-13',opponent:'Storm',homeAway:'home',status:'active',started:1,lineup:[{slot:1,name:'Batter 1',num:'1',hand:'R'},{slot:2,name:'Batter 2',num:'2',hand:'R'}],cur:{inning:1,outs:0,slot:1,b:0,s:0,abn:1},pitches:[]};
+async function coach956(b,{W,H,L,R,B,theme,mirror,shift}){
+  const tag=`${W}x${H} inset ${L}/${R}/${B}${theme==='night'?' night':''}${mirror?' mirror':''}`;
+  const c=await b.newContext({viewport:{width:W,height:H},isMobile:true,hasTouch:true,deviceScaleFactor:3,userAgent:IOS_UA});
+  await c.route(/supabase\.co/,r=>r.abort());
+  await c.addInitScript(opt=>{localStorage.setItem('te_ui_theme',opt.theme);if(opt.mirror)localStorage.setItem('te_ui_mirror','1');},{theme,mirror});
+  const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());
+  const cdp=await c.newCDPSession(p);
+  await cdp.send('Emulation.setSafeAreaInsetsOverride',{insets:{top:0,left:L,right:R,bottom:B}});
+  await p.goto(BASE);
+  await p.evaluate(g=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Jules',num:'5',throws:'R'}];S.curPitcher='p_a';S.games.push(g);S.activeGame='g1';__app.store.save();__app.render();},GAME956);
+  await p.click('nav [data-t="game"]').catch(()=>{});await p.waitForTimeout(300);
+  const g=await p.evaluate(()=>{const R=s=>{const e=document.querySelector(s);if(!e)return null;const r=e.getBoundingClientRect();return{l:r.left,t:r.top,r:r.right,b:r.bottom,w:r.width,h:r.height};};
+    const band=R('#cBand'),st=R('#cStatus'),z=R('#cZone'),a=R('#cAct'),col=R('.cband'),cr=R('.crcol');
+    const res=[...document.querySelectorAll('#cRes button')].map(e=>e.getBoundingClientRect());
+    const td=R('#cBand td'),bt=R('#cBand td button');
+    const tap=s=>{const e=document.querySelector(s);const r=e.getBoundingClientRect();return Math.min(r.width,r.height);};
+    const taps=['#cBand td button','#cRes button','#cAct [data-z="31"]','#cAct [data-z="32"]','#cxMenu'].map(tap);
+    const left=Math.min(band.l,R('.cmid').l,cr.l),right=Math.max(band.r,R('.cmid').r,cr.r,Math.max(...res.map(r=>r.right)));
+    const padL=parseFloat(getComputedStyle(document.getElementById('coach')).paddingLeft),padR=parseFloat(getComputedStyle(document.getElementById('coach')).paddingRight);
+    return{coach:document.body.classList.contains('coachmode'),fill:td.w-bt.w,colGap:Math.abs((col?col.w:0)-band.w),resTop:Math.min(...res.map(r=>r.top))-st.t,
+      bottom:Math.max(band.b,a.b,...res.map(r=>r.bottom)),actB:a.b-band.b,dl:a.l-z.l,dr:a.r-z.r,sw:document.documentElement.scrollWidth,iw:innerWidth,
+      gapL:left-padL,gapR:innerWidth-padR-right,minTap:Math.min(...taps),zoneTap:tap('#cZone .zi'),offL:left<-.5,offR:right>innerWidth+.5,
+      band,st,z,a,resTopAbs:Math.min(...res.map(r=>r.top)),mirror:document.body.classList.contains('mirror')};});
+  ok(g.coach,`${tag}: coach screen is up`);
+  ok(g.fill<=1&&g.colGap<=1,`${tag}: band cells fill their column (td−button ${g.fill.toFixed(1)}px, column gap ${g.colGap.toFixed(1)}px)`);
+  ok(Math.abs(g.gapL-g.gapR)<=2,`${tag}: leftover width is split evenly (${g.gapL.toFixed(1)} / ${g.gapR.toFixed(1)})`);
+  ok(Math.abs(g.resTop)<=2,`${tag}: results top aligns with status (${g.resTop.toFixed(1)}px)`);
+  ok(H-Math.max(4,B)-g.bottom<=8,`${tag}: no dead band at bottom (${(H-Math.max(4,B)-g.bottom).toFixed(1)}px)`);
+  ok(Math.abs(g.actB)<=2&&Math.abs(g.dl)<=2&&Math.abs(g.dr)<=2,`${tag}: dirt/over-catcher align to zone + band (bottom ${g.actB.toFixed(1)}, L ${g.dl.toFixed(1)}, R ${g.dr.toFixed(1)})`);
+  ok(g.sw<=g.iw+1&&!g.offL&&!g.offR,`${tag}: no sideways scroll`);
+  ok(g.minTap>=48,`${tag}: band, results, dirt and menu ≥48px (${g.minTap.toFixed(1)})`);
+  ok(H>=400?g.zoneTap>=48:g.zoneTap>=46,`${tag}: zone target ${g.zoneTap.toFixed(1)}px`);
+  if(mirror)ok(g.mirror&&g.band.l>g.st.l,`${tag}: band sits on the right`);
+  if(shift){
+    const snap=()=>p.evaluate(()=>{const R=s=>{const e=document.querySelector(s);const r=e.getBoundingClientRect();return{l:+r.left.toFixed(1),t:+r.top.toFixed(1),r:+r.right.toFixed(1),b:+r.bottom.toFixed(1)};};
+      const res=[...document.querySelectorAll('#cRes button')].map(e=>e.getBoundingClientRect());
+      return{band:R('#cBand'),st:R('#cStatus'),z:R('#cZone'),a:R('#cAct'),resTop:+Math.min(...res.map(r=>r.top)).toFixed(1)};});
+    const drift=(a,b0)=>{const bad=[];for(const k of ['band','st','z','a'])for(const q of ['l','t','r','b'])if(Math.abs(a[k][q]-b0[k][q])>1)bad.push(k+'.'+q);if(Math.abs(a.resTop-b0.resTop)>1)bad.push('resTop');return bad;};
+    const shot=await snap();
+    const tap=async sel=>{await p.evaluate(s=>{const e=[...document.querySelectorAll(s)].find(e=>e.offsetParent&&!e.disabled);if(!e)throw new Error('no '+s);e.click();},sel);await p.waitForTimeout(200);};
+    const steps=[['call','#cBand td button'],['aim','#cZone .zi'],['where','#cZone .zr'],['result','#cRes button'],['call2','#cBand td button'],['aim2','#cZone .zi'],['dirt','#cAct [data-z="31"]'],['result2','#cRes button'],['undo','#cRes [data-cx="undo"]'],['same','#cRes [data-cx="same"]']];
+    const moved=[];let royal='',stripe='';
+    for(const [n,sel] of steps){try{await tap(sel);}catch(e){moved.push(n+': '+e.message);continue;}
+      if(n==='call'){royal=await p.evaluate(()=>{const e=document.querySelector('#cBand td button.on');return e?getComputedStyle(e).backgroundColor:'';});stripe=await p.evaluate(()=>getComputedStyle(document.getElementById('cStatus')).borderLeftColor);}
+      const d=drift(await snap(),shot);if(d.length)moved.push(n+': '+d.join(','));}
+    ok(!moved.length,`${tag}: no layout shift across the call sequence${moved.length?' → '+moved.join(' | '):''}`);
+    ok(theme==='night'?royal==='rgb(58, 92, 240)':royal==='rgb(30, 63, 208)',`${tag}: selected cell stays ${theme==='night'?'#3A5CF0':'#1E3FD0'} (${royal})`);
+    ok(theme==='night'?stripe==='rgb(58, 92, 240)':stripe==='rgb(30, 63, 208)',`${tag}: status stripe stays royal (${stripe})`);
+    await p.setViewportSize({width:W,height:384});await p.waitForTimeout(250);
+    await p.setViewportSize({width:W,height:H});await p.waitForTimeout(300);
+    const back=drift(await snap(),shot);
+    ok(!back.length,`${tag}: 440→384→440 returns to the same layout${back.length?' → '+back.join(','):''}`);
+  }
+  ok(!errs.length,`${tag}: no page errors `+errs.join('|'));
+  await c.close();
+}
+// RULE-8: exact zone size. Under 400px, 46px where it fits (Jim 2026-10-17, fit-first).
+// The same heights are checked at 956 and 844 wide. Bare 360 is 43. 46 still fits at 375 with no home bar, at 384, and at 844×390 with 47/47/21.
+const ZONE956=[[956,360,0,0,0,43],[956,375,0,0,0,46],[956,384,0,0,0,46],[956,375,62,0,0,46],[956,384,62,0,0,46],[956,399,0,0,0,49],[956,400,0,0,0,49],[956,401,0,0,0,50],[844,360,0,0,0,43],[844,375,0,0,0,46],[844,384,0,0,0,46],[844,399,0,0,0,49],[844,400,0,0,0,49],[844,401,0,0,0,50],[844,390,47,47,21,46]];
+for(const [W,H,L,R,Btm,want] of ZONE956){
+  const c=await b.newContext({viewport:{width:W,height:H},isMobile:true,hasTouch:true,deviceScaleFactor:3,userAgent:IOS_UA});
+  await c.route(/supabase\.co/,r=>r.abort());
+  const p=await c.newPage();p.on('dialog',d=>d.accept());
+  if(L||R||Btm){const cdp=await c.newCDPSession(p);await cdp.send('Emulation.setSafeAreaInsetsOverride',{insets:{top:0,left:L,right:R,bottom:Btm}});}
+  await p.goto(BASE);
+  await p.evaluate(g=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Jules',num:'5',throws:'R'}];S.curPitcher='p_a';S.games.push(g);S.activeGame='g1';__app.store.save();__app.render();},GAME956);
+  if(!await p.evaluate(()=>document.body.classList.contains('coachmode')))await p.click('nav [data-t="game"]').catch(()=>{});
+  await p.waitForTimeout(250);
+  const z=await p.evaluate(()=>{const coach=document.getElementById('coach');const box=document.querySelector('#cZone .zi').getBoundingClientRect();
+    return{px:getComputedStyle(coach).getPropertyValue('--z').trim(),w:box.width,h:box.height,ch:coach.clientHeight,compact:coach.classList.contains('compact')};});
+  ok(!z.compact&&z.ch===H&&z.px===want+'px'&&Math.abs(z.w-want)<=0.5&&Math.abs(z.h-want)<=0.5,`${W}x${H} inset ${L}/${R}/${Btm}: zone is ${want}px (--z ${z.px}, box ${z.w.toFixed(2)}×${z.h.toFixed(2)}, client ${z.ch})`);
+  await c.close();
+}
+// Notch-only (62/0/0) and both sides plus the home bar (62/62/21). Buttons stay on screen. In dirt may sit below the band.
+async function coachFits(b,W,H,L,R,Btm){
+  const tag=`${W}x${H} inset ${L}/${R}/${Btm}`;
+  const c=await b.newContext({viewport:{width:W,height:H},isMobile:true,hasTouch:true,deviceScaleFactor:3,userAgent:IOS_UA});
+  await c.route(/supabase\.co/,r=>r.abort());
+  const p=await c.newPage();p.on('dialog',d=>d.accept());
+  const cdp=await c.newCDPSession(p);
+  await cdp.send('Emulation.setSafeAreaInsetsOverride',{insets:{top:0,left:L,right:R,bottom:Btm}});
+  await p.goto(BASE);
+  await p.evaluate(g=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Jules',num:'5',throws:'R'}];S.curPitcher='p_a';S.games.push(g);S.activeGame='g1';__app.store.save();__app.render();},GAME956);
+  if(!await p.evaluate(()=>document.body.classList.contains('coachmode')))await p.click('nav [data-t="game"]').catch(()=>{});
+  await p.waitForTimeout(250);
+  const g=await p.evaluate(home=>{
+    const btns=[...document.querySelectorAll('#coach button')].filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0;});
+    const bad=[];
+    for(const e of btns){const r=e.getBoundingClientRect();
+      const off=r.left<-.5||r.top<-.5||r.right>innerWidth+.5||r.bottom>innerHeight+.5;
+      const homeBar=r.bottom>innerHeight-home+.5;
+      if(off||homeBar)bad.push((e.getAttribute('aria-label')||e.textContent||'').trim().slice(0,24));}
+    const de=document.documentElement;
+    return{n:btns.length,bad,scroll:de.scrollWidth>innerWidth+1||de.scrollHeight>innerHeight+1,
+      band:!!document.querySelector('#cBand td button'),zone:!!document.querySelector('#cZone button'),
+      res:!!document.querySelector('#cRes button'),act:!!document.querySelector('#cAct button'),menu:!!document.getElementById('cxMenu')};
+  },Btm);
+  ok(g.band&&g.zone&&g.res&&g.act&&g.menu&&g.n>0&&!g.bad.length,`${tag}: every coach button is inside the viewport and above the home-bar inset${g.bad.length?' → '+g.bad.slice(0,4).join(' | '):''} (${g.n})`);
+  ok(!g.scroll,`${tag}: no scrolling`);
+  await c.close();
+}
+for(const [W,H] of [[956,360],[956,375]])for(const [L,R,Btm] of [[62,0,0],[62,62,21]])await coachFits(b,W,H,L,R,Btm);
+// 844×360 and 932×360: In dirt and the results used to end 2px off the screen.
+for(const W of [844,932])await coachFits(b,W,360,0,0,0);
+for(const [L,R,B] of [[0,0,0],[62,0,21],[0,62,21],[62,62,21]])await coach956(b,{W:956,H:440,L,R,B,theme:'field',mirror:false,shift:true});
+await coach956(b,{W:956,H:384,L:62,R:0,B:0,theme:'field',mirror:false,shift:false});
+await coach956(b,{W:956,H:440,L:62,R:62,B:21,theme:'night',mirror:false,shift:true});
+await coach956(b,{W:956,H:440,L:62,R:62,B:21,theme:'field',mirror:true,shift:false});
 await b.close();console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);})();
