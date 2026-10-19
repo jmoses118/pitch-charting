@@ -41,6 +41,9 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
 - **RULE-7** Every popup has a working Cancel that leaves the data unchanged.
 - **RULE-7a** Escape and a backdrop tap cancel the same way. Save runs only when the dialog returns ok.
 - **RULE-8** The scoring screen fits on one iPhone screen without scrolling at widths of 375, 390 and 430 px. It uses compact pitch buttons, slim pitcher and count bars, and a large zone. Portrait wristband height stays 48. At <=390px wide, cells may be 42–44px wide so all 8 columns, plus the row and column headers, fit with no sideways scroll. On the SE coach screen (667×375) the strike box may be 34px; that is the SE exception.
+  Under 400px tall, zone cells are 46px where it fits; smaller only when the screen cannot fit 46px (approved by Jim 2026-10-17, fit-first).
+  At 400px or taller the floor is 48px. The SE coach screen (667×375, under 700px wide) keeps its existing strike box and is not part of this floor.
+  At those extreme heights, In dirt may sit a few px below the band.
 - **RULE-8a** On the landscape coach screen, 844×390 keeps band, zone, and results at least 48px. At 667×375 the minima are band 44, zone 34, and results 46 (`test/coach.ui.js`).
 - **RULE-9** CSV export is per pitcher per date. One shared CSV row builder produces every row.
 - **RULE-10** Players are shown by first name and jersey number (`pitcherLabel`), and CSV file names use the same. No surnames.
@@ -122,6 +125,8 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | SYNC-3 | unit: “team settings sync: coach only… never pushed by markAllDirty” |
 | INFRA-3 | `test/prodref.test.js`: a non-production host shows the sync-off warning and does not point at production; an uppercase production URL and a split project ref are refused; a migration on the base branch with identical bytes is exempt; a backdated new migration is not; `test/pg-migrate.sh` allows only `localhost` or `127.0.0.1` |
 | BRIEF-1, BRIEF-2, BRIEF-3, BRIEF-4, BRIEF-5, BRIEF-6, BRIEF-7, BRIEF-8 | `AGENTS.md` Standard builder brief. BRIEF-5 is `test/prsize.js` and `test/prgate.negative.js`. BRIEF-7 is `test/changelog.js` and `test/prgate.negative.js`. BRIEF-6 is not enforced in this tree. |
+
+RULE-8 coach zone floor, same tests: under 400px tall, zone cells are 46px where it fits; smaller only when the screen cannot fit 46px (approved by Jim 2026-10-17, fit-first). The SE screen is unchanged. Exact sizes are checked at 956 and 844 wide. 844×360 and 932×360 keep every coach button on screen.
 
 ## Architecture
 Each business rule lives in one `js/core` module. UI files render and forward events. They do not keep a second validator or a second copy of a rule.

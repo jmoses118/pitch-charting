@@ -74,15 +74,16 @@ Nothing else is normative. CHANGELOG.md is history for the gate, not a builder r
 - **BRIEF-3.** Write tests first and cite rule IDs.
 - **BRIEF-4.** One small task.
 - **BRIEF-5.** Stay under the PR size cap.
+A word-for-word move is free only when the blobs match and both paths are counted or both are excluded. Any other move counts the deleted lines plus the added lines. A move into test counts the old file.
 - **BRIEF-6.** Use the staging DB only, never production.
 - **BRIEF-7.** Add a plain-English CHANGELOG line.
 - **BRIEF-8.** Never merge.
 
 ## PR gates
 
-A change to a gate file (`test/prsize.js`, `test/changelog.js`, `test/prdiff.js`, `test/prgate.negative.js`, `test/git-base.js`, `.github/workflows/pr-gate.yml`) fails the size check. That change needs an owner override: the pull request author is the repository owner, or the owner lands the edit on main. A branch that is behind main has to merge main before the changelog check passes.
+A change to a gate file (`test/prsize.js`, `test/changelog.js`, `test/prdiff.js`, `test/prgate.negative.js`, `test/git-base.js`, `.github/workflows/pr-gate.yml`, `.github/workflows/ci.yml`) fails the size check. That change needs an owner override: the pull request author is the repository owner, or the owner lands the edit on main. A branch that is behind main has to merge main before the changelog check passes.
 
-The size cap is 300 lines. Files under `test/` and the root lockfiles are not counted. A git rename counts as the lines that changed inside the move.
+The size cap is 300 lines. Files under `test/` and the root lockfiles are not counted.
 
 ## Staging database
 

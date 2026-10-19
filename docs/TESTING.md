@@ -24,6 +24,15 @@ Check no codes leaked: `grep -rqF "$PC_TEST_COACH" .` must find nothing.
 ## coach.ui.js / lib/audit.js (v37)
 `coach.ui.js` checks the landscape coach screen at 844x390 (cells at least 48px) and 667x375 (at least 40px). It covers the flow, ✎ Aim, long-press, in play + spray, Undo, Same, band setup cancel/save, the side-retired card, theme, mirror and the portrait rotate prompt. With `SHOT_DIR` set it saves screenshots. `test/lib/audit.js` holds the shared clipping/overlap audit used by layout.ui.js and coach.ui.js.
 
+`layout.ui.js` checks the iPhone 17 Pro Max coach screen.
+Under 400px tall, zone cells are 46px where it fits; smaller only when the screen cannot fit 46px (approved by Jim 2026-10-17, fit-first).
+At 400px or taller the floor is 48px. The SE screen (667×375, under 700px wide) keeps its existing strike box.
+Exact sizes are checked at 956 and 844 wide for heights 360, 375, 384, 399, 400, and 401.
+46px still fits at 956×384, at 956×375 with no home bar, and at 844×390 with insets (47/47/21). A bare 360px-tall screen is 43px, because 46px does not fit.
+At 956×360 and 956×375, with a notch only (62/0/0) and with insets 62/62/21, every coach button stays inside the viewport and above the home-bar inset, with no scrolling.
+The same fit check covers 844×360 and 932×360, where In dirt and the results row used to end 2px off the screen.
+In dirt may sit a few px below the band at those extreme heights.
+
 coach.ui.js also checks: Keep charting contrast (≥10:1), no zone/status shift after band and zone taps, simulated iPhone safe-area insets (47/47/21), game menu fit/3-col/End away from Cancel, sticky band-setup footer, ⋯ ≥44px, row headers kept, and in the bullpen pad Way buttons ≥48 tall, all types incl. SC, and a confirmation that doesn't cover the zone.
 
 ## agree.ui.js (v38)
