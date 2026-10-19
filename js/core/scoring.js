@@ -92,13 +92,8 @@ function pitchMiss(p,throws){throws=throws||p.throws;const t=PC.calledBoxes(p);c
   const noBat=p.hand!=='L'&&p.hand!=='R'&&(throws==='L'||throws==='R');
   const horiz=dx===0?null:noBat?((dx>0)===(gloveCol(throws)===2)?'glove side':'arm side'):((toward3B===(hand==='R'))?'in':'away');const vert=dy===0?null:(dy<0?'up':'down');
   return{d:best,sev,mm,chUp:up,badAim:PC.aimFlag(penaltyType(p),t),way,low:lowGood(p),waste:wasteAim(p),good:isGoodSev(sev),target:bt,vert,horiz};}
-// SCORE-5. FB A is the away waste call (box 16 vs a righty, 17 vs a lefty). A shake-off keeps her own aim.
-function fbAwayCall(p){if(!p||p.shook)return false;return /^FB\s*A$/.test(String(p.call||'').toUpperCase().replace(/\s+/g,' ').trim());}
-// A location match is not a hit when that waste pitch reached the zone, was called a strike, was fouled, or was put in play.
-function wasteSpotOk(p){if(!fbAwayCall(p))return true;const loc=landOf(p);if(loc==null||isZone(+loc))return false;const r=p.result;if(r==null||r==='')return true;return r==='ball'||r==='swinging';}
-// hit the spot = exactly on a target, by the same rule as the report (a change-up up in the zone never counts as a hit).
-// One rule for Stats Spot%, the report's Bullseyes and the Game marks. SCORE-5 filters an FB A.
-const hitSpot=p=>{const m=pitchMiss(p);return !!m&&m.d===0&&!m.chUp&&wasteSpotOk(p);};
+// SCORE-5. Hit spot is the called box. FB A counts only as an off-plate ball or a swinging miss.
+const hitSpot=p=>{const m=pitchMiss(p);if(!m||m.d!==0||m.chUp)return false;if(p.shook||String(p.call||'').toUpperCase()!=='FB A')return true;const z=landOf(p);if(z==null||isZone(+z))return false;const r=p.result;return r==null||r===''||r==='ball'||r==='swinging';};
 // Gameday-style marker status for one pitch: 'souvenir' (middle-middle mistake), 'good' (hit spot, or competitive when nothing was aimed), 'miss'
 function pitchMark(p,throws){const loc=landOf(p);if(!p||loc==null)return null;const m=pitchMiss(p,throws);if(m)return m.mm?'souvenir':m.good?'good':'miss';return isCompetitive(loc)?'good':'miss';}
 // miss directions in report order, and the most common one for a group

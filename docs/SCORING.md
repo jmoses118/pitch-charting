@@ -53,7 +53,9 @@ Jim's ruling, 2026-10-19. FB A is a true waste pitch, aimed off the plate: box 1
 
 Strike % does not change. If the umpire calls an FB A a strike, it counts as a strike, the same way GameChanger does. SCORE-4 is unchanged.
 
-Hit spot is stricter. An FB A that lands in the zone, is called a strike, is put in play, or is fouled is a missed spot. It is never a hit spot, even when it lands on the called box or a location bonus would mark the severity as good. The only hit is an FB A that stays off the plate as a ball, or a swing-and-miss that stays out of the zone, and that lands on the called box. A pitch with no umpire result that lands on that box is still a hit. A shake-off is scored on the pitch she chose, not on this call.
+Hit spot is stricter. An FB A that lands in the zone, is called a strike, is put in play, or is fouled is a missed spot. It is never a hit spot, even when it lands on the called box or a location bonus would mark the severity as good.
+
+The only hit is an FB A that stays off the plate as a ball, or a swing-and-miss that stays out of the zone, and that lands on the called box. A pitch with no umpire result that lands on that box is still a hit. A shake-off is scored on the pitch she chose, not on this call.
 
 ## Strikeouts
 - **K credit**: if the pitcher is replaced with 2 strikes and the reliever finishes the K, the K goes to the pitcher who threw strike 2 (official rule). Pitch counts stay with whoever threw each pitch.
