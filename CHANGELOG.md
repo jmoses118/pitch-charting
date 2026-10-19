@@ -1,5 +1,9 @@
 # Changelog
 
+## v75 – Old backup tables are removed
+### Changed
+- Jim approved deleting four leftover backup tables from 15 October 2026: the full copies of pitches, sessions, games, and notes. The live tables stay. The migration drops only those four copies.
+
 ## v74 – The coach screen lines up on a large phone
 ### Changed
 - **RULE-8.** On an iPhone 17 Pro Max turned sideways, the wristband fills its column, the results line up with the status card, and In dirt sits on the bottom of the band. The screen keeps its height when the Safari toolbar shows and hides.
