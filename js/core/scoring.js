@@ -41,8 +41,8 @@ function adjSev(p,sev){const z=landOf(p);if(dirtSoft(p))return Math.min(sev,WAY_
 const chUp=p=>{const z=landOf(p);return p&&penaltyType(p)==='CH'&&!isWay(z)&&!isActualOnly(z)&&GRID_XY[z]!=null&&GRID_XY[z][1]<=2;};
 function missData(items,f){const q=heatFilter(items,f);const cells={};ALL_CELLS.forEach(z=>cells[z]={n:0,sum:0,hit:0,avg:null,mm:0});let total=0,mm=0,chu=0;
   // one source of truth for severity: pitchMiss (souvenir, CH-up, way-off, low-ring rules all live there)
-  q.forEach(({p})=>{const m=pitchMiss(p);if(!m)return;const t=PC.calledBoxes(p),loc=landOf(p),d=m.d,sev=m.sev,mmMiss=m.mm,up=m.chUp;total++;if(mmMiss)mm++;if(up)chu++;
-    t.forEach(z=>{const c=cells[z];if(!c)return;c.n++;c.sum+=sev;if(d===0&&!up)c.hit++;if(isGoodSev(sev))c.good=(c.good||0)+1;if(mmMiss)c.mm++;if(up)c.chUp=(c.chUp||0)+1;
+  q.forEach(({p})=>{const m=pitchMiss(p);if(!m)return;const t=PC.calledBoxes(p),loc=landOf(p),sev=m.sev,mmMiss=m.mm,up=m.chUp;total++;if(mmMiss)mm++;if(up)chu++;
+    t.forEach(z=>{const c=cells[z];if(!c)return;c.n++;c.sum+=sev;if(hitSpot(p))c.hit++;if(isGoodSev(sev))c.good=(c.good||0)+1;if(mmMiss)c.mm++;if(up)c.chUp=(c.chUp||0)+1;
       const L=(c.land=c.land||{});const e=(L[loc]=L[loc]||{n:0,sev:0,mm:0,chUp:0});e.n++;e.sev=Math.max(e.sev,sev);if(mmMiss)e.mm++;if(up)e.chUp++;});});
   ALL_CELLS.forEach(z=>{const c=cells[z];if(c.n)c.avg=Math.round(10*c.sum/c.n)/10;});return{cells,total,matched:q.length,mm,chUp:chu};}
 // one sentence that always accounts for every pitch: shown + left out (no aim in Miss, no location in Landed)
@@ -92,9 +92,13 @@ function pitchMiss(p,throws){throws=throws||p.throws;const t=PC.calledBoxes(p);c
   const noBat=p.hand!=='L'&&p.hand!=='R'&&(throws==='L'||throws==='R');
   const horiz=dx===0?null:noBat?((dx>0)===(gloveCol(throws)===2)?'glove side':'arm side'):((toward3B===(hand==='R'))?'in':'away');const vert=dy===0?null:(dy<0?'up':'down');
   return{d:best,sev,mm,chUp:up,badAim:PC.aimFlag(penaltyType(p),t),way,low:lowGood(p),waste:wasteAim(p),good:isGoodSev(sev),target:bt,vert,horiz};}
+// SCORE-5. FB A is the away waste call (box 16 vs a righty, 17 vs a lefty). A shake-off keeps her own aim.
+function fbAwayCall(p){if(!p||p.shook)return false;return /^FB\s*A$/.test(String(p.call||'').toUpperCase().replace(/\s+/g,' ').trim());}
+// A location match is not a hit when that waste pitch reached the zone, was called a strike, was fouled, or was put in play.
+function wasteSpotOk(p){if(!fbAwayCall(p))return true;const loc=landOf(p);if(loc==null||isZone(+loc))return false;const r=p.result;if(r==null||r==='')return true;return r==='ball'||r==='swinging';}
 // hit the spot = exactly on a target, by the same rule as the report (a change-up up in the zone never counts as a hit).
-// One rule for Stats Spot%, the report's Bullseyes and the Game marks.
-const hitSpot=p=>{const m=pitchMiss(p);return !!m&&m.d===0&&!m.chUp;};
+// One rule for Stats Spot%, the report's Bullseyes and the Game marks. SCORE-5 filters an FB A.
+const hitSpot=p=>{const m=pitchMiss(p);return !!m&&m.d===0&&!m.chUp&&wasteSpotOk(p);};
 // Gameday-style marker status for one pitch: 'souvenir' (middle-middle mistake), 'good' (hit spot, or competitive when nothing was aimed), 'miss'
 function pitchMark(p,throws){const loc=landOf(p);if(!p||loc==null)return null;const m=pitchMiss(p,throws);if(m)return m.mm?'souvenir':m.good?'good':'miss';return isCompetitive(loc)?'good':'miss';}
 // miss directions in report order, and the most common one for a group
@@ -111,7 +115,7 @@ function grpStats(list,thr){thr=thr||(()=>null);list=list.filter(countsAsPitch);
   const strikes=list.filter(strikeOf).length;const comp=list.filter(p=>isCompetitive(landOf(p))).length;const wl=c.filter(x=>x.m.waste);
   return{n:list.length,strikes,strikePct:pct(strikes,list.length),comp,compPct:pct(comp,list.length),wayOff:list.filter(p=>isWay(landOf(p))).length,waste:{n:wl.length,good:wl.filter(x=>x.m.good).length},called:c.length,good,goodPct:pct(good,c.length),
     avgMiss:c.length?Math.round(10*c.reduce((a,x)=>a+x.m.sev,0)/c.length)/10:null,mm:c.filter(x=>x.m.mm).length,
-    hits:c.filter(x=>x.m.d===0&&!x.m.chUp).length,chUp:c.filter(x=>x.m.chUp).length,
+    hits:c.filter(x=>hitSpot(x.p)).length,chUp:c.filter(x=>x.m.chUp).length,
     ...Object.fromEntries(MISS_DIRS.map(d=>[d,c.filter(x=>x.m.d>0&&(x.m.vert===d||x.m.horiz===d)).length]))};}
 const TYPE_NAME={FB:'Fastball',CH:'Change-up',CB:'Curveball',DR:'Drop',DC:'Drop curve',RS:'Rise',SC:'Screw'};
 const FIX={up:'finishing down',down:'staying on top / getting it up',in:'working it away',away:'getting it in','glove side':'staying through it to the arm side','arm side':'finishing to the glove side'};

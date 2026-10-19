@@ -52,7 +52,7 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
 - **RULE-12** The current branding stays.
 
 ## SCORING
-SCORE-1, SCORE-2, SCORE-3, and SCORE-4 are in `docs/SCORING.md`.
+SCORE-1, SCORE-2, SCORE-3, SCORE-4, and SCORE-5 are in `docs/SCORING.md`.
 
 ## VIEW
 - **VIEW-1** The zone is shown Gameday-style, from the catcher's eye. Each pitch is a small numbered softball colored by its result. The pitch list sits under the zone.
@@ -120,6 +120,7 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | SCORE-2 | unit: “ring is competitive, way off is a miss” |
 | SCORE-3 | unit: that ring test; `test/wayoff.ui.js` competitive 67% |
 | SCORE-4 | unit: “report strikes follow the umpire result”; `test/flow.ui.js` |
+| SCORE-5 | unit: “SCORE-5: an FB A waste pitch is a strike when the umpire says so, and a hit spot only off the plate” |
 | SYNC-1 | unit: “push: a 403 row is retried row by row”; “every row 401”; “rejected rows: list, retry” |
 | SYNC-2 | unit: “pull: incremental since last updated_at”; “sessions: last writer wins”; “rowPitch keeps every valid spot”; “localDate” |
 | SYNC-3 | unit: “team settings sync: coach only… never pushed by markAllDirty” |

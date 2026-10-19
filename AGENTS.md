@@ -22,7 +22,7 @@ IDs live in `docs/SPEC.md`: FLOW-1a, FLOW-13a, RULE-4b, RULE-5a, RULE-6a, RULE-7
 - `js/core/location.js` — RULE-4 and RULE-4b. `calledOf` and `actualOf` are the one reading of a stored called spot and actual spot.
 - `js/core/flow.js` — FLOW-1 through FLOW-5, FLOW-1a, FLOW-6a, and FLOW-10. The scoring state machine is `scoreApply`, `scoreTap`, `scoreStep`, and `scoreCommit`. `validCalled` and `validActual` are the location checks. Portrait Game, the coach screen, and Bullpen call this module.
 - `js/core/game.js` — RULE-6, RULE-6a, FLOW-8, FLOW-9, FLOW-11, and FLOW-12. Count, redo, `sessionHand`, and `editActual`.
-- `js/core/scoring.js` — SCORE-1, SCORE-2, SCORE-3, SCORE-4, FLOW-7, FLOW-7a, and RULE-3c. `pitchMiss` is the only severity source. `hitSpot` and `strikeOf` are hit spot versus strike. The penalty reads `calledTypeOf`.
+- `js/core/scoring.js` — SCORE-1, SCORE-2, SCORE-3, SCORE-4, SCORE-5, FLOW-7, FLOW-7a, and RULE-3c. `pitchMiss` is the only severity source. `hitSpot` and `strikeOf` are hit spot versus strike. The penalty reads `calledTypeOf`.
 - `js/core/csv.js` — RULE-9 and RULE-10. `csvRow` is the one CSV row builder. `calledTypeOf` lives here.
 - `js/core/workload.js` — today's pitch count, the Fri–Sun weekend count, and the soft day and weekend alerts. The alert turns amber at 85%.
 - `js/core/sync.js` — SYNC-1, SYNC-2, SYNC-3, and RULE-4a. A read keeps a grid aim that fails `validCalled` and sets `calledFlag`. `scorerOfRow` is the lock's row reader (RULE-5a).
