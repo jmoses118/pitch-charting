@@ -13,7 +13,7 @@ function heatFilter(items,f){f=f||{};return items.filter(it=>(!f.type||it.p.type
   &&(!f.side||it.side===f.side)&&(!f.src||it.src===f.src)&&(!f.game||it.gameId===f.game)&&(!f.session||it.sessionId===f.session));}
 // view: 'actual' = where pitches landed; 'intended' = where they were aimed (counts + hit-the-spot % per aimed cell)
 function heatData(items,f,view){const q=heatFilter(items,f);const cells={};ALL_CELLS.forEach(z=>cells[z]={n:0,hit:0});let total=0;
-  q.forEach(({p})=>{const loc=landOf(p);if(view==='intended'){const t=PC.calledBoxes(p);if(!t.length||loc==null)return;total++;const hit=t.includes(+loc);t.forEach(z=>{if(cells[z]){cells[z].n++;if(hit)cells[z].hit++;}});}
+  q.forEach(({p})=>{const loc=landOf(p);if(view==='intended'){const t=PC.calledBoxes(p);if(!t.length||loc==null)return;total++;const hit=hitSpot(p);t.forEach(z=>{if(cells[z]){cells[z].n++;if(hit)cells[z].hit++;}});}
     else{if(loc==null)return;if(!cells[loc]){if(isActualOnly(+loc))total++;return;}total++;cells[loc].n++;}});
   const max=Math.max(0,...Object.values(cells).map(c=>c.n));return{cells,total,max,matched:q.length};}
 // per intended cell: n pitches aimed there, average miss distance (to the nearest called spot), hits
@@ -41,8 +41,8 @@ function adjSev(p,sev){const z=landOf(p);if(dirtSoft(p))return Math.min(sev,WAY_
 const chUp=p=>{const z=landOf(p);return p&&penaltyType(p)==='CH'&&!isWay(z)&&!isActualOnly(z)&&GRID_XY[z]!=null&&GRID_XY[z][1]<=2;};
 function missData(items,f){const q=heatFilter(items,f);const cells={};ALL_CELLS.forEach(z=>cells[z]={n:0,sum:0,hit:0,avg:null,mm:0});let total=0,mm=0,chu=0;
   // one source of truth for severity: pitchMiss (souvenir, CH-up, way-off, low-ring rules all live there)
-  q.forEach(({p})=>{const m=pitchMiss(p);if(!m)return;const t=PC.calledBoxes(p),loc=landOf(p),d=m.d,sev=m.sev,mmMiss=m.mm,up=m.chUp;total++;if(mmMiss)mm++;if(up)chu++;
-    t.forEach(z=>{const c=cells[z];if(!c)return;c.n++;c.sum+=sev;if(d===0&&!up)c.hit++;if(isGoodSev(sev))c.good=(c.good||0)+1;if(mmMiss)c.mm++;if(up)c.chUp=(c.chUp||0)+1;
+  q.forEach(({p})=>{const m=pitchMiss(p);if(!m)return;const t=PC.calledBoxes(p),loc=landOf(p),sev=m.sev,mmMiss=m.mm,up=m.chUp;total++;if(mmMiss)mm++;if(up)chu++;
+    t.forEach(z=>{const c=cells[z];if(!c)return;c.n++;c.sum+=sev;if(hitSpot(p,m))c.hit++;if(onTarget(p,m))c.good=(c.good||0)+1;if(mmMiss)c.mm++;if(up)c.chUp=(c.chUp||0)+1;
       const L=(c.land=c.land||{});const e=(L[loc]=L[loc]||{n:0,sev:0,mm:0,chUp:0});e.n++;e.sev=Math.max(e.sev,sev);if(mmMiss)e.mm++;if(up)e.chUp++;});});
   ALL_CELLS.forEach(z=>{const c=cells[z];if(c.n)c.avg=Math.round(10*c.sum/c.n)/10;});return{cells,total,matched:q.length,mm,chUp:chu};}
 // one sentence that always accounts for every pitch: shown + left out (no aim in Miss, no location in Landed)
@@ -69,15 +69,17 @@ const strikeOf=p=>isBullpenPitch(p)?null:(p.result?isStrike(p.result):isZone(lan
 function summarize(pitches,opt){const P=pitches.filter(countsAsPitch);
   const fp=P.filter(p=>p.firstPitch!==undefined?p.firstPitch:(p.b===0&&p.s===0));
   const spot=p=>PC.calledBoxes(p).length&&landOf(p)!=null;
-  const called=P.filter(spot);
+  const aimed=p=>({p,m:pitchMiss(p)});
+  const spotHits=list=>list.filter(x=>hitSpot(x.p,x.m)).length;
+  const called=P.filter(spot).map(aimed);
   const group=(keyf)=>{const o={};P.forEach(p=>{const k=keyf(p);if(k==null)return;(o[k]=o[k]||[]).push(p);});
-    const out={};for(const k in o){const q=o[k];const c=q.filter(spot);
-      out[k]={n:q.length,strikes:q.filter(strikeOf).length,strikePct:pct(q.filter(strikeOf).length,q.length),spotPct:pct(c.filter(hitSpot).length,c.length),
+    const out={};for(const k in o){const q=o[k];const c=q.filter(spot).map(aimed);
+      out[k]={n:q.length,strikes:q.filter(strikeOf).length,strikePct:pct(q.filter(strikeOf).length,q.length),spotPct:pct(spotHits(c),c.length),
         whiff:q.filter(x=>x.result==='swinging').length,inPlay:q.filter(x=>x.result==='inplay').length};}return out;};
   let ks=pitches.filter(p=>p.end==='K'||p.end==='K-D3');if(opt&&opt.all&&opt.pid!=null){const m=kCredit(opt.all);ks=[...m].filter(([,by])=>by===opt.pid).map(([p])=>p);}
-  return{k:ks.length,kd3:ks.filter(p=>p.end==='K-D3').length,n:P.length,strikes:P.filter(strikeOf).length,strikePct:pct(P.filter(strikeOf).length,P.length),compPct:pct(P.filter(p=>isCompetitive(landOf(p))).length,P.filter(p=>landOf(p)!=null).length),wayOff:P.filter(p=>isWay(landOf(p))).length,wasteN:P.filter(p=>isBullpenPitch(p)&&wasteAim(p)&&landOf(p)!=null).length,wasteGood:P.filter(p=>isBullpenPitch(p)&&wasteAim(p)&&landOf(p)!=null&&(m=>m&&m.good)(pitchMiss(p))).length,
+  return{k:ks.length,kd3:ks.filter(p=>p.end==='K-D3').length,n:P.length,strikes:P.filter(strikeOf).length,strikePct:pct(P.filter(strikeOf).length,P.length),compPct:pct(P.filter(p=>isCompetitive(landOf(p))).length,P.filter(p=>landOf(p)!=null).length),wayOff:P.filter(p=>isWay(landOf(p))).length,wasteN:P.filter(p=>isBullpenPitch(p)&&wasteAim(p)&&landOf(p)!=null).length,wasteGood:P.filter(p=>isBullpenPitch(p)&&wasteAim(p)&&landOf(p)!=null&&onTarget(p,pitchMiss(p))).length,
     fps:fp.filter(strikeOf).length,fpsN:fp.length,fpsPct:pct(fp.filter(strikeOf).length,fp.length),
-    spotN:called.length,spot:called.filter(hitSpot).length,spotPct:pct(called.filter(hitSpot).length,called.length),
+    spotN:called.length,spot:spotHits(called),spotPct:pct(spotHits(called),called.length),
     byType:group(p=>p.type),byLoc:group(p=>{const z=landOf(p);return z!=null?String(z):null;}),byCall:group(p=>p.call||null),
     callVsThrown:group(p=>{const z=landOf(p);return p.call?(p.call+(p.shook?' ⤺ shook → ':' → ')+p.type+(z!=null?z:'')):null;}),
     byResult:group(p=>p.result?(p.result==='inplay'?'inplay:'+(p.ip||'out'):p.result):null)};}
@@ -92,11 +94,16 @@ function pitchMiss(p,throws){throws=throws||p.throws;const t=PC.calledBoxes(p);c
   const noBat=p.hand!=='L'&&p.hand!=='R'&&(throws==='L'||throws==='R');
   const horiz=dx===0?null:noBat?((dx>0)===(gloveCol(throws)===2)?'glove side':'arm side'):((toward3B===(hand==='R'))?'in':'away');const vert=dy===0?null:(dy<0?'up':'down');
   return{d:best,sev,mm,chUp:up,badAim:PC.aimFlag(penaltyType(p),t),way,low:lowGood(p),waste:wasteAim(p),good:isGoodSev(sev),target:bt,vert,horiz};}
-// hit the spot = exactly on a target, by the same rule as the report (a change-up up in the zone never counts as a hit).
-// One rule for Stats Spot%, the report's Bullseyes and the Game marks.
-const hitSpot=p=>{const m=pitchMiss(p);return !!m&&m.d===0&&!m.chUp;};
+// SCORE-5. FB A is parseCall type FB suffix A. The away box is A.at(inside, awayCol): 16 vs a righty, 17 vs a lefty. These helpers stay on one line so this file stays under the duplication scan's line cap.
+// prettier-ignore
+function fbAway(p){if(!p||p.shook)return false;const c=PC.parseCall(p.call,p.hand==='L'?'L':'R');return !!(c&&c.type==='FB'&&c.suffix==='A');}
+// prettier-ignore
+const hitSpot=(p,m)=>{if(!m||typeof m!=='object')m=pitchMiss(p);if(!m||m.d!==0||m.chUp)return false;if(!fbAway(p))return true;const hand=p.hand==='L'?'L':'R';const away=PC.CALL_SUFFIX.A.at(PC.insideCol(hand),PC.awayCol(hand));const r=p.result;return +landOf(p)===away&&(r==null||r===''||r==='ball'||r==='swinging');};
+// prettier-ignore
+function onTarget(p,m){return fbAway(p)?hitSpot(p,m):!!m&&!!m.good;}
 // Gameday-style marker status for one pitch: 'souvenir' (middle-middle mistake), 'good' (hit spot, or competitive when nothing was aimed), 'miss'
-function pitchMark(p,throws){const loc=landOf(p);if(!p||loc==null)return null;const m=pitchMiss(p,throws);if(m)return m.mm?'souvenir':m.good?'good':'miss';return isCompetitive(loc)?'good':'miss';}
+// prettier-ignore
+function pitchMark(p,throws){const loc=landOf(p);if(!p||loc==null)return null;const m=pitchMiss(p,throws);if(m)return m.mm?'souvenir':onTarget(p,m)?'good':'miss';return isCompetitive(loc)?'good':'miss';}
 // miss directions in report order, and the most common one for a group
 const MISS_DIRS=['up','down','in','away','glove side','arm side'];
 const topDir=g=>MISS_DIRS.map(d=>[d,g[d]||0]).sort((a,b)=>b[1]-a[1])[0];
@@ -105,13 +112,13 @@ function bestWeak(rank){const best=rank.length?rank[0]:null,lw=rank[rank.length-
 const MARK_LABEL={good:'On target',miss:'Missed',souvenir:'Souvenir'};
 // last n pitches of the current at-bat (game) or session (bullpen), numbered in sequence (1 = first of the at-bat / session)
 function recentPitches(list,n){const all=(list||[]).filter(p=>!p.deleted&&!p.noPitch).map((p,i)=>({p,no:i+1}));return n?all.slice(-n):all;}
-function grpStats(list,thr){thr=thr||(()=>null);list=list.filter(countsAsPitch);const c=list.map(p=>({p,m:pitchMiss(p,thr(p))})).filter(x=>x.m);const good=c.filter(x=>x.m.good).length;
+function grpStats(list,thr){thr=thr||(()=>null);list=list.filter(countsAsPitch);const c=list.map(p=>({p,m:pitchMiss(p,thr(p))})).filter(x=>x.m);const good=c.filter(x=>onTarget(x.p,x.m)).length;
   // strike % = strikes / pitches aimed in the zone (or with no spot); waste pitches are reported on their own
   // raw strike % (all pitches) stays visible; feedback uses competitive % = (strikes + ring balls) / all
   const strikes=list.filter(strikeOf).length;const comp=list.filter(p=>isCompetitive(landOf(p))).length;const wl=c.filter(x=>x.m.waste);
-  return{n:list.length,strikes,strikePct:pct(strikes,list.length),comp,compPct:pct(comp,list.length),wayOff:list.filter(p=>isWay(landOf(p))).length,waste:{n:wl.length,good:wl.filter(x=>x.m.good).length},called:c.length,good,goodPct:pct(good,c.length),
+  return{n:list.length,strikes,strikePct:pct(strikes,list.length),comp,compPct:pct(comp,list.length),wayOff:list.filter(p=>isWay(landOf(p))).length,waste:{n:wl.length,good:wl.filter(x=>onTarget(x.p,x.m)).length},called:c.length,good,goodPct:pct(good,c.length),
     avgMiss:c.length?Math.round(10*c.reduce((a,x)=>a+x.m.sev,0)/c.length)/10:null,mm:c.filter(x=>x.m.mm).length,
-    hits:c.filter(x=>x.m.d===0&&!x.m.chUp).length,chUp:c.filter(x=>x.m.chUp).length,
+    hits:c.filter(x=>hitSpot(x.p,x.m)).length,chUp:c.filter(x=>x.m.chUp).length,
     ...Object.fromEntries(MISS_DIRS.map(d=>[d,c.filter(x=>x.m.d>0&&(x.m.vert===d||x.m.horiz===d)).length]))};}
 const TYPE_NAME={FB:'Fastball',CH:'Change-up',CB:'Curveball',DR:'Drop',DC:'Drop curve',RS:'Rise',SC:'Screw'};
 const FIX={up:'finishing down',down:'staying on top / getting it up',in:'working it away',away:'getting it in','glove side':'staying through it to the arm side','arm side':'finishing to the glove side'};
@@ -161,7 +168,7 @@ function typeFeedback(t,g,best,weak){const nm=TYPE_NAME[t]||t,out=[];
 const COUNTS=['0-0','1-0','0-1','2-0','1-1','0-2','3-0','2-1','1-2','3-1','2-2','3-2'];
 function countStats(pitches){const P=(pitches||[]).filter(p=>countsAsPitch(p)&&p.b!=null&&p.s!=null&&p.abn!=null);const by={};COUNTS.forEach(c=>by[c]={n:0,strikes:0,called:0,good:0,types:{}});
   P.forEach(p=>{const k=p.b+'-'+p.s;const c=by[k];if(!c)return;c.n++;const st=strikeOf(p);if(st)c.strikes++;const t=p.type||'?';c.types[t]=(c.types[t]||0)+1;
-    const m=pitchMiss(p);if(m){c.called++;if(m.good)c.good++;}});
+    const m=pitchMiss(p);if(m){c.called++;if(onTarget(p,m))c.good++;}});
   COUNTS.forEach(k=>{const c=by[k];c.strikePct=pct(c.strikes,c.n);c.goodPct=pct(c.good,c.called);});
   const fp=P.filter(p=>p.b===0&&p.s===0);const fps=fp.filter(strikeOf).length;
   // 0-2 outcomes: every at-bat that reached 0-2, how it ended

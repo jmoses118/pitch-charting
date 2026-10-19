@@ -52,7 +52,7 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
 - **RULE-12** The current branding stays.
 
 ## SCORING
-SCORE-1, SCORE-2, SCORE-3, and SCORE-4 are in `docs/SCORING.md`.
+SCORE-1, SCORE-2, SCORE-3, SCORE-4, and SCORE-5 are in `docs/SCORING.md`.
 
 ## VIEW
 - **VIEW-1** The zone is shown Gameday-style, from the catcher's eye. Each pitch is a small numbered softball colored by its result. The pitch list sits under the zone.
@@ -116,10 +116,11 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | RULE-6a | unit: “redo list persists on this phone, stays capped at 10, and is not synced” |
 | RULE-7a | `test/sheets.ui.js`: Cancel, Escape, and backdrop leave data unchanged |
 | RULE-8a | `test/coach.ui.js` line 9: 844×390 is 48; 667×375 is band ≥44, zone ≥34, results ≥46 |
-| SCORE-1 | unit: “hitSpot uses pitchMiss” |
+| SCORE-1 | unit: “hitSpot uses pitchMiss”; “SCORE-1: the intended heat map uses hit spot, so a change-up on box 4 is not a hit” |
 | SCORE-2 | unit: “ring is competitive, way off is a miss” |
 | SCORE-3 | unit: that ring test; `test/wayoff.ui.js` competitive 67% |
 | SCORE-4 | unit: “report strikes follow the umpire result”; `test/flow.ui.js` |
+| SCORE-5 | unit: “SCORE-5: an FB A waste pitch is a strike when the umpire says so, and a hit spot only off the plate”; “SCORE-5: the away box is 16 for a righty and 17 for a lefty, and the marks use that hit spot” |
 | SYNC-1 | unit: “push: a 403 row is retried row by row”; “every row 401”; “rejected rows: list, retry” |
 | SYNC-2 | unit: “pull: incremental since last updated_at”; “sessions: last writer wins”; “rowPitch keeps every valid spot”; “localDate” |
 | SYNC-3 | unit: “team settings sync: coach only… never pushed by markAllDirty” |

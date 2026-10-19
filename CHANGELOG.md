@@ -1,5 +1,11 @@
 # Changelog
 
+## v79 – A waste fastball hits the spot only off the plate
+### Changed
+- **SCORE-5.** Jim's ruling on 19 October 2026. FB A (away waste) still counts as a strike when the umpire calls it a strike. It counts as hitting the spot only on box 16 against a righty or box 17 against a lefty, for a ball or a swinging miss. A called strike, a foul, a ball in play, or a pitch in the zone is a miss.
+- **SCORE-1.** The intended heat map uses that same hit-spot rule. A change-up aimed at box 4 that lands on box 4 is not a hit.
+- Cache: `te-pitch-v71`.
+
 ## v78 – The bullpen cleanup is on the live database
 ### Changed
 - **FLOW-6a.** Jim approved it. On 2026-10-19 at 2:59 PM ET, `20261014230000_bullpen_no_result.sql` was applied to production. No rows needed clearing. The chart works the same.
