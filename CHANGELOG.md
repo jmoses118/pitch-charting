@@ -1,5 +1,9 @@
 # Changelog
 
+## v78 – The bullpen cleanup is on the live database
+### Changed
+- **FLOW-6a.** Jim approved it. On 2026-10-19 at 2:59 PM ET, `20261014230000_bullpen_no_result.sql` was applied to production. No rows needed clearing. The chart works the same.
+
 ## v77 – Builder docs point at the current rules
 ### Changed
 - The chart works the same. Agent notes name each module and the rule it owns. The product spec and the scoring notes are the current rules, including hit spot, miss severity, competitive %, and strike %. The architecture notes moved word for word. The lesson log stays at the root, and a bug that reaches Jim gets a lesson entry plus a regression test. Builders should not read this changelog unless asked.
