@@ -14,15 +14,13 @@ Players are minors. Show first name and jersey number only. Never commit a surna
 
 ## Module map
 
-Each `js/core` file owns the rule IDs on its line. UI files render and forward events. They do not own a rule.
-
 IDs live in `docs/SPEC.md`: FLOW-1a, FLOW-13a, RULE-4b, RULE-5a, RULE-6a, RULE-7a, RULE-8a, SCORE-1 through SCORE-4, SYNC-1 through SYNC-3, VIEW-3. SCORE-1 through SCORE-4 are worded in `docs/SCORING.md`.
 
 - `js/core/config.js` — INFRA-3. `pcPickConfig` is the one database target. `pcPickConfig.PROD` holds the production ref, URL, publishable key, and host list.
 - `js/core/grid.js` — the location lattice (`GRID_XY`, zone, ring, way off, dirt, backstop) that SCORE-2 and SCORE-3 use.
 - `js/core/calls.js` — RULE-1. `aimOpts` asks `validCalled`. `aimRejectMsg` is the one refusal sentence.
 - `js/core/location.js` — RULE-4 and RULE-4b. `calledOf` and `actualOf` are the one reading of a stored called spot and actual spot.
-- `js/core/flow.js` — the one scoring state machine (`scoreApply`, `scoreTap`, `scoreStep`, `scoreCommit`) and the location checks (`validCalled`, `validActual`). Portrait Game, the coach screen, and Bullpen call this module.
+- `js/core/flow.js` — FLOW-1 through FLOW-5, FLOW-1a, FLOW-6a, and FLOW-10. The scoring state machine is `scoreApply`, `scoreTap`, `scoreStep`, and `scoreCommit`. `validCalled` and `validActual` are the location checks. Portrait Game, the coach screen, and Bullpen call this module.
 - `js/core/game.js` — RULE-6, RULE-6a, FLOW-8, FLOW-9, FLOW-11, and FLOW-12. Count, redo, `sessionHand`, and `editActual`.
 - `js/core/scoring.js` — SCORE-1, SCORE-2, SCORE-3, SCORE-4, FLOW-7, FLOW-7a, and RULE-3c. `pitchMiss` is the only severity source. `hitSpot` and `strikeOf` are hit spot versus strike. The penalty reads `calledTypeOf`.
 - `js/core/csv.js` — RULE-9 and RULE-10. `csvRow` is the one CSV row builder. `calledTypeOf` lives here.
@@ -95,9 +93,10 @@ Staging is a persistent Supabase preview branch. Jim creates it in the dashboard
 
 Schema checks run on that branch, or on the throwaway Postgres CI already starts: `test/pg-migrate.sh` applies `supabase/migrations`, then the database scripts run. Production schema changes only when that preview branch is merged into production. Merging git to `main` updates the site. It does not change the production database until the Supabase branch is merged.
 
-Do not apply `supabase/migrations/20261014230000_bullpen_no_result.sql` to production until this build is live.
+`supabase/migrations/20261014230000_bullpen_no_result.sql` is not applied in production yet (production's latest migration is `20261019134923`). Merging the preview branch would apply it. It needs Jim's OK before it goes to production.
 
-A viewer is read-only, a player writes only her own bullpen, a pcoach is limited to her `pitcher_ids`, and `set_charted_by` tags the pitches she charts.
+Coach has full read/write. `call_sheets` and `team_settings` are coach-only. A viewer is read-only. A player reads her own games and pitches and writes only her own bullpen. A pcoach is limited to her `pitcher_ids` and writes bullpen and notes for those pitchers. `set_charted_by` tags every pitch.
+Source: `supabase/migrations/20261013183147_role_access_codes.sql`, `20261013185939_player_read_own_games.sql`, `20261013190849_id_checks_and_player_upd_own_only.sql`, `20261013200059_call_sheets.sql`, `20261013230142_pitching_coach_role_and_notes.sql`, `20261013233507_team_settings.sql`, `test/live.roles.js`, and `test/live.pcoach.js`.
 
 ## Tests
 
