@@ -594,6 +594,46 @@ test('SCORE-5: an FB A waste pitch is a strike when the umpire says so, and a hi
   assert.equal(PC.hitSpot({type:'FB',call:'FB16',hand:'R',targets:[16],loc:16,result:'called',inning:1,abn:1}),true,'a fastball that is not FB A still hits its box');
   assert.equal(PC.hitSpot({type:'FB',call:'FB A',shook:true,hand:'R',targets:[5],loc:5,result:'called',inning:1,abn:1}),true,'a shake-off is scored on her own aim');
 });
+test('SCORE-5: the away box is 16 for a righty and 17 for a lefty, and the marks use that hit spot',()=>{
+  const row=(over)=>({type:'FB',call:'FB A',hand:'R',targets:[16],loc:16,result:'ball',inning:1,abn:1,b:0,s:2,...over});
+  assert.equal(PC.hitSpot(row({hand:'R',targets:[17],loc:17})),false,'a righty on box 17 missed the away box');
+  assert.equal(PC.hitSpot(row({hand:'L',targets:[16],loc:16})),false,'a lefty on box 16 missed the away box');
+  assert.equal(PC.hitSpot(row({hand:'R',targets:[17],loc:17,result:'swinging'})),false);
+  assert.equal(PC.hitSpot(row({hand:'L',targets:[16],loc:16,result:'swinging'})),false);
+  const hit=row({}),miss=row({hand:'R',targets:[17],loc:17});
+  assert.equal(PC.summarize([hit,miss]).spotPct,50);
+  for(const call of ['A','fb a','FBA']){
+    assert.equal(PC.hitSpot(row({call,result:'called'})),false,call+' called strike is a miss');
+    assert.equal(PC.hitSpot(row({call,result:'ball'})),true,call+' ball on 16 is a hit');
+  }
+  assert.equal(PC.hitSpot(row({result:'foultip'})),false,'a foul tip is a miss');
+  assert.equal(PC.strikeOf(row({result:'foultip'})),true);
+  assert.equal(PC.hitSpot(row({result:'kd3'})),false,'a dropped third is a miss');
+  assert.equal(PC.hitSpot(row({result:'kd3out'})),false,'a dropped third thrown out is a miss');
+  assert.equal(PC.strikeOf(row({result:'kd3'})),true);
+  assert.equal(PC.strikeOf(row({result:'kd3out'})),true);
+  assert.equal(PC.hitSpot(row({targets:[31],loc:31})),false,'in the dirt is a miss');
+  assert.equal(PC.hitSpot(row({targets:[32],loc:32})),false,'over the backstop is a miss');
+  assert.equal(PC.hitSpot(row({hand:undefined,targets:[16],loc:16})),true,'no hand uses the righty away box');
+  assert.equal(PC.hitSpot(row({hand:undefined,targets:[17],loc:17})),false,'no hand on box 17 is the wrong box');
+  const pen={type:'FB',call:'FB A',hand:'R',targets:[16],loc:16};
+  assert.equal(PC.hitSpot(pen),true,'a bullpen FB A on 16 is a hit');
+  assert.equal(PC.strikeOf(pen),null);
+  assert.equal(PC.hitSpot({type:'FB',call:'FB A',targets:[17],loc:17}),false,'a bullpen pitch with no hand on 17 is a miss');
+  assert.equal(PC.hitSpot(row({loc:16,actualLoc:17})),false,'actualLoc wins when it is the wrong box');
+  assert.equal(PC.hitSpot(row({targets:[16],loc:5,actualLoc:16})),true,'actualLoc 16 is the righty away box');
+  assert.equal(PC.pitchMark(row({result:'called'})),'miss','the marker matches the miss');
+  assert.equal(PC.pitchMark(row({result:'ball'})),'good');
+  assert.equal(PC.sessionReport([row({result:'called'}),row({result:'ball'})]).good,1);
+  const penOff={type:'FB',call:'FB A',hand:'R',targets:[16],loc:4};
+  assert.equal(PC.summarize([pen,penOff]).wasteGood,1);
+  const heat=PC.missData([{p:row({result:'called'})},{p:row({result:'ball'})}],{});
+  assert.equal(heat.cells[16].hit,1);
+  assert.equal(heat.cells[16].good,1);
+  const aimed=PC.heatData(PC.heatItems({pitchers:[],games:[{id:'g',pitches:[row({result:'ball'}),row({result:'called'})]}],sessions:[]}),{},'intended');
+  assert.equal(aimed.cells[16].n,2);
+  assert.equal(aimed.cells[16].hit,1);
+});
 test('localDate: 9:30 PM ET stays on the same day (UTC would roll to tomorrow)',()=>{const old=process.env.TZ;process.env.TZ='America/New_York';try{const ts=Date.parse('2026-10-16T21:30:00-04:00');assert.equal(PC.localDate(ts),'2026-10-16');assert.notEqual(new Date(ts).toISOString().slice(0,10),'2026-10-16');}finally{process.env.TZ=old;}});
 test('no UI code builds a date from UTC (toISOString().slice(0,10))',()=>{const fs=require('fs'),path=require('path');const dir=path.join(__dirname,'..','js','ui');for(const f of fs.readdirSync(dir))assert.ok(!/toISOString\(\)\.slice\(0,\s*10\)/.test(fs.readFileSync(path.join(dir,f),'utf8')),f);});
 test('heatSummary (Miss / Landed) accounts for every pitch: no-aim and souvenir counts',()=>{const items=[{p:{type:'FB',targets:[2],loc:5}},{p:{type:'FB',targets:[4],loc:4}},{p:{type:'FB',targets:[],loc:6}},{p:{type:'FB',targets:[],loc:null}}];
