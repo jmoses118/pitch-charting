@@ -129,15 +129,4 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 RULE-8 coach zone floor, same tests: under 400px tall, zone cells are 46px where it fits; smaller only when the screen cannot fit 46px (approved by Jim 2026-10-17, fit-first). The SE screen is unchanged. Exact sizes are checked at 956 and 844 wide. 844×360 and 932×360 keep every coach button on screen.
 
 ## Architecture
-Each business rule lives in one `js/core` module. UI files render and forward events. They do not keep a second validator or a second copy of a rule.
-
-| Module | Owns |
-|---|---|
-| `js/core/config.js` | `pcPickConfig`, the one database target. `pcPickConfig.PROD` holds the production ref, URL, publishable key, and host list. |
-| `js/core/flow.js` | The one scoring state machine (`scoreApply`, `scoreTap`, `scoreStep`, `scoreCommit`) and the one location validator (`validCalled`, `validActual`). Portrait Game, the landscape coach screen, Bullpen, and any later view call this module. |
-| `js/core/location.js` | `calledOf` and `actualOf`, the one reading of a stored called spot and actual spot. |
-| `js/core/scoring.js` | Miss severity, the low-pitch bonus, and strike versus hit-spot. The penalty uses `calledTypeOf`. |
-| `js/core/csv.js` | `csvRow`, the one CSV row builder, and `calledTypeOf`. |
-| `js/core/store.js` | The roster, the jersey check, and the local save. |
-| `js/core/sync.js` | Row mapping and merge. A read keeps a grid aim that fails `validCalled` and sets `calledFlag`. |
-| `js/core/modes.js` | The game and bullpen lock, `createGame`, `endGame`, `discardGame`, and `pauseGame`. |
+The module map and the boundary rule are in [AGENTS.md](../AGENTS.md).

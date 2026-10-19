@@ -4,14 +4,12 @@ Thunder Elite pitch charting is a static iPhone PWA. The scripts are IIFEs with 
 
 Players are minors. Show first name and jersey number only. Never commit a surname, a birth date, or an access code.
 
-Open `AGENTS.md`, then the spec IDs the task touches. Current rules are `docs/SPEC.md` and `docs/SCORING.md`. Visual tokens are `docs/DESIGN.md`. Commands are `docs/TESTING.md`.
-
 ## App files
 
 - `index.html` holds every view and the script tags, core first, then UI.
 - `style.css` holds the tokens named in `docs/DESIGN.md`.
 - `logic.js` loads `js/core` for Node. `config.js` only wires the browser. The choice is `pcPickConfig`.
-- `sw.js` caches app files. Bump `te-pitch-vNN` when one of those files changes.
+- `sw.js` is network-first with a cache fallback. Bump `te-pitch-vNN` when an app file changes.
 - `supabase/migrations/` is the schema CI applies on localhost. Do not edit a file that is already on the base branch.
 
 ## Module map
@@ -20,16 +18,16 @@ Each `js/core` file owns the rule IDs on its line. UI files render and forward e
 
 IDs live in `docs/SPEC.md`: FLOW-1a, FLOW-13a, RULE-4b, RULE-5a, RULE-6a, RULE-7a, RULE-8a, SCORE-1 through SCORE-4, SYNC-1 through SYNC-3, VIEW-3. SCORE-1 through SCORE-4 are worded in `docs/SCORING.md`.
 
-- `js/core/config.js` — INFRA-3. `pcPickConfig` is the one database target.
+- `js/core/config.js` — INFRA-3. `pcPickConfig` is the one database target. `pcPickConfig.PROD` holds the production ref, URL, publishable key, and host list.
 - `js/core/grid.js` — the location lattice (`GRID_XY`, zone, ring, way off, dirt, backstop) that SCORE-2 and SCORE-3 use.
 - `js/core/calls.js` — RULE-1. `aimOpts` asks `validCalled`. `aimRejectMsg` is the one refusal sentence.
-- `js/core/location.js` — RULE-4 and RULE-4b. `calledOf` and `actualOf` are the one reading of a stored spot.
-- `js/core/flow.js` — FLOW-1 through FLOW-12 and FLOW-1a. `validCalled` and `validActual` are the location checks.
-- `js/core/game.js` — RULE-6, RULE-6a, FLOW-9, FLOW-11, and FLOW-12. Count, redo, and `editActual`.
-- `js/core/scoring.js` — SCORE-1, SCORE-2, SCORE-3, SCORE-4, FLOW-7, FLOW-7a, and RULE-3c. `pitchMiss` is the only severity source.
+- `js/core/location.js` — RULE-4 and RULE-4b. `calledOf` and `actualOf` are the one reading of a stored called spot and actual spot.
+- `js/core/flow.js` — the one scoring state machine (`scoreApply`, `scoreTap`, `scoreStep`, `scoreCommit`) and the location checks (`validCalled`, `validActual`). Portrait Game, the coach screen, and Bullpen call this module.
+- `js/core/game.js` — RULE-6, RULE-6a, FLOW-8, FLOW-9, FLOW-11, and FLOW-12. Count, redo, `sessionHand`, and `editActual`.
+- `js/core/scoring.js` — SCORE-1, SCORE-2, SCORE-3, SCORE-4, FLOW-7, FLOW-7a, and RULE-3c. `pitchMiss` is the only severity source. `hitSpot` and `strikeOf` are hit spot versus strike. The penalty reads `calledTypeOf`.
 - `js/core/csv.js` — RULE-9 and RULE-10. `csvRow` is the one CSV row builder. `calledTypeOf` lives here.
-- `js/core/workload.js` — today's pitch count, the Fri–Sun weekend count, and the soft day and weekend alerts.
-- `js/core/sync.js` — SYNC-1, SYNC-2, SYNC-3, and RULE-4a. `scorerOfRow` is the lock's row reader (RULE-5a).
+- `js/core/workload.js` — today's pitch count, the Fri–Sun weekend count, and the soft day and weekend alerts. The alert turns amber at 85%.
+- `js/core/sync.js` — SYNC-1, SYNC-2, SYNC-3, and RULE-4a. A read keeps a grid aim that fails `validCalled` and sets `calledFlag`. `scorerOfRow` is the lock's row reader (RULE-5a).
 - `js/core/modes.js` — FLOW-13, FLOW-13a, FLOW-14, FLOW-15, VIEW-3, RULE-5, and RULE-5a. `createGame`, `endGame`, `discardGame`, `pauseGame`, `todaysScheduled`, and the scoring lock.
 - `js/core/store.js` — RULE-10, RULE-11, and RULE-11a. Roster, `jerseyError`, and the local save.
 
@@ -63,9 +61,9 @@ These files are IIFEs, not ES modules, so an import linter cannot see a cross-fi
 
 ## Where the rules live
 
-`docs/SPEC.md` holds the FLOW, RULE, VIEW, INFRA, SCORE, and SYNC IDs. `docs/SCORING.md` holds the SCORE-1 through SCORE-4 wording, plus the grid, change-up aim, and shake-off notes. `LESSONS.md` is the live regression log. `docs/DESIGN.md` is the current visual system. `docs/TESTING.md` is how to run the checks.
+`docs/SPEC.md` holds the FLOW, RULE, VIEW, INFRA, SCORE, and SYNC IDs. `docs/SCORING.md` holds the SCORE-1 through SCORE-4 wording, plus the grid, change-up aim, and shake-off notes. `LESSONS.md` is the live regression log. `docs/DESIGN.md` is the current visual system. `docs/TESTING.md` is how to run the checks. A version heading there is a test log, not a second spec.
 
-Nothing else is normative. CHANGELOG.md is history for the gate, not a builder reading. Do not read it unless asked. BRIEF-7 still needs a new plain-English line on every pull request.
+History lives in `docs/archive/` and CHANGELOG.md. Don't read them unless asked. BRIEF-7 still needs a new plain-English line on every pull request.
 
 ## Standard builder brief
 
@@ -97,6 +95,10 @@ Staging is a persistent Supabase preview branch. Jim creates it in the dashboard
 
 Schema checks run on that branch, or on the throwaway Postgres CI already starts: `test/pg-migrate.sh` applies `supabase/migrations`, then the database scripts run. Production schema changes only when that preview branch is merged into production. Merging git to `main` updates the site. It does not change the production database until the Supabase branch is merged.
 
+Do not apply `supabase/migrations/20261014230000_bullpen_no_result.sql` to production until this build is live.
+
+A viewer is read-only, a player writes only her own bullpen, a pcoach is limited to her `pitcher_ids`, and `set_charted_by` tags the pitches she charts.
+
 ## Tests
 
 - Unit and prod host: `node --test test/logic.test.js test/prodref.test.js`.
@@ -105,7 +107,3 @@ Schema checks run on that branch, or on the throwaway Postgres CI already starts
 - UI, on a local static server at port 8766 with Chrome: `node test/ui.smoke.js 8766`, then `node test/<name>.ui.js http://localhost:8766/`. Names are in `docs/TESTING.md`.
 - Postgres, localhost only: `test/pg-migrate.sh`, then `test/flow6a.pg.sh`, `test/badaim.pg.sh`, and `test/pendingbadaim.pg.sh`.
 - Live Supabase scripts use the staging branch or local stack. They do not use production.
-
-`docs/DESIGN.md` is current, including the screen notes. The IDs for those screens are RULE-7a, RULE-8, RULE-8a, FLOW-9, FLOW-10, and SYNC-1. `docs/TESTING.md` is the command list. A version heading there is a test log, not a second spec.
-
-History lives in docs/archive/ and CHANGELOG.md. Don't read them unless asked.

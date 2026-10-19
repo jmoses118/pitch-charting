@@ -3,4 +3,4 @@ description: One module owns each business rule
 alwaysApply: true
 ---
 
-Read AGENTS.md. It is the one copy of the module map, the boundary rules, and the builder brief.
+Read AGENTS.md. The module map and the boundary rules live only in that file.

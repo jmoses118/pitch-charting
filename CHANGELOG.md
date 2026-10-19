@@ -2,7 +2,8 @@
 
 ## v77 – Builder docs point at the current rules
 ### Changed
-- The chart works the same. Agent notes name each module and the rule it owns. The product spec and the scoring notes are the current rules, including hit spot, miss severity, competitive %, and strike %. The architecture notes moved word for word. The lesson log stays at the root, and a bug that reaches Jim gets a lesson entry plus a regression test. The Game tab lists only today's scheduled games. Builders should not read this changelog unless asked.
+- The chart works the same. Agent notes name each module and the rule it owns. The product spec and the scoring notes are the current rules, including hit spot, miss severity, competitive %, and strike %. The architecture notes moved word for word. The lesson log stays at the root, and a bug that reaches Jim gets a lesson entry plus a regression test. Builders should not read this changelog unless asked.
+- The Game tab lists only today's scheduled games.
 
 ## v76 – A file move counts only when the bytes match
 ### Changed
