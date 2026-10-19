@@ -17,3 +17,5 @@ Exit only left the screen, so an empty game stayed on the list with no picker an
 Regression: test/logic.test.js "FLOW-13 createGame returns null until opponent and pitcher are set", "FLOW-14 pauseGame keeps the row and endGame waits for confirmation", and "FLOW-15 discard pushes deleted and a pull does not bring it back".
 The picker check is test/modes.ui.js "picker shows N Resume rows and one Start".
 The paused card is gone. The picker is the list. Regression: test/modes.ui.js "picker shows N Resume rows and one Start".
+Git can score a rename R100 when the lines are only reordered. A free move needs the same blob on both sides. Regression: test/prgate.negative.js "BRIEF-5 an R100 line reversal counts the whole file" and "BRIEF-5 a pure rename of a 600-char line passes".
+A move into test/ was free because the deletion folded into the test path. The old file counts. Moving a file out of test/ still counts the new file. Regression: test/prgate.negative.js "BRIEF-5 a move into test/ counts the source file" and "BRIEF-5 an edited move from test/x.js to js/x.js counts the full file".

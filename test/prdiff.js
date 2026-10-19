@@ -4,7 +4,7 @@
 const fs=require('fs'),path=require('path'),{spawnSync}=require('child_process');
 const {baseRef,readFileAt,missingRev}=require('./git-base.js');
 
-const GATE_FILES=['test/prsize.js','test/changelog.js','test/prdiff.js','test/prgate.negative.js','test/git-base.js','.github/workflows/pr-gate.yml'];
+const GATE_FILES=['test/prsize.js','test/changelog.js','test/prdiff.js','test/prgate.negative.js','test/git-base.js','.github/workflows/pr-gate.yml','.github/workflows/ci.yml'];
 
 function git(cwd, args){
   const r=spawnSync('git', args, {cwd, encoding:'utf8'});
@@ -58,7 +58,7 @@ function withTextDiff(cwd, fn){
 function numstat(cwd){
   const span=range(cwd);
   if(!span.ok)return span;
-  const d=withTextDiff(cwd, ()=>git(cwd, ['diff','--numstat','--text','--no-ext-diff', span.from, span.head]));
+  const d=withTextDiff(cwd, ()=>git(cwd, ['diff','--no-renames','--numstat','--text','--no-ext-diff', span.from, span.head]));
   if(d.code!==0){
     const detail=(d.err||d.out).trim().split('\n').find(Boolean)||'git diff failed';
     return {ok:false, base:span.base, error:detail};
@@ -99,6 +99,31 @@ function rawModes(cwd){
     if(m)rows.push({oldMode:m[1], newMode:m[2], file:m[3]});
   }
   return {ok:true, rows};
+}
+function renames(cwd){
+  const span=range(cwd);
+  if(!span.ok)return span;
+  const d=git(cwd, ['diff','-M','--raw', span.from, span.head]);
+  if(d.code!==0){
+    const detail=(d.err||d.out).trim().split('\n').find(Boolean)||'git diff failed';
+    return {ok:false,error:detail};
+  }
+  const rows=[];
+  for(const line of d.out.split('\n')){
+    const m=line.match(/^:(\d+) (\d+) \S+ \S+ R\d+\t([^\t]+)\t([^\t]+)$/);
+    if(m)rows.push({oldMode:m[1], newMode:m[2], oldPath:m[3], newPath:m[4]});
+  }
+  return {ok:true, rows};
+}
+function sameBlob(cwd, from, oldPath, head, newPath){
+  const a=git(cwd, ['rev-parse','--verify', from+':'+oldPath]);
+  const b=git(cwd, ['rev-parse','--verify', head+':'+newPath]);
+  if(a.code!==0||b.code!==0){
+    const err=((a.code!==0?a.err||a.out:b.err||b.out)||'').trim();
+    if(missingRev(err))return {ok:true, same:false};
+    return {ok:false, error:err.split('\n').find(Boolean)||'git rev-parse failed'};
+  }
+  return {ok:true, same:a.out.trim()===b.out.trim()};
 }
 function textChange(cwd, from, head, file){
   const d=withTextDiff(cwd, ()=>git(cwd, ['diff','-U0','--text','--no-ext-diff', from, head, '--', file]));
@@ -143,4 +168,4 @@ function gateDrift(cwd){
   if(ownerOverride())return {ok:true,changed,override:true};
   return {ok:false,changed};
 }
-module.exports={git, baseRev, headRev, range, numstat, blobAt, rawModes, textChange, gateDrift, destPath, GATE_FILES, readFileAt};
+module.exports={git, baseRev, headRev, range, numstat, blobAt, rawModes, renames, sameBlob, textChange, gateDrift, destPath, GATE_FILES, readFileAt};

@@ -1,8 +1,10 @@
 // BRIEF-5. The cap and these gate files are read from the base branch.
 // A pull request that changes either one fails. Only the top-level test/
 // folder and the named lockfiles at the repo root are excluded.
+// A word-for-word rename is free only when the blobs match, the mode matches,
+// and both paths are counted or both are excluded. Any other move counts in full.
 const path=require('path');
-const {numstat, blobAt, rawModes, textChange, gateDrift, readFileAt, baseRev, headRev}=require('./prdiff.js');
+const {numstat, blobAt, rawModes, textChange, gateDrift, readFileAt, baseRev, headRev, renames, sameBlob}=require('./prdiff.js');
 
 const DEFAULT_CAP=300;
 const ROOT_LOCKS=['package-lock.json','npm-shrinkwrap.json','yarn.lock','pnpm-lock.yaml','bun.lock','bun.lockb','Cargo.lock','Gemfile.lock','poetry.lock','composer.lock','packages.lock.json'];
@@ -28,6 +30,10 @@ function capIn(text){
 function workflowCap(text){
   const m=String(text).match(/^[\t ]*PR_LINE_CAP:\s*["']?(\d+)/m);
   return m?Number(m[1]):null;
+}
+function freshLong(oldText, newText){
+  const have=new Set(String(oldText).split('\n'));
+  return String(newText).split('\n').some(line=>line.length>500&&!have.has(line));
 }
 function limitFromBase(root){
   const b=readFileAt(root, baseRev(), 'test/prsize.js');
@@ -71,10 +77,27 @@ function main(){
     if(row.oldMode==='160000'||row.newMode==='160000'){console.log('FAIL pr size submodule '+row.file);process.exit(1);}
     if(row.file==='.gitmodules'||row.file.endsWith('/.gitmodules')){console.log('FAIL pr size .gitmodules changed');process.exit(1);}
   }
+  const named=renames(root);
+  if(!named.ok){console.log('FAIL pr size '+(named.error||'git diff failed'));process.exit(1);}
+  const pure=new Set(), edited=new Map();
+  for(const mv of named.rows){
+    const sameBucket=excluded(mv.oldPath)===excluded(mv.newPath);
+    const sameMode=mv.oldMode===mv.newMode;
+    let identical=false;
+    if(sameBucket&&sameMode){
+      const id=sameBlob(root, diff.from, mv.oldPath, diff.head, mv.newPath);
+      if(!id.ok){console.log('FAIL pr size '+id.error);process.exit(1);}
+      identical=id.same;
+    }
+    if(identical){pure.add(mv.oldPath);pure.add(mv.newPath);continue;}
+    if(sameBucket)edited.set(mv.newPath, mv.oldPath);
+  }
+  const modeBy=new Map();
+  for(const row of modes.rows)modeBy.set(row.file, row);
   let total=0;
   const files=[];
   for(const row of diff.rows){
-    if(excluded(row.file))continue;
+    if(excluded(row.file)||pure.has(row.file))continue;
     const hb=blobAt(root, diff.head, row.file);
     const bb=blobAt(root, diff.from, row.file);
     if(!hb.ok){console.log('FAIL pr size '+hb.error);process.exit(1);}
@@ -84,9 +107,21 @@ function main(){
     else{
       const text=textChange(root, diff.from, diff.head, row.file);
       if(!text.ok){console.log('FAIL pr size '+text.error);process.exit(1);}
-      if(text.long){console.log('FAIL pr size minified line in '+row.file);process.exit(1);}
+      let long=text.long;
+      if(edited.has(row.file)){
+        const old=readFileAt(root, diff.from, edited.get(row.file));
+        const neu=readFileAt(root, diff.head, row.file);
+        if(!old.ok){console.log('FAIL pr size '+old.error);process.exit(1);}
+        if(!neu.ok){console.log('FAIL pr size '+neu.error);process.exit(1);}
+        long=freshLong(old.missing?'':old.text, neu.missing?'':neu.text);
+      }
+      if(long){console.log('FAIL pr size minified line in '+row.file);process.exit(1);}
       const linesN=Number(row.add)+Number(row.del);
       n=Math.max(linesN, Math.ceil(text.bytes/120));
+      if(n===0){
+        const mode=modeBy.get(row.file);
+        if(mode&&mode.oldMode!=='000000'&&mode.newMode!=='000000'&&mode.oldMode!==mode.newMode)n=1;
+      }
     }
     if(!Number.isFinite(n)){console.log('FAIL pr size bad numstat '+row.file);process.exit(1);}
     total+=n;

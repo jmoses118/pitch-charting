@@ -1,5 +1,13 @@
 # Changelog
 
+## v76 – A file move counts only when the bytes match
+### Changed
+- **BRIEF-5.** The chart works the same. A word-for-word file move is free only when the two copies are the same bytes, and both paths are counted or both are under test.
+- Reordering lines is not word-for-word. That move counts every deleted line and every added line.
+- Moving a file into test counts the old file. Moving a file out of test counts the new file.
+- A move that changes any byte counts the whole old file plus the whole new file. A new line longer than 500 characters still fails.
+- The workflow file is a gate file, so moving it is not free.
+
 ## v75 – Old backup tables are removed
 ### Changed
 - Jim approved deleting four leftover backup tables from 15 October 2026: the full copies of pitches, sessions, games, and notes. The live tables stay. The migration drops only those four copies.
