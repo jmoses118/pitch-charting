@@ -116,7 +116,7 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | RULE-6a | unit: “redo list persists on this phone, stays capped at 10, and is not synced” |
 | RULE-7a | `test/sheets.ui.js`: Cancel, Escape, and backdrop leave data unchanged |
 | RULE-8a | `test/coach.ui.js` line 9: 844×390 is 48; 667×375 is band ≥44, zone ≥34, results ≥46 |
-| SCORE-1 | unit: “hitSpot uses pitchMiss” |
+| SCORE-1 | unit: “hitSpot uses pitchMiss”; “SCORE-1: the intended heat map uses hit spot, so a change-up on box 4 is not a hit” |
 | SCORE-2 | unit: “ring is competitive, way off is a miss” |
 | SCORE-3 | unit: that ring test; `test/wayoff.ui.js` competitive 67% |
 | SCORE-4 | unit: “report strikes follow the umpire result”; `test/flow.ui.js` |

@@ -154,6 +154,14 @@ test('heat filters: type, pitcher, hand, batter, side, source, game, session',()
   assert.equal(n({type:'FB'}),3);assert.equal(n({pitcher:'p_woods'}),2);assert.equal(n({throws:'L'}),2);assert.equal(n({batter:'Smith'}),2);assert.equal(n({side:'L'}),1);assert.equal(n({side:'N'}),2);
   assert.equal(n({src:'bullpen'}),2);assert.equal(n({src:'game'}),3);assert.equal(n({game:'g1'}),3);assert.equal(n({session:'s1'}),2);assert.equal(n({type:'FB',src:'game',pitcher:'p_crich'}),1);assert.equal(n({type:'SC'}),0);});
 test('heat intended view: aimed counts + hit-the-spot',()=>{const d=PC.heatData(PC.heatItems(heatState()),{},'intended');assert.equal(d.total,2);assert.equal(d.cells[16].n,1);assert.equal(d.cells[16].hit,1);assert.equal(d.cells[7].n,1);assert.equal(d.cells[7].hit,0);});
+test('SCORE-1: the intended heat map uses hit spot, so a change-up on box 4 is not a hit',()=>{
+  const ch={type:'CH',call:'CH4',hand:'R',targets:[4],loc:4},fb={type:'FB',call:'FB4',hand:'R',targets:[4],loc:4};
+  assert.equal(PC.hitSpot(ch),false,'a change-up on box 4 is up');
+  assert.equal(PC.hitSpot(fb),true);
+  const aimed=PC.heatData([{p:ch},{p:fb}],{},'intended');
+  assert.equal(aimed.cells[4].n,2);
+  assert.equal(aimed.cells[4].hit,1);
+});
 test('heat colors: sequential viridis, empty cells uncolored, readable text',()=>{assert.equal(PC.heatColor(0,5),null);assert.equal(PC.heatColor(5,5).fill,'#fde725');assert.equal(PC.heatColor(5,5).text,'#000');assert.equal(PC.heatColor(1,10).text,'#fff');});
 test('miss distance: Chebyshev squares on the 5x5 grid incl. outside spots',()=>{const d=PC.missDist;assert.equal(d(5,5),0);assert.equal(d(1,5),1);assert.equal(d(3,7),2);assert.equal(d(11,14),4);assert.equal(d(15,2),1);assert.equal(d(16,6),3);assert.equal(d(17,6),1);assert.equal(d(18,2),3);assert.equal(d(13,3),3);assert.equal(d(12,13),4);});
 test('miss heat map: per intended cell avg miss + colors (green <=1, darker red to 4)',()=>{const st=PC.defaultState();st.sessions.push({id:'s',date:'d',pitches:[

@@ -26,7 +26,7 @@ A change-up is **never aimed in the upper zone**. The only valid change-up targe
 - The **CH-up miss rule** below is unchanged.
 
 ## SCORE-1 Hit spot
-`PC.hitSpot(p)` = `pitchMiss(p).d === 0` and not a CH-up. Stats Spot % and the report's Bullseyes use it. FB A (away waste) follows SCORE-5, and that same hit decides its marker and its on-target count.
+`PC.hitSpot(p)` = `pitchMiss(p).d === 0` and not a CH-up. Stats Spot % and the report's Bullseyes use it. The intended heat map uses that same hit, so a change-up aimed at box 4 that lands on box 4 is not a hit. FB A (away waste) follows SCORE-5, and that same hit decides its marker and its on-target count.
 
 ## SCORE-2 Miss severity (per called pitch)
 - `sev` = distance in squares from the nearest target, 0 = hit spot.
@@ -56,6 +56,12 @@ Strike % does not change. If the umpire calls an FB A a strike, it counts as a s
 Hit spot is stricter. An FB A that lands in the zone, is called a strike, is put in play, or is fouled is a missed spot. It is never a hit spot, even when it lands on the called box or a location bonus would mark the severity as good.
 
 The only hit is a ball or a swing-and-miss that stays out of the zone and lands on the away box: 16 against a righty, 17 against a lefty. The other side of the plate is a miss.
+
+A game pitch with no hand defaults to a righty, so the away box is 16.
+
+A bullpen FB A with no result that lands on the away box counts as hitting the spot, since the goal is to be off the plate. Derived from Jim's 10/19 ruling; Jim may override.
+
+On a shake-off, SCORE-5 is skipped and the pitch is scored on what she actually threw, under the existing shake rule. Derived from Jim's 10/19 ruling; Jim may override.
 
 ## Strikeouts
 - **K credit**: if the pitcher is replaced with 2 strikes and the reliever finishes the K, the K goes to the pitcher who threw strike 2 (official rule). Pitch counts stay with whoever threw each pitch.
