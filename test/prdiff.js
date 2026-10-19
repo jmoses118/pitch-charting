@@ -4,7 +4,7 @@
 const fs=require('fs'),path=require('path'),{spawnSync}=require('child_process');
 const {baseRef,readFileAt,missingRev}=require('./git-base.js');
 
-const GATE_FILES=['test/prsize.js','test/changelog.js','test/prdiff.js','test/prgate.negative.js','test/git-base.js','.github/workflows/pr-gate.yml'];
+const GATE_FILES=['test/prsize.js','test/changelog.js','test/prdiff.js','test/prgate.negative.js','test/git-base.js','.github/workflows/pr-gate.yml','.github/workflows/ci.yml'];
 
 function git(cwd, args){
   const r=spawnSync('git', args, {cwd, encoding:'utf8'});
@@ -58,7 +58,7 @@ function withTextDiff(cwd, fn){
 function numstat(cwd){
   const span=range(cwd);
   if(!span.ok)return span;
-  const d=withTextDiff(cwd, ()=>git(cwd, ['diff','-M','--numstat','--text','--no-ext-diff', span.from, span.head]));
+  const d=withTextDiff(cwd, ()=>git(cwd, ['diff','--no-renames','--numstat','--text','--no-ext-diff', span.from, span.head]));
   if(d.code!==0){
     const detail=(d.err||d.out).trim().split('\n').find(Boolean)||'git diff failed';
     return {ok:false, base:span.base, error:detail};
@@ -103,38 +103,43 @@ function rawModes(cwd){
 function renames(cwd){
   const span=range(cwd);
   if(!span.ok)return span;
-  const d=git(cwd, ['diff','-M','--name-status', span.from, span.head]);
+  const d=git(cwd, ['diff','-M','--raw', span.from, span.head]);
   if(d.code!==0){
     const detail=(d.err||d.out).trim().split('\n').find(Boolean)||'git diff failed';
     return {ok:false,error:detail};
   }
   const rows=[];
   for(const line of d.out.split('\n')){
-    const m=line.match(/^R(\d+)\t(.*)\t(.*)$/);
-    if(m)rows.push({score:m[1], oldPath:m[2], newPath:m[3]});
+    const m=line.match(/^:(\d+) (\d+) \S+ \S+ R\d+\t([^\t]+)\t([^\t]+)$/);
+    if(m)rows.push({oldMode:m[1], newMode:m[2], oldPath:m[3], newPath:m[4]});
   }
   return {ok:true, rows};
 }
-function textChange(cwd, from, head, file, oldFile){
-  const args=['diff','-U0'];
-  if(oldFile)args.push('-M');
-  args.push('--text','--no-ext-diff', from, head, '--');
-  if(oldFile)args.push(oldFile);
-  args.push(file);
-  const d=withTextDiff(cwd, ()=>git(cwd, args));
+function sameBlob(cwd, from, oldPath, head, newPath){
+  const a=git(cwd, ['rev-parse','--verify', from+':'+oldPath]);
+  const b=git(cwd, ['rev-parse','--verify', head+':'+newPath]);
+  if(a.code!==0||b.code!==0){
+    const err=((a.code!==0?a.err||a.out:b.err||b.out)||'').trim();
+    if(missingRev(err))return {ok:true, same:false};
+    return {ok:false, error:err.split('\n').find(Boolean)||'git rev-parse failed'};
+  }
+  return {ok:true, same:a.out.trim()===b.out.trim()};
+}
+function textChange(cwd, from, head, file){
+  const d=withTextDiff(cwd, ()=>git(cwd, ['diff','-U0','--text','--no-ext-diff', from, head, '--', file]));
   if(d.code!==0){
     const detail=(d.err||d.out).trim().split('\n').find(Boolean)||'git diff failed';
     return {ok:false,error:detail};
   }
-  let bytes=0, long=false, added=0;
+  let bytes=0, long=false;
   for(const line of d.out.split('\n')){
     if(line.startsWith('+++')||line.startsWith('---')||line.startsWith('@@'))continue;
     if(!line.startsWith('+')&&!line.startsWith('-'))continue;
     const body=line.slice(1);
     bytes+=Buffer.byteLength(body);
-    if(line.startsWith('+')){added++;if(body.length>500)long=true;}
+    if(line.startsWith('+')&&body.length>500)long=true;
   }
-  return {ok:true, bytes, long, added};
+  return {ok:true, bytes, long};
 }
 function ownerOverride(){
   // A push to main is the owner landing the edit. A pull request overrides
@@ -163,4 +168,4 @@ function gateDrift(cwd){
   if(ownerOverride())return {ok:true,changed,override:true};
   return {ok:false,changed};
 }
-module.exports={git, baseRev, headRev, range, numstat, blobAt, rawModes, renames, textChange, gateDrift, destPath, GATE_FILES, readFileAt};
+module.exports={git, baseRev, headRev, range, numstat, blobAt, rawModes, renames, sameBlob, textChange, gateDrift, destPath, GATE_FILES, readFileAt};

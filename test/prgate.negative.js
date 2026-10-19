@@ -2,7 +2,7 @@
 // Merge-main counts only the pull request. Cap edits, nested test/fixture/lock
 // paths, .gitattributes binary and -diff, a .wasm, a symlink, a submodule,
 // a minified line, ## v5, a renamed heading, and a cache-only line must fail.
-// A word-for-word rename passes. An edited rename counts only that edit.
+// A word-for-word rename passes. Any other move counts the deleted lines plus the added lines.
 const fs=require('fs'),path=require('path'),os=require('os'),{spawnSync,execSync}=require('child_process');
 const {DEFAULT_CAP}=require('./prsize.js');
 const repo=path.join(__dirname,'..');
@@ -20,6 +20,7 @@ function emptyRepo(){
   git(dir,'init -q -b main');
   git(dir,'config user.email t@example.com');
   git(dir,'config user.name t');
+  git(dir,'config core.filemode true');
   return dir;
 }
 function seed(dir, log){
@@ -116,7 +117,11 @@ counted('BRIEF-5 a baseline image is counted','shots/home.baseline.png');
   writeRel(dir,'.github/workflows/ci.yml','name: CI\nPR_LINE_CAP: "99999"\n');
   commit(dir,'head');
   const r=run(sizeJs,dir);
-  say(r.code!==0&&r.out.includes('PR changes the cap'),'BRIEF-5 workflow cap edit fails',r.out);
+  say(r.code!==0&&r.out.includes('gate file changed')&&r.out.includes('.github/workflows/ci.yml'),'BRIEF-5 workflow cap edit fails',r.out);
+  const ev=path.join(dir,'owner-event.json');
+  fs.writeFileSync(ev,JSON.stringify({pull_request:{user:{login:'owner'}},repository:{owner:{login:'owner'}}}));
+  const allowed=run(sizeJs,dir,{GITHUB_EVENT_NAME:'pull_request',GITHUB_EVENT_PATH:ev});
+  say(allowed.code!==0&&allowed.out.includes('PR changes the cap'),'BRIEF-5 owner override still rejects a workflow cap edit',allowed.out);
   done(dir);
 }
 {
@@ -245,7 +250,7 @@ counted('BRIEF-5 a baseline image is counted','shots/home.baseline.png');
   fs.appendFileSync(path.join(dir,'pkg','note.js'),'edited\n');
   commit(dir,'head');
   const r=run(sizeJs,dir);
-  say(r.code===0&&/pr size ok: 1 lines/.test(r.out),'BRIEF-5 a rename with one edited line counts 1',r.out);
+  say(r.code===0&&/pr size ok: 81 lines/.test(r.out),'BRIEF-5 an edited rename counts the deleted lines plus the added lines',r.out);
   done(dir);
 }
 {
@@ -281,6 +286,179 @@ counted('BRIEF-5 a baseline image is counted','shots/home.baseline.png');
   commit(dir,'head');
   const r=run(sizeJs,dir);
   say(r.code===0&&/pr size ok: 13 lines/.test(r.out),'BRIEF-5 an edited move from test/x.js to js/x.js counts the full file',r.out);
+  done(dir);
+}
+function statusOf(dir){return execSync('git -c core.hooksPath=/dev/null diff -M --name-status HEAD~1 HEAD',{cwd:dir,encoding:'utf8'});}
+function sizeOk(name, dir, n){
+  const r=run(sizeJs,dir);
+  say(r.code===0&&new RegExp('pr size ok: '+n+' lines\\b').test(r.out),name,r.out);
+  done(dir);
+}
+{
+  const dir=repoDir();
+  writeRel(dir,'a.js','one\ntwo\nthree\nfour\n');
+  commit(dir,'base');
+  fs.mkdirSync(path.join(dir,'pkg'));
+  git(dir,'mv a.js pkg/a.js');
+  writeRel(dir,'pkg/a.js','four\nthree\ntwo\none\n');
+  commit(dir,'head');
+  const r=run(sizeJs,dir);
+  say(statusOf(dir).startsWith('R100')&&r.code===0&&/pr size ok: 8 lines/.test(r.out),'BRIEF-5 an R100 line reversal counts the whole file',r.out);
+  done(dir);
+}
+{
+  const dir=repoDir();
+  writeRel(dir,'a.js',lines(10));
+  commit(dir,'base');
+  fs.mkdirSync(path.join(dir,'pkg'));
+  git(dir,'mv a.js pkg/a.js');
+  const arr=lines(10).trim().split('\n');
+  const swap=arr.slice();
+  swap[2]=arr[3];
+  swap[3]=arr[2];
+  writeRel(dir,'pkg/a.js',swap.join('\n')+'\n');
+  commit(dir,'head');
+  const r=run(sizeJs,dir);
+  say(statusOf(dir).startsWith('R100')&&r.code===0&&/pr size ok: 20 lines/.test(r.out),'BRIEF-5 an R100 two-line swap counts the whole file',r.out);
+  done(dir);
+}
+{
+  const dir=repoDir();
+  writeRel(dir,'js/ui/coach.js',lines(20));
+  commit(dir,'base');
+  fs.mkdirSync(path.join(dir,'test'));
+  git(dir,'mv js/ui/coach.js test/coach_old.js');
+  commit(dir,'head');
+  sizeOk('BRIEF-5 a move into test/ counts the source file',dir,20);
+}
+{
+  const dir=repoDir();
+  writeRel(dir,'js/ui/coach.js',lines(20));
+  commit(dir,'base');
+  fs.mkdirSync(path.join(dir,'test'));
+  git(dir,'mv js/ui/coach.js test/coach_old.js');
+  fs.appendFileSync(path.join(dir,'test','coach_old.js'),'edited\n');
+  commit(dir,'head');
+  sizeOk('BRIEF-5 an edited move into test/ still counts the source file',dir,20);
+}
+{
+  const dir=repoDir();
+  writeRel(dir,'a.js',lines(15));
+  commit(dir,'base');
+  fs.copyFileSync(path.join(dir,'a.js'),path.join(dir,'b.js'));
+  commit(dir,'head');
+  sizeOk('BRIEF-5 a copy counts the new file',dir,15);
+}
+{
+  const dir=repoDir();
+  const body=lines(20);
+  writeRel(dir,'a.js',body);
+  commit(dir,'base');
+  const arr=body.trim().split('\n');
+  writeRel(dir,'a.js',arr.slice(0,16).join('\n')+'\n');
+  writeRel(dir,'b.js',arr.slice(16).join('\n')+'\n');
+  commit(dir,'head');
+  sizeOk('BRIEF-5 a split counts the deleted lines plus the added lines',dir,8);
+}
+{
+  const dir=repoDir();
+  writeRel(dir,'a.js','one\ntwo\nthree\n');
+  commit(dir,'base');
+  writeRel(dir,'a.js','one\ntwo \nthree\n');
+  commit(dir,'head');
+  sizeOk('BRIEF-5 a whitespace edit counts the changed lines',dir,2);
+}
+{
+  const dir=repoDir();
+  writeRel(dir,'a.js','one\ntwo\nthree\n');
+  commit(dir,'base');
+  writeRel(dir,'a.js','one\r\ntwo\r\nthree\r\n');
+  commit(dir,'head');
+  sizeOk('BRIEF-5 a CRLF edit counts the changed lines',dir,6);
+}
+{
+  const dir=repoDir();
+  writeRel(dir,'a.js','one\ntwo\nthree\n');
+  commit(dir,'base');
+  fs.mkdirSync(path.join(dir,'pkg'));
+  git(dir,'mv a.js pkg/a.js');
+  writeRel(dir,'pkg/a.js','one\r\ntwo\r\nthree\r\n');
+  commit(dir,'head');
+  sizeOk('BRIEF-5 a CRLF rename counts the whole file',dir,6);
+}
+{
+  const dir=repoDir();
+  writeRel(dir,'a.js',lines(8));
+  commit(dir,'base');
+  fs.chmodSync(path.join(dir,'a.js'),0o755);
+  commit(dir,'head');
+  sizeOk('BRIEF-5 an in-place mode change counts',dir,1);
+}
+{
+  const dir=repoDir();
+  writeRel(dir,'a.js',lines(8));
+  commit(dir,'base');
+  fs.mkdirSync(path.join(dir,'pkg'));
+  git(dir,'mv a.js pkg/a.js');
+  fs.chmodSync(path.join(dir,'pkg','a.js'),0o755);
+  commit(dir,'head');
+  sizeOk('BRIEF-5 a mode change on a rename counts the whole file',dir,16);
+}
+{
+  const dir=emptyRepo();
+  seed(dir);
+  writeRel(dir,'test/git-base.js','function a(){return 1;}\n');
+  commit(dir,'base');
+  fs.mkdirSync(path.join(dir,'old'));
+  git(dir,'mv test/git-base.js old/git-base.js');
+  commit(dir,'head');
+  const r=run(sizeJs,dir);
+  say(r.code!==0&&r.out.includes('gate file changed')&&r.out.includes('test/git-base.js'),'BRIEF-5 renaming a gate file fails',r.out);
+  done(dir);
+}
+{
+  const dir=emptyRepo();
+  seed(dir);
+  writeRel(dir,'.github/workflows/ci.yml','name: CI\n');
+  commit(dir,'base');
+  fs.mkdirSync(path.join(dir,'scripts'));
+  git(dir,'mv .github/workflows/ci.yml scripts/ci.yml');
+  commit(dir,'head');
+  const r=run(sizeJs,dir);
+  say(r.code!==0&&r.out.includes('gate file changed')&&r.out.includes('.github/workflows/ci.yml'),'BRIEF-5 renaming ci.yml fails',r.out);
+  done(dir);
+}
+{
+  const dir=repoDir();
+  fs.writeFileSync(path.join(dir,'a.bin'),Buffer.alloc(200,7).fill(0,0,1));
+  commit(dir,'base');
+  fs.mkdirSync(path.join(dir,'pkg'));
+  git(dir,'mv a.bin pkg/a.bin');
+  commit(dir,'head');
+  sizeOk('BRIEF-5 a pure binary rename counts 0',dir,0);
+}
+{
+  const dir=repoDir();
+  const bin=Buffer.alloc(80,7);bin[0]=0;
+  fs.writeFileSync(path.join(dir,'a.bin'),bin);
+  commit(dir,'base');
+  const next=Buffer.from(bin);next[10]=9;
+  fs.writeFileSync(path.join(dir,'a.bin'),next);
+  commit(dir,'head');
+  sizeOk('BRIEF-5 an edited binary counts both blob sizes',dir,160);
+}
+{
+  const dir=repoDir();
+  const bin=Buffer.alloc(400,7);bin[0]=0;
+  fs.writeFileSync(path.join(dir,'a.bin'),bin);
+  commit(dir,'base');
+  fs.mkdirSync(path.join(dir,'pkg'));
+  git(dir,'mv a.bin pkg/a.bin');
+  const next=Buffer.from(bin);next[200]=1;
+  fs.writeFileSync(path.join(dir,'pkg','a.bin'),next);
+  commit(dir,'head');
+  const r=run(sizeJs,dir);
+  say(r.code!==0&&/pr size 800 lines exceeds/.test(r.out)&&r.out.includes('pkg/a.bin'),'BRIEF-5 an edited binary rename counts both blob sizes',r.out);
   done(dir);
 }
 {
@@ -395,7 +573,7 @@ logCase('BRIEF-7 a cache-only line is not plain English',baseLog,baseLog+'## v2 
   const baseSrc=fs.readFileSync(path.join(__dirname,'git-base.js'),'utf8');
   const wired=yml.includes('node test/prsize.js')&&yml.includes('node test/changelog.js')&&yml.includes('node test/prgate.negative.js')&&!yml.includes('PR_LINE_CAP');
   const baseJob=gate.includes('pull_request_target')&&gate.includes('contents: read')&&gate.includes('PR_BASE')&&gate.includes('PR_HEAD')&&gate.includes('node test/prsize.js')&&!gate.includes('pull_request.head.sha');
-  const once=baseSrc.includes('function missingRev')&&!diffSrc.includes('exists on disk')&&diffSrc.includes('missingRev(');
+  const once=baseSrc.includes('function missingRev')&&!diffSrc.includes('exists on disk')&&diffSrc.includes('missingRev(')&&diffSrc.includes('.github/workflows/ci.yml');
   say(wired&&baseJob&&once,'CI runs the base gate and does not let the PR set the cap');
 }
 
