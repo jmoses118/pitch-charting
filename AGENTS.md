@@ -93,8 +93,6 @@ Staging is a persistent Supabase preview branch. Jim creates it in the dashboard
 
 Schema checks run on that branch, or on the throwaway Postgres CI already starts: `test/pg-migrate.sh` applies `supabase/migrations`, then the database scripts run. Production schema changes only when that preview branch is merged into production. Merging git to `main` updates the site. It does not change the production database until the Supabase branch is merged.
 
-`supabase/migrations/20261014230000_bullpen_no_result.sql` is not applied in production yet (production's latest migration is `20261019134923`). Merging the preview branch would apply it. It needs Jim's OK before it goes to production.
-
 Coach has full read/write. `call_sheets` and `team_settings` are coach-only. A viewer is read-only. A player reads her own games and pitches and writes only her own bullpen. A pcoach is limited to her `pitcher_ids` and writes bullpen and notes for those pitchers. `set_charted_by` tags every pitch.
 Source: `supabase/migrations/20261013183147_role_access_codes.sql`, `20261013185939_player_read_own_games.sql`, `20261013190849_id_checks_and_player_upd_own_only.sql`, `20261013200059_call_sheets.sql`, `20261013230142_pitching_coach_role_and_notes.sql`, `20261013233507_team_settings.sql`, `test/live.roles.js`, and `test/live.pcoach.js`.
 
