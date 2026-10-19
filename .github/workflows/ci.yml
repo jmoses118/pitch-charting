@@ -85,4 +85,4 @@ jobs:
           PGHOST: localhost
           PGUSER: postgres
           PGDATABASE: pitch
-        run: bash test/pg-migrate.sh && bash test/flow6a.pg.sh && bash test/badaim.pg.sh && bash test/pendingbadaim.pg.sh
+        run: bash test/pg-migrate.sh && bash test/flow6a.pg.sh && bash test/badaim.pg.sh && bash test/pendingbadaim.pg.sh && bash test/dropbackup.pg.sh
