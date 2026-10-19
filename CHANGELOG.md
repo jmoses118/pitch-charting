@@ -2,7 +2,7 @@
 
 ## v79 – A waste fastball hits the spot only off the plate
 ### Changed
-- **SCORE-5.** Jim's ruling on 19 October 2026. A fastball away still counts as a strike when the umpire calls it a strike. It counts as hitting the spot only when it stays off the plate for a ball or a swinging miss. A called strike, a foul, a ball in play, or a pitch in the zone is a miss.
+- **SCORE-5.** Jim's ruling on 19 October 2026. FB A (away waste) still counts as a strike when the umpire calls it a strike. It counts as hitting the spot only on box 16 against a righty or box 17 against a lefty, for a ball or a swinging miss. A called strike, a foul, a ball in play, or a pitch in the zone is a miss.
 - Cache: `te-pitch-v71`.
 
 ## v78 – The bullpen cleanup is on the live database

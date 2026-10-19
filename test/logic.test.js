@@ -633,6 +633,7 @@ test('SCORE-5: the away box is 16 for a righty and 17 for a lefty, and the marks
   const aimed=PC.heatData(PC.heatItems({pitchers:[],games:[{id:'g',pitches:[row({result:'ball'}),row({result:'called'})]}],sessions:[]}),{},'intended');
   assert.equal(aimed.cells[16].n,2);
   assert.equal(aimed.cells[16].hit,1);
+  assert.equal(PC.countStats([hit,miss]).by['0-2'].good,1);
 });
 test('localDate: 9:30 PM ET stays on the same day (UTC would roll to tomorrow)',()=>{const old=process.env.TZ;process.env.TZ='America/New_York';try{const ts=Date.parse('2026-10-16T21:30:00-04:00');assert.equal(PC.localDate(ts),'2026-10-16');assert.notEqual(new Date(ts).toISOString().slice(0,10),'2026-10-16');}finally{process.env.TZ=old;}});
 test('no UI code builds a date from UTC (toISOString().slice(0,10))',()=>{const fs=require('fs'),path=require('path');const dir=path.join(__dirname,'..','js','ui');for(const f of fs.readdirSync(dir))assert.ok(!/toISOString\(\)\.slice\(0,\s*10\)/.test(fs.readFileSync(path.join(dir,f),'utf8')),f);});

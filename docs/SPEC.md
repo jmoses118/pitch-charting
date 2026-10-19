@@ -120,7 +120,7 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | SCORE-2 | unit: “ring is competitive, way off is a miss” |
 | SCORE-3 | unit: that ring test; `test/wayoff.ui.js` competitive 67% |
 | SCORE-4 | unit: “report strikes follow the umpire result”; `test/flow.ui.js` |
-| SCORE-5 | unit: “SCORE-5: an FB A waste pitch is a strike when the umpire says so, and a hit spot only off the plate” |
+| SCORE-5 | unit: “SCORE-5: an FB A waste pitch is a strike when the umpire says so, and a hit spot only off the plate”; “SCORE-5: the away box is 16 for a righty and 17 for a lefty, and the marks use that hit spot” |
 | SYNC-1 | unit: “push: a 403 row is retried row by row”; “every row 401”; “rejected rows: list, retry” |
 | SYNC-2 | unit: “pull: incremental since last updated_at”; “sessions: last writer wins”; “rowPitch keeps every valid spot”; “localDate” |
 | SYNC-3 | unit: “team settings sync: coach only… never pushed by markAllDirty” |
