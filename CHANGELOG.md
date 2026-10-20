@@ -1,5 +1,10 @@
 # Changelog
 
+## v81 – Night is the default palette
+### Changed
+- **VIEW-4.** Jim approved this on 20 October 2026. With no display choice saved, the app opens in Night. A saved Field or Night choice stays as it was, and the game menu still switches between them. The page does not flash the light palette while it loads.
+- Cache: `te-pitch-v73`.
+
 ## v80 – A dropped third on a waste fastball hits the spot
 ### Changed
 - **SCORE-5.** Jim's ruling on 20 October 2026. An FB A pitch that the catcher drops for a third strike counts as hitting the spot, the same as a swinging miss, when it lands on box 16 against a righty or box 17 against a lefty. The other box is still a miss. A called strike, a foul, and a ball in play stay misses.

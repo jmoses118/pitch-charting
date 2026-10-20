@@ -1144,6 +1144,18 @@ test('RULE-4a: db push does not delete pitches; the pending template deletes onl
   assert.equal(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(live),false);
   assert.equal(fs.existsSync(path.join(migDir,'delete_bad_aim_pitches.sql')),false);
 });
+test('VIEW-4: nothing saved is Night, and a saved Field or Night stays',()=>{
+  assert.equal(PC.THEME_DEFAULT,'night');
+  assert.equal(PC.themeOf(null,12),'night');
+  assert.equal(PC.themeOf(undefined,12),'night');
+  assert.equal(PC.themeOf('',12),'night');
+  assert.equal(PC.themeOf('field',12),'field');
+  assert.equal(PC.themeOf('night',3),'night');
+  assert.equal(PC.themeOf('auto',6),'night');
+  assert.equal(PC.themeOf('auto',7),'field');
+  assert.equal(PC.themeOf('auto',18),'field');
+  assert.equal(PC.themeOf('auto',19),'night');
+});
 test('RULE-4a: CH box 2 is kept, calledFlag is true, and an off-grid called box is null',()=>{
   const csv=PC.importSpots({type:'CH',call_target:'2',called_location:'2',location:'8'});
   assert.ok(csv.targets.includes(2));assert.equal(csv.calledLoc,2);assert.equal(csv.calledFlag,true);

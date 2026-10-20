@@ -260,7 +260,7 @@ body.entrymode #syncTag{padding-left:4px;padding-right:4px}
 body.entrymode .pickrow .tag{flex:0 0 auto;white-space:nowrap}
 .topbar .tag{white-space:nowrap}
 
-/* ---------- v37 Thunder Elite palettes: Field (light, default, sunlight-first) / Night (brand black) ---------- */
+/* ---------- v37 Thunder Elite palettes: Field (light, sunlight) / Night (brand black, default) ---------- */
 html[data-theme="field"]{color-scheme:light;
   --c-bg:#FFFFFF;--c-surface:#EEF1F5;--c-surface-2:#E4E8EE;--c-surface-3:#D5DAE1;--c-line:#7A8494;--c-line-strong:#5B6575;
   --c-text:#0B0F17;--c-text-2:#3D4757;--c-text-3:#4A5466;--c-royal-text:#1E3FD0;--c-royal-tint:#DCE3FB;

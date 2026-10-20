@@ -58,6 +58,7 @@ SCORE-1, SCORE-2, SCORE-3, SCORE-4, and SCORE-5 are in `docs/SCORING.md`.
 - **VIEW-1** The zone is shown Gameday-style, from the catcher's eye. Each pitch is a small numbered softball colored by its result. The pitch list sits under the zone.
 - **VIEW-2** As in GameChanger, a scheduled game starts with one tap, and the result buttons are big.
 - **VIEW-3** The Game tab lists only today's scheduled games. Jim's ruling, 2026-10-15. `todaysScheduled` keeps scheduled rows whose date is that day.
+- **VIEW-4** Night is the default palette. Jim approved this on 2026-10-20. `themeOf` in `js/core/theme.js` is the one reading of the saved `te_ui_theme` value. Nothing saved opens in `night`. A saved `field` or `night` stays that palette. `auto` is night from 19:00 through 06:59 and field from 07:00 through 18:59. The game menu still cycles the saved choice both ways. The page does not paint Field before the resolved palette is on the document.
 
 ## LATER (out of scope for v1: do not build)
 - The overlay view: a big zone with floating count, pitcher and pitch widgets, the batter's last-at-bat widget, and a lineup edit menu.
@@ -104,6 +105,7 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | RULE-11a | unit: `0` and `00` are allowed, empty is allowed, and a duplicate active number errors |
 | VIEW-1, VIEW-2 | `zonegfx.ui.js`: numbered, colored markers and list; one-tap scheduled start |
 | VIEW-3 | unit: “VIEW-2 todaysScheduled returns only that day's scheduled games” |
+| VIEW-4 | unit: “VIEW-4: nothing saved is Night, and a saved Field or Night stays”; `test/coach.ui.js`: Night by default, the game menu reaches Field and Night, a saved Field stays Field, and no Field frame paints on load |
 | FLOW-13 | unit: `createGame` returns null until the opponent and pitcher are set; a scheduled id starts that row; the toast leaves the game list unchanged |
 | FLOW-14 | unit: pause keeps the row; `endGame` waits for confirmation |
 | FLOW-15 | unit: discard pushes `deleted` and a pull does not bring the game back; the stats scope omits the draft. The picker check is `modes.ui.js` "picker shows N Resume rows and one Start" |
