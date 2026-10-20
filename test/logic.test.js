@@ -673,7 +673,7 @@ test('shake-off: summary per pitcher – shook vs followed, hard contact, K, pre
     {id:'c',ts:3,abn:2,b:0,s:0,type:'FB',call:'FB3',loc:3,result:'called'},
     {id:'d',ts:4,abn:2,b:0,s:1,type:'DR',call:'FB3',shook:true,loc:7,result:'swinging',end:'K'}];
   const r=PC.shakeoffs(P);assert.equal(r.n,2);assert.equal(r.shook.hits,1);assert.equal(r.shook.hard,1);assert.equal(r.shook.k,1);assert.equal(r.followed.n,2);assert.equal(r.followed.hits,0);
-  assert.deepEqual(r.list[0],{id:'b',called:'CH8',thrown:'FB 5',count:'0-2',prev:'CH · Foul',outcome:'2B (LD)',inning:undefined,batter:''});
+  assert.deepEqual(r.list[0],{id:'b',called:'CH8',thrown:'FB 5',count:'0-2',prev:'CH · Foul',outcome:'2B (Liner)',inning:undefined,batter:''});
   assert.equal(r.list[1].prev,'FB · Called strike');assert.match(r.list[1].outcome,/Swinging strike · K/);});
 test('shake-off scoring: hit spot uses her own aim only; unknown aim = no aim (never the coach call)',()=>{
   assert.equal(PC.hitSpot({type:'FB',call:'CH8',shook:true,targets:[],loc:8}),false);assert.equal(PC.summarize([{type:'FB',call:'CH8',shook:true,targets:[],loc:8,result:'called'}]).spotN,0,'no aim = left out of hit-spot %');
@@ -1183,6 +1183,33 @@ test('VIEW-4: coach.js reads the document theme and has no night literal',()=>{
   assert.equal(/['"]night['"]/.test(src),false);
   assert.match(src,/document\.documentElement\.dataset\.theme/);
   assert.match(src,/PC\.themeColor/);
+});
+test('RULE-13: contact is Ground, Liner, Fly, Pop up, and Bunt',()=>{
+  const fs=require('fs'),path=require('path');
+  assert.deepEqual(PC.BB_TYPES,['GB','LD','FB','PU','BU']);
+  assert.deepEqual(PC.BB_NAME,{GB:'Ground',LD:'Liner',FB:'Fly',PU:'Pop up',BU:'Bunt'});
+  for(const code of ['GB','LD','FB','PU','BU'])assert.equal(PC.pitchRow({id:'x',bb:code},{mode:'game'}).bb,code,code);
+  assert.equal(PC.pitchRow({id:'x',bb:'ZZ'},{mode:'game'}).bb,null);
+  assert.equal(PC.pitchRow({id:'x'},{mode:'game'}).bb,null,'contact stays optional');
+  for(const code of ['GB','LD','FB','PU','BU'])assert.equal(PC.rowPitch({id:'p',mode:'game',type:'FB',ts:1,bb:code}).bb,code);
+  assert.equal(PC.rowPitch({id:'p',mode:'game',type:'FB',ts:1,bb:'ZZ'}).bb,undefined);
+  const bunt=PC.shakeoffs([{id:'b',ts:1,abn:1,b:0,s:0,type:'FB',call:'FB5',shook:true,loc:5,result:'inplay',ip:'out',bb:'BU'}]);
+  assert.equal(bunt.list[0].outcome,'out (Bunt)');
+  const ground=PC.shakeoffs([{id:'g',ts:1,abn:1,b:0,s:0,type:'FB',call:'FB5',shook:true,loc:5,result:'inplay',ip:'1B',bb:'GB'}]);
+  assert.equal(ground.list[0].outcome,'1B (Ground)');
+  assert.equal(PC.isHard({result:'inplay',ip:'out',bb:'BU'}),false,'a bunt is not hard contact');
+  assert.equal(PC.isHard({result:'inplay',ip:'2B',bb:'LD'}),true);
+  const root=path.join(__dirname,'..');
+  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+  assert.equal((html.match(/data-bb=/g)||[]).length,0,'the page does not hardcode contact chips');
+  const ui=fs.readdirSync(path.join(root,'js/ui')).filter(f=>f.endsWith('.js')).map(f=>fs.readFileSync(path.join(root,'js/ui',f),'utf8')).join('\n');
+  assert.equal(/data-bb="(?:GB|LD|FB|PU|BU)"/.test(ui),false,'ui renders the core list');
+  const migDir=path.join(root,'supabase','migrations');
+  const file=fs.readdirSync(migDir).find(f=>/bunt/.test(f));
+  assert.ok(file,'migration allowing BU');
+  const sql=fs.readFileSync(path.join(migDir,file),'utf8');
+  assert.match(sql,/backup/i);
+  for(const code of ['GB','LD','FB','PU','BU'])assert.match(sql,new RegExp("'"+code+"'"));
 });
 test('RULE-4a: CH box 2 is kept, calledFlag is true, and an off-grid called box is null',()=>{
   const csv=PC.importSpots({type:'CH',call_target:'2',called_location:'2',location:'8'});

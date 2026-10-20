@@ -444,10 +444,13 @@ body.padmode #actBtns button{min-height:48px;height:auto}
 .optchip.sel,.optchip.on{background:var(--c-royal-tint);color:var(--c-text);border-color:var(--c-royal)}
 .cslot{height:48px;flex:0 0 48px;min-height:48px}
 .cslot .cact,.cslot .ccontact{height:48px;min-height:48px}
-.ccontact{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.ccontact{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px}
+.ipcontact{grid-column:1 / -1;display:grid;grid-template-columns:repeat(5,minmax(48px,1fr));gap:6px}
 .cslot button{min-height:48px;height:48px;padding:0 2px}
-.ccontact button{font-size:11px;line-height:1.05;white-space:normal;font-weight:800}
-.coach.compact .ccontact button{font-size:9px;letter-spacing:-.03em}
+.ccontact button{min-width:0;padding:0;font-size:10px;line-height:1.05;white-space:normal;font-weight:800}
+.coach.compact .ccontact{gap:1px}
+.coach.compact .ccontact button{font-size:8px;letter-spacing:-.05em;border-width:1px}
+.coach.ip .cstatus,.coach.ip .czone{width:var(--zonew);max-width:100%;margin-inline:auto}
 .foulchips{position:fixed;z-index:9;left:8px;right:8px;top:calc(var(--hdr-h,56px) + 4px);display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:6px;background:var(--c-surface);border:2px solid var(--c-line-strong);border-radius:12px;box-shadow:var(--shadow-2)}
 .foulchips button{min-height:48px;font-weight:800}
 .foulchips button.on{background:var(--c-royal-tint);border-color:var(--c-royal);color:var(--c-text)}

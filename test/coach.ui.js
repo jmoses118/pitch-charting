@@ -71,9 +71,18 @@ for(const [W,H,MIN,ZMIN,RESW] of [[844,390,48,48,48],[667,375,44,34,46]]){const 
   // ---- in play + spray ----
   await p.click('#cZone button[data-z="2"]');await p.click('#cRes [data-r="inplay"]');await wait();
   ok(await ev(()=>!document.getElementById('cSprayWrap').classList.contains('hide')&&document.querySelectorAll('#cRes [data-ip]').length===8),`${tag}: In play swaps in outcomes + spray field`);
+  {const chips=await ev(()=>{const list=[...document.querySelectorAll('#cContact [data-bb]')];return {hide:document.getElementById('cContact').classList.contains('hide'),codes:list.map(b=>b.dataset.bb),labels:list.map(b=>b.textContent),box:list.map(b=>{const r=b.getBoundingClientRect();return {w:r.width,h:r.height,clip:b.scrollWidth>b.clientWidth+1,off:r.left<-1||r.right>innerWidth+1||r.bottom>innerHeight+1};})};});
+    ok(!chips.hide&&chips.codes.join(',')==='GB,LD,FB,PU,BU'&&chips.labels.join(',')==='Ground,Liner,Fly,Pop up,Bunt',`${tag}: RULE-13 five contact chips`);
+    const fit=chips.box.every(b=>b.h>=47.5&&!b.clip&&!b.off)&&(W===844?chips.box.every(b=>b.w>=47.5):true);
+    ok(fit,`${tag}: RULE-13 contact ${W===844?'is 48px':'fits'} (${chips.box.map(b=>b.w.toFixed(0)+'×'+b.h.toFixed(0)+(b.clip?' clip':'')).join(' ')})`);}
   {const pr=await ev(AUDIT);ok(!pr.length,`${tag}: no clipping/overlap (in play)${pr.length?' → '+pr.slice(0,5).join(' | '):''}`);}
   {const r=await p.$eval('#cSpray',e=>e.getBoundingClientRect());await p.mouse.click(r.x+r.width*.3,r.y+r.height*.4);}await wait();await shot('coach-inplay');
-  await p.click('#cRes [data-ip="1B"]');await wait();{const r=(await G()).pitches.at(-1);ok(r.result==='inplay'&&r.ip==='1B'&&Array.isArray(r.spray)&&r.loc===2,`${tag}: in-play outcome logs with spray ${JSON.stringify(r.spray)}`);}
+  await p.click('#cContact [data-bb="BU"]');await wait();
+  ok(await ev(()=>D.bb==='BU'),`${tag}: RULE-13 Bunt selects`);
+  await p.click('#cContact [data-bb="BU"]');await wait();
+  ok(await ev(()=>D.bb==null),`${tag}: RULE-13 Bunt toggles off`);
+  await p.click('#cContact [data-bb="BU"]');await wait();
+  await p.click('#cRes [data-ip="1B"]');await wait();{const r=(await G()).pitches.at(-1);ok(r.result==='inplay'&&r.ip==='1B'&&r.bb==='BU'&&Array.isArray(r.spray)&&r.loc===2,`${tag}: in-play outcome logs with spray ${JSON.stringify(r.spray)} and Bunt`);}
   // ---- Undo ----
   {const n=(await G()).pitches.length;await p.click('#cRes [data-cx="undo"]');await wait();ok((await G()).pitches.length===n-1,`${tag}: always-visible Undo removes the last pitch`);}
   // ---- ring labels + change-up aim (a call with no spot) ----

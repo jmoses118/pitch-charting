@@ -33,11 +33,14 @@ function editedMark(p){return p&&p.edited?'<span class="fromvid">from video</spa
 function recentRows(items,isGame,throws){if(!items.length)return `<li class="empty">${isGame?'No pitches yet this at-bat':'No pitches yet this session'}</li>`;
   return items.slice().reverse().map(({p,no})=>{const mark=PC.pitchMark(p,throws);const res=isGame?(RESULT_SHORT[p.result]||p.result||''):(mark?PC.MARK_LABEL[mark]:'Logged');
     const aimRaw=PC.calledOf(p);const aim=aimRaw==null?'–':aimRaw;const landed=PC.actualOf(p);const typ=typeName(p.type);
-    return `<li><button type="button" class="rrow" data-edit="${H(p.id)}" aria-label="Fix location for pitch ${no}${p.edited?', from video':''}"><svg viewBox="-8 -8 16 16" class="badge" aria-hidden="true">${ballSVG(0,0,no,mark,5.2)}</svg><span class="r-main"><b>${H(res)}</b> <span class="pedit" aria-hidden="true">✎</span> <span class="mut">${H(p.type?typ:'No type')}</span>${editedMark(p)}</span><span class="r-loc mut">aim ${H(aim)} → ${H(landed!=null?locTxt(landed):'–')}</span></button></li>`;}).join('');}
+    const contact=p.bb&&PC.BB_NAME[p.bb]?' '+PC.BB_NAME[p.bb]:'';
+    const row=`<li><button type="button" class="rrow" data-edit="${H(p.id)}" aria-label="Fix location for pitch ${no}${p.edited?', from video':''}">`;
+    return row+`<svg viewBox="-8 -8 16 16" class="badge" aria-hidden="true">${ballSVG(0,0,no,mark,5.2)}</svg><span class="r-main"><b>${H(res+contact)}</b> <span class="pedit" aria-hidden="true">✎</span> <span class="mut">${H(p.type?typ:'No type')}</span>${editedMark(p)}</span><span class="r-loc mut">aim ${H(aim)} → ${H(landed!=null?locTxt(landed):'–')}</span></button></li>`;}).join('');}
 // One row in the game log and the Stats pitch list. Newest-first is the caller's job; i is the pitch's place in the at-bat order.
 function pitchLine(p,i,mode){const who=mode==='game'?H(String(pName(p.pitcherId)).split(' ')[0])+' vs '+H(p.batter||'–')+': ':'';
   const kb=PC.strikeOf(p);
-  const res=p.result?(RESULT_SHORT[p.result]||p.result)+(p.ip?' '+p.ip:''):(kb==null?'':kb?'K':'B');
+  const contact=p.bb&&PC.BB_NAME[p.bb]?' · '+PC.BB_NAME[p.bb]:'';
+  const res=p.result?(RESULT_SHORT[p.result]||p.result)+(p.ip?' '+p.ip:'')+contact:(kb==null?'':kb?'K':'B');
   const aimRaw=PC.calledOf(p);const aimN=aimRaw==null?'':aimRaw;
   const actRaw=PC.actualOf(p);const act=actRaw!=null?locTxt(actRaw):'';
   const aimBit=mode==='stats'?`<span class="plist-aim">aim ${H(aimN===''?'–':aimN)} → ${H(act===''?'–':act)}</span>`:'';

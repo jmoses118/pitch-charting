@@ -1,5 +1,11 @@
 # Changelog
 
+## v83 – Ball in play can be a bunt
+### Changed
+- **RULE-13.** Jim approved this on 20 October 2026. Ball in play can note a bunt, with Ground, Liner, Fly, and Pop up. The saved codes stay GB, LD, FB, and PU, and a bunt is BU. Older pitches keep the contact they already have. The choice stays optional on the game screen and the coach screen.
+- The pitches table check has to allow BU. Take a database backup before that migration runs.
+- Cache: `te-pitch-v83`.
+
 ## v82 – The app shows which version is running
 ### Changed
 - **INFRA-4.** Jim asked on 20 October 2026. Setup and the game menu show the version, so a home-screen app shows when it has updated. The first open after an update says it updated, then the note goes away. A new install stays quiet. The number is the copy that is actually running.

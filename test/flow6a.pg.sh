@@ -14,3 +14,34 @@ gm=$(psql -tA -c "select coalesce(result,'') || ':' || coalesce(ip,'') || ':' ||
 test "$bp" = '::'
 test "$gm" = 'called::'
 echo "FLOW-6a postgres: bullpen results null, game result kept"
+# RULE-13. BU is allowed. GB, LD, FB, and PU stay. Anything else is refused.
+psql -v ON_ERROR_STOP=1 <<'SQL'
+do $$
+begin
+  insert into public.pitches (id, team_id, mode, bb) values
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1', 't', 'game', 'GB'),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2', 't', 'game', 'LD'),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb3', 't', 'game', 'FB'),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb4', 't', 'game', 'PU'),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb5', 't', 'game', 'BU'),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb6', 't', 'game', null);
+  begin
+    insert into public.pitches (id, team_id, mode, bb) values
+      ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb7', 't', 'game', 'ZZ');
+    raise exception 'ZZ was accepted';
+  exception when check_violation then
+    null;
+  end;
+  if (select count(*) from public.pitches where bb = 'BU') <> 1 then
+    raise exception 'BU was not stored';
+  end if;
+  delete from public.pitches where id in (
+    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1',
+    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2',
+    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb3',
+    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb4',
+    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb5',
+    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb6');
+end $$;
+SQL
+echo "RULE-13 postgres: BU allowed, older contact codes kept"

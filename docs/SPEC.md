@@ -50,6 +50,11 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
 - **RULE-11** Jim can edit a pitcher's jersey number. Cancel leaves it unchanged.
 - **RULE-11a** An active pitcher cannot share a jersey number with another active pitcher. `0` and `00` are both allowed and are not the same number. Empty is allowed. The check is `jerseyError` in `js/core/store.js`.
 - **RULE-12** The current branding stays.
+- **RULE-13** Ball-in-play contact is optional. The five choices are Ground (GB), Liner (LD), Fly (FB), Pop up (PU), and Bunt (BU).
+  `BB_TYPES` and `BB_NAME` in `js/core/game.js` are the only list. Portrait Game (`#ipBtns`) and the coach screen render those chips.
+  A pitch can be saved with none selected. A saved pitch keeps its code.
+  Stats and reports that name a contact type use that list, so a bunt reads Bunt.
+  `pitches.bb` allows null or those five codes. Take a database backup before the migration that allows BU.
 
 ## SCORING
 SCORE-1, SCORE-2, SCORE-3, SCORE-4, and SCORE-5 are in `docs/SCORING.md`.
@@ -113,6 +118,7 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | RULE-10 | unit: `pitcherLabel` and CSV file name include the jersey number; smoke: no surnames shown |
 | RULE-11, RULE-12 | UI: edit jersey number saves, and Cancel leaves it unchanged; smoke: branding unchanged |
 | RULE-11a | unit: `0` and `00` are allowed, empty is allowed, and a duplicate active number errors |
+| RULE-13 | unit: “RULE-13: contact is Ground, Liner, Fly, Pop up, and Bunt”; `test/detail.ui.js` portrait Bunt saves and can be skipped; `test/coach.ui.js` chips are 48px at 844×390 and unclipped at 667×375 |
 | VIEW-1, VIEW-2 | `zonegfx.ui.js`: numbered, colored markers and list; one-tap scheduled start |
 | VIEW-3 | unit: “VIEW-2 todaysScheduled returns only that day's scheduled games” |
 | VIEW-4 | unit: “VIEW-4: nothing saved is Night, and a saved Field or Night stays”; “VIEW-4: themeFromStorage reads THEME_KEY and stays Night when getItem throws”; `test/coach.ui.js`: Night by default, the game menu reaches Field and Night, a saved Field stays Field, no Field frame paints on load, a throwing theme read stays Night, Night controls are 2px, Night fills are #3A5CF0, themeColor paints the bar, a missing theme.js opens Night and the coach screen, and Night boxes match Field |

@@ -220,6 +220,19 @@ function fitCoachCol(o) {
   const zg = need0 > bh + 2 ? Math.max(o.v("--c-zgap-min"), o.ZG - (need0 - bh) / 2) : o.ZG;
   if (!o.compact && bh > 0) o.set("--zgap", zg);
   if (!o.compact && bh > 0) o.set("--colh", Math.max(bh, o.STH + zg + zoneH + zg + o.ACT));
+  // RULE-13. Five 48px chips need a wider slot than the zone. Grow it only when the row fits.
+  const el = $("coach");
+  const zoneW = parseFloat(el.style.getPropertyValue("--mid")) || 0;
+  el.style.setProperty("--zonew", zoneW + "px");
+  el.classList.toggle("ip", !!D.ip);
+  if (D.ip && !o.compact) {
+    const n = (PC.BB_TYPES || []).length;
+    const need = n * 48 + Math.max(0, n - 1) * 2;
+    const cs = getComputedStyle(el);
+    const W = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    const used = o.RH + o.LW + o.cols * o.k + o.v("--c-gap") * 2 + o.v("--c-res");
+    if (need > zoneW && used + need <= W) el.style.setProperty("--mid", need + "px");
+  }
 }
 // VIEW-4. themeFromStorage reads THEME_KEY. A missing theme.js keeps the theme the head script already set.
 function paletteNow(hour){

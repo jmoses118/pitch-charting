@@ -4,7 +4,11 @@
 (function(root){
 'use strict';
 const PC=root.PC=root.PC||{};
-const BB_TYPES=['GB','LD','FB','PU'];const BB_NAME={GB:'Ground ball',LD:'Line drive',FB:'Fly ball',PU:'Pop-up'};
+// RULE-13. One contact list. Chips render these labels; the stored code is the first item.
+const BB_CONTACT=[['GB','Ground'],['LD','Liner'],['FB','Fly'],['PU','Pop up'],['BU','Bunt']];
+const BB_TYPES=BB_CONTACT.map(x=>x[0]);
+const BB_NAME=Object.fromEntries(BB_CONTACT);
+function bbOf(p){const c=p&&p.bb;return c?(BB_NAME[c]||c):'';}
 // ---------- Count logic (GameChanger style) ----------
 const RESULTS={kd3:'K – reached (dropped 3rd)',kd3out:'K – dropped 3rd, thrown out',foultip:'Foul tip',ball:'Ball',called:'Called strike',swinging:'Swinging strike',foul:'Foul',inplay:'In play',hbp:'HBP'};
 const IP_RESULTS={out:'Out','1B':'1B','2B':'2B','3B':'3B',HR:'HR',E:'Error',FC:'FC',DP:'Double play'};
@@ -49,5 +53,5 @@ function editActual(pitch,loc){loc=+loc;if(!pitch||!PC.validActual(loc))return f
 function revertEdit(pitch,snap){if(!pitch||!snap)return false;const was=!!pitch.edited,called=pitch.calledLoc==null?null:pitch.calledLoc;const nextCalled=snap.calledLoc==null?null:snap.calledLoc;
   const same=pitch.loc===snap.loc&&pitch.actualLoc===snap.actualLoc&&called===nextCalled&&was===!!snap.edited;pitch.loc=snap.loc;pitch.actualLoc=snap.actualLoc;
   if(nextCalled==null)delete pitch.calledLoc;else pitch.calledLoc=nextCalled;if(snap.edited)pitch.edited=true;else delete pitch.edited;return !same;}
-Object.assign(PC,{BB_TYPES,BB_NAME,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,REDO_MAX,FOUL_TIMES,redoPush,redoPop,redoState,cleanFoul,cleanFlag,cleanVelo,sessionHand,editActual,revertEdit});
+Object.assign(PC,{BB_TYPES,BB_NAME,bbOf,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,REDO_MAX,FOUL_TIMES,redoPush,redoPop,redoState,cleanFoul,cleanFlag,cleanVelo,sessionHand,editActual,revertEdit});
 })(typeof window!=='undefined'?window:globalThis);
