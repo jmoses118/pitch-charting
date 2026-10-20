@@ -37,7 +37,7 @@ for(const [W,H,MIN,ZMIN,RESW] of [[844,390,48,48,48],[667,375,44,34,46]]){const 
   {const g1=await geo();ok(g1===g0,`${tag}: no layout shift after a band tap (zone/status ${g0} → ${g1})`);}
   ok(await ev(()=>{const e=document.getElementById('cxHint');const cs=getComputedStyle(e);return e.getBoundingClientRect().height<=20&&cs.whiteSpace==='nowrap'&&e.scrollWidth<=e.clientWidth+1;}),`${tag}: status hint is one line and fully visible`);
   ok((await p.textContent('#cxCode')).replace(/\s+/g,' ').trim()==='3-05 Fb In'&&/aim 6/.test(await p.textContent('#cxAim')),`${tag}: spoken call big in the status box ("3-05 Fb In", aim 6 vs RHB)`);
-  ok(await ev(()=>{const e=document.querySelector('#cBand td button.on');return !!e&&getComputedStyle(e).backgroundColor==='rgb(58, 92, 240)';}),`${tag}: VIEW-4 Night selected cell is #3A5CF0`);
+  ok(await ev(()=>{const e=document.querySelector('#cBand td button.on');const probe=document.createElement('span');probe.style.color=getComputedStyle(document.documentElement).getPropertyValue('--c-royal-hi').trim();document.body.appendChild(probe);const want=getComputedStyle(probe).color;probe.remove();return !!e&&want&&getComputedStyle(e).backgroundColor===want;}),`${tag}: VIEW-4 Night selected cell uses --c-royal-hi`);
   ok(await ev(()=>!!document.querySelector('#cZone button.aim[data-z="6"]')),`${tag}: aim auto-mapped and outlined on the zone`);
   {const pr=await ev(AUDIT);ok(!pr.length,`${tag}: no clipping/overlap (called)${pr.length?' → '+pr.slice(0,5).join(' | '):''}`);}
   await p.click('#cZone button[data-z="4"]');await wait();ok(await ev(()=>!!document.querySelector('#cZone button.act[data-z="4"]')),`${tag}: actual spot marked`);{const g2=await geo();ok(g2===g0,`${tag}: no layout shift after the zone tap`);}await shot('coach-called');
@@ -150,5 +150,11 @@ for(const [W,H,MIN,ZMIN,RESW] of [[844,390,48,48,48],[667,375,44,34,46]]){const 
   const p=await c.newPage();await p.goto(BASE);await p.waitForTimeout(200);
   const v=await p.evaluate(()=>({theme:document.documentElement.dataset.theme,bg:getComputedStyle(document.body).backgroundColor,saved:localStorage.getItem('te_ui_theme'),meta:document.querySelector('meta[name="theme-color"]').content}));
   ok(v.theme==='field'&&v.saved==='field'&&v.bg==='rgb(255, 255, 255)'&&v.meta==='#ffffff','VIEW-4: a saved Field choice stays Field '+JSON.stringify(v));
+  await c.close();}
+{const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());
+  await c.addInitScript(()=>{const proto=Storage.prototype;const read=proto.getItem;proto.getItem=function(k){if(k==='te_ui_theme')throw new Error('blocked');return read.apply(this,arguments);};});
+  const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));await p.goto(BASE);await p.waitForTimeout(200);
+  const v=await p.evaluate(()=>({theme:document.documentElement.dataset.theme,meta:document.querySelector('meta[name="theme-color"]').content}));
+  ok(v.theme==='night'&&v.meta==='#000000'&&!errs.length,'VIEW-4: a throwing theme read stays Night '+JSON.stringify(v)+' '+errs.join('|'));
   await c.close();}
 await b.close();console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);})();

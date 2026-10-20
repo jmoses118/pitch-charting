@@ -1155,6 +1155,23 @@ test('VIEW-4: nothing saved is Night, and a saved Field or Night stays',()=>{
   assert.equal(PC.themeOf('auto',7),'field');
   assert.equal(PC.themeOf('auto',18),'field');
   assert.equal(PC.themeOf('auto',19),'night');
+  assert.equal(PC.themeOf('garbage',12),'night');
+  assert.equal(PC.themeOf('auto',NaN),'night');
+});
+test('VIEW-4: themeFromStorage reads THEME_KEY and stays Night when getItem throws',()=>{
+  assert.equal(PC.THEME_KEY,'te_ui_theme');
+  const box=saved=>({getItem:(k)=>k===PC.THEME_KEY?saved:null});
+  assert.equal(PC.themeFromStorage(box(null),12),'night');
+  assert.equal(PC.themeFromStorage(box('field'),3),'field');
+  assert.equal(PC.themeFromStorage(box('night'),15),'night');
+  assert.equal(PC.themeFromStorage(box('garbage'),12),'night');
+  assert.equal(PC.themeFromStorage(box('auto'),19),'night');
+  assert.equal(PC.themeFromStorage(box('auto'),12),'field');
+  assert.equal(PC.themeFromStorage({getItem:()=>{throw new Error('blocked');}},12),'night');
+  assert.equal(PC.themeFromStorage(null,12),'night');
+  assert.equal(PC.themeChoice(box(null)),'night');
+  assert.equal(PC.themeChoice(box('auto')),'auto');
+  assert.equal(PC.themeChoice(box('garbage')),'night');
 });
 test('RULE-4a: CH box 2 is kept, calledFlag is true, and an off-grid called box is null',()=>{
   const csv=PC.importSpots({type:'CH',call_target:'2',called_location:'2',location:'8'});
