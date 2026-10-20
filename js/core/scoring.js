@@ -98,7 +98,7 @@ function pitchMiss(p,throws){throws=throws||p.throws;const t=PC.calledBoxes(p);c
 // prettier-ignore
 function fbAway(p){if(!p||p.shook)return false;const c=PC.parseCall(p.call,p.hand==='L'?'L':'R');return !!(c&&c.type==='FB'&&c.suffix==='A');}
 // prettier-ignore
-const hitSpot=(p,m)=>{if(!m||typeof m!=='object')m=pitchMiss(p);if(!m||m.d!==0||m.chUp)return false;if(!fbAway(p))return true;const hand=p.hand==='L'?'L':'R';const away=PC.CALL_SUFFIX.A.at(PC.insideCol(hand),PC.awayCol(hand));const r=p.result;return +landOf(p)===away&&(r==null||r===''||r==='ball'||r==='swinging');};
+const hitSpot=(p,m)=>{if(!m||typeof m!=='object')m=pitchMiss(p);if(!m||m.d!==0||m.chUp)return false;if(!fbAway(p))return true;const hand=p.hand==='L'?'L':'R';const away=PC.CALL_SUFFIX.A.at(PC.insideCol(hand),PC.awayCol(hand));const r=p.result;return +landOf(p)===away&&(r==null||r===''||r==='ball'||r==='swinging'||r==='kd3'||r==='kd3out');};
 // prettier-ignore
 function onTarget(p,m){return fbAway(p)?hitSpot(p,m):!!m&&!!m.good;}
 // Gameday-style marker status for one pitch: 'souvenir' (middle-middle mistake), 'good' (hit spot, or competitive when nothing was aimed), 'miss'
