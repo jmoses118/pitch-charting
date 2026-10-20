@@ -110,14 +110,14 @@ for(const [W,H,MIN,ZMIN,RESW] of [[844,390,48,48,48],[667,375,44,34,46]]){const 
   {const pr=await ev(AUDIT);ok(!pr.length,`${tag}: no clipping/overlap (side retired)${pr.length?' → '+pr.slice(0,5).join(' | '):''}`);}await shot('side-retired');
   await p.click('#cSideOk');await wait();ok(await ev(()=>document.getElementById('cSide').classList.contains('hide')),`${tag}: Keep charting dismisses the card`);
   // ---- palettes + mirror (VIEW-4) ----
-  ok(await ev(()=>document.documentElement.dataset.theme)==='night'&&localStorage.getItem('te_ui_theme')==null,`${tag}: Night palette by default`);
+  ok(await ev(()=>document.documentElement.dataset.theme==='night'&&localStorage.getItem('te_ui_theme')==null),`${tag}: Night palette by default`);
   await p.click('#cxMenu');await wait(200);
   await p.click('#cmTheme');await wait(150);
   ok(await ev(()=>localStorage.getItem('te_ui_theme'))==='auto',`${tag}: game menu leaves Night for Auto`);
   await p.click('#cmTheme');await wait(150);
-  ok(await ev(()=>document.documentElement.dataset.theme)==='field'&&localStorage.getItem('te_ui_theme')==='field',`${tag}: game menu reaches Field`);
+  ok(await ev(()=>document.documentElement.dataset.theme==='field'&&localStorage.getItem('te_ui_theme')==='field'),`${tag}: game menu reaches Field`);
   await p.click('#cmTheme');await wait(150);
-  ok(await ev(()=>document.documentElement.dataset.theme)==='night'&&localStorage.getItem('te_ui_theme')==='night',`${tag}: game menu reaches Night`);
+  ok(await ev(()=>document.documentElement.dataset.theme==='night'&&localStorage.getItem('te_ui_theme')==='night'),`${tag}: game menu reaches Night`);
   await p.click('#cMenuDlg button[value=cancel]');await wait();
   await p.click('#cBand button[data-r="2"][data-c="4"]');await p.click('#cZone button[data-z="4"]');await wait();
   {const pr=await ev(AUDIT);ok(!pr.length,`${tag}: no clipping/overlap (night)${pr.length?' → '+pr.slice(0,5).join(' | '):''}`);}await shot('coach-night');

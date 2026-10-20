@@ -6,7 +6,12 @@
 // ---------- UI preferences (this phone only) ----------
 const PREF={get:(k,d)=>{try{const v=storage&&storage.getItem('te_ui_'+k);return v==null?d:v;}catch(e){return d;}},set:(k,v)=>{try{storage&&storage.setItem('te_ui_'+k,v);}catch(e){}}};
 const THEMES=['field','night','auto'],THEME_LABEL={field:'☀ Field (day)',night:'☾ Night',auto:'◐ Auto (sunset)'};
-function themeNow(){return PC.themeOf(PREF.get('theme',null),new Date().getHours());}
+function themeNow(){
+  // Saved te_ui_theme, or nothing. themeOf picks Night.
+  const saved=PREF.get('theme',null);
+  const hour=new Date().getHours();
+  return PC.themeOf(saved,hour);
+}
 function applyTheme(){const t=themeNow();document.documentElement.dataset.theme=t;const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==='field'?'#ffffff':'#000000';}
 applyTheme();
 // ---------- modes ----------
