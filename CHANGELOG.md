@@ -2,8 +2,8 @@
 
 ## v81 – Night is the default palette
 ### Changed
-- **VIEW-4.** Jim approved this on 20 October 2026. With no display choice saved, the app opens in Night. A saved Field or Night choice stays as it was, and the game menu still switches between them. The page does not flash the light palette while it loads.
-- Cache: `te-pitch-v73`.
+- **VIEW-4.** Jim approved this on 20 October 2026. With no display choice saved, the app opens in Night. A saved Field or Night choice stays as it was, and the game menu still switches between them. Any other saved value stays Night too. The page does not flash the light palette while it loads.
+- Cache: `te-pitch-v74`.
 
 ## v80 – A dropped third on a waste fastball hits the spot
 ### Changed

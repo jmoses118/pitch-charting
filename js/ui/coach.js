@@ -5,12 +5,12 @@
 'use strict';
 // ---------- UI preferences (this phone only) ----------
 const PREF={get:(k,d)=>{try{const v=storage&&storage.getItem('te_ui_'+k);return v==null?d:v;}catch(e){return d;}},set:(k,v)=>{try{storage&&storage.setItem('te_ui_'+k,v);}catch(e){}}};
-const THEMES=['field','night','auto'],THEME_LABEL={field:'☀ Field (day)',night:'☾ Night',auto:'◐ Auto (sunset)'};
+const THEMES=PC.THEME_CHOICES,THEME_LABEL={field:'☀ Field (day)',[PC.THEME_DEFAULT]:'☾ Night',auto:'◐ Auto (sunset)'};
 function themeNow(){
-  // Saved te_ui_theme, or nothing. themeOf picks Night.
-  const saved=PREF.get('theme',null);
+  // VIEW-4. themeFromStorage reads THEME_KEY.
   const hour=new Date().getHours();
-  return PC.themeOf(saved,hour);
+  const theme=PC.themeFromStorage(storage,hour);
+  return theme;
 }
 function applyTheme(){const t=themeNow();document.documentElement.dataset.theme=t;const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==='field'?'#ffffff':'#000000';}
 applyTheme();
@@ -120,7 +120,9 @@ function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,h
   const sc=sideCard&&sideCard.gameId===g.id?sideCard:null;$('cSide').classList.toggle('hide',!sc);
   if(sc){const ps=g.pitches.filter(p=>p.inning===sc.inning&&!p.noPitch);const q=PC.summarize(ps);const k=ps.filter(p=>p.end==='K'||p.end==='K-D3').length,hits=ps.filter(p=>/^(1B|2B|3B|HR)$/.test(p.ip||'')).length;
     $('cSideSum').textContent=`${g.homeAway==='away'?'Bottom':g.homeAway==='home'?'Top':'Inning'} ${sc.inning}: ${ps.length} pitch${ps.length===1?'':'es'} · ${k} K · ${hits} H · ${fmt(q.strikePct)} strikes`;}
-  $('cmKd3').disabled=$('cmKd3o').disabled=!two;$('cmTheme').textContent='Display: '+THEME_LABEL[PREF.get('theme',PC.THEME_DEFAULT)];$('cmMirror').textContent='Mirror sides: '+(PREF.get('mirror','0')==='1'?'on':'off');
+  $('cmKd3').disabled=$('cmKd3o').disabled=!two;
+// The menu shows the saved choice. themeChoice reads THEME_KEY.
+$('cmTheme').textContent='Display: '+THEME_LABEL[PC.themeChoice(storage)];$('cmMirror').textContent='Mirror sides: '+(PREF.get('mirror','0')==='1'?'on':'off');
   const und=PC.unmappedCells(sh||{rows:[]},S().customTypes);$('cmBand').textContent=`Band setup${und.length&&!PC.bandSetupDone(sh,S().customTypes)?` (${und.reduce((n,u)=>n+u.cells.length,0)} cells need an aim)`:''}`;$('cmBand').disabled=!sh||!und.length;}
 // ---------- coach input ----------
 $('cBand').addEventListener('click',e=>{if(viewOnly()){toast(PC.SCORING_ELSEWHERE);return;}const b=e.target.closest('button[data-r]');if(b&&!b.disabled){sideCard=null;cMsg=null;callCell(+b.dataset.r,+b.dataset.c);}});
@@ -156,7 +158,7 @@ $('xPb').onclick=()=>{xFlag='pb';$('xPb').classList.add('sel');$('xWp').classLis
 $('xClr').onclick=()=>{xFlag=null;$('xWp').classList.remove('sel');$('xPb').classList.remove('sel');};
 $('xDlg').addEventListener('close',()=>{if($('xDlg').returnValue!=='ok')return;D.wpPb=xFlag;D.velo=noteVelo($('xVelo').value);render();});
 $('cmTake').onclick=menuDo(()=>openTakeover());$('cmBand').onclick=menuDo(()=>openBandSetup());
-$('cmTheme').onclick=()=>{const t=PREF.get('theme',PC.THEME_DEFAULT);PREF.set('theme',THEMES[(THEMES.indexOf(t)+1)%THEMES.length]);applyTheme();render();};
+$('cmTheme').onclick=()=>{const t=PC.themeChoice(storage);PC.themeSave(storage,THEMES[(THEMES.indexOf(t)+1)%THEMES.length]);applyTheme();render();};
 $('cmMirror').onclick=()=>{PREF.set('mirror',PREF.get('mirror','0')==='1'?'0':'1');render();};
 // ---------- band setup: pick an aim once for the cells whose text has a pitch type but no spot ----------
 let bandSheetId=null;
@@ -184,10 +186,11 @@ function renderModes(lk,showEntry){const cg=coachGame(lk);const coach=cg&&LANDSC
 addEventListener('online',()=>render());addEventListener('offline',()=>render());
 addEventListener('resize',()=>{if(document.body.classList.contains('coachmode'))sizeCoach();if(typeof paintFoulChips==='function')paintFoulChips();});
 // Setup: display prefs + band setup for the sheet being edited
-$('thSel').onchange=e=>{PREF.set('theme',e.target.value);applyTheme();render();};$('mirrorChk').onchange=e=>{PREF.set('mirror',e.target.checked?'1':'0');render();};
+$('thSel').onchange=e=>{PC.themeSave(storage,e.target.value);applyTheme();render();};$('mirrorChk').onchange=e=>{PREF.set('mirror',e.target.checked?'1':'0');render();};
 $('csBand').onclick=()=>openBandSetup(typeof csCur==='function'&&csCur()?csCur().id:null);
-document.querySelectorAll('.thseg [data-th]').forEach(b=>b.onclick=()=>{PREF.set('theme',b.dataset.th);applyTheme();render();});
-function renderDisplayPrefs(){const th=PREF.get('theme',PC.THEME_DEFAULT);document.querySelectorAll('.thseg [data-th]').forEach(b=>{b.classList.toggle('on',b.dataset.th===th);b.setAttribute('aria-pressed',b.dataset.th===th);});$('thSel').value=th;$('mirrorChk').checked=PREF.get('mirror','0')==='1';}
+$('thNight').dataset.th=PC.THEME_DEFAULT;$('thNightOpt').value=PC.THEME_DEFAULT;
+document.querySelectorAll('.thseg [data-th]').forEach(b=>b.onclick=()=>{PC.themeSave(storage,b.dataset.th);applyTheme();render();});
+function renderDisplayPrefs(){const th=PC.themeChoice(storage);document.querySelectorAll('.thseg [data-th]').forEach(b=>{b.classList.toggle('on',b.dataset.th===th);b.setAttribute('aria-pressed',b.dataset.th===th);});$('thSel').value=th;$('mirrorChk').checked=PREF.get('mirror','0')==='1';}
 function coachZoneH(z) {
   return (13 * z) / 3 + 8;
 }
