@@ -1,5 +1,10 @@
 # Changelog
 
+## v80 – A dropped third on a waste fastball hits the spot
+### Changed
+- **SCORE-5.** Jim's ruling on 20 October 2026. An FB A pitch that the catcher drops for a third strike counts as hitting the spot, the same as a swinging miss, when it lands on box 16 against a righty or box 17 against a lefty. The other box is still a miss. A called strike, a foul, and a ball in play stay misses.
+- Cache: `te-pitch-v72`.
+
 ## v79 – A waste fastball hits the spot only off the plate
 ### Changed
 - **SCORE-5.** Jim's ruling on 19 October 2026. FB A (away waste) still counts as a strike when the umpire calls it a strike. It counts as hitting the spot only on box 16 against a righty or box 17 against a lefty, for a ball or a swinging miss. A called strike, a foul, a ball in play, or a pitch in the zone is a miss.

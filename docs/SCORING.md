@@ -55,7 +55,7 @@ Strike % does not change. If the umpire calls an FB A a strike, it counts as a s
 
 Hit spot is stricter. An FB A that lands in the zone, is called a strike, is put in play, or is fouled is a missed spot. It is never a hit spot, even when it lands on the called box or a location bonus would mark the severity as good.
 
-The only hit is a ball or a swing-and-miss that stays out of the zone and lands on the away box: 16 against a righty, 17 against a lefty. The other side of the plate is a miss.
+A hit is a ball, a swing-and-miss, or a dropped third strike (`kd3` or `kd3out`) that stays out of the zone and lands on the away box: 16 against a righty, 17 against a lefty. The other side of the plate is a miss. Jim's ruling, 2026-10-20.
 
 A game pitch with no hand defaults to a righty, so the away box is 16.
 

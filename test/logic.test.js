@@ -616,8 +616,18 @@ test('SCORE-5: the away box is 16 for a righty and 17 for a lefty, and the marks
   }
   assert.equal(PC.hitSpot(row({result:'foultip'})),false,'a foul tip is a miss');
   assert.equal(PC.strikeOf(row({result:'foultip'})),true);
-  assert.equal(PC.hitSpot(row({result:'kd3'})),false,'a dropped third is a miss');
-  assert.equal(PC.hitSpot(row({result:'kd3out'})),false,'a dropped third thrown out is a miss');
+  assert.equal(PC.hitSpot(row({result:'kd3'})),true,'SCORE-5: a dropped third on box 16 vs a righty is a hit');
+  assert.equal(PC.hitSpot(row({result:'kd3out'})),true,'SCORE-5: a dropped third thrown out on box 16 vs a righty is a hit');
+  assert.equal(PC.hitSpot(row({hand:'L',targets:[17],loc:17,result:'kd3'})),true,'SCORE-5: a dropped third on box 17 vs a lefty is a hit');
+  assert.equal(PC.hitSpot(row({hand:'L',targets:[17],loc:17,result:'kd3out'})),true,'SCORE-5: a dropped third thrown out on box 17 vs a lefty is a hit');
+  assert.equal(PC.hitSpot(row({hand:'L',targets:[16],loc:16,result:'kd3'})),false,'SCORE-5: a dropped third on box 16 vs a lefty missed the spot');
+  assert.equal(PC.hitSpot(row({hand:'L',targets:[16],loc:16,result:'kd3out'})),false,'SCORE-5: a dropped third thrown out on box 16 vs a lefty missed the spot');
+  assert.equal(PC.hitSpot(row({hand:'R',targets:[17],loc:17,result:'kd3'})),false,'SCORE-5: a dropped third on box 17 vs a righty missed the spot');
+  assert.equal(PC.hitSpot(row({hand:'R',targets:[17],loc:17,result:'kd3out'})),false,'SCORE-5: a dropped third thrown out on box 17 vs a righty missed the spot');
+  assert.equal(PC.hitSpot(row({loc:6,result:'kd3'})),false,'SCORE-5: a dropped third in the zone is a miss');
+  assert.equal(PC.hitSpot(row({loc:31,result:'kd3'})),false,'SCORE-5: a dropped third in the dirt is a miss');
+  assert.equal(PC.hitSpot(row({loc:32,result:'kd3out'})),false,'SCORE-5: a dropped third thrown out at the backstop is a miss');
+  assert.equal(PC.summarize([row({result:'kd3'}),row({hand:'R',targets:[17],loc:17,result:'kd3'})]).spotPct,50,'SCORE-5: one dropped third on the away box and one on the wrong box is 50%');
   assert.equal(PC.strikeOf(row({result:'kd3'})),true);
   assert.equal(PC.strikeOf(row({result:'kd3out'})),true);
   assert.equal(PC.hitSpot(row({targets:[31],loc:31})),false,'in the dirt is a miss');
