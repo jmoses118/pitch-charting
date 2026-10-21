@@ -70,14 +70,16 @@ function render(skipCallInput){const s=S();applyViewOnly(viewOnly());if(typeof r
   if(tab==='stats'){renderStats();renderHeat();}
   renderSync();if(tab==='setup'&&!store.isTest&&document.activeElement!==$('teamCode'))$('teamCode').value=store.real.sync.teamCode||'';fitPitcherFace();paintVersion();if(bootWorker.consider)bootWorker.consider();parkVersionNote();}
 function paintVersion(){const t=PC.APP_VERSION;const a=$('setupVer'),b=$('menuVer');if(a)a.textContent=t;if(b)b.textContent=t;}
-// Coach uses the status footer. Portrait sits under the count. Neither covers a control.
-function parkVersionNote(){if(!noteVersion.live)return;const text=noteVersion.text,el=$('verNote');
-  if(document.body.classList.contains('coachmode')){if(el)el.classList.remove('on');if(!(cMsg&&cMsg.ver)){coachMsg(text,'ok',PC.VERSION_NOTE_MS);if(cMsg)cMsg.ver=1;}return;}
-  if(cMsg&&cMsg.ver){cMsg=null;if(typeof renderHint==='function')renderHint();}if(!el)return;el.textContent=text;el.classList.add('on');if(typeof fitZone==='function')fitZone();}
+// Coach uses the status footer. Portrait borrows the Today line. Neither adds a row.
+function parkVersionNote(){if(!noteVersion.live)return;const text=noteVersion.text,el=$('verNote');if(el)el.classList.remove('on');
+  if(document.body.classList.contains('coachmode')){const wm=$('wlMini');if(wm&&wm.classList.contains('ver')){wm.classList.remove('ver');renderAlerts();}if(!(cMsg&&cMsg.ver)){coachMsg(text,'ok',PC.VERSION_NOTE_MS);if(cMsg)cMsg.ver=1;}return;}
+  if(cMsg&&cMsg.ver){cMsg=null;if(typeof renderHint==='function')renderHint();}
+  if(!document.body.classList.contains('entrymode'))return;const wm=$('wlMini');if(!wm)return;wm.textContent=text;wm.classList.add('ver');}
+function clearVersionNote(){noteVersion.live=false;const el=$('verNote');if(el)el.classList.remove('on');const wm=$('wlMini');if(wm&&wm.classList.contains('ver')){wm.classList.remove('ver');if(typeof renderAlerts==='function')renderAlerts();}if(cMsg&&cMsg.ver){cMsg=null;if(typeof renderHint==='function')renderHint();}if(typeof fitZone==='function')fitZone();}
 function noteVersion(){if(!storage)return;let seen=null;try{seen=storage.getItem(PC.VERSION_SEEN_KEY);}catch(e){return;}
   const n=PC.versionNotice(seen,PC.APP_VERSION);try{storage.setItem(PC.VERSION_SEEN_KEY,n.store);}catch(e){return;}
   if(!n.show)return;noteVersion.live=true;noteVersion.text=n.text;parkVersionNote();clearTimeout(noteVersion.t);
-  noteVersion.t=setTimeout(()=>{noteVersion.live=false;const el=$('verNote');if(el)el.classList.remove('on');if(cMsg&&cMsg.ver){cMsg=null;if(typeof renderHint==='function')renderHint();}if(typeof fitZone==='function')fitZone();},PC.VERSION_NOTE_MS);}
+  noteVersion.t=setTimeout(clearVersionNote,PC.VERSION_NOTE_MS);}
 function bootWorker(){if(!('serviceWorker' in navigator)||location.protocol==='file:')return;const had=!!navigator.serviceWorker.controller;let reloaded=false,pending=false,idle=false,idleT=0,waitKind='';
   function clearIdle(){if(!idleT)return;if(waitKind==='idle'&&typeof cancelIdleCallback==='function')cancelIdleCallback(idleT);else clearTimeout(idleT);idleT=0;waitKind='';}
   function arm(){clearIdle();const go=()=>{idleT=0;waitKind='';idle=true;consider();};
