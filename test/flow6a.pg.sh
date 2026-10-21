@@ -45,3 +45,9 @@ begin
 end $$;
 SQL
 echo "RULE-13 postgres: BU allowed, older contact codes kept"
+# The live check must list the same codes as PC.BB_TYPES, in that order.
+want=$(node -e 'process.stdout.write(require("./logic.js").BB_TYPES.join(","))')
+got=$(psql -tA -c "select pg_get_constraintdef(oid) from pg_constraint where conrelid = 'public.pitches'::regclass and contype = 'c' and pg_get_constraintdef(oid) like '%bb%'")
+list=$(printf '%s' "$got" | grep -o "'[A-Z][A-Z]'" | tr -d "'" | paste -sd, -)
+test "$list" = "$want"
+echo "RULE-13 postgres: pitches.bb allows $list"
