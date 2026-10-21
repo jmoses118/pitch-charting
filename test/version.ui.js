@@ -183,7 +183,7 @@ function labelOf(id){
     await p.waitForTimeout(2200);
     ok(navs===0&&await p.evaluate(()=>$('batDlg').open),'an open sheet holds the reload');
     const gone=p.waitForNavigation({waitUntil:'load',timeout:8000}).then(()=>true,()=>false);
-    await p.evaluate(()=>$('batDlg').close());
+    await p.evaluate(()=>{$('batDlg').close();render();});
     ok(await gone,'the reload runs after the sheet closes');
     ok(!errs.length,`reload wait has no page errors ${errs.join('|')}`);
     await c.close();}

@@ -84,8 +84,9 @@ function bootWorker(){if(!('serviceWorker' in navigator)||location.protocol==='f
     if(typeof requestIdleCallback==='function'){waitKind='idle';idleT=requestIdleCallback(go);}else{waitKind='time';idleT=setTimeout(go,1500);}}
   function sheetOpen(){return !!(D.sheet||D.ip||D.foul||document.querySelector('dialog[open]'));}
   function consider(){if(!pending||reloaded)return;const snap={draft:pullDraft(),syncing:syncing,sheetOpen:sheetOpen(),hidden:document.visibilityState==='hidden',idle:idle};
-    if(!PC.safeToReload(snap)){idle=false;clearIdle();waitKind='time';idleT=setTimeout(()=>{idleT=0;waitKind='';arm();},800);return;}
-    if(!PC.reloadDue(snap))return;reloaded=true;pending=false;clearIdle();location.reload();}
+    if(!PC.safeToReload(snap)){idle=false;clearIdle();return;}
+    if(!PC.reloadDue(snap)){arm();return;}
+    reloaded=true;pending=false;clearIdle();location.reload();}
   navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!PC.workerUpdated(had,reloaded))return;pending=true;consider();if(pending)arm();});
   document.addEventListener('visibilitychange',consider);bootWorker.consider=consider;
   navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(reg=>{if(!reg)return;const poke=()=>{if(document.visibilityState==='visible')reg.update().catch(()=>{});};document.addEventListener('visibilitychange',poke);addEventListener('pageshow',poke);poke();}).catch(()=>{});}
