@@ -49,7 +49,7 @@ for(const [W,H] of SIZES){const tag=`${W}x${H}`;const {c,p,errs,native,vis,clk,s
   const row=await p.$eval('#pickList .grow',e=>{e.scrollIntoView({block:'center'});const r=e.getBoundingClientRect(),list=document.getElementById('pickList').getBoundingClientRect();return {h:r.height,w:r.width,lw:list.width,left:r.left,right:r.right};});
   ok(row.h>=56&&row.w>=row.lw-1,`${tag} FLOW-13 row is full width and at least 56px (${Math.round(row.w)}x${Math.round(row.h)})`);
   const resume=await p.$eval('#pickList .resume',e=>{e.scrollIntoView({block:'center'});const r=e.getBoundingClientRect();return {w:r.width,h:r.height,bg:getComputedStyle(e).backgroundColor};});
-  ok(resume.w>=48&&resume.h>=48&&resume.bg==='rgb(30, 63, 208)',`${tag} FLOW-13 Resume is royal and at least 48px`);
+  ok(resume.w>=48&&resume.h>=48&&resume.bg==='rgb(58, 92, 240)',`${tag} FLOW-13 Resume is royal and at least 48px`);
   const gap=await p.evaluate(()=>{const list=document.getElementById('pickList'),btn=document.getElementById('pickNew');list.scrollTop=list.scrollHeight;const b=btn.getBoundingClientRect(),box=list.getBoundingClientRect();return {below:b.top-box.bottom,h:b.height,w:b.width,lw:box.width};});
   ok(gap.h>=48&&gap.w>=gap.lw-1&&gap.below>=23.5,`${tag} FLOW-13 Start is full width, 48px, 24px below the list (${gap.below.toFixed(1)})`);
   const draft=await p.$eval('[data-rg="draft1"]',e=>e.closest('.grow').textContent);
@@ -69,7 +69,7 @@ for(const [W,H] of SIZES){const tag=`${W}x${H}`;const {c,p,errs,native,vis,clk,s
   if(W===390){
     const css=await p.evaluate(()=>[...document.styleSheets].flatMap(s=>{try{return [...s.cssRules].map(r=>r.cssText);}catch(e){return [];}}).join('\n'));
     ok(/#gamePick\s*\{[^}]*safe-area-inset-left[^}]*safe-area-inset-right/.test(css),'FLOW-13 picker padding uses the safe area');
-    ok(await p.$('img[alt="Thunder Elite"]')&&await st(()=>getComputedStyle(document.querySelector('header')).borderBottomColor==='rgb(30, 63, 208)'),'RULE-12 wordmark and royal header');
+    ok(await p.$('img[alt="Thunder Elite"]')&&await st(()=>getComputedStyle(document.querySelector('header')).borderBottomColor==='rgb(58, 92, 240)'),'RULE-12 wordmark and royal header');
     const before=await st(()=>__app.store.real.games.length);
     await clk('#pickNew');ok(await p.isDisabled('#gStart'),'FLOW-13 Confirm disabled until opponent and pitcher');
     await p.fill('#gOpp','Nope');await p.evaluate(()=>{const s=document.getElementById('gPitcher');s.value='';s.dispatchEvent(new Event('change',{bubbles:true}));});

@@ -157,4 +157,30 @@ for(const [W,H,MIN,ZMIN,RESW] of [[844,390,48,48,48],[667,375,44,34,46]]){const 
   const v=await p.evaluate(()=>({theme:document.documentElement.dataset.theme,meta:document.querySelector('meta[name="theme-color"]').content}));
   ok(v.theme==='night'&&v.meta==='#000000'&&!errs.length,'VIEW-4: a throwing theme read stays Night '+JSON.stringify(v)+' '+errs.join('|'));
   await c.close();}
+{const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());
+  await c.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));
+  const p=await c.newPage();await p.goto(BASE);await p.click('nav [data-t="setup"]');await p.waitForTimeout(200);
+  const read=()=>p.evaluate(()=>{function lin(c){c/=255;return c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4);}function lum(rgb){const m=String(rgb).match(/[\d.]+/g).map(Number);return 0.2126*lin(m[0])+0.7152*lin(m[1])+0.0722*lin(m[2]);}function ratio(a,b){const x=lum(a),y=lum(b);return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05);}
+    const w=sel=>getComputedStyle(document.querySelector(sel)).borderTopWidth;const btn=document.querySelector('#syncNow'),cs=getComputedStyle(btn);const on=document.querySelector('.thseg button.on');
+    return {btn:w('#syncNow'),sel:w('#thSel'),inp:w('#limDay'),royal:getComputedStyle(document.documentElement).getPropertyValue('--c-royal').trim(),bg:cs.backgroundColor,fg:cs.color,text:ratio(cs.color,cs.backgroundColor),hdr:getComputedStyle(document.querySelector('header')).borderBottomColor,on:on&&getComputedStyle(on).backgroundColor,accent:getComputedStyle(document.querySelector('#mirrorChk')).accentColor};});
+  const night=await read();
+  ok(night.btn==='2px'&&night.sel==='2px'&&night.inp==='2px','VIEW-4: Night buttons, selects and inputs are 2px '+JSON.stringify(night));
+  ok(night.royal==='#3A5CF0'&&night.bg==='rgb(58, 92, 240)'&&night.hdr==='rgb(58, 92, 240)'&&night.on==='rgb(58, 92, 240)'&&night.accent==='rgb(58, 92, 240)','VIEW-4: Night fills use #3A5CF0 '+JSON.stringify(night));
+  ok(night.fg==='rgb(255, 255, 255)'&&night.text>=4.5,'VIEW-4: white on the Night primary stays readable '+night.text.toFixed(2));
+  await p.evaluate(()=>{document.documentElement.dataset.theme='field';});
+  const field=await read();
+  ok(field.btn==='2px'&&field.sel==='2px'&&field.inp==='2px'&&field.royal==='#1E3FD0','VIEW-4: Field stays 2px and keeps #1E3FD0 '+JSON.stringify(field));
+  await c.close();}
+{const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());await c.route(/\/js\/core\/theme\.js$/,r=>r.abort());
+  await c.addInitScript(()=>{localStorage.setItem('te_ui_theme','field');window.__miss={night:0,n:0};const tick=()=>{if((document.documentElement.dataset.theme||'')==='night')window.__miss.night++;window.__miss.n++;if(window.__miss.n<8)requestAnimationFrame(tick);};requestAnimationFrame(tick);});
+  const p=await c.newPage();await p.goto(BASE);await p.waitForTimeout(200);
+  const v=await p.evaluate(()=>({theme:document.documentElement.dataset.theme,meta:document.querySelector('meta[name="theme-color"]').content,night:window.__miss.night}));
+  ok(v.theme==='field'&&v.meta==='#ffffff'&&v.night===0,'VIEW-4: a missing theme.js still opens a saved Field '+JSON.stringify(v));
+  await c.close();}
+{const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());await c.route(/\/js\/core\/theme\.js$/,r=>r.abort());
+  await c.addInitScript(()=>localStorage.setItem('te_ui_theme','garbage'));
+  const p=await c.newPage();await p.goto(BASE);await p.waitForTimeout(200);
+  const v=await p.evaluate(()=>({theme:document.documentElement.dataset.theme,meta:document.querySelector('meta[name="theme-color"]').content}));
+  ok(v.theme==='night'&&v.meta==='#000000','VIEW-4: a missing theme.js still opens Night for an unknown value '+JSON.stringify(v));
+  await c.close();}
 await b.close();console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);})();
