@@ -27,7 +27,7 @@ const RES_BTNS=[['ball','Ball','b-ball'],['called','Called K','b-cs'],['swinging
 const IP_BTNS=[['out','Out'],['1B','1B'],['2B','2B'],['3B','3B'],['HR','HR'],['E','E'],['FC','FC'],['DP','DP']];
 const inningTag=g=>(g.homeAway==='home'?'T':g.homeAway==='away'?'B':'Inn ')+g.cur.inning;
 function callCode(){const sh=curSheet();return D.cell&&sh&&D.cell.sheet===sh.id?PC.cellCode(sh,D.cell.r,D.cell.c):'';}
-function hintText(){const cmp=$('coach').classList.contains('compact');if(sideCard)return '';if(D.aimEdit)return['✎','Tap the new aim'];if(D.ip)return['','Pick the outcome'];
+function hintText(){const cmp=$('coach').classList.contains('compact');if(sideCard)return '';if(D.aimEdit)return['✎','Tap the new aim'];if(D.bbAsk||D.ip)return['',D.bbAsk?'Contact?':'Pick the outcome'];
   if(D.shook&&!D.type)return['',cmp?'Threw?':'Which pitch?']; // short: status already shows "⤺ CH7 → ?"
   if(!curSheet())return['1',cmp?'No sheet':'Add a call sheet'];
   const step=PC.scoreStep(pullDraft());
@@ -101,7 +101,7 @@ function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,h
   // in play: spray field replaces the status details
   $('cSprayWrap').classList.toggle('hide',!D.ip);['cs-bat','cs-call','cs-hint','cs-foot'].forEach(k=>$('cStatus').querySelector('.'+k).classList.toggle('hide',!!D.ip));
   if(D.ip){$('cxIp').textContent=`IN PLAY · ${code?code+' ':''}${D.callTxt||''}${aims.length?' → '+aims.join('/'):''}${D.loc?' · landed '+D.loc:''} · spray optional`;const dot=$('cSprayDot');dot.classList.toggle('hide',!D.spray);if(D.spray){dot.setAttribute('cx',D.spray[0]*200);dot.setAttribute('cy',D.spray[1]*92);}}
-  $('cAct').classList.toggle('hide',!!D.ip);$('cContact').classList.toggle('hide',!D.ip);
+  $('cAct').classList.toggle('hide',false);$('cContact').classList.toggle('hide',true);
   document.querySelectorAll('#cContact [data-bb]').forEach(b=>b.classList.toggle('on',b.dataset.bb===D.bb));
   // zone
   const am=new Set(aims);$('cZone').innerHTML=Z5.map(row=>row.map(z=>{const isA=am.has(z),isL=D.loc===z;
@@ -111,7 +111,7 @@ function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,h
   const two=c.s===2;const ur=`<button data-cx="undo" aria-label="Undo last pitch">↶<small>Undo</small></button><button data-cx="redo" aria-label="Redo" ${redoStack.length?'':'disabled'}>↷<small>Redo</small></button>`;
   const ready=PC.scoreStep(pullDraft())==='result';
   if(viewOnly())$('cRes').innerHTML=`<div class="cro" role="status"><b>👁 Scoring on another phone</b><span>View only</span><button data-cx="take">Take over scoring</button></div>`;else if(D.shook&&!D.type)$('cRes').innerHTML=allTypes().map(t=>`<button data-ty="${H(t.code)}" aria-label="She threw ${H(t.name)}">${H(t.code)}</button>`).join('')+`<button data-cx="unshake" class="shkx">✕ Cancel</button>`;
-  else $('cRes').innerHTML=(D.ip?IP_BTNS.map(([v,l])=>`<button data-ip="${v}" class="${/^(out|1B|2B|3B|HR)$/.test(v)?'b-ip':''}">${l}</button>`).join('')+'<button data-cx="back">← Back</button>':
+  else $('cRes').innerHTML=(D.ip?coachRes(PC.BB_TYPES,PC.BB_NAME):
     RES_BTNS.map(([v,l,k])=>`<button data-r="${v}" class="${k}${ready?'':' soft'}" ${ready?'':'disabled'}>${l}</button>`).join('')+`<button data-cx="aim" class="${D.aimEdit?'on':''}" aria-pressed="${!!D.aimEdit}" ${D.parsed||D.shook?'':'disabled'}>✎ Aim</button>`)+
     ur+(D.ip?'':`<button data-cx="same" aria-label="Same call as last pitch" ${lastCell?'':'disabled'}>⟳<small>Same</small></button>`+(D.shook?`<button data-cx="unshake" class="shkx" aria-label="Cancel shake-off">✕<small>Shake</small></button>`:`<button data-cx="shake" class="shk" aria-label="Shake-off: she shook off the call" ${D.parsed?'':'disabled'}>⤺<small>Shake-off</small></button>`));
   document.querySelectorAll('#cAct [data-z]').forEach(b=>b.classList.toggle('sel',+b.dataset.z===D.loc));
@@ -124,6 +124,9 @@ function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,h
   $('cmTheme').textContent='Display: '+THEME_LABEL[paletteChoice()];
   $('cmMirror').textContent='Mirror sides: '+(PREF.get('mirror','0')==='1'?'on':'off');
   const und=PC.unmappedCells(sh||{rows:[]},S().customTypes);$('cmBand').textContent=`Band setup${und.length&&!PC.bandSetupDone(sh,S().customTypes)?` (${und.reduce((n,u)=>n+u.cells.length,0)} cells need an aim)`:''}`;$('cmBand').disabled=!sh||!und.length;}
+// RULE-13a. The contact step uses the result column that is already there.
+// Idle, in play, and contact keep the same band and the same result column.
+// The five chips are not a row under the zone.
 // ---------- coach input ----------
 $('cBand').addEventListener('click',e=>{if(viewOnly()){toast(PC.SCORING_ELSEWHERE);return;}const b=e.target.closest('button[data-r]');if(b&&!b.disabled){sideCard=null;cMsg=null;callCell(+b.dataset.r,+b.dataset.c);}});
 let lpT=null,lpDone=false; // long-press (≥400 ms) on a zone cell sets the aim directly
@@ -138,12 +141,18 @@ function coachZoneAct(z,aimEdit){const cmp=$('coach').classList.contains('compac
 $('cZone').addEventListener('click',e=>{if(viewOnly()){toast(PC.SCORING_ELSEWHERE);return;}const b=zoneBtn(e);if(!b)return;if(lpDone){lpDone=false;return;}sideCard=null;coachZoneAct(+b.dataset.z,D.aimEdit);});
 $('cRes').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;sideCard=null;
   if(b.dataset.r){if(PC.scoreStep(pullDraft())!=='result'){coachMsg($('coach').classList.contains('compact')?'Where?':'Tap where it went first','warn');return;}if(b.dataset.r==='inplay'){D.ip=true;render();return;}recordGame(b.dataset.r);return;}
-  if(b.dataset.ip){recordGame('inplay',b.dataset.ip);return;}
+  if(b.dataset.ip){coachIp(b.dataset.ip);return;}
   if(b.dataset.ty){takeDraft(PC.scoreApply(pullDraft(),{op:'call',type:b.dataset.ty,called:[]}));D.sheet=false;render();return;}
-  const x=b.dataset.cx;if(x==='shake')return shakeOff();if(x==='unshake')return cancelShake();if(x==='take')return openTakeover();if(x==='back'){D.ip=false;D.spray=null;render();}else if(x==='aim'){D.aimEdit=!D.aimEdit;render();}else if(x==='undo')undoLast();else if(x==='redo')redoLast();else if(x==='same'&&lastCell)callCell(lastCell.r,lastCell.c);});
+  const x=b.dataset.cx;if(x==='shake')return shakeOff();if(x==='unshake')return cancelShake();if(x==='take')return openTakeover();if(x==='back'){sideCard=null;coachBack();return;}else if(x==='aim'){D.aimEdit=!D.aimEdit;render();}else if(x==='undo')undoLast();else if(x==='redo')redoLast();else if(x==='same'&&lastCell)callCell(lastCell.r,lastCell.c);});
 $('cAct').addEventListener('click',e=>{if(viewOnly()){toast(PC.SCORING_ELSEWHERE);return;}const b=e.target.closest('[data-z]');if(!b)return;sideCard=null;coachZoneAct(+b.dataset.z,false);});
 $('cRes').addEventListener('pointerdown',e=>{if(e.target.closest('[data-r]'))clearFoulChips();});
-$('cContact').addEventListener('click',e=>{const b=e.target.closest('[data-bb]');if(!b)return;D.bb=D.bb===b.dataset.bb?null:b.dataset.bb;render();});
+$('cRes').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||!D.bbAsk)return;if(b.dataset.bb)coachKeep(b.dataset.bb);else if(b.dataset.cx==='skip')coachKeep(null);});
+// RULE-13a. Contact is a step after the outcome. Back and Skip keep the pitch.
+function coachRes(){if(!D.bbAsk)return IP_BTNS.map(([v,l])=>`<button data-ip="${v}" class="${/^(out|1B|2B|3B|HR)$/.test(v)?'b-ip':''}">${l}</button>`).join('')+'<button data-cx="back">← Back</button>';
+  return PC.BB_TYPES.map(code=>`<button type="button" data-bb="${H(code)}" aria-label="${H(PC.BB_NAME[code]||code)}">${H(code)}</button>`).join('')+'<button data-cx="skip" aria-label="Record with no contact">Skip</button><button data-cx="back" aria-label="Keep the pitch">← Back</button>';}
+function coachKeep(bb){if(!D.bbAsk)return;D.bb=bb||null;const ip=D.bbAsk;recordGame('inplay',ip);}
+function coachIp(ip){D.bb=null;D.bbAsk=ip;render();}
+function coachBack(){if(D.bbAsk)return coachKeep(null);D.ip=false;D.spray=null;render();}
 $('cSpray').addEventListener('click',e=>{const r=$('cSpray').getBoundingClientRect();D.spray=[+((e.clientX-r.left)/r.width).toFixed(3),+((e.clientY-r.top)/r.height).toFixed(3)];renderCoach();});
 $('cSideUndo').onclick=()=>{sideCard=null;undoLast();};$('cSidePause').onclick=()=>{sideCard=null;pauseGame();};$('cSideOk').onclick=()=>{sideCard=null;render();};
 // game menu (⋯): the rarely used controls live here, off the charting screen

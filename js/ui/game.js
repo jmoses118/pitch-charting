@@ -54,6 +54,7 @@ function recordGame(result,ip,noPitch){const g=game();if(!g||scoreGuard())return
   resetDraft();save();render();if(oneHand())advance('call');}
 $('ibb').onclick=async()=>{if(scoreGuard())return;if(await ask('Intentional walk (no pitches counted, per GC)?',false))recordGame('ibb',null,true);};
 function undoLast(){if(scoreGuard())return;
+  if(D.bbAsk){D.bbAsk=null;render();return;}
   if(D.ip){D.ip=false;D.spray=null;render();return;}
   if(D.draft&&D.draft.actual!=null){pushRedo({kind:'loc',loc:D.draft.actual,sheet:!!D.sheet});D.draft.actual=null;D.draft.result=null;mirrorDraft();D.sheet=false;render();toast('Location cleared');return;}
   if(tab!=='game'&&((D.draft&&D.draft.called&&D.draft.called.length)||D.callTxt)){pushRedo({kind:'aim',called:aimSet(),callTxt:D.callTxt,type:D.type,parsed:D.parsed});if(D.draft&&D.draft.called&&D.draft.called.length){D.draft.called=[];mirrorDraft();}else resetDraft();render();return;}

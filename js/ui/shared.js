@@ -6,7 +6,7 @@ const H=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','
 // RULE-13. Both contact rows render the one core list. The page does not keep its own copy.
 function paintContact(){const btn=(code,text)=>{const on=D.bb===code;const name=PC.BB_NAME[code]||code;return `<button type="button" class="optchip${on?' sel on':''}" data-bb="${H(code)}" aria-label="${H(name)}" aria-pressed="${on?'true':'false'}">${H(text)}</button>`;};
   const list=PC.BB_TYPES||[];const ip=$('ipContact');if(ip)ip.innerHTML=list.map(code=>btn(code,PC.BB_NAME[code]||code)).join('');
-  const cc=$('cContact');if(cc)cc.innerHTML=list.map(code=>btn(code,code)).join('');}
+  const cc=$('cContact');if(cc)cc.innerHTML='';}
 let storage=null;try{storage=window.localStorage;storage.setItem('__t','1');storage.removeItem('__t');}catch(e){storage=null;}
 const store=PC.makeStore(storage);
 const S=()=>store.state;
@@ -22,7 +22,7 @@ $('askOk').onclick=()=>$('askDlg').close('ok');
 document.querySelectorAll('dialog').forEach(d=>{d.addEventListener('cancel',()=>{d.returnValue='cancel';});
   d.addEventListener('click',e=>{if(e.target!==d||!e.clientX&&!e.clientY)return;const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close('cancel');});});
 // inline sheets (result, wristband) close on Escape too
-document.addEventListener('keydown',e=>{if(e.key!=='Escape'||document.querySelector('dialog[open]'))return;if($('wbDet').open)$('wbDet').open=false;else if(D.sheet||D.ip||D.foul){D.sheet=false;D.ip=false;D.foul=false;render();}});
+document.addEventListener('keydown',e=>{if(e.key!=='Escape'||document.querySelector('dialog[open]'))return;if($('wbDet').open)$('wbDet').open=false;else if(D.bbAsk&&typeof coachKeep==='function')coachKeep(null);else if(D.sheet||D.ip||D.foul){D.sheet=false;D.ip=false;D.foul=false;render();}});
 function toast(t,ms){if(document.body.classList.contains('coachmode')&&typeof coachMsg==='function')return coachMsg(t);const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),ms||1300);}
 // ---------- helpers ----------
 const allTypes=()=>PC.BASE_TYPES.concat(S().customTypes.map(c=>({code:c.code.toUpperCase(),name:c.name})));
@@ -45,7 +45,7 @@ const oneHand=()=>S().oneHand!==false;
 function advance(step){if(!oneHand())return;if(document.body.classList.contains('entrymode')){if(scrollY)scrollTo(0,0);return;} // one-screen entry: everything is already in view
   const el=step==='loc'?$('zone'):step==='result'?$('resBtns'):($('wbCard')&&!$('wbCard').classList.contains('hide')?$('wbCard'):$('types'));if(el&&el.scrollIntoView)setTimeout(()=>el.scrollIntoView({behavior:'auto',block:step==='result'?'end':'start'}),30);}
 function pcCheck(pid,before,after){ensureSettings();const th=S().settings.alerts;const a=PC.alertLevel(before,th),b=PC.alertLevel(after,th);if(b.lvl>a.lvl){buzz([220,90,220]);toast(`⚠️ ${pName(pid)} has thrown ${after} pitches (alert at ${b.at})`);}}
-function resetDraft(){D.shook=null;D.cell=null;D.bb=null;D.sheet=false;D.aimEdit=false;D.spray=null;D.foul=false;D.foulTime=null;D.wpPb=null;D.velo=null;D.draft=blankDraft();mirrorDraft();Object.assign(D,{callTxt:'',parsed:null,ip:false});$('callTxt').value='';const vel=$('velo');if(vel)vel.value='';}
+function resetDraft(){D.shook=null;D.cell=null;D.bb=null;D.bbAsk=null;D.sheet=false;D.aimEdit=false;D.spray=null;D.foul=false;D.foulTime=null;D.wpPb=null;D.velo=null;D.draft=blankDraft();mirrorDraft();Object.assign(D,{callTxt:'',parsed:null,ip:false});$('callTxt').value='';const vel=$('velo');if(vel)vel.value='';}
 // ---------- zone ----------
 // Strike rows are 22.5 tall and 20 wide, so a 48px-wide box is about 54px tall. Uniform scaling only.
 const ZX0=20,ZY0=22.5,CW=20,CHh=22.5,RH=22.5,GRID_H=RH*5,ZONE_MID=RH*2.5;
