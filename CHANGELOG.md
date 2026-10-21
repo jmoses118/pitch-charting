@@ -1,8 +1,8 @@
 # Changelog
 
-## v89 – A tap keeps the exact spot on the grid
+## v89 – The chart can keep the exact spot a pitch was touched
 ### Changed
-- A tap on the zone, the ring, way off, the dirt, or the backstop keeps two numbers from 0 to 1. Editing that cell clears the spot, and undo puts it back.
+- The exact spot is two numbers from 0 to 1, on the zone, the ring, way off, the dirt, or the backstop. Changing the cell clears that spot, and undo puts it back.
 - Cache: `te-pitch-v89`.
 
 ## v87 – A risky aim warns and still counts
