@@ -62,6 +62,7 @@ SCORE-1, SCORE-2, SCORE-3, SCORE-4, and SCORE-5 are in `docs/SCORING.md`.
   Nothing saved opens in `night`. A saved `field` or `night` stays that palette. Any other saved value, and `auto` with an hour that is not a number, opens in `night`.
   `auto` is night from 19:00 through 06:59 and field from 07:00 through 18:59. The game menu still cycles the saved choice both ways. The page does not paint Field before the resolved palette is on the document.
   Night buttons, selects and inputs use a 2px border, the same as Field. Night fills (`--c-royal`) are #3A5CF0. If `theme.js` does not load, the page stays Night and the browser bar stays black.
+  The Night status card and pitch-log rows use the same box as Field. A pressed Night primary is a darker shade of #3A5CF0. The coach screen still opens if `theme.js` does not load.
 
 ## LATER (out of scope for v1: do not build)
 - The overlay view: a big zone with floating count, pitcher and pitch widgets, the batter's last-at-bat widget, and a lineup edit menu.
@@ -108,7 +109,7 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | RULE-11a | unit: `0` and `00` are allowed, empty is allowed, and a duplicate active number errors |
 | VIEW-1, VIEW-2 | `zonegfx.ui.js`: numbered, colored markers and list; one-tap scheduled start |
 | VIEW-3 | unit: “VIEW-2 todaysScheduled returns only that day's scheduled games” |
-| VIEW-4 | unit: “VIEW-4: nothing saved is Night, and a saved Field or Night stays”; “VIEW-4: themeFromStorage reads THEME_KEY and stays Night when getItem throws”; `test/coach.ui.js`: Night by default, the game menu reaches Field and Night, a saved Field stays Field, no Field frame paints on load, a throwing theme read stays Night, Night controls are 2px, Night fills are #3A5CF0, and a missing theme.js opens Night |
+| VIEW-4 | unit: “VIEW-4: nothing saved is Night, and a saved Field or Night stays”; “VIEW-4: themeFromStorage reads THEME_KEY and stays Night when getItem throws”; `test/coach.ui.js`: Night by default, the game menu reaches Field and Night, a saved Field stays Field, no Field frame paints on load, a throwing theme read stays Night, Night controls are 2px, Night fills are #3A5CF0, a missing theme.js opens Night and the coach screen, and Night status and pitch-log boxes match Field |
 | FLOW-13 | unit: `createGame` returns null until the opponent and pitcher are set; a scheduled id starts that row; the toast leaves the game list unchanged |
 | FLOW-14 | unit: pause keeps the row; `endGame` waits for confirmation |
 | FLOW-15 | unit: discard pushes `deleted` and a pull does not bring the game back; the stats scope omits the draft. The picker check is `modes.ui.js` "picker shows N Resume rows and one Start" |

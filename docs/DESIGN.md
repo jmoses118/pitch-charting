@@ -4,7 +4,7 @@ The app is used on an iPhone, one-handed, in a dugout, often in direct sun. It i
 
 ## Tokens
 - **Color:** `--c-bg`, `--c-surface` / `-2` / `-3` (raised layers), `--c-line` / `--c-line-strong`, text `--c-text` / `-2` / `-3`, brand `--c-royal` (fills), `--c-royal-hi` (focus and selected borders), `--c-royal-text` (blue text on dark), `--c-royal-tint` (active nav, lock card), plus semantic `--c-success`, `--c-danger`, `--c-warn` with `-text` variants. Body and secondary text are ≥4.5:1.
-  Night sets `--c-royal` to #3A5CF0 so white text on a fill stays readable. Buttons, selects and inputs are 2px in both palettes. The wordmark file is unchanged.
+  Night sets `--c-royal` to #3A5CF0 so white text on a fill stays readable. Buttons, selects and inputs are 2px in both palettes. The Night status card and pitch-log rows match Field. A pressed Night primary darkens to #2C45B4. The wordmark file is unchanged.
 - **Space:** a 4-pt scale `--s1`…`--s6` (4, 8, 12, 16, 24, 32 px).
 - **Radius:** `--r-sm` 8, `--r-md` 12 (controls), `--r-lg` 16 (cards, sheets), `--r-pill`.
 - **Type:** system SF font, 1.2 scale `--fs-xs` 12 … `--fs-2xl` 28, tabular numerals everywhere.

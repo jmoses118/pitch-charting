@@ -5,11 +5,11 @@
 'use strict';
 // ---------- UI preferences (this phone only) ----------
 const PREF={get:(k,d)=>{try{const v=storage&&storage.getItem('te_ui_'+k);return v==null?d:v;}catch(e){return d;}},set:(k,v)=>{try{storage&&storage.setItem('te_ui_'+k,v);}catch(e){}}};
-const THEMES=PC.THEME_CHOICES,THEME_LABEL={field:'☀ Field (day)',[PC.THEME_DEFAULT]:'☾ Night',auto:'◐ Auto (sunset)'};
+const THEMES=PC.THEME_CHOICES||[],THEME_LABEL={field:'☀ Field (day)',[PC.THEME_DEFAULT||'night']:'☾ Night',auto:'◐ Auto (sunset)'};
 function themeNow(){
   // VIEW-4. themeFromStorage reads THEME_KEY.
   const hour=new Date().getHours();
-  const theme=PC.themeFromStorage(storage,hour);
+  const theme=paletteNow(hour);
   return theme;
 }
 function applyTheme(){const t=themeNow();document.documentElement.dataset.theme=t;const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==='field'?'#ffffff':'#000000';}
@@ -122,7 +122,7 @@ function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,h
     $('cSideSum').textContent=`${g.homeAway==='away'?'Bottom':g.homeAway==='home'?'Top':'Inning'} ${sc.inning}: ${ps.length} pitch${ps.length===1?'':'es'} · ${k} K · ${hits} H · ${fmt(q.strikePct)} strikes`;}
   $('cmKd3').disabled=$('cmKd3o').disabled=!two;
   // The menu shows the saved choice. themeChoice reads THEME_KEY.
-  $('cmTheme').textContent='Display: '+THEME_LABEL[PC.themeChoice(storage)];
+  $('cmTheme').textContent='Display: '+THEME_LABEL[paletteChoice()];
   $('cmMirror').textContent='Mirror sides: '+(PREF.get('mirror','0')==='1'?'on':'off');
   const und=PC.unmappedCells(sh||{rows:[]},S().customTypes);$('cmBand').textContent=`Band setup${und.length&&!PC.bandSetupDone(sh,S().customTypes)?` (${und.reduce((n,u)=>n+u.cells.length,0)} cells need an aim)`:''}`;$('cmBand').disabled=!sh||!und.length;}
 // ---------- coach input ----------
@@ -159,7 +159,7 @@ $('xPb').onclick=()=>{xFlag='pb';$('xPb').classList.add('sel');$('xWp').classLis
 $('xClr').onclick=()=>{xFlag=null;$('xWp').classList.remove('sel');$('xPb').classList.remove('sel');};
 $('xDlg').addEventListener('close',()=>{if($('xDlg').returnValue!=='ok')return;D.wpPb=xFlag;D.velo=noteVelo($('xVelo').value);render();});
 $('cmTake').onclick=menuDo(()=>openTakeover());$('cmBand').onclick=menuDo(()=>openBandSetup());
-$('cmTheme').onclick=()=>{const t=PC.themeChoice(storage);PC.themeSave(storage,THEMES[(THEMES.indexOf(t)+1)%THEMES.length]);applyTheme();render();};
+$('cmTheme').onclick=()=>{if(!THEMES.length)return;const t=paletteChoice();paletteSave(THEMES[(THEMES.indexOf(t)+1)%THEMES.length]);applyTheme();render();};
 $('cmMirror').onclick=()=>{PREF.set('mirror',PREF.get('mirror','0')==='1'?'0':'1');render();};
 // ---------- band setup: pick an aim once for the cells whose text has a pitch type but no spot ----------
 let bandSheetId=null;
@@ -187,11 +187,11 @@ function renderModes(lk,showEntry){const cg=coachGame(lk);const coach=cg&&LANDSC
 addEventListener('online',()=>render());addEventListener('offline',()=>render());
 addEventListener('resize',()=>{if(document.body.classList.contains('coachmode'))sizeCoach();if(typeof paintFoulChips==='function')paintFoulChips();});
 // Setup: display prefs + band setup for the sheet being edited
-$('thSel').onchange=e=>{PC.themeSave(storage,e.target.value);applyTheme();render();};$('mirrorChk').onchange=e=>{PREF.set('mirror',e.target.checked?'1':'0');render();};
+$('thSel').onchange=e=>{paletteSave(e.target.value);applyTheme();render();};$('mirrorChk').onchange=e=>{PREF.set('mirror',e.target.checked?'1':'0');render();};
 $('csBand').onclick=()=>openBandSetup(typeof csCur==='function'&&csCur()?csCur().id:null);
-$('thNight').dataset.th=PC.THEME_DEFAULT;$('thNightOpt').value=PC.THEME_DEFAULT;
-document.querySelectorAll('.thseg [data-th]').forEach(b=>b.onclick=()=>{PC.themeSave(storage,b.dataset.th);applyTheme();render();});
-function renderDisplayPrefs(){const th=PC.themeChoice(storage);document.querySelectorAll('.thseg [data-th]').forEach(b=>{b.classList.toggle('on',b.dataset.th===th);b.setAttribute('aria-pressed',b.dataset.th===th);});$('thSel').value=th;$('mirrorChk').checked=PREF.get('mirror','0')==='1';}
+$('thNight').dataset.th=PC.THEME_DEFAULT||'night';$('thNightOpt').value=PC.THEME_DEFAULT||'night';
+document.querySelectorAll('.thseg [data-th]').forEach(b=>b.onclick=()=>{paletteSave(b.dataset.th);applyTheme();render();});
+function renderDisplayPrefs(){const th=paletteChoice();document.querySelectorAll('.thseg [data-th]').forEach(b=>{b.classList.toggle('on',b.dataset.th===th);b.setAttribute('aria-pressed',b.dataset.th===th);});$('thSel').value=th;$('mirrorChk').checked=PREF.get('mirror','0')==='1';}
 function coachZoneH(z) {
   return (13 * z) / 3 + 8;
 }
@@ -221,4 +221,16 @@ function fitCoachCol(o) {
   const zg = need0 > bh + 2 ? Math.max(o.v("--c-zgap-min"), o.ZG - (need0 - bh) / 2) : o.ZG;
   if (!o.compact && bh > 0) o.set("--zgap", zg);
   if (!o.compact && bh > 0) o.set("--colh", Math.max(bh, o.STH + zg + zoneH + zg + o.ACT));
+}
+// VIEW-4. Missing theme.js uses the static Night default. The palette rules stay in theme.js.
+function paletteNow(hour){
+  if(typeof PC.themeFromStorage==='function')return PC.themeFromStorage(storage,hour);
+  return PC.THEME_DEFAULT||'night';
+}
+function paletteChoice(){
+  if(typeof PC.themeChoice==='function')return PC.themeChoice(storage);
+  return PC.THEME_DEFAULT||'night';
+}
+function paletteSave(v){
+  if(typeof PC.themeSave==='function')PC.themeSave(storage,v);
 }
