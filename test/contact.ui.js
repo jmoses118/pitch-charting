@@ -104,7 +104,7 @@ for(const [W,H,inset] of land)for(const theme of ['field','night']){const tag=`$
     return {recent:pack('#recent .rrow','.r-main b'),log:pack('#log .plist','.plist-res'),stored:__app.store.real.games[0].pitches.map(x=>x.bb||null)};});
   const same=(a,b)=>!!a&&!!b&&a.t===b.t&&!/ZZ/.test(a.t)&&Math.abs(a.h-b.h)<=1&&Math.abs(a.w-b.w)<=1;
   ok(view.recent.length===2&&same(view.recent[0],view.recent[1])&&view.log.length===2&&same(view.log[0],view.log[1]),'RULE-13 an unknown code shows as no contact '+JSON.stringify(view));
-  ok(view.stored.join(',')==='null,ZZ','RULE-13 the stored unknown code stays');
+  ok(view.stored[0]==null&&view.stored[1]==='ZZ','RULE-13 the stored unknown code stays');
   ok(!errs.length,'RULE-13 unknown contact: no page errors '+errs.join('|'));
   await c.close();}
 await b.close();console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);
