@@ -321,7 +321,7 @@ html[data-theme="night"] .cstatus{background:#0D121B}
 #cSpray{width:100%;height:56px;flex:0 0 56px;display:block;cursor:crosshair}.sp-fair{fill:#DCEFE6}.sp-inf{fill:#F6DDB0}#cSprayDot{fill:#1C1C1C;stroke:#fff;stroke-width:2}
 .coach.compact .cs-ip{font-size:10px;line-height:1.1}
 .coach.compact #cSpray{height:48px;flex-basis:48px}
-.czone{display:grid;grid-template-columns:calc(var(--zw,var(--z))*2/3) var(--zw,var(--z)) var(--zw,var(--z)) var(--zw,var(--z)) calc(var(--zw,var(--z))*2/3);grid-template-rows:calc(var(--z)*2/3) var(--z) var(--z) var(--z) calc(var(--z)*2/3);gap:2px}
+.czone{display:grid;grid-template-columns:calc(var(--z)*2/3) var(--z) var(--z) var(--z) calc(var(--z)*2/3);grid-template-rows:calc(var(--z)*2/3) var(--z) var(--z) var(--z) calc(var(--z)*2/3);gap:2px}
 .czone button{min-height:0;padding:0;border:0;border-radius:4px;font-weight:800;font-size:15px;color:var(--c-zone-text);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
 .czone .zr{background:var(--c-zone-ring)}.czone .zi{background:var(--c-zone-in)}
 .czone .aim{outline:3px dashed var(--c-royal-text);outline-offset:-5px;color:var(--c-royal-text)}.czone .aim small{font-size:8px;font-weight:900}
@@ -505,7 +505,7 @@ details.arch{margin-top:8px}details.arch>summary{min-height:48px;display:flex;al
 /* bug-landscape-956: compact keeps the old column; wide screens align to the measured band */
 .coach:not(.compact){align-content:center}
 .coach.compact{--c-gap:5px;--c-rh:20px;--c-res:102px;--c-kmax:44px;--c-zmax:48px;--c-sth:112px;
-  grid-template-columns:var(--bandw,auto) var(--mid,216px) var(--c-res,106px)}
+  grid-template-columns:auto var(--mid,216px) var(--c-res,106px)}
 #cBand{width:auto}
 .coach.compact #cBand{width:100%}
 .coach:not(.compact) .cmid{height:var(--colh)}

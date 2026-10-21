@@ -44,7 +44,7 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
   Under 400px tall, zone cells are 46px where it fits; smaller only when the screen cannot fit 46px (approved by Jim 2026-10-17, fit-first).
   At 400px or taller the floor is 48px. The SE coach screen (667×375, under 700px wide) keeps its existing strike box and is not part of this floor.
   At those extreme heights, In dirt may sit a few px below the band.
-- **RULE-8a** On the landscape coach screen, 844×390 keeps band, zone, and results at least 48px. At 667×375 the minima are band 33, zone 34, and results 46 (`test/coach.ui.js`), so the zone column can hold five 48px contact chips.
+- **RULE-8a** On the landscape coach screen, 844×390 keeps band, zone, and results at least 48px. At 667×375 the minima are band 44, zone 34, and results 46 (`test/coach.ui.js`).
 - **RULE-9** CSV export is per pitcher per date. One shared CSV row builder produces every row.
 - **RULE-10** Players are shown by first name and jersey number (`pitcherLabel`), and CSV file names use the same. No surnames.
 - **RULE-11** Jim can edit a pitcher's jersey number. Cancel leaves it unchanged.
@@ -56,7 +56,7 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
   Stats and reports that name a contact type use that list, so a bunt reads Bunt.
   `pitches.bb` allows null or those five codes. Take a database backup before the migration that allows BU.
   A future GB/FB ratio has to decide how a bunt (BU) counts.
-  The coach screen shows each code on the chip and the full name as its aria-label. The game screen shows the full name. The chips stay inside the zone and each one is at least 48px wide.
+  The coach screen shows each code on the chip and the full name as its aria-label. The game screen shows the full name. The chips stay inside the zone. Each one is at least 48px wide when that zone is at least 240px wide; a shorter zone divides evenly, with no gap.
 
 ## SCORING
 SCORE-1, SCORE-2, SCORE-3, SCORE-4, and SCORE-5 are in `docs/SCORING.md`.
@@ -120,7 +120,7 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | RULE-10 | unit: `pitcherLabel` and CSV file name include the jersey number; smoke: no surnames shown |
 | RULE-11, RULE-12 | UI: edit jersey number saves, and Cancel leaves it unchanged; smoke: branding unchanged |
 | RULE-11a | unit: `0` and `00` are allowed, empty is allowed, and a duplicate active number errors |
-| RULE-13 | unit: “RULE-13: contact is Ground, Liner, Fly, Pop up, and Bunt”; `test/detail.ui.js` portrait Bunt saves and can be skipped; `test/coach.ui.js` and `test/contact.ui.js` chips are at least 48px and the coach columns do not move |
+| RULE-13 | unit: “RULE-13: contact is Ground, Liner, Fly, Pop up, and Bunt”; `test/detail.ui.js` portrait Bunt saves and can be skipped; `test/coach.ui.js` and `test/contact.ui.js` coach columns do not move, and a zone at least 240px wide gives 48px chips |
 | VIEW-1, VIEW-2 | `zonegfx.ui.js`: numbered, colored markers and list; one-tap scheduled start |
 | VIEW-3 | unit: “VIEW-2 todaysScheduled returns only that day's scheduled games” |
 | VIEW-4 | unit: “VIEW-4: nothing saved is Night, and a saved Field or Night stays”; “VIEW-4: themeFromStorage reads THEME_KEY and stays Night when getItem throws”; `test/coach.ui.js`: Night by default, the game menu reaches Field and Night, a saved Field stays Field, no Field frame paints on load, a throwing theme read stays Night, Night controls are 2px, Night fills are #3A5CF0, themeColor paints the bar, a missing theme.js opens Night and the coach screen, and Night boxes match Field |

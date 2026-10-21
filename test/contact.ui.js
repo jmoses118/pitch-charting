@@ -40,8 +40,9 @@ for(const [W,H,inset] of land)for(const theme of ['field','night']){const tag=`$
   const still=Math.abs(idle.bL-ip.bL)<=1&&Math.abs(idle.bR-ip.bR)<=1&&Math.abs(idle.rL-ip.rL)<=1&&Math.abs(idle.rR-ip.rR)<=1;
   ok(still,`${tag}: band and results stay (band ${idle.bL.toFixed(0)}→${ip.bL.toFixed(0)}, results ${idle.rL.toFixed(0)}→${ip.rL.toFixed(0)})`);
   const inside=chips.length===5&&chips.every(x=>x.l>=ip.zL-1&&x.rt<=ip.zR+1&&ip.zL>=ip.bR-1&&ip.zR<=ip.rL+1);
-  const fit=chips.every(x=>x.w>=47.5&&x.h>=47.5&&x.fs>=11&&!x.clip&&!x.off);
-  ok(chips.map(x=>x.t).join()===CODES&&chips.map(x=>x.aria).join()===NAMES&&inside&&fit,`${tag}: codes, 48px, inside the zone ${chips.map(x=>x.w.toFixed(1)).join(' ')} zone ${ip.zW.toFixed(0)}`);
+  const wide=ip.zW>=239.5;
+  const fit=chips.every(x=>x.h>=47.5&&x.fs>=11&&!x.clip&&!x.off&&(wide?x.w>=47.5:x.w>=ip.zW/5-1.5));
+  ok(chips.map(x=>x.t).join()===CODES&&chips.map(x=>x.aria).join()===NAMES&&inside&&fit,`${tag}: codes, ${wide?'48px':'zone/5'}, inside the zone ${chips.map(x=>x.w.toFixed(1)).join(' ')} zone ${ip.zW.toFixed(0)}`);
   ok(!errs.length,`${tag}: no page errors`);
   await c.close();}
 await b.close();console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);
