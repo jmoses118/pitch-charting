@@ -1,8 +1,9 @@
-const C='te-pitch-v73',F=['./','index.html','style.css','config.js','js/core/config.js','js/core/theme.js','js/core/grid.js','js/core/calls.js','js/core/location.js','js/core/flow.js','js/core/game.js','js/core/scoring.js','js/core/csv.js','js/core/workload.js','js/core/sync.js','js/core/modes.js','js/core/store.js',
+const C='te-pitch-v82',F=['./','index.html','style.css','config.js','js/core/config.js','js/core/theme.js','js/core/version.js','js/core/grid.js','js/core/calls.js','js/core/location.js','js/core/flow.js','js/core/game.js','js/core/scoring.js','js/core/csv.js','js/core/workload.js','js/core/sync.js','js/core/modes.js','js/core/store.js',
 'js/ui/shared.js','js/ui/zonegfx.js','js/ui/game.js','js/ui/bullpen.js','js/ui/report.js','js/ui/stats.js','js/ui/setup.js','js/ui/coach.js','js/ui/main.js','manifest.json','icons/te-wordmark.svg','icons/icon.svg','icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png','icons/favicon-32.png'];
 // install: fetch every app file fresh from the network (bypass HTTP cache) so one version is cached together
-self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>Promise.all(F.map(u=>fetch(new Request(u,{cache:'reload'})).then(r=>{if(!r.ok)throw new Error(u+' '+r.status);return c.put(u,r);})))));self.skipWaiting();});
-self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim();});
+self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>Promise.all(F.map(u=>fetch(new Request(u,{cache:'reload'})).then(r=>{if(!r.ok)throw new Error(u+' '+r.status);return c.put(u,r);})))).then(()=>self.skipWaiting()));});
+self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim()));});
+self.addEventListener('message',e=>{if(e.data==='version'&&e.ports[0])e.ports[0].postMessage(C);});
 // only same-origin GETs are handled; Supabase / any other origin goes straight to the network and is never cached
 self.addEventListener('fetch',e=>{const q=e.request;if(q.method!=='GET')return;const u=new URL(q.url);if(u.origin!==self.location.origin)return;
   e.respondWith(fetch(q,{cache:'no-cache'}).then(r=>{if(r.ok&&r.type==='basic'){const cp=r.clone();caches.open(C).then(c=>c.put(q,cp));}return r;}).catch(()=>caches.match(q,{ignoreSearch:true}).then(m=>m||caches.match('index.html'))));});

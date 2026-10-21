@@ -68,7 +68,30 @@ function render(skipCallInput){const s=S();applyViewOnly(viewOnly());if(typeof r
   if(tab==='setup'){renderCodes();renderPitchers();renderRoster();$('cTypes').innerHTML=s.customTypes.map((c,i)=>`<span class="tag" data-ct="${i}">${H(c.code)} = ${H(c.name)} ✕</span> `).join('')||'None yet';
     $('storeMsg').textContent=store.isTest?'Test mode: storage untouched.':(storage?'Saved on this device (localStorage). Export a JSON backup regularly.':'Storage is blocked here – open in Safari (not private browsing).');}
   if(tab==='stats'){renderStats();renderHeat();}
-  renderSync();if(tab==='setup'&&!store.isTest&&document.activeElement!==$('teamCode'))$('teamCode').value=store.real.sync.teamCode||'';fitPitcherFace();}
+  renderSync();if(tab==='setup'&&!store.isTest&&document.activeElement!==$('teamCode'))$('teamCode').value=store.real.sync.teamCode||'';fitPitcherFace();paintVersion();if(bootWorker.consider)bootWorker.consider();parkVersionNote();}
+function paintVersion(){const t=PC.APP_VERSION;const a=$('setupVer'),b=$('menuVer');if(a)a.textContent=t;if(b)b.textContent=t;}
+// Coach uses the status footer. Portrait borrows the Today line. Neither adds a row.
+function parkVersionNote(){if(!noteVersion.live)return;const text=noteVersion.text,el=$('verNote');if(el)el.classList.remove('on');
+  if(document.body.classList.contains('coachmode')){const wm=$('wlMini');if(wm&&wm.classList.contains('ver')){wm.classList.remove('ver');renderAlerts();}if(!(cMsg&&cMsg.ver)){coachMsg(text,'ok',PC.VERSION_NOTE_MS);if(cMsg)cMsg.ver=1;}return;}
+  if(cMsg&&cMsg.ver){cMsg=null;if(typeof renderHint==='function')renderHint();}
+  if(!document.body.classList.contains('entrymode'))return;const wm=$('wlMini');if(!wm)return;wm.textContent=text;wm.classList.add('ver');}
+function clearVersionNote(){noteVersion.live=false;const el=$('verNote');if(el)el.classList.remove('on');const wm=$('wlMini');if(wm&&wm.classList.contains('ver')){wm.classList.remove('ver');if(typeof renderAlerts==='function')renderAlerts();}if(cMsg&&cMsg.ver){cMsg=null;if(typeof renderHint==='function')renderHint();}if(typeof fitZone==='function')fitZone();}
+function noteVersion(){if(!storage)return;let seen=null;try{seen=storage.getItem(PC.VERSION_SEEN_KEY);}catch(e){return;}
+  const n=PC.versionNotice(seen,PC.APP_VERSION);try{storage.setItem(PC.VERSION_SEEN_KEY,n.store);}catch(e){return;}
+  if(!n.show)return;noteVersion.live=true;noteVersion.text=n.text;parkVersionNote();clearTimeout(noteVersion.t);
+  noteVersion.t=setTimeout(clearVersionNote,PC.VERSION_NOTE_MS);}
+function bootWorker(){if(!('serviceWorker' in navigator)||location.protocol==='file:')return;const had=!!navigator.serviceWorker.controller;let reloaded=false,pending=false,idle=false,idleT=0,waitKind='';
+  function clearIdle(){if(!idleT)return;if(waitKind==='idle'&&typeof cancelIdleCallback==='function')cancelIdleCallback(idleT);else clearTimeout(idleT);idleT=0;waitKind='';}
+  function arm(){clearIdle();const go=()=>{idleT=0;waitKind='';idle=true;consider();};
+    if(typeof requestIdleCallback==='function'){waitKind='idle';idleT=requestIdleCallback(go);}else{waitKind='time';idleT=setTimeout(go,1500);}}
+  function sheetOpen(){return !!(D.sheet||D.ip||D.foul||document.querySelector('dialog[open]'));}
+  function consider(){if(!pending||reloaded)return;const snap={draft:pullDraft(),syncing:syncing,sheetOpen:sheetOpen(),hidden:document.visibilityState==='hidden',idle:idle};
+    if(!PC.safeToReload(snap)){idle=false;clearIdle();return;}
+    if(!PC.reloadDue(snap)){arm();return;}
+    reloaded=true;pending=false;clearIdle();location.reload();}
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!PC.workerUpdated(had,reloaded))return;pending=true;consider();if(pending)arm();});
+  document.addEventListener('visibilitychange',consider);bootWorker.consider=consider;
+  navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(reg=>{if(!reg)return;const poke=()=>{if(document.visibilityState==='visible')reg.update().catch(()=>{});};document.addEventListener('visibilitychange',poke);addEventListener('pageshow',poke);poke();}).catch(()=>{});}
 // The closed pitcher control keeps the jersey. The font can shrink to 14px, then the name ellipsizes.
 function fitPitcherFace(){const sel=$('pitcher');if(!sel||!sel.options.length)return;const opt=sel.options[sel.selectedIndex];if(!opt||!opt.value)return;const p=pById(sel.value);if(!p)return;
   const face=PC.pitcherFace(p);const name=face.name,jersey=face.num?'#'+face.num:'',full=face.label;sel.title=full;
@@ -82,7 +105,7 @@ function fitPitcherFace(){const sel=$('pitcher');if(!sel||!sel.options.length)re
   opt.text=text;}
 addEventListener('resize',()=>fitPitcherFace());
 document.querySelector('nav').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;tab=b.dataset.t;document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));resetDraft();render();scrollTo(0,0);});
-if('serviceWorker' in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+bootWorker();
 LANDSCAPE.addEventListener('change',render);
-render();doSync(false);
+render();noteVersion();doSync(false);
 window.__app={store,render,sync,doSync};

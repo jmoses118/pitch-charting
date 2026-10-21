@@ -200,4 +200,8 @@ for(const [W,H,MIN,ZMIN,RESW] of [[844,390,48,48,48],[667,375,44,34,46]]){const 
   ok(v.night.row==='0px 0px 1px 0px'&&v.night.row===v.field.row&&v.delta===0,'VIEW-4: Night pitch-log rows match Field and the rows below do not drop '+JSON.stringify(v));
   ok(v.night.st==='0px 0px 0px 5px'&&v.night.st===v.field.st,'VIEW-4: Night status card keeps the same left stripe as Field '+v.night.st);
   await c.close();}
-await b.close();console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);})();
+await b.close();
+// INFRA-4. CI's ui job runs this file, so the version layout and notice run here too.
+const ver=require('child_process').spawnSync(process.execPath,[require('path').join(__dirname,'version.ui.js'),BASE],{stdio:'inherit',env:process.env});
+if(ver.status)fails++;
+console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);})();

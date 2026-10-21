@@ -22,7 +22,7 @@ let sideCard=null,cMsg=null;
 // ---------- zone: 5×5 grid (pitcher's view); ring quads 11–14 are L-shaped, so they own 3 cells each ----------
 const Z5=[[11,11,15,12,12],[11,1,2,3,12],[16,4,5,6,17],[13,7,8,9,14],[13,13,18,14,14]];
 // ---------- status strip messages (replace toasts while calling: nothing covers the count) ----------
-function coachMsg(t,kind){cMsg={t,kind:kind||'info',at:Date.now()};renderHint();clearTimeout(coachMsg.t);coachMsg.t=setTimeout(()=>{cMsg=null;renderHint();},2600);}
+function coachMsg(t,kind,ms){cMsg={t,kind:kind||'info',at:Date.now()};renderHint();clearTimeout(coachMsg.t);coachMsg.t=setTimeout(()=>{cMsg=null;renderHint();},ms||2600);}
 const RES_BTNS=[['ball','Ball','b-ball'],['called','Called K','b-cs'],['swinging','Swing','b-ss'],['foul','Foul','b-foul'],['inplay','In play ▸','b-ip'],['hbp','HBP','b-hbp'],['foultip','Foul tip','b-ss']];
 const IP_BTNS=[['out','Out'],['1B','1B'],['2B','2B'],['3B','3B'],['HR','HR'],['E','E'],['FC','FC'],['DP','DP']];
 const inningTag=g=>(g.homeAway==='home'?'T':g.homeAway==='away'?'B':'Inn ')+g.cur.inning;

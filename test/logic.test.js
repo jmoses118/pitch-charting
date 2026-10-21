@@ -1192,3 +1192,176 @@ test('RULE-4a: CH box 2 is kept, calledFlag is true, and an off-grid called box 
   assert.ok(sync.targets.includes(2));assert.equal(sync.calledLoc,2);assert.equal(sync.calledFlag,true);
   assert.equal(PC.rowPitch({id:'b',mode:'game',type:'CH',targets:[2],called_loc:99,loc:8,inning:1,abn:1}).calledLoc,null);
 });
+// INFRA-4. The release label lives in one core module. The cache name and the changelog heading match it.
+test('INFRA-4: one release label matches the cache and the changelog',()=>{
+  const fs=require('fs'),path=require('path');
+  const root=path.join(__dirname,'..');
+  assert.equal(typeof PC.APP_VERSION,'string');
+  assert.match(PC.APP_VERSION,/^v\d+$/);
+  assert.equal(PC.cacheNameOf(PC.APP_VERSION),'te-pitch-'+PC.APP_VERSION);
+  assert.equal(PC.VERSION_SEEN_KEY,'pc_version_seen');
+  assert.equal(typeof PC.VERSION_NOTE_MS,'number');
+  assert.ok(PC.VERSION_NOTE_MS>=1500&&PC.VERSION_NOTE_MS<=5000);
+  const ver=fs.readFileSync(path.join(root,'js/core/version.js'),'utf8');
+  const assigned=(ver.match(/APP_VERSION\s*=/g)||[]);
+  assert.equal(assigned.length,1);
+  assert.match(ver,new RegExp("APP_VERSION\\s*=\\s*'"+PC.APP_VERSION+"'"));
+  assert.match(ver,new RegExp("VERSION_SEEN_KEY\\s*=\\s*'"+PC.VERSION_SEEN_KEY+"'"));
+  const sw=fs.readFileSync(path.join(root,'sw.js'),'utf8');
+  const cache=sw.match(/const C='([^']+)'/);
+  assert.ok(cache);
+  assert.equal(cache[1],PC.cacheNameOf(PC.APP_VERSION));
+  assert.match(sw,/'js\/core\/version\.js'/);
+  assert.match(sw,/addEventListener\('message'/);
+  assert.match(sw,/postMessage\(C\)/);
+  const log=fs.readFileSync(path.join(root,'CHANGELOG.md'),'utf8');
+  const head=log.match(/^## (v\d+)\b/m);
+  assert.ok(head);
+  assert.equal(head[1],PC.APP_VERSION);
+  const quoted="'"+PC.APP_VERSION+"'";
+  const walk=dir=>fs.readdirSync(dir).flatMap(n=>{const p=path.join(dir,n);return fs.statSync(p).isDirectory()?walk(p):p.endsWith('.js')?[p]:[];});
+  const hits=[];
+  for(const file of walk(path.join(root,'js')).concat([path.join(root,'sw.js'),path.join(root,'index.html'),path.join(root,'logic.js'),path.join(root,'style.css')])){
+    const rel=path.relative(root,file).replace(/\\/g,'/');
+    const src=fs.readFileSync(file,'utf8');
+    if(src.includes(quoted))hits.push(rel);
+    if(rel.startsWith('js/ui/')&&(src.includes(PC.VERSION_SEEN_KEY)||src.includes('Updated to ')))hits.push(rel+' copies the notice');
+    if(/function (?:versionNotice|workerUpdated|cacheNameOf|safeToReload|reloadDue)\b/.test(src)&&rel!=='js/core/version.js')hits.push(rel+' defines the version rule');
+  }
+  assert.deepEqual(hits,['js/core/version.js']);
+  const main=fs.readFileSync(path.join(root,'js/ui/main.js'),'utf8');
+  assert.match(main,/PC\.APP_VERSION/);
+  assert.match(main,/PC\.VERSION_SEEN_KEY/);
+  assert.match(main,/PC\.versionNotice/);
+  assert.match(main,/PC\.workerUpdated/);
+  assert.match(main,/PC\.VERSION_NOTE_MS/);
+  assert.match(main,/updateViaCache:\s*'none'/);
+  assert.match(main,/controllerchange/);
+  assert.match(main,/visibilitychange/);
+  assert.match(fs.readFileSync(path.join(root,'index.html'),'utf8'),/<script src="js\/core\/version\.js"><\/script>/);
+  assert.match(fs.readFileSync(path.join(root,'logic.js'),'utf8'),/'version'/);
+});
+test('INFRA-4: a fresh install stores the version and shows no notice',()=>{
+  for(const seen of [null,undefined,'']){
+    const n=PC.versionNotice(seen,PC.APP_VERSION);
+    assert.equal(n.show,false,String(seen));
+    assert.equal(n.text,'');
+    assert.equal(n.store,PC.APP_VERSION);
+  }
+});
+test('INFRA-4: an update notice shows once',()=>{
+  const cur=PC.APP_VERSION;
+  const first=PC.versionNotice('v0',cur);
+  assert.equal(first.show,true);
+  assert.equal(first.text,'Updated to '+cur);
+  assert.equal(first.store,cur);
+  const again=PC.versionNotice(first.store,cur);
+  assert.equal(again.show,false);
+  assert.equal(again.text,'');
+  assert.equal(again.store,cur);
+  assert.equal(PC.versionNotice(cur,cur).show,false);
+});
+test('INFRA-4: a worker already in control reloads once',()=>{
+  assert.equal(PC.workerUpdated(false,false),false);
+  assert.equal(PC.workerUpdated(true,false),true);
+  assert.equal(PC.workerUpdated(true,true),false);
+  assert.equal(PC.workerUpdated(false,true),false);
+});
+test('INFRA-4: a stored value that is not a version is a fresh install',()=>{
+  const cur=PC.APP_VERSION;
+  for(const seen of ['nope','te-pitch-'+cur,'v81a','V81','v','81',81,'v81.1']){
+    const n=PC.versionNotice(seen,cur);
+    assert.equal(n.show,false,String(seen));
+    assert.equal(n.text,'',String(seen));
+    assert.equal(n.store,cur,String(seen));
+  }
+  assert.equal(PC.versionNotice('v0',cur).show,true);
+  assert.equal(PC.versionNotice(cur,cur).show,false);
+});
+test('INFRA-4: a reload waits while a pitch, a sync, or a sheet is open',()=>{
+  const blank={mode:'game',type:null,called:[],actual:null,result:null,ip:null,shook:null,velo:null,aimEdit:false};
+  const calm={draft:blank,syncing:false,sheetOpen:false};
+  assert.equal(PC.safeToReload(calm),true);
+  assert.equal(PC.safeToReload({draft:null,syncing:false,sheetOpen:false}),true);
+  assert.equal(PC.safeToReload({syncing:false,sheetOpen:false}),true);
+  assert.equal(PC.safeToReload({draft:{mode:'bullpen',called:[],velo:'',aimEdit:false},syncing:false,sheetOpen:false}),true);
+  for(const draft of [{type:'FB'},{called:[3]},{actual:8},{actual:0},{result:'ball'},{ip:'1B'},{shook:{type:'CH',called:[4]}},{aimEdit:true},{velo:62},{velo:'55'}]){
+    assert.equal(PC.safeToReload({draft,syncing:false,sheetOpen:false}),false,JSON.stringify(draft));
+  }
+  assert.equal(PC.safeToReload({draft:blank,syncing:true,sheetOpen:false}),false);
+  assert.equal(PC.safeToReload({draft:blank,syncing:false,sheetOpen:true}),false);
+  assert.equal(PC.safeToReload({draft:{type:'FB'},syncing:true,sheetOpen:true}),false);
+});
+test('INFRA-4: a reload also waits until the page is hidden or idle',()=>{
+  const calm={draft:null,syncing:false,sheetOpen:false,hidden:false,idle:false};
+  assert.equal(PC.reloadDue(calm),false);
+  assert.equal(PC.reloadDue(Object.assign({},calm,{hidden:true})),true);
+  assert.equal(PC.reloadDue(Object.assign({},calm,{idle:true})),true);
+  assert.equal(PC.reloadDue(Object.assign({},calm,{hidden:true,syncing:true})),false);
+  assert.equal(PC.reloadDue(Object.assign({},calm,{idle:true,sheetOpen:true})),false);
+  assert.equal(PC.reloadDue({draft:{type:'FB'},syncing:false,sheetOpen:false,hidden:true,idle:true}),false);
+  assert.equal(PC.safeToReload({draft:{type:'FB'},syncing:false,sheetOpen:false,hidden:true,idle:true}),false);
+});
+test('INFRA-4: a controller change does not reload by itself',()=>{
+  const fs=require('fs'),path=require('path');
+  const main=fs.readFileSync(path.join(__dirname,'..','js/ui/main.js'),'utf8');
+  const boot=main.slice(main.indexOf('function bootWorker'),main.indexOf('function fitPitcherFace'));
+  const handler=boot.match(/addEventListener\('controllerchange',[\s\S]*?\}\);/);
+  assert.ok(handler);
+  assert.equal(handler[0].includes('location.reload'),false);
+  assert.match(boot,/PC\.safeToReload/);
+  assert.match(boot,/PC\.reloadDue/);
+  assert.match(boot,/requestIdleCallback/);
+  assert.match(boot,/if\(!reg\)return;/);
+  const note=main.slice(main.indexOf('function noteVersion'),main.indexOf('function bootWorker'));
+  assert.match(note,/storage\.setItem\(PC\.VERSION_SEEN_KEY,n\.store\);\}catch\(e\)\{return;\}/);
+});
+test('INFRA-4: the worker takes control only after the new cache is ready',async()=>{
+  const fs=require('fs'),path=require('path'),vm=require('vm');
+  const code=fs.readFileSync(path.join(__dirname,'..','sw.js'),'utf8');
+  function load(fetchOk){
+    let skip=0,claim=0;const events={},fetched=[],deleted=[];
+    let fetchRelease,delRelease;
+    const fetchGate=new Promise(r=>{fetchRelease=r;});
+    const delGate=new Promise(r=>{delRelease=r;});
+    const self={skipWaiting(){skip++;},clients:{claim(){claim++;return Promise.resolve();}},location:{origin:'https://example.test'},addEventListener(name,fn){events[name]=fn;}};
+    function Request(u,o){this.url=u;this.cache=o&&o.cache;}
+    const caches={
+      open(){return Promise.resolve({put(){return Promise.resolve();}});},
+      keys(){return Promise.resolve(['te-pitch-old',PC.cacheNameOf(PC.APP_VERSION)]);},
+      delete(name){deleted.push(name);return delGate.then(()=>true);},
+      match(){return Promise.resolve(undefined);}
+    };
+    const fetch=(req)=>{fetched.push(req);return fetchGate.then(()=>({ok:fetchOk,status:fetchOk?200:500,type:'basic',clone(){return this;}}));};
+    vm.runInNewContext(code,{self,caches,Request,URL,fetch},{filename:'sw.js'});
+    return {events,fetched,deleted,fetchRelease,delRelease,skip:()=>skip,claim:()=>claim};
+  }
+  const flush=()=>new Promise(r=>setImmediate(r));
+  const ok=load(true);
+  let installP;ok.events.install({waitUntil(p){installP=p;}});
+  await flush();
+  assert.equal(ok.skip(),0);
+  assert.ok(ok.fetched.length>10);
+  assert.ok(ok.fetched.every(r=>r.cache==='reload'));
+  ok.fetchRelease();
+  await installP;
+  assert.equal(ok.skip(),1);
+  let posted=null;
+  ok.events.message({data:'version',ports:[{postMessage(v){posted=v;}}]});
+  assert.equal(posted,PC.cacheNameOf(PC.APP_VERSION));
+  posted=null;
+  ok.events.message({data:'other',ports:[{postMessage(v){posted=v;}}]});
+  assert.equal(posted,null);
+  let activateP;ok.events.activate({waitUntil(p){activateP=p;}});
+  await flush();
+  assert.equal(ok.claim(),0);
+  assert.deepEqual(ok.deleted,['te-pitch-old']);
+  ok.delRelease();
+  await activateP;
+  assert.equal(ok.claim(),1);
+  const bad=load(false);
+  let badP;bad.events.install({waitUntil(p){badP=p;}});
+  bad.fetchRelease();
+  await assert.rejects(badP);
+  assert.equal(bad.skip(),0);
+});

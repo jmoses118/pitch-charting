@@ -29,6 +29,7 @@ IDs live in `docs/SPEC.md`: FLOW-1a, FLOW-13a, RULE-4b, RULE-5a, RULE-6a, RULE-7
 - `js/core/modes.js` — FLOW-13, FLOW-13a, FLOW-14, FLOW-15, VIEW-3, RULE-5, and RULE-5a. `createGame`, `endGame`, `discardGame`, `pauseGame`, `todaysScheduled`, and the scoring lock.
 - `js/core/store.js` — RULE-10, RULE-11, and RULE-11a. Roster, `jerseyError`, and the local save.
 - `js/core/theme.js` — VIEW-4. `THEME_KEY`, `THEME_DEFAULT`, `themeOf`, `themeFromStorage`, and `themeColor` are the palette. Nothing saved is Night.
+- `js/core/version.js` — INFRA-4. `APP_VERSION` is the one release label. The cache name and the changelog heading match it. `VERSION_SEEN_KEY` is the last version this phone has opened. `safeToReload` and `reloadDue` decide when an update may reload.
 
 - `js/ui/shared.js` — DOM helpers, the store, roles, the zone, banners, and sync. `tapLoc` is one `aimRejectMsg` call.
 - `js/ui/zonegfx.js` — VIEW-1 markers, the plate, and the recent-pitch list.

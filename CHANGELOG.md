@@ -1,5 +1,12 @@
 # Changelog
 
+## v82 – The app shows which version is running
+### Changed
+- **INFRA-4.** Jim asked on 20 October 2026. Setup and the game menu show the version, so a home-screen app shows when it has updated. The first open after an update says it updated, then the note goes away. A new install stays quiet. The number is the copy that is actually running.
+- An update waits until the pitch on screen is finished, cloud sync is not running, and no sheet is open, and until the app is in the background or the phone is idle, so a pitch is not lost. A stored value that is not a version stays quiet.
+- The update note borrows the Today line in portrait and the status line on the coach screen, so the header does not grow and the chart does not jump. The game menu title keeps its spacing. A blocked service worker does not throw.
+- Cache: `te-pitch-v82`.
+
 ## v81 – Night is the default palette
 ### Changed
 - **VIEW-4.** Jim approved this on 20 October 2026. With no display choice saved, the app opens in Night. A saved Field or Night choice stays as it was, and the game menu still switches between them. Any other saved value stays Night too. The page does not flash the light palette while it loads.
