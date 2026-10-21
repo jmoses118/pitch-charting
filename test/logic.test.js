@@ -1832,6 +1832,14 @@ test('HM-9b: a warned call is accepted, a change-up outside its boxes is still r
   assert.equal(PC.scoreTap({mode:'game',type:'CH',called:[]},2).reason,'bad_target');
   assert.equal(PC.scoreTap({mode:'game',type:'CH',called:[]},5).reason,'bad_target');
   assert.equal(PC.aimLine({type:'CH',called:[5]}),PC.aimRejectMsg('CH',5));
+  assert.equal(PC.aimLine({type:'CH',called:[2]}),'Change-ups are aimed low: 4, 7, 8, 9 or 13, 14, 18');
+  assert.equal(PC.aimLine({type:'CH',called:[2]},{short:true}),'Change-up: aim low');
+  assert.equal(PC.aimLine({type:'CH',called:[2]},{short:true}),PC.aimRejectMsg('CH',2,'short'));
+  assert.equal(PC.aimLine({type:'CH',called:[5]},{short:true}),'Change-up: aim low');
+  assert.equal(PC.aimLine({type:'FB',called:[5]},{short:true}),'Box 5 = missed spot');
+  assert.equal(PC.aimLine({type:'DC',called:[6]},{short:true}),'drop curve: not middle');
+  assert.equal(PC.aimLine({type:'FB',called:[7]},{short:true}),'');
+  assert.equal(PC.aimNote({type:'CH',called:[2]}),'Change-ups are aimed low: 4, 7, 8, 9 or 13, 14, 18');
   const saved=PC.scoreCommit({mode:'bullpen',type:'FB',called:[5],actual:5});
   assert.equal(Object.hasOwn(saved,'callWarn'),false);
   assert.deepEqual(PC.calledBoxes(saved),[5]);
