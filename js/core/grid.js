@@ -11,7 +11,7 @@ const insideCol=hand=>hand==='L'?0:2;
 const awayCol=hand=>2-insideCol(hand);
 const cz=(col,row)=>row*3+col+1;
 const isZone=z=>z>=1&&z<=9, isCorner=z=>z>=11&&z<=14, isOut=z=>z>=11&&z<=18;
-// Way off (non-competitive, nowhere near the plate): 21 way high, 22 way low (dirt), 23 way to the pitcher's left, 24 way to the pitcher's right.
+// Way off (non-competitive, nowhere near the plate): 21 way high, 22 way low, 23 way to the pitcher's left, 24 way to the pitcher's right.
 // The ring 11-18 (one box off the plate) is COMPETITIVE (chase pitches, CH/drop just below the knees).
 const WAY={21:'way high',22:'way low',23:'way left',24:'way right'};const isWay=z=>z>=21&&z<=24;
 // Actual location only (never a called aim): one ring of ball boxes is 11–18; these sit past that ring.
@@ -45,10 +45,19 @@ const ALL_CELLS=[11,15,12,1,2,3,16,4,5,6,17,7,8,9,13,18,14];
 const GRID_XY={21:[2,-1],22:[2,5],23:[-1,2],24:[5,2],31:[2,6],32:[2,-2],11:[0,0],15:[2,0],12:[4,0],16:[0,2],17:[4,2],13:[0,4],18:[2,4],14:[4,4]};for(let z=1;z<=9;z++)GRID_XY[z]=[(z-1)%3+1,Math.floor((z-1)/3)+1];
 const MAX_MISS=4;
 function missDist(a,b){const p=GRID_XY[a],q=GRID_XY[b];if(!p||!q)return null;return Math.max(Math.abs(p[0]-q[0]),Math.abs(p[1]-q[1]));}
+// HM-5. Off-grid landings (21–24, 31, 32) are 3 off. This is the one definition. Raw missDist is unchanged.
+const OFF_D=MAX_MISS-1;
+function missD(aim,land){const z=+land;if(isWay(z)||isActualOnly(z))return OFF_D;return missDist(aim,land);}
+// HM-9a. One table. chUp reads miss. A later callWarn reads warn. Box 5 is every type and is not listed here.
+// sev 'floor' means at least CH_MIN_SEV. sev 'worst' means MAX_MISS. ring marks the DR/DC 16/17 competitive miss.
+const TOP_ROW=[1,2,3,11,12,15],MID_ROW=[4,5,6],DROP_SIDE=[16,17];
+const DROP_MISS={miss:[{boxes:TOP_ROW,sev:'worst'},{boxes:MID_ROW,sev:'floor'},{boxes:DROP_SIDE,sev:'floor',ring:true}],warn:TOP_ROW.concat([4,6])};
+const TYPE_MISS={CH:{miss:[{boxes:TOP_ROW,sev:'floor'}],warn:[]},CB:{miss:[{boxes:TOP_ROW,sev:'floor'}],warn:TOP_ROW},DR:DROP_MISS,DC:DROP_MISS};
+function typeMissBand(type,z){const rule=TYPE_MISS[type];if(!rule)return null;const n=+z;for(const band of rule.miss)if(band.boxes.includes(n))return band;return null;}
 // Called box when a call names several targets: the one closest to where the pitch went.
 // No actual location, or a single target, keeps the first target. A distance tie keeps the earlier target.
 function nearestTarget(targets,loc){const t=(Array.isArray(targets)?targets:[]).map(z=>+z).filter(z=>Number.isFinite(z)&&z>0);if(!t.length)return null;if(loc==null||t.length===1)return t[0];
   let best=t[0],bd=missDist(t[0],loc);for(let i=1;i<t.length;i++){const d=missDist(t[i],loc);if(d==null)continue;if(bd==null||d<bd){best=t[i];bd=d;}}return best;}
 function pct(a,b){return b?Math.round(1000*a/b)/10:null;}
-Object.assign(PC,{insideCol,awayCol,cz,isZone,isCorner,isOut,WAY,isWay,ACTUAL_ONLY,isActualOnly,isCompetitive,gloveCol,locInfo,locInfoRaw,ALL_CELLS,GRID_XY,MAX_MISS,missDist,nearestTarget,pct});
+Object.assign(PC,{insideCol,awayCol,cz,isZone,isCorner,isOut,WAY,isWay,ACTUAL_ONLY,isActualOnly,isCompetitive,gloveCol,locInfo,locInfoRaw,ALL_CELLS,GRID_XY,MAX_MISS,OFF_D,missDist,missD,TOP_ROW,MID_ROW,TYPE_MISS,typeMissBand,nearestTarget,pct});
 })(typeof window!=='undefined'?window:globalThis);

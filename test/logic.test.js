@@ -1259,7 +1259,7 @@ test('HM-5: off-grid distance is 3, raw Chebyshev stays, and a tie keeps the ear
   const raw=PC.missDist;
   assert.equal(raw(1,31),5);assert.equal(raw(1,22),4);assert.equal(raw(1,32),3);
   assert.equal(PC.missD&&PC.missD(1,31),3);assert.equal(PC.missD&&PC.missD(1,22),3);assert.equal(PC.missD&&PC.missD(1,32),3);assert.equal(PC.missD&&PC.missD(5,24),3);
-  assert.equal(PC.missD&&PC.missD(1,14),4);
+  assert.equal(PC.missD(1,14),PC.missDist(1,14));assert.equal(PC.missDist(1,14),3);assert.equal(PC.missD(11,14),4);
   assert.equal(raw(15,21),1);assert.equal(PC.missD&&PC.missD(15,21),3);
   const way=PC.pitchMiss({type:'FB',targets:[15],loc:21});assert.equal(way.d,3);assert.equal(way.sev,PC.WAY_SEV);
   assert.equal(PC.nearestTarget([7,9],8),7,'a distance tie keeps list order');

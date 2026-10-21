@@ -17,8 +17,6 @@ function heatData(items,f,view){const q=heatFilter(items,f);const cells={};ALL_C
     else{if(loc==null)return;if(!cells[loc]){if(isActualOnly(+loc))total++;return;}total++;cells[loc].n++;}});
   const max=Math.max(0,...Object.values(cells).map(c=>c.n));return{cells,total,max,matched:q.length};}
 // per intended cell: n pitches aimed there, average miss distance (to the nearest called spot), hits
-// Jim's change-up rule: a CH must finish at the knees. Landing in the top or middle row (or any spot above the bottom row)
-// is a miss for CH even if it's on/near the target; scored at least 2 squares. Bottom row (7-9) and below use normal rules.
 const CH_MIN_SEV=2;
 // "Good" / on target = severity 0 or 1 (hit the spot or 1 box off). Single source for report, heat map, drill-down.
 const GOOD_MAX_SEV=1;const isGoodSev=sev=>sev!=null&&sev<=GOOD_MAX_SEV;
@@ -27,23 +25,23 @@ const wasteAim=p=>{const t=PC.calledBoxes(p);return !!t.length&&t.every(z=>isOut
 const isBullpenPitch=p=>p&&p.abn==null&&p.inning==null;
 // Jim's ring rules (Oct 2026): ring 11-18 is competitive and scored by normal distance (within 1 box = on target).
 // Way off (21-24) is always a miss at WAY_SEV (not a souvenir), whatever the target.
-// CH / drop / drop curve landing in the bottom ring (13, 18, 14) is a good pitch (bullpen). CH-up rule still applies.
-const WAY_SEV=MAX_MISS-1;const LOW_RING=[13,18,14],LOW_TYPES=['CH','DR','DC'],LOW_CALL=[7,8,9,13,14,18];
+// FLOW-7a / HM-10a: any type except a rise ball, called low, landing in the low ring, is good in a game or the bullpen.
+const WAY_SEV=PC.OFF_D;const LOW_RING=[13,18,14],LOW_TYPES=['CH','DR','DC'],LOW_CALL=[7,8,9,13,14,18];
 // Called type is the one helper in csv.js. A shake-off uses the pitch she threw, not the abandoned call.
 const penaltyType=p=>typeof PC.calledTypeOf==='function'?String(PC.calledTypeOf(p)||''):String((p&&p.type)||'');
 const landOf=p=>PC.actualOf(p);
 const calledLow=p=>PC.calledBoxes(p).some(z=>LOW_CALL.includes(+z));
-// FLOW-7a: bullpen only, called in 7/8/9/13/14/18, lands in 13/14/18, called type CH/DR/DC.
-const lowGood=p=>isBullpenPitch(p)&&LOW_TYPES.includes(penaltyType(p))&&calledLow(p)&&LOW_RING.includes(+landOf(p));
+// FLOW-7a: called in 7/8/9/13/14/18, lands in 13/14/18, any called type except RS. Games and bullpen.
+const lowGood=p=>penaltyType(p)!=='RS'&&calledLow(p)&&LOW_RING.includes(+landOf(p));
 // RULE-3c: that same low call landing in the dirt is a miss, one step under a full way-off.
 const dirtSoft=p=>+landOf(p)===31&&LOW_TYPES.includes(penaltyType(p))&&calledLow(p);
-function adjSev(p,sev){const z=landOf(p);if(dirtSoft(p))return Math.min(sev,WAY_SEV-1);const aimedHere=PC.calledBoxes(p).some(b=>+b===+z);if((isWay(z)||isActualOnly(z))&&!aimedHere)return WAY_SEV;if(lowGood(p))return Math.min(sev,1);return sev;}
-const chUp=p=>{const z=landOf(p);return p&&penaltyType(p)==='CH'&&!isWay(z)&&!isActualOnly(z)&&GRID_XY[z]!=null&&GRID_XY[z][1]<=2;};
+function adjSev(p,sev){if(dirtSoft(p))return Math.min(sev,WAY_SEV-1);if(lowGood(p))return Math.min(sev,1);return sev;}
+const chUp=p=>{const z=landOf(p);return !!(p&&z!=null&&!isWay(z)&&!isActualOnly(z)&&PC.typeMissBand(penaltyType(p),z));};
 function missData(items,f){const q=heatFilter(items,f);const cells={};ALL_CELLS.forEach(z=>cells[z]={n:0,sum:0,hit:0,avg:null,mm:0});let total=0,mm=0,chu=0;
   // one source of truth for severity: pitchMiss (souvenir, CH-up, way-off, low-ring rules all live there)
   q.forEach(({p})=>{const m=pitchMiss(p);if(!m)return;const t=PC.calledBoxes(p),loc=landOf(p),sev=m.sev,mmMiss=m.mm,up=m.chUp;total++;if(mmMiss)mm++;if(up)chu++;
     t.forEach(z=>{const c=cells[z];if(!c)return;c.n++;c.sum+=sev;if(hitSpot(p,m))c.hit++;if(onTarget(p,m))c.good=(c.good||0)+1;if(mmMiss)c.mm++;if(up)c.chUp=(c.chUp||0)+1;
-      const L=(c.land=c.land||{});const e=(L[loc]=L[loc]||{n:0,sev:0,mm:0,chUp:0});e.n++;e.sev=Math.max(e.sev,sev);if(mmMiss)e.mm++;if(up)e.chUp++;});});
+      const L=(c.land=c.land||{});const e=(L[loc]=L[loc]||{n:0,sev:0,mm:0,chUp:0,d:0});e.n++;e.sev=Math.max(e.sev,sev);e.d=m.d;if(mmMiss)e.mm++;if(up)e.chUp++;});});
   ALL_CELLS.forEach(z=>{const c=cells[z];if(c.n)c.avg=Math.round(10*c.sum/c.n)/10;});return{cells,total,matched:q.length,mm,chUp:chu};}
 // one sentence that always accounts for every pitch: shown + left out (no aim in Miss, no location in Landed)
 const pz=n=>`${n} pitch${n===1?'':'es'}`;
@@ -88,18 +86,20 @@ function summarize(pitches,opt){const P=pitches.filter(countsAsPitch);
 // "Good" = sev <= 1 (on target or 1 square off).
 function pitchMiss(p,throws){throws=throws||p.throws;const t=PC.calledBoxes(p);const loc=landOf(p);if(!t.length||loc==null||!GRID_XY[loc])return null;let best=null,bt=null;
   t.forEach(z=>{const d=missDist(loc,z);if(d!=null&&(best==null||d<best)){best=d;bt=z;}});if(best==null)return null;
-  const mm=loc===5&&!t.includes(5);const up=chUp(p);let sev=mm?MAX_MISS:best;if(up)sev=Math.max(sev,CH_MIN_SEV);sev=adjSev(p,sev);const way=isWay(loc);const a=GRID_XY[loc],b=GRID_XY[bt];const dx=a[0]-b[0],dy=a[1]-b[1];
+  const mm=+loc===5&&!t.includes(5),band=PC.typeMissBand(penaltyType(p),loc),up=chUp(p),box5=+loc===5,dropRing=!!(band&&band.ring),typeMiss=!!(box5||up||dropRing);
+  let sev=mm?MAX_MISS:PC.missD(bt,loc);if(box5&&!mm||(up&&band.sev!=='worst'))sev=Math.max(sev,CH_MIN_SEV);if(up&&band.sev==='worst')sev=MAX_MISS;sev=adjSev(p,sev);const way=isWay(loc);const a=GRID_XY[loc],b=GRID_XY[bt];const dx=a[0]-b[0],dy=a[1]-b[1];
   const hand=p.hand==='L'?'L':'R';// no batter -> RHB for in/away
   const toward3B=dx>0;// pitcher's view: +x = 3B side, where an RHB stands
   const noBat=p.hand!=='L'&&p.hand!=='R'&&(throws==='L'||throws==='R');
   const horiz=dx===0?null:noBat?((dx>0)===(gloveCol(throws)===2)?'glove side':'arm side'):((toward3B===(hand==='R'))?'in':'away');const vert=dy===0?null:(dy<0?'up':'down');
-  return{d:best,sev,mm,chUp:up,badAim:PC.aimFlag(penaltyType(p),t),way,low:lowGood(p),waste:wasteAim(p),good:isGoodSev(sev),target:bt,vert,horiz};}
+  // prettier-ignore
+  return{d:PC.missD(bt,loc),sev,mm,chUp:up,badAim:PC.aimFlag(penaltyType(p),t),way,low:lowGood(p),waste:wasteAim(p),good:isGoodSev(sev),target:bt,vert,horiz,box5,dropRing,typeMiss,lowDirt:dirtSoft(p)};}
 // SCORE-5. FB A is parseCall type FB suffix A. The away box is A.at(inside, awayCol): 16 vs a righty, 17 vs a lefty. These helpers stay on one line so this file stays under the duplication scan's line cap.
 // prettier-ignore
 function fbAway(p){if(!p||p.shook)return false;const c=PC.parseCall(p.call,p.hand==='L'?'L':'R');return !!(c&&c.type==='FB'&&c.suffix==='A');}
 const FBA_HIT_RESULTS=['ball','swinging','kd3','kd3out'];
 // prettier-ignore
-const hitSpot=(p,m)=>{if(!m||typeof m!=='object')m=pitchMiss(p);if(!m||m.d!==0||m.chUp)return false;if(!fbAway(p))return true;const hand=p.hand==='L'?'L':'R';const away=PC.CALL_SUFFIX.A.at(PC.insideCol(hand),PC.awayCol(hand));const r=p.result;return +landOf(p)===away&&(r==null||r===''||FBA_HIT_RESULTS.includes(r));};
+const hitSpot=(p,m)=>{if(!m||typeof m!=='object')m=pitchMiss(p);if(!m||m.typeMiss)return false;if(fbAway(p)){if(m.d!==0)return false;const hand=p.hand==='L'?'L':'R';const away=PC.CALL_SUFFIX.A.at(PC.insideCol(hand),PC.awayCol(hand));const r=p.result;return +landOf(p)===away&&(r==null||r===''||FBA_HIT_RESULTS.includes(r));}return !!(lowGood(p)||m.d===0);};
 // prettier-ignore
 function onTarget(p,m){return fbAway(p)?hitSpot(p,m):!!m&&!!m.good;}
 // Gameday-style marker status for one pitch: 'souvenir' (middle-middle mistake), 'good' (hit spot, or competitive when nothing was aimed), 'miss'

@@ -12,7 +12,7 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
 - **FLOW-6 (Bullpen order)** A bullpen pitch goes: call the pitch type, then called location (automatic plus override, per FLOW-3), then actual location, then save. Bullpen has no ball/strike result (no `bpResult` default or stamp).
 - **FLOW-6a** As part of the build, a migration deletes every saved bullpen result (`bpResult` and similar), both locally and in Supabase.
 - **FLOW-7** A bullpen pitch is a success when it hits its spot: the actual location matches the called one. For example, a curve or change aimed at the bottom row that lands in that box is a success. Bullpen stats show hit-spot %, not strike %. The low-pitch bonus stays alongside it. FLOW-7a says when that bonus applies.
-- **FLOW-7a** The bullpen low-pitch bonus applies only when the pitch was called in 7, 8, 9, 13, 14 or 18 and lands in 13, 14 or 18.
+- **FLOW-7a** A pitch of any type except the rise ball, called in 7, 8, 9, 13, 14 or 18 and landing in 13, 14 or 18, hits the spot in a game and in the bullpen. A rise ball is never good low.
 - **FLOW-8** Bullpen starts with no batter. LHB/RHB is available through an optional setting.
 - **FLOW-9 (optional, any mode)** A pitch's location can be edited later, for example after checking video. Only the scoring phone can make that edit.
 - **FLOW-10 (optional)** Shake-off: the user records the shake-off and picks the new pitch. It must be available on both the portrait and landscape Game screens.
@@ -112,7 +112,7 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | FLOW-2, FLOW-4, FLOW-5 | unit: step order and save rejected without an actual location; UI: result menu hidden until the actual tap |
 | FLOW-3 | unit: wristband aim becomes the called box; an override replaces it |
 | FLOW-6, FLOW-7 | unit: bullpen pitch saves with no result; hit-spot % math including a bottom-row hit |
-| FLOW-7a | unit: low-pitch bonus only when the pitch was called in 7, 8, 9, 13, 14 or 18 and lands in 13, 14 or 18 |
+| FLOW-7a | unit: “FLOW-7a: a low call that lands in the low ring hits the spot except a rise ball, in a game or the bullpen” |
 | FLOW-6a | unit: migration removes `bpResult` from stored sessions and pitches; SQL migration test clears the Supabase rows |
 | FLOW-8 | unit: new session has no batter; UI: LHB/RHB shown only with the setting on |
 | FLOW-9 | `editpitch.ui.js`: edit is saved on the scoring phone and refused on a viewer phone |
@@ -148,7 +148,7 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | RULE-6a | unit: “redo list persists on this phone, stays capped at 10, and is not synced” |
 | RULE-7a | `test/sheets.ui.js`: Cancel, Escape, and backdrop leave data unchanged |
 | RULE-8a | `test/coach.ui.js` line 9: 844×390 is 48; 667×375 is band ≥44, zone ≥34, results ≥46 |
-| SCORE-1 | unit: “hitSpot uses pitchMiss”; “SCORE-1: the intended heat map uses hit spot, so a change-up on box 4 is not a hit” |
+| SCORE-1 | unit: “hitSpot uses pitchMiss”; “SCORE-1: the heat map uses hit spot; a change-up on box 4 is a hit” |
 | SCORE-2 | unit: “ring is competitive, way off is a miss” |
 | SCORE-3 | unit: that ring test; `test/wayoff.ui.js` competitive 67% |
 | SCORE-4 | unit: “report strikes follow the umpire result”; `test/flow.ui.js` |
