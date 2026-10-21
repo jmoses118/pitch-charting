@@ -5,11 +5,11 @@
 let csId=null;const csCur=()=>sheets().find(x=>x.id===csId)||sheets()[0]||null;
 function csDirty(sh){dirty('call_sheets',sh.id);save();}
 function renderCS(){const show=role()==='coach';$('csCard').classList.toggle('hide',!show);if(!show)return;const sh=csCur();
-  $('csSel').innerHTML=sheets().map(x=>`<option value="${H(x.id)}" ${sh&&x.id===sh.id?'selected':''}>${H(x.name)}</option>`).join('');
+  $('csSel').innerHTML=sheetOptions(sh);
   if(!sh){$('csTbl').innerHTML='';$('csName').value='';return;}csId=sh.id;if(document.activeElement!==$('csName'))$('csName').value=sh.name;
   $('csPitcher').innerHTML='<option value="">Any pitcher</option>'+S().pitchers.map(p=>`<option value="${H(p.id)}" ${sh.pitcherId===p.id?'selected':''}>${H(PC.pitcherLabel(p))}</option>`).join('');
   if($('csTbl').contains(document.activeElement))return;
-  $('csTbl').innerHTML=`<tr><th class="rh"></th>${sh.cols.map((c,i)=>`<th><input data-col="${i}" value="${H(c)}" maxlength="4"></th>`).join('')}</tr>`+sh.rows.map((row,r)=>`<tr class="${r%2?'b':''}"><th class="rh">${r+1}</th>${sh.cols.map((_,c)=>`<td><input data-r="${r}" data-c="${c}" value="${H(row[c]||'')}" maxlength="16" autocapitalize="characters"></td>`).join('')}</tr>`).join('');}
+  $('csTbl').innerHTML=sheetTable(sh,(c,i)=>`<th><input data-col="${i}" value="${H(c)}" maxlength="4"></th>`,(row,r,c)=>`<td><input data-r="${r}" data-c="${c}" value="${H(row[c]||'')}" maxlength="16" autocapitalize="characters"></td>`);}
 $('csTbl').addEventListener('change',e=>{const sh=csCur();const i=e.target;if(!sh)return;if(i.dataset.col!=null)sh.cols[+i.dataset.col]=i.value.trim().slice(0,4);else{sh.rows[+i.dataset.r][+i.dataset.c]=i.value.trim().slice(0,16);}
   const ok=!i.value.trim()||i.dataset.col!=null||PC.parseCall(i.value,'R','R',S().customTypes);i.style.color=ok?'':'var(--red)';if(!ok)toast(`"${i.value}" isn't a code I know`);csDirty(sh);});
 $('csSel').onchange=e=>{csId=e.target.value;renderCS();};
@@ -32,7 +32,7 @@ $('pDlg').addEventListener('close',()=>{if($('pDlg').returnValue!=='ok')return;c
   const err=PC.jerseyError(S().pitchers,o.num,pdEdit);if(err)return reopenPDlg(err);
   o.num=PC.jerseyNum(o.num).num;$('pdNum').removeAttribute('aria-invalid');
   if(pdEdit)store.editPitcher(pdEdit,o);else{const p=store.addPitcher(o);S().curPitcher=p.id;save();toast('Added '+PC.pitcherLabel(p)+(store.isTest?' (test only)':''));}
-  if(D.callTxt)D.parsed=PC.parseCall(D.callTxt,curHand(),pitcherHand(),S().customTypes);render();});
+  reparseCall();render();});
 $('addP').onclick=()=>{if(role()==='coach')openPDlg();};$('addPQuick').onclick=()=>{if(role()==='coach')openPDlg();};
 $('jerseyEdit').onclick=()=>{if(role()!=='coach')return;const p=pById(curPitcherId());if(p)openPDlg(p);};
 function renderPitchers(){const row=p=>`<div class="prow"><span style="flex:1"><b>${H(PC.pitcherLabel(p))}</b> <span class="tag">${H(p.throws)}HP</span>${p.note?' <span class="tag">'+H(p.note)+'</span>':''}</span><button data-e="${H(p.id)}" aria-label="Edit ${H(PC.pitcherLabel(p))}">Edit</button><button data-a="${H(p.id)}">${p.archived?'Restore':'Archive'}</button></div>`;
