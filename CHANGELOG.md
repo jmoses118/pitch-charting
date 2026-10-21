@@ -1,5 +1,10 @@
 # Changelog
 
+## v89 – A tap keeps the exact spot on the grid
+### Changed
+- A tap on the zone, the ring, way off, the dirt, or the backstop keeps two numbers from 0 to 1. Editing that cell clears the spot, and undo puts it back.
+- Cache: `te-pitch-v89`.
+
 ## v87 – A risky aim warns and still counts
 ### Changed
 - Calling box 5 warns that it always counts as a missed spot, for every pitch. A curve aimed up, or a drop or drop curve aimed up or in the middle, warns and still counts. A change-up outside its low boxes is still refused. The warning is shown on screen and is not saved.

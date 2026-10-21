@@ -4,7 +4,7 @@
 const fs=require('fs'),path=require('path');
 const {readBase}=require('./git-base.js');
 const BANNED_MEMBERS=['isZone','isStrike','GRID_XY','CH_TARGETS','nearestTarget'];
-const ALLOW_FN={scoreCommit:'js/core/flow.js',rowPitch:'js/core/sync.js',importSpots:'js/core/csv.js',editActual:'js/core/game.js',revertEdit:'js/core/game.js'};
+const ALLOW_FN={scoreCommit:'js/core/flow.js',rowPitch:'js/core/sync.js',importSpots:'js/core/csv.js',editActual:'js/core/game.js',revertEdit:'js/core/game.js',editSnap:'js/core/game.js',applyChart:'js/core/game.js'};
 const FIELDS=['loc','targets','calledLoc','actualLoc'];
 const AIM_MSG_OK={'js/ui/coach.js:coachZoneAct':1,'js/ui/coach.js:pointerdown':1,'js/ui/shared.js:tapLoc':1};
 const GRID_FN={file:'js/ui/report.js',name:'reportPNG'};
