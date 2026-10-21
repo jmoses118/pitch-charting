@@ -1144,6 +1144,46 @@ test('RULE-4a: db push does not delete pitches; the pending template deletes onl
   assert.equal(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(live),false);
   assert.equal(fs.existsSync(path.join(migDir,'delete_bad_aim_pitches.sql')),false);
 });
+test('VIEW-4: nothing saved is Night, and a saved Field or Night stays',()=>{
+  assert.equal(PC.THEME_DEFAULT,'night');
+  assert.equal(PC.themeOf(null,12),'night');
+  assert.equal(PC.themeOf(undefined,12),'night');
+  assert.equal(PC.themeOf('',12),'night');
+  assert.equal(PC.themeOf('field',12),'field');
+  assert.equal(PC.themeOf('night',3),'night');
+  assert.equal(PC.themeOf('auto',6),'night');
+  assert.equal(PC.themeOf('auto',7),'field');
+  assert.equal(PC.themeOf('auto',18),'field');
+  assert.equal(PC.themeOf('auto',19),'night');
+  assert.equal(PC.themeOf('garbage',12),'night');
+  assert.equal(PC.themeOf('auto',NaN),'night');
+});
+test('VIEW-4: themeFromStorage reads THEME_KEY and stays Night when getItem throws',()=>{
+  assert.equal(PC.THEME_KEY,'te_ui_theme');
+  const box=saved=>({getItem:(k)=>k===PC.THEME_KEY?saved:null});
+  assert.equal(PC.themeFromStorage(box(null),12),'night');
+  assert.equal(PC.themeFromStorage(box('field'),3),'field');
+  assert.equal(PC.themeFromStorage(box('night'),15),'night');
+  assert.equal(PC.themeFromStorage(box('garbage'),12),'night');
+  assert.equal(PC.themeFromStorage(box('auto'),19),'night');
+  assert.equal(PC.themeFromStorage(box('auto'),12),'field');
+  assert.equal(PC.themeFromStorage({getItem:()=>{throw new Error('blocked');}},12),'night');
+  assert.equal(PC.themeFromStorage(null,12),'night');
+  assert.equal(PC.themeChoice(box(null)),'night');
+  assert.equal(PC.themeChoice(box('auto')),'auto');
+  assert.equal(PC.themeChoice(box('garbage')),'night');
+  assert.equal(PC.themeColor('field'),'#fff');
+  assert.equal(PC.themeColor('night'),'#000');
+  assert.equal(PC.themeColor('auto'),'#000');
+  assert.equal(PC.themeColor('garbage'),'#000');
+});
+test('VIEW-4: coach.js reads the document theme and has no night literal',()=>{
+  const fs=require('fs'),path=require('path');
+  const src=fs.readFileSync(path.join(__dirname,'..','js','ui','coach.js'),'utf8');
+  assert.equal(/['"]night['"]/.test(src),false);
+  assert.match(src,/document\.documentElement\.dataset\.theme/);
+  assert.match(src,/PC\.themeColor/);
+});
 test('RULE-4a: CH box 2 is kept, calledFlag is true, and an off-grid called box is null',()=>{
   const csv=PC.importSpots({type:'CH',call_target:'2',called_location:'2',location:'8'});
   assert.ok(csv.targets.includes(2));assert.equal(csv.calledLoc,2);assert.equal(csv.calledFlag,true);

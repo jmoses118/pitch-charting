@@ -37,7 +37,8 @@ for(const [W,H,MIN,ZMIN,RESW] of [[844,390,48,48,48],[667,375,44,34,46]]){const 
   {const g1=await geo();ok(g1===g0,`${tag}: no layout shift after a band tap (zone/status ${g0} → ${g1})`);}
   ok(await ev(()=>{const e=document.getElementById('cxHint');const cs=getComputedStyle(e);return e.getBoundingClientRect().height<=20&&cs.whiteSpace==='nowrap'&&e.scrollWidth<=e.clientWidth+1;}),`${tag}: status hint is one line and fully visible`);
   ok((await p.textContent('#cxCode')).replace(/\s+/g,' ').trim()==='3-05 Fb In'&&/aim 6/.test(await p.textContent('#cxAim')),`${tag}: spoken call big in the status box ("3-05 Fb In", aim 6 vs RHB)`);
-  ok(await ev(()=>{const e=document.querySelector('#cBand td button.on');return !!e&&getComputedStyle(e).backgroundColor==='rgb(30, 63, 208)';}),`${tag}: selected cell is royal #1E3FD0`);
+  ok(await ev(()=>{const e=document.querySelector('#cBand td button.on');const probe=document.createElement('span');probe.style.color=getComputedStyle(document.documentElement).getPropertyValue('--c-royal-hi').trim();document.body.appendChild(probe);const want=getComputedStyle(probe).color;probe.remove();return !!e&&want&&getComputedStyle(e).backgroundColor===want;}),`${tag}: VIEW-4 Night selected cell uses --c-royal-hi`);
+  if(W===844)ok(await ev(()=>{const c=getComputedStyle(document.getElementById('cStatus'));return [c.borderTopWidth,c.borderRightWidth,c.borderBottomWidth,c.borderLeftWidth].join(' ')==='0px 0px 0px 5px';}),`${tag}: VIEW-4 Night status card keeps the left stripe only`);
   ok(await ev(()=>!!document.querySelector('#cZone button.aim[data-z="6"]')),`${tag}: aim auto-mapped and outlined on the zone`);
   {const pr=await ev(AUDIT);ok(!pr.length,`${tag}: no clipping/overlap (called)${pr.length?' → '+pr.slice(0,5).join(' | '):''}`);}
   await p.click('#cZone button[data-z="4"]');await wait();ok(await ev(()=>!!document.querySelector('#cZone button.act[data-z="4"]')),`${tag}: actual spot marked`);{const g2=await geo();ok(g2===g0,`${tag}: no layout shift after the zone tap`);}await shot('coach-called');
@@ -109,10 +110,16 @@ for(const [W,H,MIN,ZMIN,RESW] of [[844,390,48,48,48],[667,375,44,34,46]]){const 
     ok(cr.t>=10&&cr.b>=3&&cr.bw>=2,`${tag}: Keep charting contrast ${cr.t.toFixed(1)}:1 text, ${cr.b.toFixed(1)}:1 border ${cr.bw}px`);}
   {const pr=await ev(AUDIT);ok(!pr.length,`${tag}: no clipping/overlap (side retired)${pr.length?' → '+pr.slice(0,5).join(' | '):''}`);}await shot('side-retired');
   await p.click('#cSideOk');await wait();ok(await ev(()=>document.getElementById('cSide').classList.contains('hide')),`${tag}: Keep charting dismisses the card`);
-  // ---- palettes + mirror ----
-  ok(await ev(()=>document.documentElement.dataset.theme)==='field',`${tag}: Field palette by default`);
-  await p.click('#cxMenu');await wait(200);await p.click('#cmTheme');await wait(150);await p.click('#cMenuDlg button[value=cancel]');await wait();
-  ok(await ev(()=>document.documentElement.dataset.theme)==='night',`${tag}: Night palette from the game menu`);
+  // ---- palettes + mirror (VIEW-4) ----
+  ok(await ev(()=>document.documentElement.dataset.theme==='night'&&localStorage.getItem('te_ui_theme')==null),`${tag}: Night palette by default`);
+  await p.click('#cxMenu');await wait(200);
+  await p.click('#cmTheme');await wait(150);
+  ok(await ev(()=>localStorage.getItem('te_ui_theme'))==='auto',`${tag}: game menu leaves Night for Auto`);
+  await p.click('#cmTheme');await wait(150);
+  ok(await ev(()=>document.documentElement.dataset.theme==='field'&&localStorage.getItem('te_ui_theme')==='field'),`${tag}: game menu reaches Field`);
+  await p.click('#cmTheme');await wait(150);
+  ok(await ev(()=>document.documentElement.dataset.theme==='night'&&localStorage.getItem('te_ui_theme')==='night'),`${tag}: game menu reaches Night`);
+  await p.click('#cMenuDlg button[value=cancel]');await wait();
   await p.click('#cBand button[data-r="2"][data-c="4"]');await p.click('#cZone button[data-z="4"]');await wait();
   {const pr=await ev(AUDIT);ok(!pr.length,`${tag}: no clipping/overlap (night)${pr.length?' → '+pr.slice(0,5).join(' | '):''}`);}await shot('coach-night');
   await ev(()=>{localStorage.setItem('te_ui_mirror','1');__app.render();});await wait();ok(await ev(()=>document.querySelector('.cres').getBoundingClientRect().left<document.querySelector('.cband').getBoundingClientRect().left),`${tag}: Mirror swaps band and results`);
@@ -132,4 +139,65 @@ for(const [W,H,MIN,ZMIN,RESW] of [[844,390,48,48,48],[667,375,44,34,46]]){const 
   ok(m.vis.length===m.all.length&&m.all.some(t=>/^SC/.test(t)),'390x844 bullpen: all pitch types on the pad incl. SC ('+m.vis.join(' ')+')');
   const ov=await p.evaluate(()=>{confirmSave('FB 3 → 2 ✗');const f=document.getElementById('flash').getBoundingClientRect(),z=document.querySelector('.zonewrap svg, .zonewrap').getBoundingClientRect();return f.bottom>z.top&&f.top<z.bottom;});
   ok(!ov,'390x844 bullpen: saved confirmation does not cover the zone');if(SHOT){await p.waitForTimeout(200);await p.screenshot({path:SHOT+'after-bullpen-pad.png'});}await c.close();}
+// VIEW-4: nothing saved paints Night only; a saved Field choice stays Field
+{const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());
+  await c.addInitScript(()=>{window.__view4={field:0,white:0,n:0};const tick=()=>{const t=document.documentElement.dataset.theme||'';const bg=document.body?getComputedStyle(document.body).backgroundColor:'';if(t==='field')window.__view4.field++;if(bg==='rgb(255, 255, 255)')window.__view4.white++;window.__view4.n++;if(window.__view4.n<12)requestAnimationFrame(tick);};requestAnimationFrame(tick);});
+  const p=await c.newPage();await p.goto(BASE);await p.waitForTimeout(250);
+  const v=await p.evaluate(()=>({theme:document.documentElement.dataset.theme,bg:getComputedStyle(document.body).backgroundColor,saved:localStorage.getItem('te_ui_theme'),meta:document.querySelector('meta[name="theme-color"]').content,field:window.__view4.field,white:window.__view4.white,n:window.__view4.n,leak:['t','ok','m'].filter(k=>k in window)}));
+  ok(v.theme==='night'&&v.saved==null&&v.bg==='rgb(0, 0, 0)'&&v.meta==='#000'&&v.field===0&&v.white===0&&v.n>=1&&!v.leak.length,'VIEW-4: nothing saved opens Night with no Field frame '+JSON.stringify(v));
+  await c.close();}
+{const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());
+  await c.addInitScript(()=>{localStorage.setItem('te_ui_theme','field');});
+  const p=await c.newPage();await p.goto(BASE);await p.waitForTimeout(200);
+  const v=await p.evaluate(()=>({theme:document.documentElement.dataset.theme,bg:getComputedStyle(document.body).backgroundColor,saved:localStorage.getItem('te_ui_theme'),meta:document.querySelector('meta[name="theme-color"]').content}));
+  ok(v.theme==='field'&&v.saved==='field'&&v.bg==='rgb(255, 255, 255)'&&v.meta==='#fff','VIEW-4: a saved Field choice stays Field '+JSON.stringify(v));
+  await c.close();}
+{const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());
+  await c.addInitScript(()=>{const proto=Storage.prototype;const read=proto.getItem;proto.getItem=function(k){if(k==='te_ui_theme')throw new Error('blocked');return read.apply(this,arguments);};});
+  const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));await p.goto(BASE);await p.waitForTimeout(200);
+  const v=await p.evaluate(()=>({theme:document.documentElement.dataset.theme,meta:document.querySelector('meta[name="theme-color"]').content}));
+  ok(v.theme==='night'&&v.meta==='#000'&&!errs.length,'VIEW-4: a throwing theme read stays Night '+JSON.stringify(v)+' '+errs.join('|'));
+  await c.close();}
+{const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());
+  await c.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));
+  const p=await c.newPage();await p.goto(BASE);await p.click('nav [data-t="setup"]');await p.waitForTimeout(200);
+  const read=()=>p.evaluate(()=>{function lin(c){c/=255;return c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4);}function lum(rgb){const m=String(rgb).match(/[\d.]+/g).map(Number);return 0.2126*lin(m[0])+0.7152*lin(m[1])+0.0722*lin(m[2]);}function ratio(a,b){const x=lum(a),y=lum(b);return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05);}
+    const w=sel=>getComputedStyle(document.querySelector(sel)).borderTopWidth;const btn=document.querySelector('#syncNow'),cs=getComputedStyle(btn);const on=document.querySelector('.thseg button.on');
+    const root=getComputedStyle(document.documentElement);return {btn:w('#syncNow'),sel:w('#thSel'),inp:w('#limDay'),royal:root.getPropertyValue('--c-royal').trim(),press:root.getPropertyValue('--c-royal-press').trim(),bg:cs.backgroundColor,fg:cs.color,text:ratio(cs.color,cs.backgroundColor),hdr:getComputedStyle(document.querySelector('header')).borderBottomColor,on:on&&getComputedStyle(on).backgroundColor,accent:getComputedStyle(document.querySelector('#mirrorChk')).accentColor};});
+  const night=await read();
+  ok(night.btn==='2px'&&night.sel==='2px'&&night.inp==='2px','VIEW-4: Night buttons, selects and inputs are 2px '+JSON.stringify(night));
+  ok(night.royal==='#3A5CF0'&&night.bg==='rgb(58, 92, 240)'&&night.hdr==='rgb(58, 92, 240)'&&night.on==='rgb(58, 92, 240)'&&night.accent==='rgb(58, 92, 240)','VIEW-4: Night fills use #3A5CF0 '+JSON.stringify(night));
+  ok(night.fg==='rgb(255, 255, 255)'&&night.text>=4.5,'VIEW-4: white on the Night primary stays readable '+night.text.toFixed(2));
+  await p.evaluate(()=>{const b=document.createElement('button');b.id='pressProbe';b.className='primary';b.textContent='Go';b.style.cssText='position:fixed;z-index:99;left:8px;bottom:80px';document.body.appendChild(b);});
+  {const box=await p.locator('#pressProbe').boundingBox();await p.mouse.move(box.x+8,box.y+8);await p.mouse.down();await p.waitForTimeout(220);
+    const press=await p.evaluate(()=>getComputedStyle(document.getElementById('pressProbe')).backgroundColor);await p.mouse.up();
+    ok(press==='rgb(44, 69, 180)'&&night.press==='#2C45B4','VIEW-4: Night primary press uses --c-royal-press '+press+' '+night.press);}
+  await p.evaluate(()=>{const b=document.getElementById('pressProbe');if(b)b.remove();});
+  await p.evaluate(()=>{document.documentElement.dataset.theme='field';});await p.waitForTimeout(200);
+  const field=await read();
+  ok(field.btn==='2px'&&field.sel==='2px'&&field.inp==='2px'&&field.royal==='#1E3FD0'&&field.bg==='rgb(30, 63, 208)'&&field.on==='rgb(30, 63, 208)','VIEW-4: Field stays 2px and keeps #1E3FD0 '+JSON.stringify(field));
+  await c.close();}
+{const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());await c.route(/\/js\/core\/theme\.js$/,r=>r.abort());
+  await c.addInitScript(()=>localStorage.setItem('te_ui_theme','garbage'));
+  const p=await c.newPage();await p.goto(BASE);await p.waitForTimeout(200);
+  const v=await p.evaluate(()=>({theme:document.documentElement.dataset.theme,meta:document.querySelector('meta[name="theme-color"]').content}));
+  ok(v.theme==='night'&&v.meta==='#000000','VIEW-4: a missing theme.js still opens Night for an unknown value '+JSON.stringify(v));
+  await c.close();}
+{const c=await b.newContext({viewport:{width:844,height:390},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());await c.route(/\/js\/core\/theme\.js$/,r=>r.abort());
+  const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));await p.goto(BASE);
+  await p.evaluate(g=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';S.games.push(g);S.activeGame='g1';__app.store.save();__app.render();},GAME);
+  await p.click('nav [data-t="game"]').catch(()=>{});await p.waitForTimeout(300);
+  await p.click('#cBand button[data-r="2"][data-c="4"]').catch(()=>{});await p.click('#cxMenu').catch(()=>{});await p.waitForTimeout(150);await p.click('#cmTheme').catch(()=>{});
+  const v=await p.evaluate(()=>({coach:document.body.classList.contains('coachmode'),theme:document.documentElement.dataset.theme,band:document.querySelectorAll('#cBand td button').length,zone:document.querySelectorAll('#cZone button').length,menu:document.getElementById('cMenuDlg').open,label:document.getElementById('cmTheme').textContent}));
+  ok(!errs.length&&v.coach&&v.theme==='night'&&v.band===56&&v.zone===25&&v.menu&&/Night/.test(v.label),'VIEW-4: a missing theme.js still opens the coach screen '+JSON.stringify(v)+' '+errs.join('|'));
+  await c.close();}
+{const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());await c.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));
+  const p=await c.newPage();await p.goto(BASE);
+  await p.evaluate(g=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';g.pitches=[1,2,3].map(n=>({id:'p'+n,pitcherId:'p_a',ts:n,type:'FB',result:'ball',b:n-1,s:0,inning:1,abn:g.cur.abn,slot:0,loc:4,targets:[5],hand:'R',batter:'Batter 1'}));S.games.push(g);S.activeGame='g1';__app.store.save();__app.render();},GAME);
+  await p.click('nav [data-t="game"]').catch(()=>{});await p.waitForTimeout(250);
+  const v=await p.evaluate(()=>{function pack(){const row=document.querySelector('#recent .rrow');const cs=getComputedStyle(row);const st=getComputedStyle(document.getElementById('cStatus'));return {row:[cs.borderTopWidth,cs.borderRightWidth,cs.borderBottomWidth,cs.borderLeftWidth].join(' '),ur:document.getElementById('urHome').getBoundingClientRect().top,st:[st.borderTopWidth,st.borderRightWidth,st.borderBottomWidth,st.borderLeftWidth].join(' ')};}
+    document.documentElement.dataset.theme='night';const night=pack();document.documentElement.dataset.theme='field';const field=pack();return {night,field,delta:+(night.ur-field.ur).toFixed(2)};});
+  ok(v.night.row==='0px 0px 1px 0px'&&v.night.row===v.field.row&&v.delta===0,'VIEW-4: Night pitch-log rows match Field and the rows below do not drop '+JSON.stringify(v));
+  ok(v.night.st==='0px 0px 0px 5px'&&v.night.st===v.field.st,'VIEW-4: Night status card keeps the same left stripe as Field '+v.night.st);
+  await c.close();}
 await b.close();console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);})();

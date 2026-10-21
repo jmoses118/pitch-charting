@@ -60,6 +60,7 @@ input{min-width:0}
 button{cursor:pointer;font-weight:650;transition:background-color .15s var(--ease),transform .1s var(--ease),border-color .15s}
 button:active{transform:scale(.97);background-color:var(--c-surface-3)}button:disabled{opacity:.4;cursor:default}
 button.primary{background:var(--c-royal);border-color:var(--c-royal);color:#fff}button.primary:active{background:#1834b0}
+html[data-theme="night"] button.primary:active{background:var(--c-royal-press)}
 button.success{background:var(--c-success);border-color:var(--c-success);color:#fff}
 button.danger{background:transparent;border-color:#7a2224;color:var(--c-danger-text)}button.danger:active{background:#3a1012}
 #csDel.danger,#lkEndG.danger{background:var(--c-danger);border-color:var(--c-danger);color:#fff}
@@ -260,7 +261,7 @@ body.entrymode #syncTag{padding-left:4px;padding-right:4px}
 body.entrymode .pickrow .tag{flex:0 0 auto;white-space:nowrap}
 .topbar .tag{white-space:nowrap}
 
-/* ---------- v37 Thunder Elite palettes: Field (light, default, sunlight-first) / Night (brand black) ---------- */
+/* ---------- v37 Thunder Elite palettes: Field (light, sunlight) / Night (brand black, default) ---------- */
 html[data-theme="field"]{color-scheme:light;
   --c-bg:#FFFFFF;--c-surface:#EEF1F5;--c-surface-2:#E4E8EE;--c-surface-3:#D5DAE1;--c-line:#7A8494;--c-line-strong:#5B6575;
   --c-text:#0B0F17;--c-text-2:#3D4757;--c-text-3:#4A5466;--c-royal-text:#1E3FD0;--c-royal-tint:#DCE3FB;
@@ -271,7 +272,8 @@ html[data-theme="field"] button,html[data-theme="field"] select,html[data-theme=
 html[data-theme="field"] .zb{stroke:#fff}html[data-theme="field"] .zs{stroke:#fff}
 html[data-theme="field"] .tag{color:var(--c-text)}
 html[data-theme="field"] #flash{background:#0E5A24}
-html[data-theme="night"]{--c-bg:#000000}
+html[data-theme="night"]{--c-bg:#000000;--c-royal:#3A5CF0;--c-royal-press:#2C45B4}
+html[data-theme="night"] button,html[data-theme="night"] select,html[data-theme="night"] input{border-width:2px}
 /* ---------- coach pitch-calling screen (landscape) ---------- */
 body.coachmode{padding:0;overflow:hidden}body.coachmode header,body.coachmode main,body.coachmode nav,body.coachmode #toast,body.coachmode #flash{display:none!important}
 .coach{position:fixed;z-index:7;display:grid;justify-content:center;align-items:start;background:var(--c-bg);
@@ -290,11 +292,11 @@ body.mirror .coach{grid-template-columns:var(--mid,216px) var(--c-res,106px) var
 #cBand td button.on{background:var(--c-royal);color:#fff}
 #cBand td button:disabled{opacity:1}
 html[data-theme="night"] .coach,html:not([data-theme]) .coach{--c-band-hdr:#1D2636;--c-band-line:#C3CAD6;--c-band-cell:#0D121B;--c-band-text:#fff}
-html[data-theme="night"] #cBand td button.on{background:#3A5CF0}
+html[data-theme="night"] #cBand td button.on{background:var(--c-royal-hi)}
 .coach.dim .cband{opacity:.45}
 .cmid{position:relative;display:flex;flex-direction:column;gap:var(--zgap,var(--c-zgap,8px));width:var(--mid,216px)}
 .cstatus{background:#1C1C1C;color:#fff;border-left:5px solid var(--c-royal);border-radius:12px;padding:1px 4px 1px 6px;height:var(--c-sth,100px);flex:0 0 auto;display:flex;flex-direction:column;gap:1px;overflow:hidden}
-html[data-theme="night"] .cstatus{background:#0D121B;border:1px solid #34445E;border-left:5px solid #3A5CF0}
+html[data-theme="night"] .cstatus{background:#0D121B}
 .cs-top{display:flex;align-items:center;gap:3px;font-size:12px;line-height:16px;white-space:nowrap}.cs-top b{flex:0 0 auto}
 .cchip{border:1.5px solid #C3CAD6;border-radius:8px;padding:0 4px;font-size:12px;white-space:nowrap;font-weight:700;line-height:16px}
 .cs-count{margin-left:auto;font-size:16px;font-weight:900;line-height:1}
@@ -458,7 +460,7 @@ body.viewonly #foulChips,body.viewonly #cSlot{display:none!important}
 .rrow{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:var(--s3);align-items:center;padding:4px 0}
 .recent .badge{width:30px;height:30px;display:block}
 .fromvid{display:inline;color:var(--c-text-2);font-size:12px;font-weight:650}
-html[data-theme="field"] .plist,html[data-theme="field"] .rrow{border-width:0 0 1px;background:transparent}
+html[data-theme="field"] .plist,html[data-theme="field"] .rrow,html[data-theme="night"] .plist,html[data-theme="night"] .rrow{border-width:0 0 1px;background:transparent}
 #editDlg[open]{display:flex;flex-direction:column;overflow:hidden;max-height:min(92dvh,100dvh)}
 #editDlg form{display:flex;flex-direction:column;flex:1;min-height:0;margin:0}
 #editDlg .editscroll{overflow:auto;flex:1;min-height:0}

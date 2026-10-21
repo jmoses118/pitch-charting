@@ -2,7 +2,13 @@
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#000000"><title>Thunder Elite · Pitch Chart</title>
+<meta name="theme-color" content="#000000"><script src="js/core/theme.js"></script><script>
+(function(){
+var t,ok=window.PC&&PC.themeFromStorage;try{if(ok)t=PC.themeFromStorage(localStorage,new Date().getHours());}catch(e){ok=false;}
+if(!ok)t=(window.PC&&PC.THEME_DEFAULT)||'night';document.documentElement.dataset.theme=t;
+var m=document.querySelector('meta[name="theme-color"]');if(m)m.content=window.PC&&PC.themeColor?PC.themeColor(t):'#000000';
+})();
+</script><title>Thunder Elite · Pitch Chart</title>
 <meta name="apple-mobile-web-app-title" content="TE Pitch"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="icon" type="image/svg+xml" href="icons/icon.svg"><link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="stylesheet" href="style.css"><link rel="manifest" href="manifest.json"></head><body>
 <header>
@@ -151,8 +157,8 @@
  <details class="card disc" open><summary>Practice / test mode</summary><div class="discbody"><button id="testBtn" style="width:100%"></button>
   <div class="mut" style="margin-top:6px">Test mode works like normal but nothing is saved, nothing goes into history, stats or exports, and it's wiped when you exit.</div></div></details>
  <details class="card disc" id="dispCard" open><summary>Display <span class="mut">this phone</span></summary><div class="discbody">
-  <div class="seg thseg" role="group" aria-label="Display"><button type="button" data-th="field">☀ Field</button><button type="button" data-th="night">☾ Night</button></div>
-  <label class="row" style="gap:8px"><span style="flex:1">Colors</span><select id="thSel" style="width:auto"><option value="field">☀ Field (day)</option><option value="night">☾ Night</option><option value="auto">◐ Auto (sunset)</option></select></label>
+  <div class="seg thseg" role="group" aria-label="Display"><button type="button" data-th="field" aria-pressed="false">☀ Field</button><button type="button" id="thNight" aria-pressed="false">☾ Night</button></div>
+  <label class="row" style="gap:8px"><span style="flex:1">Colors</span><select id="thSel" style="width:auto"><option value="field">☀ Field (day)</option><option id="thNightOpt">☾ Night</option><option value="auto">◐ Auto (sunset)</option></select></label>
   <label class="check"><input type="checkbox" id="mirrorChk"> Mirror the game screen <span class="mut">results on the left, band on the right</span></label></div></details>
  <details class="card disc" id="alertCard"><summary>Pitch-count alerts &amp; limits <span class="mut">shared by all coach phones</span></summary><div class="discbody">
   <div class="row"><span class="mut" style="flex:1">In-game alert at (pitches)</span><input id="alTh" inputmode="numeric" style="width:110px" placeholder="75, 90"></div>
