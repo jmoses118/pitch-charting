@@ -4,7 +4,8 @@
 const {chromium}=require('playwright-core');const BASE=process.argv[2]||'http://127.0.0.1:8766/';
 let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};
 const GAME={id:'g1',date:'2026-10-13',opponent:'Storm',homeAway:'home',status:'active',started:1,lineup:[{slot:1,name:'Batter 1',num:'1',hand:'R'}],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:1},pitches:[]};
-const CODES='GB,LD,FB,PU,BU',NAMES='Ground,Liner,Fly,Pop up,Bunt';
+const PC=require('../logic.js');
+const CODES=PC.BB_TYPES.join(','),NAMES=PC.BB_TYPES.map(code=>PC.BB_NAME[code]).join(',');
 const chipSel=sel=>[...document.querySelectorAll(sel)].map(b=>{const r=b.getBoundingClientRect();return {t:b.textContent,aria:b.getAttribute('aria-label'),w:r.width,h:r.height,l:r.left,rt:r.right,fs:parseFloat(getComputedStyle(b).fontSize),clip:b.scrollWidth>b.clientWidth+1,off:r.left<-1||r.right>innerWidth+1||r.bottom>innerHeight+1};});
 const cols=()=>{const b=document.querySelector('.cband').getBoundingClientRect(),r=document.querySelector('.cres').getBoundingClientRect(),z=document.getElementById('cZone').getBoundingClientRect();return {bL:b.left,bR:b.right,rL:r.left,rR:r.right,zL:z.left,zR:z.right,zW:z.width};};
 (async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});

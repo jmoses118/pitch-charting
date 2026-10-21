@@ -1196,6 +1196,7 @@ test('RULE-13: contact is Ground, Liner, Fly, Pop up, and Bunt',()=>{
   for(const code of PC.BB_TYPES)assert.equal(PC.rowPitch({id:'p',mode:'game',type:'FB',ts:1,bb:code}).bb,code);
   const sent=PC.pitchRow({id:'x',bb:'ZZ'},{mode:'game'});assert.equal(sent.bb,'ZZ');
   assert.equal(PC.rowPitch({id:'x',mode:'game',type:'FB',ts:1,bb:sent.bb}).bb,'ZZ','an unknown code round-trips unchanged');
+  assert.equal(PC.csvApply({id:'p'},{contact:'ZZ'}).bb,undefined,'ZZ imports as no contact');
   const bunt=PC.shakeoffs([{id:'b',ts:1,abn:1,b:0,s:0,type:'FB',call:'FB5',shook:true,loc:5,result:'inplay',ip:'out',bb:'BU'}]);
   assert.equal(bunt.list[0].outcome,'out (Bunt)');
   const ground=PC.shakeoffs([{id:'g',ts:1,abn:1,b:0,s:0,type:'FB',call:'FB5',shook:true,loc:5,result:'inplay',ip:'1B',bb:'GB'}]);
