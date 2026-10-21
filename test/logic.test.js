@@ -1908,6 +1908,8 @@ test('D-1: roundXY is half-up to 3 decimals',()=>{
   assert.equal(PC.roundXY(0),0);
   assert.equal(PC.roundXY(1),1);
   assert.equal(PC.roundXY(0.9995),1);
+  assert.equal(PC.roundXY(-0.1235),-0.124);
+  assert.equal(PC.roundXY(1.0005),1.001);
   assert.equal(PC.roundXY(null),null);
   assert.equal(PC.roundXY('no'),null);
 });
@@ -1971,8 +1973,7 @@ test('D-3: dirt, backstop, and way-off keep x and y inside their own box',()=>{
 test('HM-21: scatterXY stays put and sits inside the cell inset',()=>{
   const a=PC.scatterXY('pitch-1',5),b=PC.scatterXY('pitch-1',5);
   assert.deepEqual(a,b);
-  assert.equal(a[0],0.42745843105390674);
-  assert.equal(a[1],0.5746808280330152);
+  assert.deepEqual(a,[0.42745843105390674,0.5746808280330152]);
   assert.ok(a[0]>=0.424&&a[0]<=0.576);
   assert.ok(a[1]>=0.424&&a[1]<=0.576);
   for(let i=0;i<40;i++){
