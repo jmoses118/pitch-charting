@@ -1,13 +1,15 @@
-// RULE-13. Contact chips are at least 48px. Coach columns do not move between idle and in play.
-// The coach screen shows the code; the game screen keeps the full name. Both themes.
-// usage: node test/contact.ui.js <url>
+// RULE-13a. Coach contact is a step in the result column. Chips are at least 48×48.
+// Columns do not move between idle, in play, and contact. Both themes.
+// Portrait Game keeps the full names. usage: node test/contact.ui.js <url>
 const {chromium}=require('playwright-core');const BASE=process.argv[2]||'http://127.0.0.1:8766/';
 let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};
 const GAME={id:'g1',date:'2026-10-13',opponent:'Storm',homeAway:'home',status:'active',started:1,lineup:[{slot:1,name:'Batter 1',num:'1',hand:'R'}],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:1},pitches:[]};
 const PC=require('../logic.js');
 const CODES=PC.BB_TYPES.join(','),NAMES=PC.BB_TYPES.map(code=>PC.BB_NAME[code]).join(',');
-const chipSel=sel=>[...document.querySelectorAll(sel)].map(b=>{const r=b.getBoundingClientRect();return {t:b.textContent,aria:b.getAttribute('aria-label'),w:r.width,h:r.height,l:r.left,rt:r.right,fs:parseFloat(getComputedStyle(b).fontSize),clip:b.scrollWidth>b.clientWidth+1,off:r.left<-1||r.right>innerWidth+1||r.bottom>innerHeight+1};});
-const cols=()=>{const b=document.querySelector('.cband').getBoundingClientRect(),r=document.querySelector('.cres').getBoundingClientRect(),z=document.getElementById('cZone').getBoundingClientRect();return {bL:b.left,bR:b.right,rL:r.left,rR:r.right,zL:z.left,zR:z.right,zW:z.width};};
+const chipSel=sel=>[...document.querySelectorAll(sel)].map(b=>{const r=b.getBoundingClientRect();return {t:b.textContent,aria:b.getAttribute('aria-label'),w:r.width,h:r.height,l:r.left,rt:r.right,tp:r.top,bt:r.bottom,fs:parseFloat(getComputedStyle(b).fontSize),clip:b.scrollWidth>b.clientWidth+1,off:r.left<-1||r.right>innerWidth+1||r.bottom>innerHeight+1};});
+const cols=()=>{const b=document.querySelector('.cband').getBoundingClientRect(),r=document.querySelector('.cres').getBoundingClientRect();return {bL:b.left,bR:b.right,rL:r.left,rR:r.right};};
+const clash=list=>{for(let i=0;i<list.length;i++)for(let j=i+1;j<list.length;j++){const a=list[i],b=list[j];if(Math.min(a.rt,b.rt)-Math.max(a.l,b.l)>2&&Math.min(a.bt,b.bt)-Math.max(a.tp,b.tp)>2)return true;}return false;};
+const hits=(a,b)=>Math.min(a.rt,b.rt)-Math.max(a.l,b.l)>2&&Math.min(a.bt,b.bt)-Math.max(a.tp,b.tp)>2;
 (async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});
 const tapZ=async(p,z)=>{const xy=await p.$eval(`#zone [data-z="${z}"]`,e=>{const s=e.ownerSVGElement,pt=s.createSVGPoint(),bb=e.getBBox();pt.x=bb.x+bb.width/2;pt.y=bb.y+bb.height/2;const q=pt.matrixTransform(s.getScreenCTM());return [q.x,q.y];});await p.mouse.click(xy[0],xy[1]);};
 for(const [W,H] of [[375,667],[390,844],[430,932]])for(const theme of ['field','night']){const tag=`${W}x${H} portrait ${theme}`;
@@ -20,11 +22,12 @@ for(const [W,H] of [[375,667],[390,844],[430,932]])for(const theme of ['field','
   await p.click('nav [data-t="game"]').catch(()=>{});await p.waitForTimeout(150);
   await p.click('#types [data-c="FB"]');await tapZ(p,5);await tapZ(p,5);await p.click('#resBtns [data-r="inplay"]');await p.waitForTimeout(150);
   const chips=await p.evaluate(chipSel,'#ipContact [data-bb]');
-  const fit=chips.length===5&&chips.every(x=>x.w>=47.5&&x.h>=47.5&&!x.clip&&!x.off);
-  ok(chips.map(x=>x.t).join()===NAMES&&fit,`${tag}: full names, 48px, on screen ${chips.map(x=>x.t+' '+x.w.toFixed(0)+'×'+x.h.toFixed(0)+(x.clip?' clip':'')).join(' ')}`);
+  const outs=await p.evaluate(chipSel,'#ipBtns [data-ip]');
+  const fit=chips.length===5&&chips.every(x=>x.w>=48&&x.h>=48&&!x.clip&&!x.off)&&!clash(chips)&&!chips.some(ch=>outs.some(o=>hits(ch,o)));
+  ok(chips.map(x=>x.t).join()===NAMES&&fit,`${tag}: full names, 48px, no overlap ${chips.map(x=>x.t+' '+x.w.toFixed(0)+'×'+x.h.toFixed(0)+(x.clip?' clip':'')).join(' ')}`);
   ok(!errs.length,`${tag}: no page errors`);
   await c.close();}
-const land=[[844,390,0],[667,375,0],[956,440,0],[956,440,62],[956,384,0],[956,360,0],[932,430,0]];
+const land=[[844,390,0],[667,375,0],[956,440,0],[956,440,62],[956,384,0],[956,375,0],[956,360,0],[932,430,0]];
 for(const [W,H,inset] of land)for(const theme of ['field','night']){const tag=`${W}x${H}${inset?' inset'+inset:''} ${theme}`;
   const c=await b.newContext({viewport:{width:W,height:H},isMobile:true,hasTouch:true});
   await c.route(/supabase\.co/,r=>r.abort());
@@ -37,14 +40,32 @@ for(const [W,H,inset] of land)for(const theme of ['field','night']){const tag=`$
   const idle=await p.evaluate(cols);
   await p.click('#cBand button[data-r="2"][data-c="4"]');await p.click('#cZone button[data-z="4"]');await p.click('#cRes [data-r="inplay"]');await p.waitForTimeout(120);
   const ip=await p.evaluate(cols);
-  const chips=await p.evaluate(chipSel,'#cContact [data-bb]');
-  const still=Math.abs(idle.bL-ip.bL)<=1&&Math.abs(idle.bR-ip.bR)<=1&&Math.abs(idle.rL-ip.rL)<=1&&Math.abs(idle.rR-ip.rR)<=1;
-  ok(still,`${tag}: band and results stay (band ${idle.bL.toFixed(0)}→${ip.bL.toFixed(0)}, results ${idle.rL.toFixed(0)}→${ip.rL.toFixed(0)})`);
-  const inside=chips.length===5&&chips.every(x=>x.l>=ip.zL-1&&x.rt<=ip.zR+1&&ip.zL>=ip.bR-1&&ip.zR<=ip.rL+1);
-  const wide=ip.zW>=239.5;
-  const fit=chips.every(x=>x.h>=47.5&&x.fs>=11&&!x.clip&&!x.off&&(wide?x.w>=47.5:x.w>=ip.zW/5-1.5));
-  ok(chips.map(x=>x.t).join()===CODES&&chips.map(x=>x.aria).join()===NAMES&&inside&&fit,`${tag}: codes, ${wide?'48px':'zone/5'}, inside the zone ${chips.map(x=>x.w.toFixed(1)).join(' ')} zone ${ip.zW.toFixed(0)}`);
+  const under=await p.evaluate(()=>{const e=document.getElementById('cContact');const r=e.getBoundingClientRect();return e.classList.contains('hide')||r.height<1;});
+  await p.click('#cRes [data-ip="out"]');await p.waitForTimeout(120);
+  const step=await p.evaluate(cols);
+  const chips=await p.evaluate(chipSel,'#cRes [data-bb]');
+  const zone=await p.evaluate(()=>{const r=document.getElementById('cZone').getBoundingClientRect();return {l:r.left,rt:r.right,tp:r.top,bt:r.bottom};});
+  const same=(a,b)=>Math.abs(a.bL-b.bL)<=1&&Math.abs(a.bR-b.bR)<=1&&Math.abs(a.rL-b.rL)<=1&&Math.abs(a.rR-b.rR)<=1;
+  ok(same(idle,ip)&&same(idle,step),`${tag}: columns stay idle→in play→contact`);
+  const fit=chips.length===5&&chips.every(x=>x.w>=48&&x.h>=48&&x.fs>=11&&!x.clip&&!x.off&&x.l>=step.rL-1&&x.rt<=step.rR+1&&!hits(x,zone))&&!clash(chips)&&under;
+  ok(chips.map(x=>x.t).join()===CODES&&chips.map(x=>x.aria).join()===NAMES&&fit,`${tag}: 48px codes in the result column ${chips.map(x=>x.w.toFixed(1)+'×'+x.h.toFixed(1)).join(' ')}`);
   ok(!errs.length,`${tag}: no page errors`);
+  await c.close();}
+{const c=await b.newContext({viewport:{width:844,height:390},isMobile:true,hasTouch:true});
+  await c.route(/supabase\.co/,r=>r.abort());
+  const p=await c.newPage();p.on('dialog',d=>d.accept());
+  await p.goto(BASE);
+  await p.evaluate(g=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';S.games=[g];S.activeGame='g1';__app.store.save();__app.render();},GAME);
+  const pitch=async ip=>{await p.click('#cBand button[data-r="2"][data-c="4"]');await p.click('#cZone button[data-z="4"]');await p.click('#cRes [data-r="inplay"]');await p.click('#cRes [data-ip="'+ip+'"]');await p.waitForTimeout(80);};
+  const last=()=>p.evaluate(()=>{const x=__app.store.real.games[0].pitches.at(-1);return {n:__app.store.real.games[0].pitches.length,ip:x&&x.ip,bb:x&&x.bb||null,result:x&&x.result};});
+  await pitch('out');await p.click('#cRes [aria-label="Record with no contact"]');await p.waitForTimeout(80);
+  ok(JSON.stringify(await last())==='{"n":1,"ip":"out","bb":null,"result":"inplay"}','RULE-13a Skip records no contact');
+  await pitch('1B');await p.click('#cRes [data-bb="GB"]');await p.waitForTimeout(80);
+  ok(JSON.stringify(await last())==='{"n":2,"ip":"1B","bb":"GB","result":"inplay"}','RULE-13a a chip records that contact');
+  await pitch('2B');await p.click('#cRes [aria-label="Keep the pitch"]');await p.waitForTimeout(80);
+  ok(JSON.stringify(await last())==='{"n":3,"ip":"2B","bb":null,"result":"inplay"}','RULE-13a Back keeps the pitch');
+  await pitch('3B');await p.keyboard.press('Escape');await p.waitForTimeout(80);
+  ok(JSON.stringify(await last())==='{"n":4,"ip":"3B","bb":null,"result":"inplay"}','RULE-13a Cancel keeps the pitch');
   await c.close();}
 await b.close();console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);
 })().catch(e=>{console.error(e);process.exit(1);});

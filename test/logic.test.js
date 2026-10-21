@@ -1222,8 +1222,10 @@ test('RULE-13: contact is Ground, Liner, Fly, Pop up, and Bunt',()=>{
   const spec=fs.readFileSync(path.join(root,'docs/SPEC.md'),'utf8');
   assert.match(spec,/A future GB\/FB ratio has to decide how a bunt \(BU\) counts/);
   assert.match(spec,/CSV import keeps a contact only when the text is one of those five codes/);
-  assert.match(spec,/The coach screen shows each code on the chip and the full name as its aria-label/);
-  assert.match(spec,/at least 48px wide when that zone is at least 240px wide/);
+  assert.match(spec,/Jim ruled on 20 October 2026/);
+  assert.match(spec,/Each chip is at least 48×48/);
+  assert.match(spec,/Skip records that pitch with no contact/);
+  assert.match(spec,/Back and Cancel keep the pitch too/);
   const log=fs.readFileSync(path.join(root,'CHANGELOG.md'),'utf8');
   assert.match(log,/Rollback is a restore from the backup taken before that migration/);
 });
