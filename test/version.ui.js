@@ -73,7 +73,7 @@ function labelOf(id){
     await c.close();}
   {const c=await b.newContext({viewport:{width:844,height:390},isMobile:true,hasTouch:true,serviceWorkers:'allow'});
     await c.route(/supabase\.co/,r=>r.abort());
-    await c.addInitScript(()=>{localStorage.setItem('te_ui_theme','field');localStorage.setItem('pc_version_seen','v0');});
+    await c.addInitScript(()=>{localStorage.setItem('te_ui_theme','field');if(!sessionStorage.getItem('ver_seeded')){localStorage.setItem('pc_version_seen','v0');sessionStorage.setItem('ver_seeded','1');}});
     const p=await c.newPage();
     await p.clock.install();
     await p.clock.pauseAt(Date.now());

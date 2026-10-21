@@ -142,6 +142,10 @@ nav button{flex:1;border:0;border-radius:var(--r-md);background:none;min-height:
 nav button.on{color:#fff;background:var(--c-royal-tint)}nav button.on svg{stroke:var(--c-royal-text)}
 
 /* ---------- feedback ---------- */
+.appver{margin:0 0 var(--s2);font-size:var(--fs-sm);font-weight:700;line-height:1.3;color:var(--c-text)}
+#cMenuDlg .appver{margin:0}#cMenuDlg .lbl{margin:0}
+#verNote{position:fixed;z-index:30;left:50%;top:calc(env(safe-area-inset-top) + 6px);transform:translate(-50%,-6px);max-width:min(92vw,280px);background:var(--c-royal);color:#fff;font-size:var(--fs-sm);font-weight:700;line-height:1.3;padding:var(--s2) var(--s3);border-radius:var(--r-md);box-shadow:var(--shadow-2);opacity:0;pointer-events:none;transition:opacity .2s var(--ease),transform .2s var(--ease)}
+#verNote.on{opacity:1;transform:translate(-50%,0)}
 #toast{position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom));transform:translate(-50%,8px);max-width:min(92vw,420px);background:var(--c-royal);color:#fff;font-weight:700;padding:var(--s3) var(--s4);border-radius:var(--r-md);box-shadow:var(--shadow-2);opacity:0;transition:opacity .2s var(--ease),transform .2s var(--ease);pointer-events:none;z-index:20;text-align:center}
 #toast.on{opacity:1;transform:translate(-50%,0)}
 #flash{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%) scale(.92);background:rgba(31,138,60,.96);color:#fff;font:800 22px var(--font);padding:var(--s3) var(--s5);border-radius:var(--r-lg);box-shadow:var(--shadow-2);z-index:9999;pointer-events:none;opacity:0;transition:opacity .15s,transform .15s var(--ease)}

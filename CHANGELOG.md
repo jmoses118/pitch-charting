@@ -1,5 +1,10 @@
 # Changelog
 
+## v82 – The app shows which version is running
+### Changed
+- **INFRA-4.** Jim asked on 20 October 2026. Setup and the game menu show the version, so a home-screen app shows when it has updated. The first open after an update says it updated, then the note goes away. A new install stays quiet. The number is the copy that is actually running.
+- Cache: `te-pitch-v82`.
+
 ## v81 – Night is the default palette
 ### Changed
 - **VIEW-4.** Jim approved this on 20 October 2026. With no display choice saved, the app opens in Night. A saved Field or Night choice stays as it was, and the game menu still switches between them. Any other saved value stays Night too. The page does not flash the light palette while it loads.
