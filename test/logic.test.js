@@ -1172,6 +1172,17 @@ test('VIEW-4: themeFromStorage reads THEME_KEY and stays Night when getItem thro
   assert.equal(PC.themeChoice(box(null)),'night');
   assert.equal(PC.themeChoice(box('auto')),'auto');
   assert.equal(PC.themeChoice(box('garbage')),'night');
+  assert.equal(PC.themeColor('field'),'#fff');
+  assert.equal(PC.themeColor('night'),'#000');
+  assert.equal(PC.themeColor('auto'),'#000');
+  assert.equal(PC.themeColor('garbage'),'#000');
+});
+test('VIEW-4: coach.js reads the document theme and has no night literal',()=>{
+  const fs=require('fs'),path=require('path');
+  const src=fs.readFileSync(path.join(__dirname,'..','js','ui','coach.js'),'utf8');
+  assert.equal(/['"]night['"]/.test(src),false);
+  assert.match(src,/document\.documentElement\.dataset\.theme/);
+  assert.match(src,/PC\.themeColor/);
 });
 test('RULE-4a: CH box 2 is kept, calledFlag is true, and an off-grid called box is null',()=>{
   const csv=PC.importSpots({type:'CH',call_target:'2',called_location:'2',location:'8'});

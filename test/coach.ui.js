@@ -143,27 +143,27 @@ for(const [W,H,MIN,ZMIN,RESW] of [[844,390,48,48,48],[667,375,44,34,46]]){const 
 {const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());
   await c.addInitScript(()=>{window.__view4={field:0,white:0,n:0};const tick=()=>{const t=document.documentElement.dataset.theme||'';const bg=document.body?getComputedStyle(document.body).backgroundColor:'';if(t==='field')window.__view4.field++;if(bg==='rgb(255, 255, 255)')window.__view4.white++;window.__view4.n++;if(window.__view4.n<12)requestAnimationFrame(tick);};requestAnimationFrame(tick);});
   const p=await c.newPage();await p.goto(BASE);await p.waitForTimeout(250);
-  const v=await p.evaluate(()=>({theme:document.documentElement.dataset.theme,bg:getComputedStyle(document.body).backgroundColor,saved:localStorage.getItem('te_ui_theme'),meta:document.querySelector('meta[name="theme-color"]').content,field:window.__view4.field,white:window.__view4.white,n:window.__view4.n}));
-  ok(v.theme==='night'&&v.saved==null&&v.bg==='rgb(0, 0, 0)'&&v.meta==='#000000'&&v.field===0&&v.white===0&&v.n>=1,'VIEW-4: nothing saved opens Night with no Field frame '+JSON.stringify(v));
+  const v=await p.evaluate(()=>({theme:document.documentElement.dataset.theme,bg:getComputedStyle(document.body).backgroundColor,saved:localStorage.getItem('te_ui_theme'),meta:document.querySelector('meta[name="theme-color"]').content,field:window.__view4.field,white:window.__view4.white,n:window.__view4.n,leak:['t','ok','m'].filter(k=>k in window)}));
+  ok(v.theme==='night'&&v.saved==null&&v.bg==='rgb(0, 0, 0)'&&v.meta==='#000'&&v.field===0&&v.white===0&&v.n>=1&&!v.leak.length,'VIEW-4: nothing saved opens Night with no Field frame '+JSON.stringify(v));
   await c.close();}
 {const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());
   await c.addInitScript(()=>{localStorage.setItem('te_ui_theme','field');});
   const p=await c.newPage();await p.goto(BASE);await p.waitForTimeout(200);
   const v=await p.evaluate(()=>({theme:document.documentElement.dataset.theme,bg:getComputedStyle(document.body).backgroundColor,saved:localStorage.getItem('te_ui_theme'),meta:document.querySelector('meta[name="theme-color"]').content}));
-  ok(v.theme==='field'&&v.saved==='field'&&v.bg==='rgb(255, 255, 255)'&&v.meta==='#ffffff','VIEW-4: a saved Field choice stays Field '+JSON.stringify(v));
+  ok(v.theme==='field'&&v.saved==='field'&&v.bg==='rgb(255, 255, 255)'&&v.meta==='#fff','VIEW-4: a saved Field choice stays Field '+JSON.stringify(v));
   await c.close();}
 {const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());
   await c.addInitScript(()=>{const proto=Storage.prototype;const read=proto.getItem;proto.getItem=function(k){if(k==='te_ui_theme')throw new Error('blocked');return read.apply(this,arguments);};});
   const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));await p.goto(BASE);await p.waitForTimeout(200);
   const v=await p.evaluate(()=>({theme:document.documentElement.dataset.theme,meta:document.querySelector('meta[name="theme-color"]').content}));
-  ok(v.theme==='night'&&v.meta==='#000000'&&!errs.length,'VIEW-4: a throwing theme read stays Night '+JSON.stringify(v)+' '+errs.join('|'));
+  ok(v.theme==='night'&&v.meta==='#000'&&!errs.length,'VIEW-4: a throwing theme read stays Night '+JSON.stringify(v)+' '+errs.join('|'));
   await c.close();}
 {const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());
   await c.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));
   const p=await c.newPage();await p.goto(BASE);await p.click('nav [data-t="setup"]');await p.waitForTimeout(200);
   const read=()=>p.evaluate(()=>{function lin(c){c/=255;return c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4);}function lum(rgb){const m=String(rgb).match(/[\d.]+/g).map(Number);return 0.2126*lin(m[0])+0.7152*lin(m[1])+0.0722*lin(m[2]);}function ratio(a,b){const x=lum(a),y=lum(b);return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05);}
     const w=sel=>getComputedStyle(document.querySelector(sel)).borderTopWidth;const btn=document.querySelector('#syncNow'),cs=getComputedStyle(btn);const on=document.querySelector('.thseg button.on');
-    return {btn:w('#syncNow'),sel:w('#thSel'),inp:w('#limDay'),royal:getComputedStyle(document.documentElement).getPropertyValue('--c-royal').trim(),bg:cs.backgroundColor,fg:cs.color,text:ratio(cs.color,cs.backgroundColor),hdr:getComputedStyle(document.querySelector('header')).borderBottomColor,on:on&&getComputedStyle(on).backgroundColor,accent:getComputedStyle(document.querySelector('#mirrorChk')).accentColor};});
+    const root=getComputedStyle(document.documentElement);return {btn:w('#syncNow'),sel:w('#thSel'),inp:w('#limDay'),royal:root.getPropertyValue('--c-royal').trim(),press:root.getPropertyValue('--c-royal-press').trim(),bg:cs.backgroundColor,fg:cs.color,text:ratio(cs.color,cs.backgroundColor),hdr:getComputedStyle(document.querySelector('header')).borderBottomColor,on:on&&getComputedStyle(on).backgroundColor,accent:getComputedStyle(document.querySelector('#mirrorChk')).accentColor};});
   const night=await read();
   ok(night.btn==='2px'&&night.sel==='2px'&&night.inp==='2px','VIEW-4: Night buttons, selects and inputs are 2px '+JSON.stringify(night));
   ok(night.royal==='#3A5CF0'&&night.bg==='rgb(58, 92, 240)'&&night.hdr==='rgb(58, 92, 240)'&&night.on==='rgb(58, 92, 240)'&&night.accent==='rgb(58, 92, 240)','VIEW-4: Night fills use #3A5CF0 '+JSON.stringify(night));
@@ -171,7 +171,7 @@ for(const [W,H,MIN,ZMIN,RESW] of [[844,390,48,48,48],[667,375,44,34,46]]){const 
   await p.evaluate(()=>{const b=document.createElement('button');b.id='pressProbe';b.className='primary';b.textContent='Go';b.style.cssText='position:fixed;z-index:99;left:8px;bottom:80px';document.body.appendChild(b);});
   {const box=await p.locator('#pressProbe').boundingBox();await p.mouse.move(box.x+8,box.y+8);await p.mouse.down();await p.waitForTimeout(220);
     const press=await p.evaluate(()=>getComputedStyle(document.getElementById('pressProbe')).backgroundColor);await p.mouse.up();
-    ok(press==='rgb(44, 69, 180)','VIEW-4: Night primary press is a darker shade of #3A5CF0 '+press);}
+    ok(press==='rgb(44, 69, 180)'&&night.press==='#2C45B4','VIEW-4: Night primary press uses --c-royal-press '+press+' '+night.press);}
   await p.evaluate(()=>{const b=document.getElementById('pressProbe');if(b)b.remove();});
   await p.evaluate(()=>{document.documentElement.dataset.theme='field';});await p.waitForTimeout(200);
   const field=await read();
