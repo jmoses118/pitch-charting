@@ -4,8 +4,6 @@
   "clones": [
     {"a": {"file": "js/ui/stats.js", "start": 278, "end": 284}, "b": {"file": "js/ui/stats.js", "start": 301, "end": 308}},
     {"a": {"file": "js/ui/report.js", "start": 40, "end": 50}, "b": {"file": "js/ui/report.js", "start": 66, "end": 76}},
-    {"a": {"file": "js/ui/coach.js", "start": 361, "end": 366}, "b": {"file": "js/ui/coach.js", "start": 430, "end": 435}},
-    {"a": {"file": "js/ui/coach.js", "start": 361, "end": 366}, "b": {"file": "js/ui/coach.js", "start": 497, "end": 502}},
     {"a": {"file": "js/core/sync.js", "start": 443, "end": 448}, "b": {"file": "js/core/sync.js", "start": 462, "end": 467}},
     {"a": {"file": "js/core/sync.js", "start": 619, "end": 624}, "b": {"file": "js/core/sync.js", "start": 710, "end": 715}},
     {"a": {"file": "js/core/sync.js", "start": 701, "end": 706}, "b": {"file": "js/core/sync.js", "start": 748, "end": 754}},

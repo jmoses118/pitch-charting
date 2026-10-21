@@ -33,7 +33,10 @@ function hintText(){const cmp=$('coach').classList.contains('compact');if(sideCa
   const step=PC.scoreStep(pullDraft());
   if(step==='type')return['1',cmp?'Tap a cell':'Tap a wristband cell'];
   if(step==='called')return['2',cmp?'Aim?':'Tap the aim'];if(step==='actual')return['2',cmp?'Where?':'Tap where it went'];return['3',cmp?'Result?':'Tap the result'];}
-function renderHint(){const e=$('cxHint');if(!e)return;const d=pullDraft();if(cMsg&&(!d.aimEdit||cMsg.kind==='warn')){e.className='cs-hint msg '+cMsg.kind;e.textContent=cMsg.t;return;}const note=(D.ip||D.bbAsk)?'':PC.aimLine(d,{short:true});if(note){e.className='cs-hint msg warn';e.textContent=note;return;}const h=hintText();e.className='cs-hint';e.innerHTML=h?`<span class="cs-n">${H(h[0])}</span>${H(h[1])}`:'';}
+function renderHint(note){const e=$('cxHint');if(!e)return;const d=pullDraft();if(cMsg&&(!d.aimEdit||cMsg.kind==='warn')){e.className='cs-hint msg '+cMsg.kind;e.textContent=cMsg.t;return;}
+  if(note==null)note=(D.ip||D.bbAsk)?'':PC.aimLine(d,{short:true});
+  if(note&&!$('coach').classList.contains('compact')){e.className='cs-hint msg warn';e.textContent=note;return;}
+  const h=hintText();e.className='cs-hint';e.innerHTML=h?`<span class="cs-n">${H(h[0])}</span>${H(h[1])}`:'';}
 function sizeCoach() {
   const sh = curSheet(),
     cols = sh ? Math.max(...sh.rows.map((r) => r.length), 1) : 8,
@@ -96,8 +99,9 @@ function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,h
   const b=g.lineup[c.slot]||{};$('cxBat').innerHTML=cmp?`<b>${b.num?'#'+H(b.num):H(b.name||'Batter '+(c.slot+1))}</b> · ${hand==='L'?'LHB':'RHB'} · <span title="Pitches">⚾ ${PC.pitchCount(g.pitches,cp)}</span>`:`<span class="ic" aria-hidden="true">👤</span><b>${b.num?'#'+H(b.num)+' ':''}${H(b.name||'Batter '+(c.slot+1))}</b> · ${hand==='L'?'LHB':'RHB'} · <span title="Pitches">⚾ ${PC.pitchCount(g.pitches,cp)}</span>`;
   const code=callCode(),aims=aimSet();$('cxCode').innerHTML=D.shook?`⤺ ${H(D.shook.norm)} → ${H(D.type||'?')}`:D.parsed?`${H(code)}&nbsp; ${H(D.callTxt)}`:'<span class="cs-none">– –&nbsp; no call yet</span>';
   const own=D.parsed&&D.parsed.targets&&D.parsed.targets.length===1&&D.aim===+D.parsed.targets[0]; // pencil only for an override, not the call's own spot
-  $('cxAim').textContent=D.shook?(D.aim?'aim '+D.aim+' ✎':''):D.parsed?(aims.length?'aim '+aims.join('/'):'no spot')+(D.aim&&!own?' ✎':''):'';
-  renderHint();const n=store.pendingCount(),st=store.real.sync;$('cxNet').textContent=store.isTest?'Test mode – not saved':!navigator.onLine?`Offline – saved on phone${n?' · '+n+' to sync':''}`:(!st.teamCode?'Saved on phone':n?`Saved on phone · ${n} to sync`:'Saved · synced');
+  const aimWarn=(D.ip||D.bbAsk)?'':PC.aimLine(pullDraft(),{short:true});
+  paintAim(own, aims, cmp?aimWarn:'');
+  renderHint(aimWarn);const n=store.pendingCount(),st=store.real.sync;$('cxNet').textContent=store.isTest?'Test mode – not saved':!navigator.onLine?`Offline – saved on phone${n?' · '+n+' to sync':''}`:(!st.teamCode?'Saved on phone':n?`Saved on phone · ${n} to sync`:'Saved · synced');
   // in play: spray field replaces the status details
   $('cSprayWrap').classList.toggle('hide',!D.ip);['cs-bat','cs-call','cs-hint','cs-foot'].forEach(k=>$('cStatus').querySelector('.'+k).classList.toggle('hide',!!D.ip));
   if(D.ip){$('cxIp').textContent=`IN PLAY · ${code?code+' ':''}${D.callTxt||''}${aims.length?' → '+aims.join('/'):''}${D.loc?' · landed '+D.loc:''} · spray optional`;const dot=$('cSprayDot');dot.classList.toggle('hide',!D.spray);if(D.spray){dot.setAttribute('cx',D.spray[0]*200);dot.setAttribute('cy',D.spray[1]*92);}}
@@ -131,7 +135,9 @@ function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,h
 // Idle, in play, and contact keep the same band and the same result column.
 // The five chips are not a row under the zone.
 // ---------- coach input ----------
-$('cBand').addEventListener('click',e=>{if(viewOnly()){toast(PC.SCORING_ELSEWHERE);return;}const b=e.target.closest('button[data-r]');if(b&&!b.disabled){sideCard=null;cMsg=null;callCell(+b.dataset.r,+b.dataset.c);}});
+function paintAim(own, aims, aimWarn){$('cxAim').classList.toggle('warn',!!aimWarn);$('cxAim').textContent=aimWarn||(D.shook?(D.aim?'aim '+D.aim+' ✎':''):D.parsed?(aims.length?'aim '+aims.join('/'):'no spot')+(D.aim&&!own?' ✎':''):'');}
+function coachLocked(){if(!viewOnly())return false;toast(PC.SCORING_ELSEWHERE);return true;}
+$('cBand').addEventListener('click',e=>{if(coachLocked())return;const b=e.target.closest('button[data-r]');if(b&&!b.disabled){sideCard=null;cMsg=null;callCell(+b.dataset.r,+b.dataset.c);}});
 let lpT=null,lpDone=false; // long-press (≥400 ms) on a zone cell sets the aim directly
 const zoneBtn=e=>e.target.closest('#cZone button[data-z]');
 $('cZone').addEventListener('pointerdown',e=>{if(viewOnly())return;const b=zoneBtn(e);if(!b)return;lpDone=false;clearTimeout(lpT);lpT=setTimeout(()=>{if(!pullDraft().type)return;lpDone=true;const r=PC.scoreApply(pullDraft(),{op:'called',z:+b.dataset.z});if(!r.ok){coachMsg(PC.aimRejectMsg(pullDraft().type,+b.dataset.z,$('coach').classList.contains('compact')?'tiny':'short'),'warn');return;}takeDraft(r);buzz(15);render();coachMsg('✎ Aim → '+b.dataset.z);},400);});
@@ -141,13 +147,13 @@ function coachZoneAct(z,aimEdit){const cmp=$('coach').classList.contains('compac
   takeDraft(r);
   if(r.op==='called'){render();coachMsg('✎ Aim → '+z);return;}
   if(typeof clearFoulChips==='function')clearFoulChips();if(r.draft.actual==null)D.sheet=false;render();}
-$('cZone').addEventListener('click',e=>{if(viewOnly()){toast(PC.SCORING_ELSEWHERE);return;}const b=zoneBtn(e);if(!b)return;if(lpDone){lpDone=false;return;}sideCard=null;coachZoneAct(+b.dataset.z,D.aimEdit);});
+$('cZone').addEventListener('click',e=>{if(coachLocked())return;const b=zoneBtn(e);if(!b)return;if(lpDone){lpDone=false;return;}sideCard=null;coachZoneAct(+b.dataset.z,D.aimEdit);});
 $('cRes').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;sideCard=null;
   if(b.dataset.r){if(PC.scoreStep(pullDraft())!=='result'){coachMsg($('coach').classList.contains('compact')?'Where?':'Tap where it went first','warn');return;}if(b.dataset.r==='inplay'){D.ip=true;render();return;}recordGame(b.dataset.r);return;}
   if(b.dataset.ip){coachIp(b.dataset.ip);return;}
   if(b.dataset.ty){takeDraft(PC.scoreApply(pullDraft(),{op:'call',type:b.dataset.ty,called:[]}));D.sheet=false;render();return;}
   const x=b.dataset.cx;if(x==='shake')return shakeOff();if(x==='unshake')return cancelShake();if(x==='take')return openTakeover();if(x==='back'){sideCard=null;coachBack();return;}else if(x==='aim'){D.aimEdit=!D.aimEdit;render();}else if(x==='undo')undoLast();else if(x==='redo')redoLast();else if(x==='same'&&lastCell)callCell(lastCell.r,lastCell.c);});
-$('cAct').addEventListener('click',e=>{if(viewOnly()){toast(PC.SCORING_ELSEWHERE);return;}const b=e.target.closest('[data-z]');if(!b)return;sideCard=null;coachZoneAct(+b.dataset.z,false);});
+$('cAct').addEventListener('click',e=>{if(coachLocked())return;const b=e.target.closest('[data-z]');if(!b)return;sideCard=null;coachZoneAct(+b.dataset.z,false);});
 $('cRes').addEventListener('pointerdown',e=>{if(e.target.closest('[data-r]'))clearFoulChips();});
 $('cRes').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||!D.bbAsk)return;if(b.dataset.bb)coachKeep(b.dataset.bb);else if(b.dataset.cx==='skip')coachKeep(null);});
 // RULE-13a. Contact is a step after the outcome. Skip and Escape keep the pitch. Back saves nothing.

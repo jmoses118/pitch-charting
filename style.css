@@ -12,8 +12,8 @@
   --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;
   /* radius */
   --r-sm:8px;--r-md:12px;--r-lg:16px;--r-pill:999px;
-  /* type (1.2 scale) */
-  --fs-xs:12px;--fs-sm:14px;--fs-md:16px;--fs-lg:19px;--fs-xl:23px;--fs-2xl:28px;
+  /* type (1.2 scale). --fs-13 is the warning size between xs and sm. --fs-10 and --ls-tight size the narrow call code. */
+  --fs-xs:12px;--fs-10:10px;--fs-13:13px;--fs-sm:14px;--fs-md:16px;--fs-lg:19px;--fs-xl:23px;--fs-2xl:28px;--ls-tight:-.6px;
   --font:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,"Segoe UI",Roboto,sans-serif;
   /* touch */
   --tap:48px;--tap-lg:56px;
@@ -237,7 +237,8 @@ body.entrymode .count small{font-size:10px;display:inline;margin-right:4px}
 .stepline .steps li{padding-top:2px;border-top-width:2px;font-size:11px;letter-spacing:0;white-space:nowrap;overflow:visible;text-overflow:clip}
 button.mini{min-height:var(--tap);padding:0 var(--s3);font-size:var(--fs-xs);font-weight:700;border-radius:var(--r-pill)}
 button.mini[aria-expanded="true"]{background:var(--c-royal);color:#fff}
-.entrybar .phase{padding:2px 0 0;margin:0;background:none;font-size:var(--fs-xs);color:var(--c-text-2);white-space:normal;overflow:visible;text-overflow:clip}
+.entrybar .phase{padding:2px 0 0;margin:0;background:none;font-size:var(--fs-xs);line-height:calc(var(--fs-xs) * 1.35);color:var(--c-text-2);white-space:normal;overflow:visible;text-overflow:clip}
+.entrybar .phase.warn{font-size:var(--fs-13)}
 body.entrymode #zone{max-width:none}
 button.zchip{position:absolute;z-index:2;min-height:var(--tap);min-width:var(--tap);padding:0 var(--s2);border-radius:var(--r-pill);font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--c-surface-2);border-color:var(--c-line-strong)}
 .seg3{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:var(--s2)}.seg3 button{min-height:var(--tap-lg);font-weight:700}.seg3 button.sel{background:var(--c-royal);border-color:var(--c-royal-text);color:#fff}
@@ -257,7 +258,9 @@ body.entrymode .count{gap:var(--s1)}
 body.entrymode .count>div{display:flex;align-items:baseline;justify-content:center;gap:4px;white-space:nowrap;min-height:28px;align-items:center;font-size:var(--fs-sm)}
 body.entrymode .count small{margin:0;font-size:9px}
 body.entrymode .count .dots span{width:9px;height:9px}
-@media (max-height:720px){body.entrymode header{padding-top:2px;padding-bottom:0}body.entrymode .topbar{margin-bottom:0}body.entrymode .entrybar{padding-top:2px;padding-bottom:0}body.entrymode .stepline{margin-top:0;gap:2px}body.entrymode .entrybar .phase{padding:0;line-height:1.2}body.entrymode button.mini{min-height:var(--tap)}body.entrymode #wayBtns{margin:0}body.entrymode #wayBtns button,body.entrymode #actBtns button{min-height:var(--tap);height:auto}body.entrymode #types.chips button{min-height:var(--tap);height:var(--tap)}body.entrymode .pickrow select,body.entrymode .pickrow button.icon{min-height:var(--tap)}body.entrymode .count>div{min-height:0;padding:0 4px;line-height:1;font-size:13px}body.entrymode .count .dots{height:auto}body.entrymode #gameHead{margin-top:0;padding-top:0}body.entrymode:not(.padmode) #tab-game{margin-top:16px}}
+@media (max-height:720px){body.entrymode header{padding-top:2px;padding-bottom:0}body.entrymode .topbar{margin-bottom:0}body.entrymode .entrybar{padding-top:2px;padding-bottom:0}body.entrymode .stepline{margin-top:0;gap:2px}body.entrymode .entrybar .phase,body.entrymode .entrybar .phase.warn{padding:0;line-height:calc(var(--fs-xs) * 1.2)}body.entrymode button.mini{min-height:var(--tap)}body.entrymode #wayBtns{margin:0}
+body.entrymode #wayBtns button,body.entrymode #actBtns button{min-height:var(--tap);height:auto}body.entrymode #types.chips button{min-height:var(--tap);height:var(--tap)}body.entrymode .pickrow select,body.entrymode .pickrow button.icon{min-height:var(--tap)}body.entrymode .count>div{min-height:0;padding:0 4px;line-height:1;font-size:13px}body.entrymode .count .dots{height:auto}body.entrymode #gameHead{margin-top:0;padding-top:0}
+body.entrymode:not(.padmode) #tab-game{margin-top:16px}}
 /* v36: the pitcher name never truncates – the picker sizes to its content and the counts wrap instead */
 .pickrow select{flex:1 0 auto}
 body:not(.entrymode) #wlMini{display:none}
@@ -314,7 +317,7 @@ html[data-theme="night"] .cstatus{background:#0D121B}
 .cs-hint{font-size:11px;color:#EEF2F8;display:block;height:1.4em;line-height:1.4em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}.cs-hint .cs-n{margin-right:4px;vertical-align:1px}
 .cs-n{display:inline-grid;place-items:center;min-width:18px;height:18px;border-radius:5px;background:var(--c-coach-accent);color:#0B0F17;font-size:11px;font-weight:900}
 .cs-hint.msg{font-weight:800}.cs-hint.msg.ok{color:#7EE2A0}
-.cs-hint.msg.warn{color:var(--c-coach-accent);font-size:13px;line-height:1.2;white-space:normal;height:auto;max-height:2.4em;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.cs-hint.msg.warn{color:var(--c-coach-accent);font-size:var(--fs-13);line-height:1.2;white-space:normal;height:auto;max-height:2.4em;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 .cs-hint.msg.warn + .cs-net{display:none}
 .cs-net{font-size:11px;color:#A9B4C6}
 .cs-ip{font-size:11.5px;font-weight:700;color:#EEF2F8;line-height:1.25}
@@ -360,7 +363,10 @@ body.padmode main{padding-bottom:calc(var(--pad-h,0px) + 12px)}
 .coach.compact{gap:5px}.coach.compact .cres{grid-template-columns:var(--tap) var(--tap)}.coach.compact .cs-bat{font-size:11px}
 .coach.compact .cs-top{font-size:11px}.coach.compact .cs-count{font-size:14px}.coach.compact .cchip{font-size:10px;line-height:14px;padding:0 3px}
 .coach.compact .cs-hint{font-size:10px}
-.coach.compact .cs-hint.msg.warn{font-size:13px;line-height:1.2}
+.coach.compact .cs-hint.msg.warn{font-size:var(--fs-13);line-height:1.2}
+.coach.compact .cstatus:has(.cs-aim.warn) .cs-call{display:block;white-space:normal;background:inherit}
+.coach.compact .cs-call:has(.cs-aim.warn) #cxCode{float:left;font-size:var(--fs-10);font-weight:800;letter-spacing:var(--ls-tight);line-height:1.15;margin:0 2px 0 0;white-space:nowrap;background:inherit}
+.coach.compact .cs-aim.warn{display:block;background:inherit;color:var(--c-coach-accent);font-size:var(--fs-13);line-height:1.15;font-weight:800;white-space:normal;height:auto;overflow:visible}
 .coach.compact .cmenu{width:44px;padding:0;font-size:20px}
 #wayBtns button{min-height:48px}body.padmode .bpad #wayBtns button,body.padmode #wayBtns button{min-height:48px}
 @media (max-height:720px){body.padmode .bpad{padding:2px 8px 2px;row-gap:2px}body.padmode .padact{margin-top:2px}body.padmode #wayBtns button,body.padmode #actBtns button{min-height:48px;height:auto;font-size:11px;line-height:1.05}}
