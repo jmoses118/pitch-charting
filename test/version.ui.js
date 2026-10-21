@@ -111,6 +111,44 @@ function labelOf(id){
     }).then(cache=>({cache,running:PC.APP_VERSION,shown:document.getElementById('setupVer').textContent.trim(),controlled:!!navigator.serviceWorker.controller})));
     ok(sw.controlled&&sw.shown===sw.running&&sw.cache==='te-pitch-'+sw.running,`running label matches the worker ${JSON.stringify(sw)}`);
     await c.close();}
+  {const c=await b.newContext({viewport:{width:844,height:390},isMobile:true,hasTouch:true,serviceWorkers:'allow'});
+    await c.route(/supabase\.co/,r=>r.abort());
+    const p=await c.newPage();
+    const errs=[];p.on('pageerror',e=>errs.push(e.message));
+    await p.goto(BASE);
+    await p.waitForFunction(()=>navigator.serviceWorker.controller,null,{timeout:15000});
+    await p.reload({waitUntil:'load'});
+    await p.waitForFunction(()=>navigator.serviceWorker.controller);
+    await p.evaluate(()=>{D.draft=Object.assign(blankDraft(),{type:'FB',called:[6]});D.type='FB';D.sheet=false;D.ip=false;D.foul=false;});
+    let navs=0;p.on('framenavigated',()=>{navs++;});
+    await p.evaluate(()=>navigator.serviceWorker.dispatchEvent(new Event('controllerchange')));
+    await p.waitForTimeout(2200);
+    const mid=await p.evaluate(()=>({type:pullDraft().type,called:(pullDraft().called||[]).slice()}));
+    ok(mid.type==='FB'&&mid.called[0]===6&&navs===0,`a controller change keeps the pitch ${JSON.stringify(mid)} navs=${navs}`);
+    await p.evaluate(()=>{D.draft=blankDraft();D.type=null;$('batDlg').showModal();});
+    await p.waitForTimeout(2200);
+    ok(navs===0&&await p.evaluate(()=>$('batDlg').open),'an open sheet holds the reload');
+    const gone=p.waitForNavigation({waitUntil:'load',timeout:8000}).then(()=>true,()=>false);
+    await p.evaluate(()=>$('batDlg').close());
+    ok(await gone,'the reload runs after the sheet closes');
+    ok(!errs.length,`reload wait has no page errors ${errs.join('|')}`);
+    await c.close();}
+  {const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'allow'});
+    await c.route(/supabase\.co/,r=>r.abort());
+    await c.addInitScript(()=>{localStorage.setItem('pc_version_seen','nope');});
+    const p=await c.newPage();
+    await p.goto(BASE);
+    const garbage=await p.evaluate(()=>({on:document.getElementById('verNote').classList.contains('on'),text:document.getElementById('verNote').textContent,seen:localStorage.getItem('pc_version_seen'),ver:PC.APP_VERSION}));
+    ok(!garbage.on&&garbage.text===''&&garbage.seen===garbage.ver,`a stored value that is not a version stays quiet ${JSON.stringify(garbage)}`);
+    await c.close();}
+  {const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'allow'});
+    await c.route(/supabase\.co/,r=>r.abort());
+    await c.addInitScript(()=>{localStorage.setItem('pc_version_seen','v0');const orig=localStorage.setItem.bind(localStorage);localStorage.setItem=function(k,v){if(k==='pc_version_seen')throw new Error('blocked');return orig(k,v);};});
+    const p=await c.newPage();
+    await p.goto(BASE);
+    const blocked=await p.evaluate(()=>({on:document.getElementById('verNote').classList.contains('on'),text:document.getElementById('verNote').textContent,seen:localStorage.getItem('pc_version_seen')}));
+    ok(!blocked.on&&blocked.text===''&&blocked.seen==='v0',`the notice waits until the version is saved ${JSON.stringify(blocked)}`);
+    await c.close();}
   await b.close();
   console.log(fails?fails+' FAILED':'ALL PASS');
   process.exit(fails?1:0);
