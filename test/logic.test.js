@@ -1601,6 +1601,32 @@ test('HM-13: strike % leaves bullpen pitches out of both sides and rounds to a w
   assert.equal(PC.strikeOf({loc:11,inning:1,abn:1}),false,'no result in the ring is not a strike');
   assert.equal(PC.summarize(games).strikes,3);
 });
+test('HM-13: first-pitch strike % and shake-offs are strikePct, a whole percent with bullpen left out',()=>{
+  const game=(over)=>Object.assign({type:'FB',hand:'R',b:0,s:0,inning:1,abn:1,loc:5},over);
+  const fp=[
+    game({result:'called',abn:1}),
+    game({result:'ball',loc:11,abn:2}),
+    game({abn:3}),
+    {type:'FB',hand:'R',b:0,s:0,loc:5,result:'called'}
+  ];
+  const sum=PC.summarize(fp.concat([game({result:'called',b:1,s:0,abn:1})]));
+  assert.equal(sum.fps,2);assert.equal(sum.fpsN,4);assert.equal(sum.fpsPct,67,'2 strikes among 3 judged first pitches, not 50');
+  const cs=PC.countStats([
+    game({result:'called',abn:1}),
+    game({result:'ball',loc:11,abn:2}),
+    game({result:'foul',loc:4,abn:3})
+  ]);
+  assert.equal(cs.fps,2);assert.equal(cs.fpsN,3);assert.equal(cs.fpsPct,67,'2 of 3 is 67, not 66.7');
+  const line=PC.shakeLine([
+    game({result:'called'}),
+    game({result:'ball',loc:11}),
+    game({result:'foul',loc:4}),
+    game({result:undefined,loc:5}),
+    {type:'FB',loc:5,result:'called'}
+  ]);
+  assert.equal(line.n,5);assert.equal(line.strikePct,75,'3 strikes among 4 judged pitches');
+  assert.equal(PC.shakeLine([{type:'FB',loc:5,result:'called'}]).strikePct,null,'a bullpen-only shake-off list has no strike %');
+});
 test('HM-15: filters keep scope, pitcher, pitch type, batter side, count, and result',()=>{
   const row=(p,box)=>Object.assign({p,src:'game',gameId:'g1',sessionId:null,side:p.hand==='L'?'L':'R',throws:'R',batter:''},box);
   const P=[
@@ -1670,8 +1696,11 @@ test('HM-26 HM-26a: middle misses split into buckets that sum, and toward-the-mi
   assert.equal(st.middle.hit,1);assert.equal(st.middle.inplay,0);assert.equal(st.middle.foul,1);
   assert.equal(st.middle.strike,1);assert.equal(st.middle.ball,0);assert.equal(st.middle.hbp,1);assert.equal(st.middle.none,0);
   assert.equal(st.middle.hit+st.middle.inplay+st.middle.foul+st.middle.strike+st.middle.ball+st.middle.hbp+st.middle.none,st.middle.n);
-  const toward=[[1,5,true],[1,2,false],[11,1,true],[16,9,true],[11,15,false],[7,13,false],[5,1,false],[2,31,false]];
+  const toward=[[1,5,true],[1,2,false],[11,1,true],[16,9,true],[11,15,false],[7,13,false],[5,1,false],[2,31,false],[21,2,true]];
   toward.forEach(([a,l,yes])=>assert.equal(PC.towardMiddle(a,l),yes,a+' to '+l));
+  assert.equal(PC.missDist(21,5),3);assert.equal(PC.missDist(2,5),1);
+  const offAim={type:'FB',targets:[21],loc:2,hand:'R',inning:1,abn:1,result:'ball'};
+  assert.equal(PC.heatStats([offAim],'R').toward,1,'aim 21 landing 2 moves from 3 off to 1 off');
   assert.equal(st.toward,4,'8 to 5 moves closer to the middle');assert.equal(st.towardPct,20);
   const low={type:'FB',targets:[7],loc:13,hand:'R',inning:1,abn:1,result:'ball'};
   assert.equal(PC.heatStats([low],'R').toward,0);assert.equal(PC.hitSpot(low),true);
@@ -1700,7 +1729,16 @@ test('HM-27: glove mode names arm and glove, and a tie has no direction',()=>{
     {type:'FB',targets:[2],loc:22,hand:'R'}
   ];
   const stats=PC.heatStats(aimed,'R');
+  const gloveRows=aimed.map(p=>({p,m:PC.pitchMiss(p,'R',{glove:true})}));
+  const framed=PC.dirCounts(gloveRows,{glove:true,frameOnly:true});
+  assert.equal(framed.down,2);assert.equal(framed['glove side'],1);assert.equal(framed['arm side'],1);assert.equal(framed.up,0);
+  assert.equal(PC.dirCounts(gloveRows,{glove:true,frameOnly:false}).down,3,'way off still counts when the frame limit is off');
+  assert.deepEqual(stats.dir,PC.topDir(framed,{glove:true}));
   assert.deepEqual(stats.dir,['down',2],'way off is left out of the direction');
+  const session=PC.grpStats(aimed,()=>'R');
+  const plain=PC.dirCounts(aimed.map(p=>({p,m:PC.pitchMiss(p,'R')})),{glove:false,frameOnly:false});
+  ['up','down','in','away','glove side','arm side'].forEach(d=>assert.equal(session[d],plain[d],d));
+  assert.equal(session.down,3);assert.equal(session.in,1);assert.equal(session.away,1);
   assert.equal(stats.aimed,4);assert.equal(stats.median,2);
   assert.equal(stats.lowDirt,0);
   const oneDirt=PC.heatStats([{type:'CH',targets:[8],loc:31,hand:'R'}],'R');
