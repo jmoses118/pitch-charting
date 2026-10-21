@@ -271,7 +271,8 @@ html[data-theme="field"] button,html[data-theme="field"] select,html[data-theme=
 html[data-theme="field"] .zb{stroke:#fff}html[data-theme="field"] .zs{stroke:#fff}
 html[data-theme="field"] .tag{color:var(--c-text)}
 html[data-theme="field"] #flash{background:#0E5A24}
-html[data-theme="night"]{--c-bg:#000000}
+html[data-theme="night"]{--c-bg:#000000;--c-royal:#3A5CF0}
+html[data-theme="night"] button,html[data-theme="night"] select,html[data-theme="night"] input{border-width:2px}
 /* ---------- coach pitch-calling screen (landscape) ---------- */
 body.coachmode{padding:0;overflow:hidden}body.coachmode header,body.coachmode main,body.coachmode nav,body.coachmode #toast,body.coachmode #flash{display:none!important}
 .coach{position:fixed;z-index:7;display:grid;justify-content:center;align-items:start;background:var(--c-bg);

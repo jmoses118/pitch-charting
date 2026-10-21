@@ -167,9 +167,9 @@ for(const [W,H,MIN,ZMIN,RESW] of [[844,390,48,48,48],[667,375,44,34,46]]){const 
   ok(night.btn==='2px'&&night.sel==='2px'&&night.inp==='2px','VIEW-4: Night buttons, selects and inputs are 2px '+JSON.stringify(night));
   ok(night.royal==='#3A5CF0'&&night.bg==='rgb(58, 92, 240)'&&night.hdr==='rgb(58, 92, 240)'&&night.on==='rgb(58, 92, 240)'&&night.accent==='rgb(58, 92, 240)','VIEW-4: Night fills use #3A5CF0 '+JSON.stringify(night));
   ok(night.fg==='rgb(255, 255, 255)'&&night.text>=4.5,'VIEW-4: white on the Night primary stays readable '+night.text.toFixed(2));
-  await p.evaluate(()=>{document.documentElement.dataset.theme='field';});
+  await p.evaluate(()=>{document.documentElement.dataset.theme='field';});await p.waitForTimeout(200);
   const field=await read();
-  ok(field.btn==='2px'&&field.sel==='2px'&&field.inp==='2px'&&field.royal==='#1E3FD0','VIEW-4: Field stays 2px and keeps #1E3FD0 '+JSON.stringify(field));
+  ok(field.btn==='2px'&&field.sel==='2px'&&field.inp==='2px'&&field.royal==='#1E3FD0'&&field.bg==='rgb(30, 63, 208)'&&field.on==='rgb(30, 63, 208)','VIEW-4: Field stays 2px and keeps #1E3FD0 '+JSON.stringify(field));
   await c.close();}
 {const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());await c.route(/\/js\/core\/theme\.js$/,r=>r.abort());
   await c.addInitScript(()=>{localStorage.setItem('te_ui_theme','field');window.__miss={night:0,n:0};const tick=()=>{if((document.documentElement.dataset.theme||'')==='night')window.__miss.night++;window.__miss.n++;if(window.__miss.n<8)requestAnimationFrame(tick);};requestAnimationFrame(tick);});
