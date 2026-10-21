@@ -1,5 +1,13 @@
 # Changelog
 
+## v85 – Heat map totals for each cell and pitch
+### Changed
+- A game cell with fewer than 3 pitches fades, and a season cell with fewer than 5 fades. An empty cell stays solid.
+- Hit percentage can use the aimed box alone, or that box plus each box that shares a side with it. The middle distance is the typical miss. The usual miss direction is glove side or arm side, and a tie has no direction.
+- A pitch that misses into the middle is counted by what happened to it. A hit by pitch is its own group. A low change-up, drop, or drop curve that lands in the dirt uses the one-off colour.
+- Strike percentage leaves bullpen pitches out, so a bullpen-only list has no strike percentage. Filters can pick the game or the season, the pitcher, the pitch type, the batter side, the count, and the result.
+- Cache: `te-pitch-v85`.
+
 ## v84 – A low aim that finishes low hits the spot
 ### Changed
 - A pitch aimed at 7, 8, 9, 13, 14 or 18 that lands in 13, 14 or 18 hits the spot, in a game and in the bullpen, for every pitch except a rise ball.

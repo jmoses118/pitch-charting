@@ -1624,7 +1624,7 @@ test('HM-15: filters keep scope, pitcher, pitch type, batter side, count, and re
   assert.deepEqual(ids({counts:['even'],twoStrike:true}),['2-2']);
   assert.deepEqual(ids({counts:['behind'],twoStrike:true}),['3-2']);
   assert.deepEqual(ids({counts:['ahead','behind'],twoStrike:true}),['0-2','1-2','3-2']);
-  assert.deepEqual(PC.heatFilter(P,{scope:'game',game:'g1'}).map(it=>it.p.abn).sort(),[1,2,3,6,7,8,9,10,11]);
+  assert.deepEqual(PC.heatFilter(P,{scope:'game',game:'g1'}).map(it=>it.p.abn).sort((a,b)=>a-b),[1,2,3,6,7,8,9,10,11]);
   assert.equal(PC.heatFilter(P,{scope:'game',game:'g2'}).length,2);
   assert.equal(PC.heatFilter(P,{scope:'season'}).length,P.length);
   assert.equal(PC.heatFilter(P,{scope:'season',game:'g1'}).length,P.length,'season keeps every game and the bullpen');
