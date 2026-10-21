@@ -157,30 +157,30 @@ test('heat filters: type, pitcher, hand, batter, side, source, game, session',()
   assert.equal(n({type:'FB'}),3);assert.equal(n({pitcher:'p_woods'}),2);assert.equal(n({throws:'L'}),2);assert.equal(n({batter:'Smith'}),2);assert.equal(n({side:'L'}),1);assert.equal(n({side:'N'}),2);
   assert.equal(n({src:'bullpen'}),2);assert.equal(n({src:'game'}),3);assert.equal(n({game:'g1'}),3);assert.equal(n({session:'s1'}),2);assert.equal(n({type:'FB',src:'game',pitcher:'p_crich'}),1);assert.equal(n({type:'SC'}),0);});
 test('heat intended view: aimed counts + hit-the-spot',()=>{const d=PC.heatData(PC.heatItems(heatState()),{},'intended');assert.equal(d.total,2);assert.equal(d.cells[16].n,1);assert.equal(d.cells[16].hit,1);assert.equal(d.cells[7].n,1);assert.equal(d.cells[7].hit,0);});
-test('SCORE-1: the intended heat map uses hit spot, so a change-up on box 4 is not a hit',()=>{
+test('SCORE-1: the heat map uses hit spot; a change-up on box 4 is a hit',()=>{
   const ch={type:'CH',call:'CH4',hand:'R',targets:[4],loc:4},fb={type:'FB',call:'FB4',hand:'R',targets:[4],loc:4};
-  assert.equal(PC.hitSpot(ch),false,'a change-up on box 4 is up');
+  assert.equal(PC.hitSpot(ch),true,'HM-9a: box 4 is not a high miss for a change-up');
   assert.equal(PC.hitSpot(fb),true);
   const aimed=PC.heatData([{p:ch},{p:fb}],{},'intended');
   assert.equal(aimed.cells[4].n,2);
-  assert.equal(aimed.cells[4].hit,1);
+  assert.equal(aimed.cells[4].hit,2);
 });
 test('heat colors: sequential viridis, empty cells uncolored, readable text',()=>{assert.equal(PC.heatColor(0,5),null);assert.equal(PC.heatColor(5,5).fill,'#fde725');assert.equal(PC.heatColor(5,5).text,'#000');assert.equal(PC.heatColor(1,10).text,'#fff');});
 test('miss distance: Chebyshev squares on the 5x5 grid incl. outside spots',()=>{const d=PC.missDist;assert.equal(d(5,5),0);assert.equal(d(1,5),1);assert.equal(d(3,7),2);assert.equal(d(11,14),4);assert.equal(d(15,2),1);assert.equal(d(16,6),3);assert.equal(d(17,6),1);assert.equal(d(18,2),3);assert.equal(d(13,3),3);assert.equal(d(12,13),4);});
 test('miss heat map: per intended cell avg miss + colors (green <=1, darker red to 4)',()=>{const st=PC.defaultState();st.sessions.push({id:'s',date:'d',pitches:[
   {id:'1',pitcherId:'p_woods',type:'FB',targets:[3],loc:3,hand:'N'},{id:'2',pitcherId:'p_woods',type:'FB',targets:[3],loc:6,hand:'N'},{id:'3',pitcherId:'p_woods',type:'FB',targets:[7],loc:14,hand:'N'},{id:'4',pitcherId:'p_woods',type:'CB',targets:[11],loc:14,hand:'N'},{id:'5',pitcherId:'p_woods',type:'FB',targets:[],loc:5}]});
-  const d=PC.missData(PC.heatItems(st),{});assert.equal(d.total,4);assert.equal(d.cells[3].n,2);assert.equal(d.cells[3].avg,0.5);assert.equal(d.cells[3].hit,1);assert.equal(d.cells[7].avg,3);assert.equal(d.cells[11].avg,4);
+  const d=PC.missData(PC.heatItems(st),{});assert.equal(d.total,4);assert.equal(d.cells[3].n,2);assert.equal(d.cells[3].avg,0.5);assert.equal(d.cells[3].hit,1);assert.equal(d.cells[7].avg,1);assert.equal(d.cells[11].avg,4);
   assert.equal(PC.missColor(0.5).fill,'#2ea043');assert.equal(PC.missColor(1).fill,'#2ea043');assert.equal(PC.missColor(1.5).fill,'#f47067');assert.equal(PC.missColor(3).fill,'#c93c37');assert.equal(PC.missColor(4).fill,'#7d1414');assert.equal(PC.missColor(null),null);
   assert.equal(PC.missData(PC.heatItems(st),{type:'FB'}).total,3);});
 test("middle-middle rule: landing in 5 when aimed elsewhere = max severity, counted as MM",()=>{const st=PC.defaultState();st.sessions.push({id:'s',date:'d',pitches:[
   {id:'1',pitcherId:'p_woods',type:'FB',targets:[2],loc:5,hand:'N'},{id:'2',pitcherId:'p_woods',type:'FB',targets:[2],loc:2,hand:'N'},{id:'3',pitcherId:'p_woods',type:'CH',targets:[5],loc:5,hand:'N'},{id:'4',pitcherId:'p_woods',type:'CH',targets:[9],loc:6,hand:'N'}]});
-  const d=PC.missData(PC.heatItems(st),{});assert.equal(d.mm,1);assert.equal(d.cells[2].mm,1);assert.equal(d.cells[2].avg,2);assert.equal(d.cells[5].avg,2);assert.equal(d.cells[5].mm,0);assert.equal(d.cells[9].avg,2); // CH up in the zone = miss (change-up rule)
+  const d=PC.missData(PC.heatItems(st),{});assert.equal(d.mm,1);assert.equal(d.cells[2].mm,1);assert.equal(d.cells[2].avg,2);assert.equal(d.cells[5].avg,2);assert.equal(d.cells[5].mm,0);assert.equal(d.cells[9].avg,1); // CH on the middle-row side is a normal distance miss (HM-9a)
   const only=PC.missData(PC.heatItems({pitchers:st.pitchers,games:[],sessions:[{id:'x',pitches:[{type:'FB',targets:[6],loc:5}]}]}),{});assert.equal(only.cells[6].avg,4);assert.equal(PC.missColor(only.cells[6].avg).fill,'#7d1414');});
 test("session report: good = on target/1 off, MM severe, feedback + best/weakest + trend",()=>{const P=[];const add=(type,t,l)=>P.push({type,targets:[t],loc:l,hand:'R'});
   [[7,4],[7,1],[7,4],[7,7],[7,4],[7,4]].forEach(([t,l])=>add('DR',t,l));[[6,6],[6,6],[6,3],[6,6],[6,5]].forEach(([t,l])=>add('FB',t,l));
   const r=PC.sessionReport(P);assert.equal(r.n,11);assert.equal(r.mm,1);assert.equal(r.called,11);
-  // DR: 7->4 is 1 square (good), 7->1 is 2 (bad); FB 6->5 is MM (bad)
-  assert.equal(r.byType.DR.good,5);assert.equal(r.byType.FB.good,4);assert.equal(r.good,9);assert.equal(r.byType.FB.mm,1);
+  // HM-9a: DR 7->4 is a middle-row miss; only 7->7 is on target. FB 6->5 is still a souvenir.
+  assert.equal(r.byType.DR.good,1);assert.equal(r.byType.FB.good,4);assert.equal(r.good,5);assert.equal(r.byType.FB.mm,1);
   assert.equal(r.byType.DR.up,5);assert.ok(r.feedback.length>=2&&r.feedback.length<=4);assert.ok(r.feedback.some(t=>/souvenir/.test(t)));
   assert.ok(r.feedback.some(t=>/Drop missed up 5 of 6/.test(t)),r.feedback.join('|'));
   assert.ok(r.best&&r.weakest&&r.best.avgMiss<=r.weakest.avgMiss);assert.ok(r.trend&&r.trend.first.n+r.trend.second.n===11);
@@ -228,13 +228,13 @@ test('game logic: no pitch after the at-bat ends; K-D3 thrown out; foul tip; dou
   const s=PC.summarize([{result:'kd3out',end:'K',inning:1,abn:1},{result:'foultip',end:'K',inning:1,abn:1},{result:'kd3',end:'K-D3',inning:1,abn:1}]);assert.equal(s.k,3);assert.equal(s.strikes,3);});
 test('new pitcher requires a throwing hand',()=>{const st=PC.makeStore(mem());assert.throws(()=>st.addPitcher({name:'X'}));assert.throws(()=>st.addPitcher({name:'X',throws:''}));assert.equal(st.addPitcher({name:'X',throws:'L'}).throws,'L');});
 test('missData per-cell on-target count never exceeds pitches aimed there',()=>{const P=[[3,3],[3,2],[3,9],[3,5],[7,7]].map(([t,l])=>({p:{targets:[t],loc:l}}));const d=PC.missData(P,{});assert.equal(d.cells[3].n,4);assert.equal(d.cells[3].good,2);assert.equal(d.cells[7].good,1);for(const z in d.cells)assert.ok((d.cells[z].good||0)<=d.cells[z].n);});
-test('change-up rule: CH landing in top/middle row is a miss even on target; bottom row normal',()=>{
-  assert.equal(PC.pitchMiss({type:'CH',targets:[7],loc:4}).good,false);assert.equal(PC.pitchMiss({type:'CH',targets:[4],loc:4}).good,false);assert.equal(PC.pitchMiss({type:'CH',targets:[4],loc:4}).sev,2);
+test('HM-9a: a change-up miss is the top row; the middle row is a normal distance miss',()=>{
+  assert.equal(PC.pitchMiss({type:'CH',targets:[7],loc:4}).good,true);assert.equal(PC.pitchMiss({type:'CH',targets:[4],loc:4}).good,true);assert.equal(PC.pitchMiss({type:'CH',targets:[4],loc:4}).sev,0);
   assert.equal(PC.pitchMiss({type:'CH',targets:[2],loc:15}).chUp,true);assert.equal(PC.pitchMiss({type:'CH',targets:[7],loc:8}).good,true);assert.equal(PC.pitchMiss({type:'CH',targets:[8],loc:18}).good,true);
-  assert.equal(PC.pitchMiss({type:'CH',targets:[7],loc:16}).good,false);assert.equal(PC.pitchMiss({type:'FB',targets:[7],loc:4}).good,true);assert.equal(PC.pitchMiss({type:'CH',targets:[6],loc:5}).sev,4);
-  const P=[[7,4],[7,1],[8,8],[8,5],[9,9],[9,6]].map(([t,l])=>({type:'CH',targets:[t],loc:l,hand:'R'}));const r=PC.sessionReport(P);assert.equal(r.byType.CH.chUp,4);assert.equal(r.byType.CH.good,2);
-  assert.ok(r.feedback.some(x=>/Change-up up in the zone 4 times – keep it at the knees/.test(x)),r.feedback.join('|'));assert.ok(r.types.CH.feedback.some(x=>/knees/.test(x)));
-  const d=PC.missData(P.map(p=>({p})),{});assert.equal(d.chUp,4);assert.equal(d.cells[7].good||0,0);assert.equal(d.cells[8].land[5].mm,1);assert.equal(d.cells[8].land[8].n,1);});
+  assert.equal(PC.pitchMiss({type:'CH',targets:[7],loc:16}).good,true);assert.equal(PC.pitchMiss({type:'FB',targets:[7],loc:4}).good,true);assert.equal(PC.pitchMiss({type:'CH',targets:[6],loc:5}).sev,4);
+  const P=[[7,4],[7,1],[8,8],[8,5],[9,9],[9,6]].map(([t,l])=>({type:'CH',targets:[t],loc:l,hand:'R'}));const r=PC.sessionReport(P);assert.equal(r.byType.CH.chUp,1);assert.equal(r.byType.CH.good,4);
+  assert.equal(r.feedback.some(x=>/up in the zone/.test(x)),false,'one top-row miss does not meet the session line');
+  const d=PC.missData(P.map(p=>({p})),{});assert.equal(d.chUp,1);assert.equal(d.cells[7].good||0,1);assert.equal(d.cells[8].land[5].mm,1);assert.equal(d.cells[8].land[8].n,1);});
 test('per-type sections: own stats, best/work-on, 1-2 feedback lines; landing map per aimed cell',()=>{const P=[];const add=(type,t,l)=>P.push({type,targets:[t],loc:l,hand:'N',pitcherId:'p'});
   [[3,3],[3,3],[3,2],[9,9],[9,9],[9,14]].forEach(([t,l])=>add('FB',t,l));[[7,7],[7,13],[7,8],[7,7]].forEach(([t,l])=>add('CB',t,l));[[8,8],[8,5],[8,2]].forEach(([t,l])=>add('CH',t,l));
   const r=PC.sessionReport(P,{p:'R'});assert.deepEqual(Object.keys(r.types),['FB','CB','CH']);for(const k in r.types){const x=r.types[k];assert.ok(x.feedback.length>=1&&x.feedback.length<=2);assert.equal(x.stats.n,r.byType[k].n);}
@@ -278,22 +278,25 @@ test('official K rule: replaced with 2 strikes -> K to the original pitcher; pit
   all=ab([['A','ball'],['A','ball'],['A','called'],['A','called'],['B','ball'],['B','ball']]);assert.equal(sum(all,'A').k+sum(all,'B').k,0);assert.equal(all[5].end,'BB');assert.equal(all[5].pitcherId,'B');
   // without context summarize still counts raw (bullpen/legacy callers)
   all=ab([['A','called'],['A','swinging'],['B','swinging']]);assert.equal(PC.summarize(all.filter(p=>p.pitcherId==='B')).k,1);assert.equal(sum(all,'B').k,0);});
-test('ring is competitive, way off is a miss, CH/drop low ring is good; raw strike % kept; game unchanged',()=>{
+test('ring is competitive, way off is a miss, a low call into the low ring is good except a rise ball; raw strike % kept',()=>{
   const bp=(type,t,loc)=>({id:PC.uuid(),pitcherId:'p_larbus',type,targets:t==null?[]:[t],loc,hand:'N'});const M=(p)=>PC.pitchMiss(p,'R');
   // ring scored by normal distance
   assert.ok(M(bp('FB',3,12)).good,'aim 3, land 12 (1 off, ring) = on target');assert.ok(M(bp('FB',16,16)).good);assert.ok(M(bp('FB',16,4)).good,'aim 16, land 4 = 1 off');assert.ok(!M(bp('FB',16,11)).good,'16->11 is 2 boxes');
   // way off: miss at max-1, not a souvenir, regardless of target
   for(const w of [21,22,23,24]){const m=M(bp('FB',15,w));assert.equal(m.sev,PC.WAY_SEV);assert.equal(PC.WAY_SEV,3);assert.ok(!m.good&&!m.mm&&m.way);}
   assert.equal(M(bp('FB',2,21)).vert,'up');assert.equal(M(bp('FB',2,22)).vert,'down');
-  // FLOW-7a: bottom-ring landing is good only when the call was in 7, 8, 9, 13, 14 or 18
+  // FLOW-7a / HM-10a: called in 7, 8, 9, 13, 14 or 18 and landing in 13, 14 or 18 is good, except a rise ball
   for(const ty of ['CH','DR','DC'])for(const z of [13,18,14]){assert.ok(!M(bp(ty,1,z)).good,ty+' aimed high '+z);assert.ok(M(bp(ty,8,z)).good,ty+' called low '+z);}
-  assert.ok(!M(bp('FB',1,14)).good);assert.ok(M(bp('CH',2,2)).chUp&&!M(bp('CH',2,2)).good,'CH-up rule kept');
+  for(const ty of ['FB','CB','SC'])for(const z of [13,18,14])assert.ok(M(bp(ty,8,z)).good,ty+' called low '+z);
+  assert.ok(!M(bp('RS',8,14)).good,'a rise ball is not good low');
+  assert.ok(!M(bp('FB',1,14)).good);assert.ok(M(bp('CH',2,2)).chUp&&!M(bp('CH',2,2)).good,'CH top row stays a miss');
+  const box5=M(bp('FB',5,5));assert.equal(box5.box5,true);assert.equal(box5.sev,2);assert.equal(box5.good,false);assert.equal(PC.hitSpot(bp('FB',5,5)),false);
   // report: competitive % = strikes + ring / all; raw strike % visible; way-off count
   const L=[bp('FB',3,3),bp('FB',3,12),bp('FB',9,17),bp('CH',8,18),bp('FB',16,16),bp('FB',3,21),bp('FB',9,22),bp('FB',5,5),bp('FB',1,1),bp('FB',2,2)];
   const r=PC.sessionReport(L,{p_larbus:'R'});assert.equal(r.n,10);assert.equal(r.strikes,0);assert.equal(r.strikePct,0);assert.equal(r.compPct,80);assert.equal(r.wayOff,2);
   assert.ok(r.feedback.some(x=>/2 pitches way off/.test(x)),JSON.stringify(r.feedback));assert.ok(!r.feedback.some(x=>/Only \d+% (strikes|competitive)/.test(x)),'40% strikes but 80% competitive -> no ding');
   assert.deepEqual(r.waste,{n:1,good:1});
-  const md=PC.missData(L.map(p=>({p})));assert.equal(md.cells[3].land[21].n,1);assert.equal(md.cells[3].land[21].sev,3);assert.equal(md.cells[8].good,1,'CH low ring good on heat map');
+  const md=PC.missData(L.map(p=>({p})));assert.equal(md.cells[3].land[21].n,1);assert.equal(md.cells[3].land[21].sev,3);assert.equal(md.cells[3].land[21].d,3);assert.equal(md.cells[8].good,1,'CH low ring good on heat map');
   // drill-down landing data and actual heat data tolerate way-off spots
   assert.equal(PC.heatData(L.map(p=>({p})),{},'actual').total,8);assert.equal(PC.locInfo(21,'R').label,'way high (not competitive)');
   // bullpen summarize: raw strike %, competitive %, way off
@@ -460,7 +463,7 @@ test('FLOW-15 discard pushes deleted and a pull does not bring it back',()=>{con
 test('pitchMark: good / miss / souvenir, and competitive when nothing was aimed',()=>{
   assert.equal(PC.pitchMark({type:'FB',targets:[1],loc:1}),'good');assert.equal(PC.pitchMark({type:'FB',targets:[1],loc:2}),'good');
   assert.equal(PC.pitchMark({type:'FB',targets:[1],loc:9}),'miss');assert.equal(PC.pitchMark({type:'FB',targets:[1],loc:5}),'souvenir');
-  assert.equal(PC.pitchMark({type:'FB',targets:[5],loc:5}),'good','aimed middle is not a souvenir');
+  assert.equal(PC.pitchMark({type:'FB',targets:[5],loc:5}),'miss','HM-9a: box 5 is a missed spot, and it is still not a souvenir');
   assert.equal(PC.pitchMark({type:'FB',targets:[],loc:13}),'good');assert.equal(PC.pitchMark({type:'FB',targets:[],loc:22}),'miss');
   assert.equal(PC.pitchMark({type:'FB',targets:[1],loc:null}),null);});
 test('recentPitches numbers the at-bat / session in sequence and keeps the last n',()=>{const L=[{id:1},{id:2,noPitch:true},{id:3},{id:4,deleted:true},{id:5}];
@@ -603,7 +606,8 @@ test('SCORE-5: an FB A waste pitch is a strike when the umpire says so, and a hi
   assert.equal(PC.summarize(pack).spot,2);
   assert.equal(PC.sessionReport(pack).hits,PC.summarize(pack).spot);
   assert.equal(PC.hitSpot({type:'FB',call:'FB16',hand:'R',targets:[16],loc:16,result:'called',inning:1,abn:1}),true,'a fastball that is not FB A still hits its box');
-  assert.equal(PC.hitSpot({type:'FB',call:'FB A',shook:true,hand:'R',targets:[5],loc:5,result:'called',inning:1,abn:1}),true,'a shake-off is scored on her own aim');
+  assert.equal(PC.hitSpot({type:'FB',call:'FB A',shook:true,hand:'R',targets:[5],loc:5,result:'called',inning:1,abn:1}),false,'a shake-off is scored on her own aim, and box 5 is still a miss');
+  assert.equal(PC.hitSpot({type:'FB',call:'FB A',shook:true,hand:'R',targets:[8],loc:8,result:'called',inning:1,abn:1}),true,'a shake-off on a non-5 aim still hits that aim');
 });
 test('SCORE-5: the away box is 16 for a righty and 17 for a lefty, and the marks use that hit spot',()=>{
   const row=(over)=>({type:'FB',call:'FB A',hand:'R',targets:[16],loc:16,result:'ball',inning:1,abn:1,b:0,s:2,...over});
@@ -813,9 +817,9 @@ test('FLOW-6, FLOW-7: bullpen pitch saves with no result; hit-spot % including a
   const miss={type:'FB',targets:[8],loc:5};const sum=PC.summarize([ch,miss]);
   assert.equal(sum.spotN,2);assert.equal(sum.spot,1);assert.equal(sum.spotPct,50);
   for(const [type,loc] of [['CH',13],['DR',14],['DC',18]]){const p={type,targets:[8],loc};assert.equal(PC.lowGood(p),true,type+' '+loc);assert.equal(PC.pitchMiss(p).good,true);assert.equal(PC.pitchMiss(p).low,true);}
-  assert.equal(PC.hitSpot({type:'CH',targets:[8],loc:13}),false);
-  assert.equal(PC.lowGood({type:'FB',targets:[8],loc:13}),false);
-  assert.equal(PC.lowGood({type:'CH',targets:[8],loc:13,inning:1}),false);
+  assert.equal(PC.hitSpot({type:'CH',targets:[8],loc:13}),true);
+  assert.equal(PC.lowGood({type:'FB',targets:[8],loc:13}),true);
+  assert.equal(PC.lowGood({type:'CH',targets:[8],loc:13,inning:1}),true);
   assert.equal(PC.bullpenResult,undefined);
 });
 test('FLOW-6a: migration removes bpResult from stored sessions and pitches',()=>{
@@ -980,15 +984,16 @@ test('undo of a location edit restores the spot and leaves later pitches',()=>{
   assert.equal(p.loc,5);assert.equal(p.actualLoc,5);assert.equal(p.calledLoc,14);assert.equal(p.edited,undefined);
   assert.equal(later.loc,8);assert.equal(PC.revertEdit(p,snap),false);
 });
-test('FLOW-7a: the low-pitch bonus needs a low call and a bottom-row landing',()=>{
+test('FLOW-7a: a low call that lands in the low ring hits the spot except a rise ball, in a game or the bullpen',()=>{
   for(const box of [7,8,9,13,14,18])assert.equal(PC.lowGood({type:'CH',targets:[box],loc:13}),true,'called '+box);
   assert.equal(PC.lowGood({type:'CH',targets:[4],loc:13}),false);
   assert.equal(PC.lowGood({type:'CH',targets:[8],loc:12}),false);
   assert.equal(PC.lowGood({type:'DR',targets:[9],loc:14}),true);
   assert.equal(PC.lowGood({type:'DC',calledLoc:18,targets:[],loc:18}),true);
-  assert.equal(PC.lowGood({type:'FB',shook:true,call:'CH8',targets:[8],loc:13}),false);
+  assert.equal(PC.lowGood({type:'FB',shook:true,call:'CH8',targets:[8],loc:13}),true);
   assert.equal(PC.lowGood({type:'CH',shook:true,call:'FB4',calledType:'FB',targets:[8],loc:13}),true);
-  assert.equal(PC.lowGood({type:'CH',targets:[8],loc:13,inning:1,abn:1}),false);
+  assert.equal(PC.lowGood({type:'CH',targets:[8],loc:13,inning:1,abn:1}),true);
+  assert.equal(PC.lowGood({type:'RS',targets:[8],loc:14}),false);
 });
 test('RULE-3c: a low change, drop or drop curve in the dirt is a reduced miss',()=>{
   for(const type of ['CH','DR','DC']){const m=PC.pitchMiss({type,targets:[8],loc:31});assert.equal(m.sev,2,type);assert.equal(m.good,false,type);}
@@ -1075,7 +1080,7 @@ test('RULE-3: penalty, bad aim, the low bonus and CSV share calledTypeOf',()=>{
   assert.equal(PC.csvChart(shook).called_type,'FB');assert.equal(PC.csvRow(shook,{mode:'game'}).called_type,'FB');
   const ch={type:'CH',call:'FB2',calledType:'FB',shook:true,targets:[2],loc:2,hand:'R'};
   assert.equal(PC.calledTypeOf(ch),'CH');assert.equal(PC.pitchMiss(ch).chUp,true);assert.equal(PC.pitchMiss(ch).badAim,true);
-  assert.equal(PC.lowGood({type:'FB',shook:true,call:'CH8',targets:[8],loc:13}),false);
+  assert.equal(PC.lowGood({type:'FB',shook:true,call:'CH8',targets:[8],loc:13}),true);
   assert.equal(PC.pitchMiss({type:'CH',targets:[8],loc:2}).chUp,true);
 });
 test('RULE-4: scoring, edit, sync and CSV import use one validator; a read keeps and flags',()=>{
@@ -1248,6 +1253,113 @@ test('RULE-4a: CH box 2 is kept, calledFlag is true, and an off-grid called box 
   const sync=PC.rowPitch({id:'a',mode:'game',type:'CH',targets:[2],called_loc:2,loc:8,inning:1,abn:1});
   assert.ok(sync.targets.includes(2));assert.equal(sync.calledLoc,2);assert.equal(sync.calledFlag,true);
   assert.equal(PC.rowPitch({id:'b',mode:'game',type:'CH',targets:[2],called_loc:99,loc:8,inning:1,abn:1}).calledLoc,null);
+});
+// HM-5, HM-9, HM-9a, HM-10a, HM-11. PR 1a rules. callWarn (HM-9b) and looseHit (HM-10) are later PRs.
+test('HM-5: off-grid distance is 3, raw Chebyshev stays, and a tie keeps the earlier target',()=>{
+  const raw=PC.missDist;
+  assert.equal(raw(1,31),5);assert.equal(raw(1,22),4);assert.equal(raw(1,32),3);
+  assert.equal(PC.missD(1,31),3);assert.equal(PC.missD(1,22),3);assert.equal(PC.missD(1,32),3);assert.equal(PC.missD(5,24),3);
+  assert.equal(PC.missD(1,14),PC.missDist(1,14));assert.equal(PC.missDist(1,14),3);assert.equal(PC.missD(11,14),4);
+  assert.equal(raw(15,21),1);assert.equal(PC.missD(15,21),3);
+  const way=PC.pitchMiss({type:'FB',targets:[15],loc:21});assert.equal(way.d,3);assert.equal(way.sev,PC.WAY_SEV);
+  assert.equal(PC.nearestTarget([7,9],8),7,'a distance tie keeps list order');
+  const off=PC.pitchMiss({type:'FB',targets:[7,9],loc:31});assert.equal(off.target,7);assert.equal(off.d,3);
+  assert.equal(raw(7,31),3);assert.equal(raw(9,31),3);
+});
+test('HM-5 RULE-3d: a shake-off with calledLoc scores the re-signaled box',()=>{
+  const p={type:'FB',shook:true,call:'FB1',calledLoc:9,targets:[1],loc:9,hand:'R',inning:1,abn:1,result:'called'};
+  assert.deepEqual(PC.calledBoxes(p),[9]);
+  const m=PC.pitchMiss(p);assert.equal(m.target,9);assert.equal(m.d,0);assert.equal(PC.hitSpot(p,m),true);
+});
+test('HM-9 HM-10a HM-11: hit spot, the low-target rule, and within 1 cell',()=>{
+  const game={hand:'R',inning:1,abn:1};
+  const fb=(over)=>Object.assign({type:'FB',result:'called'},game,over);
+  assert.equal(PC.hitSpot(fb({call:'FB A',targets:[16],loc:16,result:'kd3'})),true,'FB A kd3 on 16 vs a righty');
+  assert.equal(PC.hitSpot(fb({call:'FB A',targets:[16],loc:16,result:'kd3out'})),true);
+  assert.equal(PC.hitSpot(fb({call:'FB A',targets:[16],loc:16,result:'called'})),false);
+  assert.equal(PC.hitSpot(fb({call:'FB A',hand:'L',targets:[17],loc:17,result:'kd3'})),true,'FB A kd3 on 17 vs a lefty');
+  assert.equal(PC.hitSpot(fb({targets:[2],loc:2})),true);
+  const low=fb({targets:[8],loc:14,result:'ball'});
+  assert.equal(PC.hitSpot(low),true,'FB called 8 landing 14 is a hit in a game');
+  assert.equal(PC.pitchMiss(low).d,2);
+  assert.equal(PC.csvRow(low,{mode:'game'}).hit_spot,1);
+  const pen=Object.assign({},low);delete pen.inning;delete pen.abn;
+  assert.equal(PC.hitSpot(pen),true,'the same low fastball hits in the bullpen');
+  assert.equal(PC.hitSpot({type:'RS',targets:[8],loc:14}),false);
+  assert.equal(PC.hitSpot({type:'RS',targets:[2],loc:2}),true);
+  assert.equal(PC.hitSpot({type:'CH',targets:[7],loc:13}),true);
+  assert.equal(PC.hitSpot({type:'CB',targets:[13],loc:18}),true);
+  const fiveOut=fb({targets:[5],loc:18,result:'ball'});
+  assert.equal(PC.hitSpot(fiveOut),false,'5 is not a low call');assert.equal(PC.pitchMiss(fiveOut).d,2);
+  assert.equal(PC.hitSpot({type:'DR',targets:[9],loc:31}),false);
+  assert.equal(PC.pitchMiss(fb({targets:[5],loc:1})).d,1,'aim 5 landing 1 is within 1');
+  assert.equal(PC.pitchMiss(fiveOut).d,2,'aim 5 landing 18 is not within 1');
+  const cbNear={type:'CB',targets:[5],loc:2,hand:'R'};
+  assert.equal(PC.pitchMiss(cbNear).d,1);assert.equal(PC.hitSpot(cbNear),false,'CB 5 to 2 is within 1 and still a strict miss');
+  assert.deepEqual(PC.CH_TARGETS,[4,7,8,9,13,14,18]);
+});
+test('HM-9a: pitch-type misses, box 5, and low dirt',()=>{
+  const box=PC.pitchMiss({type:'FB',targets:[5],loc:5});
+  assert.equal(box.box5,true);assert.equal(box.sev,2);assert.equal(box.good,false);assert.equal(PC.hitSpot({type:'FB',targets:[5],loc:5}),false);
+  assert.equal(PC.hitSpot({type:'CH',targets:[4],loc:4}),true);
+  assert.equal(PC.hitSpot({type:'CB',targets:[6],loc:6}),true);
+  assert.equal(PC.hitSpot({type:'CB',targets:[4],loc:4}),true,'CB landing 4 is not a type miss');
+  const cbUp=PC.pitchMiss({type:'CB',targets:[6],loc:2});
+  assert.equal(cbUp.chUp,true);assert.equal(PC.hitSpot({type:'CB',targets:[6],loc:2}),false,'CB landing 2 is a miss');
+  assert.equal(PC.hitSpot({type:'CB',targets:[16],loc:16}),true);assert.equal(PC.pitchMiss({type:'CB',targets:[8],loc:16}).chUp,false);
+  assert.equal(PC.hitSpot({type:'SC',targets:[2],loc:2}),true,'a screwball is a miss only in box 5');
+  const drFive=PC.pitchMiss({type:'DR',targets:[8],loc:5});
+  assert.equal(drFive.typeMiss,true);assert.equal(PC.hitSpot({type:'DR',targets:[8],loc:5}),false);assert.equal(drFive.sev,4);
+  const drMid=PC.pitchMiss({type:'DR',targets:[8],loc:4});
+  assert.equal(drMid.typeMiss,true);assert.equal(drMid.sev,2);assert.equal(PC.hitSpot({type:'DR',targets:[4],loc:4}),false,'DR landing 4 is a miss');
+  const drRing=PC.pitchMiss({type:'DR',targets:[16],loc:16,hand:'R'});
+  assert.equal(drRing.sev,2);assert.equal(drRing.good,false);assert.equal(drRing.chUp,false);assert.equal(drRing.dropRing,true);assert.equal(PC.isCompetitive(16),true);
+  assert.equal(PC.hitSpot({type:'DR',targets:[16],loc:16}),false);assert.equal(PC.pitchMark({type:'DR',targets:[16],loc:16}),'miss');
+  assert.equal(PC.missData([{p:{type:'DR',targets:[16],loc:16}}]).chUp,0);
+  const drRep=PC.sessionReport([{type:'DR',targets:[16],loc:16}]);assert.equal(drRep.good,0);assert.equal(drRep.chUp,0);
+  const dcRing=PC.pitchMiss({type:'DC',targets:[17],loc:17,hand:'L'});
+  assert.equal(dcRing.sev,2);assert.equal(dcRing.good,false);assert.equal(PC.pitchMark({type:'DC',targets:[17],loc:17}),'miss');assert.equal(PC.hitSpot({type:'DC',targets:[17],loc:17}),false);
+  assert.equal(PC.pitchMiss({type:'DR',targets:[8],loc:1}).sev,4);
+  assert.equal(PC.hitSpot({type:'DC',targets:[8],loc:14}),true);
+  const dirt=PC.pitchMiss({type:'CH',targets:[8],loc:31});
+  assert.equal(dirt.lowDirt,true);assert.equal(dirt.sev,2);assert.equal(dirt.d,3);assert.equal(PC.hitSpot({type:'CH',targets:[8],loc:31}),false);
+  assert.equal(PC.pitchMiss({type:'DR',targets:[13],loc:31}).lowDirt,true);
+  assert.equal(PC.pitchMiss({type:'DC',targets:[13],loc:31}).lowDirt,true);
+  assert.equal(PC.pitchMiss({type:'FB',targets:[8],loc:31}).lowDirt,false);assert.equal(PC.pitchMiss({type:'FB',targets:[8],loc:31}).sev,3);
+  assert.equal(PC.pitchMiss({type:'CH',targets:[2],loc:31}).lowDirt,false);
+});
+test('HM-9: a 20-pitch game fixture has the same CSV hit_spot sum as hit spot',()=>{
+  const g={hand:'R',inning:1,abn:1,result:'ball'};
+  const row=(over)=>Object.assign({},g,over);
+  const rows=[
+    row({type:'FB',targets:[2],loc:2}),
+    row({type:'FB',targets:[8],loc:14}),
+    row({type:'CH',targets:[4],loc:4}),
+    row({type:'CH',targets:[7],loc:13}),
+    row({type:'CB',targets:[6],loc:6}),
+    row({type:'CB',targets:[13],loc:18}),
+    row({type:'DC',targets:[8],loc:14}),
+    row({type:'FB',call:'FB A',targets:[16],loc:16,result:'kd3'}),
+    row({type:'RS',targets:[2],loc:2}),
+    row({type:'FB',targets:[3],loc:3}),
+    row({type:'RS',targets:[8],loc:14}),
+    row({type:'CB',targets:[2],loc:2}),
+    row({type:'DR',targets:[4],loc:4}),
+    row({type:'FB',targets:[5],loc:5}),
+    row({type:'DR',targets:[16],loc:16}),
+    row({type:'DR',targets:[1],loc:1}),
+    row({type:'CH',targets:[8],loc:31}),
+    row({type:'FB',targets:[5],loc:18}),
+    row({type:'CB',targets:[5],loc:2}),
+    row({type:'DR',targets:[9],loc:31})
+  ];
+  assert.equal(rows.length,20);
+  const spot=p=>PC.csvRow(p,{mode:'game'}).hit_spot;
+  assert.equal(spot(rows[1]),1,'FB 8 to 14');assert.equal(spot(rows[2]),1,'CH 4 to 4');assert.equal(spot(rows[6]),1,'DC 8 to 14');
+  assert.equal(spot(rows[11]),0,'CB 2 to 2');assert.equal(spot(rows[12]),0,'DR 4 to 4');assert.equal(spot(rows[13]),0,'FB 5 to 5');assert.equal(spot(rows[15]),0,'DR 1 to 1');
+  const hits=rows.filter(p=>PC.hitSpot(p)).length;
+  const csv=rows.reduce((n,p)=>n+(spot(p)===1?1:0),0);
+  assert.equal(hits,10);assert.equal(csv,hits);
 });
 // INFRA-4. The release label lives in one core module. The cache name and the changelog heading match it.
 test('INFRA-4: one release label matches the cache and the changelog',()=>{

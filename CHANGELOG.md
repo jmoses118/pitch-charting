@@ -1,5 +1,12 @@
 # Changelog
 
+## v84 – A low aim that finishes low hits the spot
+### Changed
+- A pitch aimed at 7, 8, 9, 13, 14 or 18 that lands in 13, 14 or 18 hits the spot, in a game and in the bullpen, for every pitch except a rise ball.
+- Box 5 is always a missed spot. A change-up or curve in the top row is a miss. A drop or drop curve in the middle row is a miss, the top row is the worst miss, and boxes 16 and 17 are a competitive miss. Those side boxes are not marked as up in the zone.
+- A pitch that lands way off, in the dirt, or at the backstop counts as 3 off, even when that box was the aim. A change-up, drop, or drop curve aimed low that lands in the dirt is still the softer miss.
+- Cache: `te-pitch-v84`.
+
 ## v83 – Ball in play can be a bunt
 ### Changed
 - **RULE-13.** Jim approved this on 20 October 2026. Ball in play can note a bunt, with Ground, Liner, Fly, and Pop up. The saved codes stay GB, LD, FB, and PU, and a bunt is BU. Older pitches keep the contact they already have. The choice stays optional on the game screen and the coach screen.

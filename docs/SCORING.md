@@ -6,8 +6,8 @@ All rules live in `js/core/grid.js` and `js/core/scoring.js`; report, heat map a
 - **Zone** 1–9 (3×3), **5** = middle-middle.
 - **Ring** 11–18 just off the plate (competitive misses); 13/18/14 are the low ring. This is the one ring of ball boxes outside the zone.
 - **Way off** 21–24 (tap buttons outside the ring). Not competitive.
-- **Actual only** 31 in dirt and 32 over catcher/backstop. Logged as where the pitch went. `PC.validCalled` rejects them, and way off (21–24), as called targets. A CH, drop, or drop curve called in 7, 8, 9, 13, 14, or 18 that lands in 31 is severity 2. Any other landing here that was not the called spot scores `WAY_SEV`. Not competitive. Counted as landed on the heat map, but not drawn on the zone grid.
-- `GRID_XY` places zone + ring on a 5×5 lattice; 31 sits one row below way-low and 32 one row above way-high. Miss distance = Chebyshev distance (squares) to the nearest target.
+- **Actual only** 31 in dirt and 32 over catcher/backstop. Logged as where the pitch went. `PC.validCalled` rejects them, and way off (21–24), as called targets. `PC.missD` counts every one of those landings as 3 off, even when that box was the call. A CH, drop, or drop curve called in 7, 8, 9, 13, 14, or 18 that lands in 31 is severity 2 (`pitchMiss.lowDirt`). Not competitive. Counted as landed on the heat map, but not drawn on the zone grid.
+- `GRID_XY` places zone + ring on a 5×5 lattice; 31 sits one row below way-low and 32 one row above way-high. Raw miss distance is Chebyshev (squares) to the nearest target. Off-grid landings use `missD` instead, and that distance is 3.
 
 ## Called location vs actual location (v40)
 - `calledLoc` is the box that was called. One target stays that box. Several targets (a multi-target call, or a shake-off whose call named more than one box) use the target nearest the actual location (`PC.nearestTarget`, same Chebyshev distance as miss scoring). Before the actual location is known, the first target is shown. A distance tie keeps the earlier target. On a shake-off the set is the coach's called boxes, not her own aim.
@@ -23,17 +23,18 @@ A change-up is **never aimed in the upper zone**. The only valid change-up targe
 - Every target picker uses `PC.aimOpts(type)`, which asks `PC.validCalled`: the bullpen target tap, the portrait call target, the coach zone when the call has no spot (`PC.scoreTap`), ✎ Aim / long-press, and band setup. Other boxes are refused ("Change-ups are aimed low: 4, 7, 8, 9 or 13, 14, 18", or the actual-only sentence for dirt and the backstop). A call that already names a spot keeps the next zone tap as where the pitch went. The cell directly above box 3 on the coach grid is zone 12, labeled and tappable.
 - A change-up call that names a high spot (e.g. **CH H+**, CH H, CH 2) keeps the CH type but gets **no spot** and is flagged `chHigh`. It then shows up in band setup, where only the valid boxes can be picked.
 - Older data with a high change-up target is flagged by `pitchMiss(...).badAim`; it is still scored normally.
-- The **CH-up miss rule** below is unchanged.
+- The pitch-type miss rule below scores a high landing. The aim block above is unchanged.
 
 ## SCORE-1 Hit spot
-`PC.hitSpot(p)` = `pitchMiss(p).d === 0` and not a CH-up. Stats Spot % and the report's Bullseyes use it. The intended heat map uses that same hit, so a change-up aimed at box 4 that lands on box 4 is not a hit. FB A (away waste) follows SCORE-5, and that same hit decides its marker and its on-target count.
+`PC.hitSpot(p)` is a hit when the pitch is not a type miss, and either it lands on the called box or the low-target rule applies. Stats Spot %, the report's Bullseyes, the intended heat map, and CSV `hit_spot` use that same hit. A change-up aimed at box 4 that lands on box 4 is a hit. Box 5 is never a hit, even when 5 was the call. FB A (away waste) follows SCORE-5, and that same hit decides its marker and its on-target count.
 
 ## SCORE-2 Miss severity (per called pitch)
-- `sev` = distance in squares from the nearest target, 0 = hit spot.
-- **Souvenir**: landing in 5 when 5 was not a target → `MAX_MISS` (4).
-- **CH up**: a changeup that misses up is at least `CH_MIN_SEV` (2).
-- **Way off / dirt / backstop**: `WAY_SEV` (3) when that box was not a called spot (a miss, not a souvenir). Landing on the called dirt, way-off, or backstop box stays severity 0, so it counts as a hit.
-- **CH-low rule (bullpen only)**: CH/DR/DC landing in the low ring (13/18/14) counts as good (sev ≤ 1).
+- `sev` starts from `missD` to the nearest target (raw Chebyshev inside the frame, 3 off the grid). 0 is the called box. The miss heat map copies that same nearest-target distance onto each landing. A pitch aimed at two boxes stores the same distance on both.
+- **Box 5**: a missed spot for every pitch type, even when 5 was the call. Severity is at least `CH_MIN_SEV` (2). Landing in 5 when 5 was not a target stays the souvenir at `MAX_MISS` (4).
+- **Pitch-type miss** (`TYPE_MISS` in grid.js): a change-up or curve in the top row (1, 2, 3, 11, 12, 15) is at least 2. Boxes 4, 6, 16 and 17 stay a normal miss for those two. A drop or drop curve in the middle row (4, 5, 6) is at least 2, the top row is `MAX_MISS` (4), and 16 or 17 is a competitive miss at 2 (not a hit, and not on target). `chUp` is those miss rows except 16 and 17, so a side miss is not marked up.
+- The session report and the per-type line still say “up in the zone” only for a change-up. A curve, drop, or drop curve that misses high does not get that sentence.
+- **Off grid**: way off, dirt and the backstop are 3 off, even when that box was the call. A CH, drop, or drop curve called low that lands in the dirt stays severity 2.
+- **Low-target rule (FLOW-7a)**: any pitch except a rise ball, called in 7, 8, 9, 13, 14 or 18 and landing in 13, 14 or 18, is a hit in a game and in the bullpen. Severity is capped at 1. A rise ball is never good low.
 - **Good** = `sev ≤ GOOD_MAX_SEV` (1).
 
 ## Heat map summary
