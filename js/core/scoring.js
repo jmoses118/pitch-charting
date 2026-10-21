@@ -36,9 +36,10 @@ const lowGood=p=>penaltyType(p)!=='RS'&&calledLow(p)&&LOW_RING.includes(+landOf(
 // RULE-3c: that same low call landing in the dirt is a miss, one step under a full way-off.
 const dirtSoft=p=>+landOf(p)===31&&LOW_TYPES.includes(penaltyType(p))&&calledLow(p);
 function adjSev(p,sev){if(dirtSoft(p))return Math.min(sev,WAY_SEV-1);if(lowGood(p))return Math.min(sev,1);return sev;}
-const chUp=p=>{const z=landOf(p);return !!(p&&z!=null&&!isWay(z)&&!isActualOnly(z)&&PC.typeMissBand(penaltyType(p),z));};
+// HM-9a. The 16/17 ring is dropRing, not an up miss, so the report does not mark it up.
+const chUp=p=>{const z=landOf(p);const band=p&&z!=null&&!isWay(z)&&!isActualOnly(z)&&PC.typeMissBand(penaltyType(p),z);return !!(band&&!band.ring);};
 function missData(items,f){const q=heatFilter(items,f);const cells={};ALL_CELLS.forEach(z=>cells[z]={n:0,sum:0,hit:0,avg:null,mm:0});let total=0,mm=0,chu=0;
-  // one source of truth for severity: pitchMiss (souvenir, CH-up, way-off, low-ring rules all live there)
+  // pitchMiss is the one severity. e.d is missD to the nearest target, the same number on every aimed cell.
   q.forEach(({p})=>{const m=pitchMiss(p);if(!m)return;const t=PC.calledBoxes(p),loc=landOf(p),sev=m.sev,mmMiss=m.mm,up=m.chUp;total++;if(mmMiss)mm++;if(up)chu++;
     t.forEach(z=>{const c=cells[z];if(!c)return;c.n++;c.sum+=sev;if(hitSpot(p,m))c.hit++;if(onTarget(p,m))c.good=(c.good||0)+1;if(mmMiss)c.mm++;if(up)c.chUp=(c.chUp||0)+1;
       const L=(c.land=c.land||{});const e=(L[loc]=L[loc]||{n:0,sev:0,mm:0,chUp:0,d:0});e.n++;e.sev=Math.max(e.sev,sev);e.d=m.d;if(mmMiss)e.mm++;if(up)e.chUp++;});});
@@ -87,7 +88,7 @@ function summarize(pitches,opt){const P=pitches.filter(countsAsPitch);
 function pitchMiss(p,throws){throws=throws||p.throws;const t=PC.calledBoxes(p);const loc=landOf(p);if(!t.length||loc==null||!GRID_XY[loc])return null;let best=null,bt=null;
   t.forEach(z=>{const d=missDist(loc,z);if(d!=null&&(best==null||d<best)){best=d;bt=z;}});if(best==null)return null;
   const mm=+loc===5&&!t.includes(5),band=PC.typeMissBand(penaltyType(p),loc),up=chUp(p),box5=+loc===5,dropRing=!!(band&&band.ring),typeMiss=!!(box5||up||dropRing);
-  let sev=mm?MAX_MISS:PC.missD(bt,loc);if(box5&&!mm||(up&&band.sev!=='worst'))sev=Math.max(sev,CH_MIN_SEV);if(up&&band.sev==='worst')sev=MAX_MISS;sev=adjSev(p,sev);const way=isWay(loc);const a=GRID_XY[loc],b=GRID_XY[bt];const dx=a[0]-b[0],dy=a[1]-b[1];
+  let sev=mm?MAX_MISS:PC.missD(bt,loc);if(box5&&!mm||(band&&band.sev==='floor'))sev=Math.max(sev,CH_MIN_SEV);if(band&&band.sev==='worst')sev=MAX_MISS;sev=adjSev(p,sev);const way=isWay(loc);const a=GRID_XY[loc],b=GRID_XY[bt];const dx=a[0]-b[0],dy=a[1]-b[1];
   const hand=p.hand==='L'?'L':'R';// no batter -> RHB for in/away
   const toward3B=dx>0;// pitcher's view: +x = 3B side, where an RHB stands
   const noBat=p.hand!=='L'&&p.hand!=='R'&&(throws==='L'||throws==='R');

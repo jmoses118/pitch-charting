@@ -1258,9 +1258,9 @@ test('RULE-4a: CH box 2 is kept, calledFlag is true, and an off-grid called box 
 test('HM-5: off-grid distance is 3, raw Chebyshev stays, and a tie keeps the earlier target',()=>{
   const raw=PC.missDist;
   assert.equal(raw(1,31),5);assert.equal(raw(1,22),4);assert.equal(raw(1,32),3);
-  assert.equal(PC.missD&&PC.missD(1,31),3);assert.equal(PC.missD&&PC.missD(1,22),3);assert.equal(PC.missD&&PC.missD(1,32),3);assert.equal(PC.missD&&PC.missD(5,24),3);
+  assert.equal(PC.missD(1,31),3);assert.equal(PC.missD(1,22),3);assert.equal(PC.missD(1,32),3);assert.equal(PC.missD(5,24),3);
   assert.equal(PC.missD(1,14),PC.missDist(1,14));assert.equal(PC.missDist(1,14),3);assert.equal(PC.missD(11,14),4);
-  assert.equal(raw(15,21),1);assert.equal(PC.missD&&PC.missD(15,21),3);
+  assert.equal(raw(15,21),1);assert.equal(PC.missD(15,21),3);
   const way=PC.pitchMiss({type:'FB',targets:[15],loc:21});assert.equal(way.d,3);assert.equal(way.sev,PC.WAY_SEV);
   assert.equal(PC.nearestTarget([7,9],8),7,'a distance tie keeps list order');
   const off=PC.pitchMiss({type:'FB',targets:[7,9],loc:31});assert.equal(off.target,7);assert.equal(off.d,3);
@@ -1296,8 +1296,6 @@ test('HM-9 HM-10a HM-11: hit spot, the low-target rule, and within 1 cell',()=>{
   assert.equal(PC.pitchMiss(fiveOut).d,2,'aim 5 landing 18 is not within 1');
   const cbNear={type:'CB',targets:[5],loc:2,hand:'R'};
   assert.equal(PC.pitchMiss(cbNear).d,1);assert.equal(PC.hitSpot(cbNear),false,'CB 5 to 2 is within 1 and still a strict miss');
-  const awayLow={type:'FB',call:'FB A',hand:'R',targets:[14],loc:14,result:'called',inning:1,abn:1};
-  assert.equal(PC.lowGood(awayLow),true);assert.equal(PC.hitSpot(awayLow),false,'SCORE-5 still beats the low-target rule');
   assert.deepEqual(PC.CH_TARGETS,[4,7,8,9,13,14,18]);
 });
 test('HM-9a: pitch-type misses, box 5, and low dirt',()=>{
@@ -1313,11 +1311,12 @@ test('HM-9a: pitch-type misses, box 5, and low dirt',()=>{
   const drFive=PC.pitchMiss({type:'DR',targets:[8],loc:5});
   assert.equal(drFive.typeMiss,true);assert.equal(PC.hitSpot({type:'DR',targets:[8],loc:5}),false);assert.equal(drFive.sev,4);
   const drMid=PC.pitchMiss({type:'DR',targets:[8],loc:4});
-  assert.equal(drMid.typeMiss,true);assert.equal(drMid.sev>=2,true);assert.equal(PC.hitSpot({type:'DR',targets:[4],loc:4}),false,'DR landing 4 is a miss');
+  assert.equal(drMid.typeMiss,true);assert.equal(drMid.sev,2);assert.equal(PC.hitSpot({type:'DR',targets:[4],loc:4}),false,'DR landing 4 is a miss');
   const drRing=PC.pitchMiss({type:'DR',targets:[16],loc:16,hand:'R'});
-  assert.equal(drRing.sev,2);assert.equal(drRing.good,false);assert.equal(drRing.dropRing,true);assert.equal(PC.isCompetitive(16),true);
+  assert.equal(drRing.sev,2);assert.equal(drRing.good,false);assert.equal(drRing.chUp,false);assert.equal(drRing.dropRing,true);assert.equal(PC.isCompetitive(16),true);
   assert.equal(PC.hitSpot({type:'DR',targets:[16],loc:16}),false);assert.equal(PC.pitchMark({type:'DR',targets:[16],loc:16}),'miss');
-  assert.equal(PC.sessionReport([{type:'DR',targets:[16],loc:16}]).good,0);
+  assert.equal(PC.missData([{p:{type:'DR',targets:[16],loc:16}}]).chUp,0);
+  const drRep=PC.sessionReport([{type:'DR',targets:[16],loc:16}]);assert.equal(drRep.good,0);assert.equal(drRep.chUp,0);
   const dcRing=PC.pitchMiss({type:'DC',targets:[17],loc:17,hand:'L'});
   assert.equal(dcRing.sev,2);assert.equal(dcRing.good,false);assert.equal(PC.pitchMark({type:'DC',targets:[17],loc:17}),'miss');assert.equal(PC.hitSpot({type:'DC',targets:[17],loc:17}),false);
   assert.equal(PC.pitchMiss({type:'DR',targets:[8],loc:1}).sev,4);

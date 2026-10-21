@@ -48,7 +48,7 @@ function missDist(a,b){const p=GRID_XY[a],q=GRID_XY[b];if(!p||!q)return null;ret
 // HM-5. Off-grid landings (21–24, 31, 32) are 3 off. This is the one definition. Raw missDist is unchanged.
 const OFF_D=MAX_MISS-1;
 function missD(aim,land){const z=+land;if(isWay(z)||isActualOnly(z))return OFF_D;return missDist(aim,land);}
-// HM-9a. One table. chUp reads miss. A later callWarn reads warn. Box 5 is every type and is not listed here.
+// HM-9a. One table. chUp reads miss bands that are not the 16/17 ring. A later callWarn reads warn. Box 5 is every type and is not listed here.
 // sev 'floor' means at least CH_MIN_SEV. sev 'worst' means MAX_MISS. ring marks the DR/DC 16/17 competitive miss.
 const TOP_ROW=[1,2,3,11,12,15],MID_ROW=[4,5,6],DROP_SIDE=[16,17];
 const DROP_MISS={miss:[{boxes:TOP_ROW,sev:'worst'},{boxes:MID_ROW,sev:'floor'},{boxes:DROP_SIDE,sev:'floor',ring:true}],warn:TOP_ROW.concat([4,6])};
