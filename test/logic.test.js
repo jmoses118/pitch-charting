@@ -1610,7 +1610,7 @@ test('HM-13: first-pitch strike % and shake-offs are strikePct, a whole percent 
     {type:'FB',hand:'R',b:0,s:0,loc:5,result:'called'}
   ];
   const sum=PC.summarize(fp.concat([game({result:'called',b:1,s:0,abn:1})]));
-  assert.equal(sum.fps,2);assert.equal(sum.fpsN,4);assert.equal(sum.fpsPct,67,'2 strikes among 3 judged first pitches, not 50');
+  assert.equal(sum.fps,2);assert.equal(sum.fpsN,3);assert.equal(sum.fpsPct,67,'2 of 3 = 67');
   const cs=PC.countStats([
     game({result:'called',abn:1}),
     game({result:'ball',loc:11,abn:2}),
