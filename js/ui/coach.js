@@ -121,8 +121,9 @@ function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,h
   if(sc){const ps=g.pitches.filter(p=>p.inning===sc.inning&&!p.noPitch);const q=PC.summarize(ps);const k=ps.filter(p=>p.end==='K'||p.end==='K-D3').length,hits=ps.filter(p=>/^(1B|2B|3B|HR)$/.test(p.ip||'')).length;
     $('cSideSum').textContent=`${g.homeAway==='away'?'Bottom':g.homeAway==='home'?'Top':'Inning'} ${sc.inning}: ${ps.length} pitch${ps.length===1?'':'es'} · ${k} K · ${hits} H · ${fmt(q.strikePct)} strikes`;}
   $('cmKd3').disabled=$('cmKd3o').disabled=!two;
-// The menu shows the saved choice. themeChoice reads THEME_KEY.
-$('cmTheme').textContent='Display: '+THEME_LABEL[PC.themeChoice(storage)];$('cmMirror').textContent='Mirror sides: '+(PREF.get('mirror','0')==='1'?'on':'off');
+  // The menu shows the saved choice. themeChoice reads THEME_KEY.
+  $('cmTheme').textContent='Display: '+THEME_LABEL[PC.themeChoice(storage)];
+  $('cmMirror').textContent='Mirror sides: '+(PREF.get('mirror','0')==='1'?'on':'off');
   const und=PC.unmappedCells(sh||{rows:[]},S().customTypes);$('cmBand').textContent=`Band setup${und.length&&!PC.bandSetupDone(sh,S().customTypes)?` (${und.reduce((n,u)=>n+u.cells.length,0)} cells need an aim)`:''}`;$('cmBand').disabled=!sh||!und.length;}
 // ---------- coach input ----------
 $('cBand').addEventListener('click',e=>{if(viewOnly()){toast(PC.SCORING_ELSEWHERE);return;}const b=e.target.closest('button[data-r]');if(b&&!b.disabled){sideCard=null;cMsg=null;callCell(+b.dataset.r,+b.dataset.c);}});

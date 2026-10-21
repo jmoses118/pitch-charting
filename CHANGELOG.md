@@ -3,8 +3,8 @@
 ## v81 – Night is the default palette
 ### Changed
 - **VIEW-4.** Jim approved this on 20 October 2026. With no display choice saved, the app opens in Night. A saved Field or Night choice stays as it was, and the game menu still switches between them. Any other saved value stays Night too. The page does not flash the light palette while it loads.
-- Night buttons, selects and inputs use a 2px border, the same as Field, so switching palettes does not shift the page. Night fills are a lighter royal, and white text on them stays readable. A saved Field choice still opens in Field if the theme file does not load.
-- Cache: `te-pitch-v75`.
+- Night buttons, selects and inputs use a 2px border, the same as Field, so switching palettes does not shift the page. Night fills are a lighter royal, and white text on them stays readable.
+- Cache: `te-pitch-v73`.
 
 ## v80 – A dropped third on a waste fastball hits the spot
 ### Changed
