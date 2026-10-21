@@ -9,8 +9,10 @@ function heatItems(st){const th={};st.pitchers.forEach(p=>th[p.id]=p.throws);con
   st.games.forEach(g=>g.pitches.forEach(p=>{if(!p.noPitch)out.push({p,src:'game',gameId:g.id,sessionId:null,throws:th[p.pitcherId]||null,side:p.hand==='L'?'L':p.hand==='N'?'N':(p.hand?'R':'N'),batter:p.batter||''});}));
   st.sessions.forEach(x=>x.pitches.forEach(p=>out.push({p,src:'bullpen',gameId:null,sessionId:x.id,throws:th[p.pitcherId]||null,side:p.hand==='L'?'L':p.hand==='R'?'R':'N',batter:''})));return out;}
 const HEAT_KEYS=['type','pitcher','throws','batter','side','src','game','session'];
+// prettier-ignore
 function countSide(p){const b=+p.b,s=+p.s;if(s>b)return 'ahead';if(b>s)return 'behind';return 'even';}
 // HM-15. Scope, pitch type (OR), and 2-strike (AND) extend the old single-value filters.
+// prettier-ignore
 function heatFilter(items,f){f=f||{};const types=Array.isArray(f.types)&&f.types.length?f.types:null;const counts=Array.isArray(f.counts)&&f.counts.length?f.counts:null;
   return (items||[]).filter(it=>{const p=it.p||{};
     if(types){if(!types.includes(p.type))return false;}else if(f.type&&p.type!==f.type)return false;
@@ -50,6 +52,7 @@ const dirtSoft=p=>+landOf(p)===31&&LOW_TYPES.includes(penaltyType(p))&&calledLow
 function adjSev(p,sev){if(dirtSoft(p))return Math.min(sev,WAY_SEV-1);if(lowGood(p))return Math.min(sev,1);return sev;}
 // HM-9a. The 16/17 ring is dropRing, not an up miss, so the report does not mark it up.
 const chUp=p=>{const z=landOf(p);const band=p&&z!=null&&!isWay(z)&&!isActualOnly(z)&&PC.typeMissBand(penaltyType(p),z);return !!(band&&!band.ring);};
+// prettier-ignore
 function missData(items,f){const q=heatFilter(items,f);const cells={};ALL_CELLS.forEach(z=>cells[z]={n:0,sum:0,hit:0,loose:0,avg:null,mm:0,typeMiss:0,cls:null,strictPct:null,loosePct:null});let total=0,mm=0,chu=0,lowDirt=0;
   // pitchMiss is the one severity. e.d is missD to the nearest target, the same number on every aimed cell.
   q.forEach(({p})=>{const m=pitchMiss(p);if(!m)return;const t=PC.calledBoxes(p),loc=landOf(p),sev=m.sev,mmMiss=m.mm,up=m.chUp,loose=looseHit(p,m),typ=!!m.typeMiss;total++;if(mmMiss)mm++;if(up)chu++;if(m.lowDirt)lowDirt++;
@@ -78,21 +81,31 @@ function kCredit(all){const m=new Map();(all||[]).forEach((p,i)=>{if(!p||(p.end!
 // Game strike = the umpire's result when there is one, otherwise the zone. A bullpen pitch has no strike.
 const strikeOf=p=>isBullpenPitch(p)?null:(p.result?isStrike(p.result):isZone(landOf(p)));
 // Whole percent. Null when the denominator is empty, which is how a bullpen-only strike % prints.
+// prettier-ignore
 function wholePct(a,b){return b?Math.round(100*a/b):null;}
 // HM-13. Strikes among pitches strikeOf can judge. Bullpen pitches drop out of both sides.
+// prettier-ignore
 function strikePct(list){const known=(list||[]).filter(p=>strikeOf(p)!=null);return wholePct(known.filter(p=>strikeOf(p)).length,known.length);}
 // HM-3. n = 0 never fades. Game view fades under 3. Season view fades under 5.
+// prettier-ignore
 function lowSample(n,scope){n=+n||0;if(n<1)return false;return n<(scope==='season'?5:3);}
 // HM-6 / HM-28. Low dirt is class 1. A type miss uses severity. Everything else uses d.
+// prettier-ignore
 function classValue(v){if(v&&typeof v==='object'){if(v.lowDirt)return 1;if(v.typeMiss)return +v.sev;return +v.d;}const n=+v;return Number.isFinite(n)?n:null;}
+// prettier-ignore
 function medianOf(xs){const s=(xs||[]).filter(v=>v!=null&&Number.isFinite(+v)).map(Number).sort((a,b)=>a-b);const n=s.length;if(!n)return null;const i=n>>1;return n%2?s[i]:(s[i-1]+s[i])/2;}
+// prettier-ignore
 function missClass(values){const med=medianOf((values||[]).map(classValue));if(med==null)return null;const c=Math.round(med);return c<=0?0:c>=2?2:1;}
+// prettier-ignore
 function medianMiss(ds){return medianOf(ds);}
 // HM-10. A strict hit, or an in-frame landing that shares a side with the scored aim. Diagonals and type misses stay out.
+// prettier-ignore
 function looseHit(p,m){if(!m||typeof m!=='object')m=pitchMiss(p);if(!m)return false;if(hitSpot(p,m))return true;if(m.typeMiss)return false;const loc=landOf(p);if(!isCompetitive(loc))return false;const a=GRID_XY[m.target],b=GRID_XY[loc];if(!a||!b)return false;return Math.abs(a[0]-b[0])+Math.abs(a[1]-b[1])===1;}
 // HM-26. One bucket per middle miss. HBP is its own bucket. No result (bullpen) is none.
+// prettier-ignore
 function middleBucket(p){const r=p&&p.result;if(!r)return 'none';if(r==='hbp')return 'hbp';if(r==='foul')return 'foul';if(r==='ball')return 'ball';if(r==='inplay')return ['1B','2B','3B','HR'].includes(p.ip)?'hit':'inplay';if(isStrike(r))return 'strike';return 'none';}
 // Per-type strip. Direction uses glove mode and leaves off-grid landings out.
+// prettier-ignore
 function heatStats(list,throws){const thr=typeof throws==='function'?throws:()=>throws||null;const P=(list||[]).filter(countsAsPitch);
   const g={up:0,down:0,'glove side':0,'arm side':0};const mid={hit:0,inplay:0,foul:0,strike:0,ball:0,hbp:0,none:0};
   let aimed=0,hits=0,loose=0,within=0,lowDirt=0,mm=0,base=0,toward=0;const ds=[];
@@ -147,6 +160,7 @@ function pitchMark(p,throws){const loc=landOf(p);if(!p||loc==null)return null;co
 // miss directions in report order, and the most common one for a group
 const MISS_DIRS=['up','down','in','away','glove side','arm side'];
 // HM-27. Glove mode ranks up, down, glove side, and arm side, and a tie returns null. The old call is unchanged.
+// prettier-ignore
 function topDir(g,opt){const dirs=opt&&opt.glove?MISS_DIRS.filter(d=>d!=='in'&&d!=='away'):MISS_DIRS;const ranked=dirs.map(d=>[d,g[d]||0]).sort((a,b)=>b[1]-a[1]);if(opt&&opt.glove&&ranked.length>1&&ranked[0][1]===ranked[1][1])return null;return ranked[0];}
 // best / weakest spot from a list ranked best-first: weakest only when it is clearly worse than the best
 function bestWeak(rank){const best=rank.length?rank[0]:null,lw=rank[rank.length-1];return{best,weakest:rank.length>1&&(lw.goodPct<best.goodPct||lw.avgMiss>=1.5)?lw:null};}
@@ -237,6 +251,8 @@ function shakeoffs(pitches){const P=(pitches||[]).filter(p=>!p.deleted&&countsAs
   return{n:S.length,shook:shakeLine(S),followed:shakeLine(F),
     list:S.map(p=>{const q=prevOf(p);const z=landOf(p);return{id:p.id,called:p.call||p.callRaw||'?',thrown:(p.type||'?')+(z!=null?' '+z:''),count:(p.b!=null&&p.s!=null)?`${p.b}-${p.s}`:'',
       prev:q?`${q.type||'?'} · ${outcomeOf(q)}`:'',outcome:outcomeOf(p),inning:p.inning,batter:p.batter||''};})};}
+// prettier-ignore
 Object.assign(PC,{shakeoffs,shakeLine,isHard,heatSummary,strikeOf,strikePct,hitSpot,looseHit,lowSample,missClass,medianMiss,middleBucket,heatStats,missTxt,MISS_DIRS,topDir,bestWeak,pitchMark,MARK_LABEL,recentPitches,heatItems,HEAT_KEYS,heatFilter,heatData});
+// prettier-ignore
 Object.assign(PC,{CH_MIN_SEV,GOOD_MAX_SEV,isGoodSev,wasteAim,isBullpenPitch,WAY_SEV,LOW_RING,LOW_TYPES,LOW_CALL,penaltyType,lowGood,adjSev,chUp,missData,MISS_SCALE,missColor,VIRIDIS,heatColor,kCredit,summarize,pitchMiss,grpStats,TYPE_NAME,FIX,sessionReport,typeFeedback,COUNTS,countStats,trendPoints});
 })(typeof window!=='undefined'?window:globalThis);
