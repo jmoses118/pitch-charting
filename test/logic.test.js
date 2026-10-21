@@ -1853,3 +1853,28 @@ test('HM-9b: import and sync keep the pitch, leave calledFlag alone, and the war
   assert.equal(PC.calledTypeOf(shook),'CB');
   assert.equal(PC.callWarnOf(shook),'curveball is usually not aimed up');
 });
+test('HM-9b: a saved change-up aimed at box 5 keeps the pitch and shows no soft warning',()=>{
+  const spots=PC.importSpots({type:'CH',called_type:'CH',call_target:'5',called_location:'5',location:'5'});
+  assert.equal(spots.calledFlag,true);
+  assert.equal(spots.calledLoc,5);
+  assert.deepEqual(spots.targets,[5]);
+  assert.equal(spots.loc,5);
+  assert.equal(spots.actualLoc,5);
+  assert.equal(Object.hasOwn(spots,'callWarn'),false);
+  const pitch=PC.csvApply({type:'CH',targets:spots.targets,calledLoc:spots.calledLoc,loc:spots.loc,actualLoc:spots.actualLoc,calledFlag:true},{called_type:'CH'});
+  assert.equal(Object.hasOwn(pitch,'callWarn'),false);
+  assert.equal(PC.calledTypeOf(pitch),'CH');
+  assert.deepEqual(PC.calledBoxes(pitch),[5]);
+  assert.equal(PC.callWarn('CH',5),true);
+  assert.equal(PC.validCalled('CH',5),false);
+  assert.equal(PC.callWarnMsg('CH',5),BOX5_WARN);
+  assert.equal(PC.callWarnOf(pitch),'');
+  const sync=PC.rowPitch({id:'ch5',mode:'game',type:'CH',targets:[5],called_loc:5,loc:5,inning:1,abn:1});
+  assert.equal(sync.calledFlag,true);
+  assert.equal(Object.hasOwn(sync,'callWarn'),false);
+  assert.deepEqual(PC.calledBoxes(sync),[5]);
+  assert.equal(PC.callWarnOf(sync),'');
+  assert.equal(PC.callWarnOf({type:'CH',targets:[5,8],loc:8}),'');
+  assert.equal(PC.callWarnOf({type:'FB',targets:[5],calledLoc:5,loc:5}),BOX5_WARN);
+  assert.equal(PC.callWarnOf({type:'CB',targets:[3],calledLoc:3,loc:3}),'curveball is usually not aimed up');
+});
