@@ -5,14 +5,13 @@
 'use strict';
 // ---------- UI preferences (this phone only) ----------
 const PREF={get:(k,d)=>{try{const v=storage&&storage.getItem('te_ui_'+k);return v==null?d:v;}catch(e){return d;}},set:(k,v)=>{try{storage&&storage.setItem('te_ui_'+k,v);}catch(e){}}};
-const THEMES=PC.THEME_CHOICES||[],THEME_LABEL={field:'☀ Field (day)',[PC.THEME_DEFAULT||'night']:'☾ Night',auto:'◐ Auto (sunset)'};
+const THEMES=PC.THEME_CHOICES||[],NIGHT=PC.THEME_DEFAULT||document.documentElement.dataset.theme,THEME_LABEL={field:'☀ Field (day)',[NIGHT]:'☾ Night',auto:'◐ Auto (sunset)'};
 function themeNow(){
-  // VIEW-4. themeFromStorage reads THEME_KEY.
   const hour=new Date().getHours();
   const theme=paletteNow(hour);
   return theme;
 }
-function applyTheme(){const t=themeNow();document.documentElement.dataset.theme=t;const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=t==='field'?'#ffffff':'#000000';}
+function applyTheme(){const t=themeNow();document.documentElement.dataset.theme=t;const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=PC.themeColor?PC.themeColor(t):'#000000';}
 applyTheme();
 // ---------- modes ----------
 const LANDSCAPE=matchMedia('(orientation: landscape) and (max-height: 500px)'),PORTRAIT=matchMedia('(orientation: portrait)');
@@ -189,7 +188,7 @@ addEventListener('resize',()=>{if(document.body.classList.contains('coachmode'))
 // Setup: display prefs + band setup for the sheet being edited
 $('thSel').onchange=e=>{paletteSave(e.target.value);applyTheme();render();};$('mirrorChk').onchange=e=>{PREF.set('mirror',e.target.checked?'1':'0');render();};
 $('csBand').onclick=()=>openBandSetup(typeof csCur==='function'&&csCur()?csCur().id:null);
-$('thNight').dataset.th=PC.THEME_DEFAULT||'night';$('thNightOpt').value=PC.THEME_DEFAULT||'night';
+$('thNight').dataset.th=NIGHT;$('thNightOpt').value=NIGHT;
 document.querySelectorAll('.thseg [data-th]').forEach(b=>b.onclick=()=>{paletteSave(b.dataset.th);applyTheme();render();});
 function renderDisplayPrefs(){const th=paletteChoice();document.querySelectorAll('.thseg [data-th]').forEach(b=>{b.classList.toggle('on',b.dataset.th===th);b.setAttribute('aria-pressed',b.dataset.th===th);});$('thSel').value=th;$('mirrorChk').checked=PREF.get('mirror','0')==='1';}
 function coachZoneH(z) {
@@ -222,14 +221,14 @@ function fitCoachCol(o) {
   if (!o.compact && bh > 0) o.set("--zgap", zg);
   if (!o.compact && bh > 0) o.set("--colh", Math.max(bh, o.STH + zg + zoneH + zg + o.ACT));
 }
-// VIEW-4. Missing theme.js uses the static Night default. The palette rules stay in theme.js.
+// VIEW-4. themeFromStorage reads THEME_KEY. A missing theme.js keeps the theme the head script already set.
 function paletteNow(hour){
   if(typeof PC.themeFromStorage==='function')return PC.themeFromStorage(storage,hour);
-  return PC.THEME_DEFAULT||'night';
+  return document.documentElement.dataset.theme;
 }
 function paletteChoice(){
   if(typeof PC.themeChoice==='function')return PC.themeChoice(storage);
-  return PC.THEME_DEFAULT||'night';
+  return document.documentElement.dataset.theme;
 }
 function paletteSave(v){
   if(typeof PC.themeSave==='function')PC.themeSave(storage,v);

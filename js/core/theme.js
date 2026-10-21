@@ -22,8 +22,9 @@ function themeOf(saved,hour){
   return h>=19||h<7?'night':'field';
 }
 function themeFromStorage(storage,hour){return themeOf(themeRead(storage),hour);}
+function themeColor(t){return t==='field'?'#fff':'#000';}
 function themeSave(storage,value){
   try{if(storage)storage.setItem(THEME_KEY,value);}catch(e){}
 }
-Object.assign(PC,{THEME_KEY,THEME_DEFAULT,THEME_CHOICES,themeOf,themeChoice,themeFromStorage,themeSave});
+Object.assign(PC,{THEME_KEY,THEME_DEFAULT,THEME_CHOICES,themeOf,themeChoice,themeFromStorage,themeColor,themeSave});
 })(typeof window!=='undefined'?window:globalThis);
