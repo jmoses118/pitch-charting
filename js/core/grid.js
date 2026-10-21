@@ -61,5 +61,7 @@ function typeMissBand(type,z){const rule=TYPE_MISS[type];if(!rule)return null;co
 function nearestTarget(targets,loc){const t=(Array.isArray(targets)?targets:[]).map(z=>+z).filter(z=>Number.isFinite(z)&&z>0);if(!t.length)return null;if(loc==null||t.length===1)return t[0];
   let best=t[0],bd=missDist(t[0],loc);for(let i=1;i<t.length;i++){const d=missDist(t[i],loc);if(d==null)continue;if(bd==null||d<bd){best=t[i];bd=d;}}return best;}
 function pct(a,b){return b?Math.round(1000*a/b)/10:null;}
-Object.assign(PC,{insideCol,awayCol,cz,isZone,isCorner,isOut,WAY,isWay,ACTUAL_ONLY,isActualOnly,isCompetitive,gloveCol,locInfo,locInfoRaw,ALL_CELLS,GRID_XY,MAX_MISS,OFF_D,missDist,missD,towardMiddle,TOP_ROW,MID_ROW,TYPE_MISS,typeMissBand,nearestTarget,pct});
+// Whole percent. Null when the denominator is empty, which is how a bullpen-only strike % prints.
+function wholePct(a,b){return b?Math.round(100*a/b):null;}
+Object.assign(PC,{insideCol,awayCol,cz,isZone,isCorner,isOut,WAY,isWay,ACTUAL_ONLY,isActualOnly,isCompetitive,gloveCol,locInfo,locInfoRaw,ALL_CELLS,GRID_XY,MAX_MISS,OFF_D,missDist,missD,towardMiddle,TOP_ROW,MID_ROW,TYPE_MISS,typeMissBand,nearestTarget,pct,wholePct});
 })(typeof window!=='undefined'?window:globalThis);
