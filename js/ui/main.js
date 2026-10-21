@@ -68,11 +68,16 @@ function render(skipCallInput){const s=S();applyViewOnly(viewOnly());if(typeof r
   if(tab==='setup'){renderCodes();renderPitchers();renderRoster();$('cTypes').innerHTML=s.customTypes.map((c,i)=>`<span class="tag" data-ct="${i}">${H(c.code)} = ${H(c.name)} ✕</span> `).join('')||'None yet';
     $('storeMsg').textContent=store.isTest?'Test mode: storage untouched.':(storage?'Saved on this device (localStorage). Export a JSON backup regularly.':'Storage is blocked here – open in Safari (not private browsing).');}
   if(tab==='stats'){renderStats();renderHeat();}
-  renderSync();if(tab==='setup'&&!store.isTest&&document.activeElement!==$('teamCode'))$('teamCode').value=store.real.sync.teamCode||'';fitPitcherFace();paintVersion();if(bootWorker.consider)bootWorker.consider();}
+  renderSync();if(tab==='setup'&&!store.isTest&&document.activeElement!==$('teamCode'))$('teamCode').value=store.real.sync.teamCode||'';fitPitcherFace();paintVersion();if(bootWorker.consider)bootWorker.consider();parkVersionNote();}
 function paintVersion(){const t=PC.APP_VERSION;const a=$('setupVer'),b=$('menuVer');if(a)a.textContent=t;if(b)b.textContent=t;}
+// Coach uses the status footer. Portrait sits under the count. Neither covers a control.
+function parkVersionNote(){if(!noteVersion.live)return;const text=noteVersion.text,el=$('verNote');
+  if(document.body.classList.contains('coachmode')){if(el)el.classList.remove('on');if(!(cMsg&&cMsg.ver)){coachMsg(text,'ok',PC.VERSION_NOTE_MS);if(cMsg)cMsg.ver=1;}return;}
+  if(cMsg&&cMsg.ver){cMsg=null;if(typeof renderHint==='function')renderHint();}if(!el)return;el.textContent=text;el.classList.add('on');if(typeof fitZone==='function')fitZone();}
 function noteVersion(){if(!storage)return;let seen=null;try{seen=storage.getItem(PC.VERSION_SEEN_KEY);}catch(e){return;}
   const n=PC.versionNotice(seen,PC.APP_VERSION);try{storage.setItem(PC.VERSION_SEEN_KEY,n.store);}catch(e){return;}
-  if(!n.show)return;const el=$('verNote');if(!el)return;el.textContent=n.text;el.classList.add('on');clearTimeout(noteVersion.t);noteVersion.t=setTimeout(()=>el.classList.remove('on'),PC.VERSION_NOTE_MS);}
+  if(!n.show)return;noteVersion.live=true;noteVersion.text=n.text;parkVersionNote();clearTimeout(noteVersion.t);
+  noteVersion.t=setTimeout(()=>{noteVersion.live=false;const el=$('verNote');if(el)el.classList.remove('on');if(cMsg&&cMsg.ver){cMsg=null;if(typeof renderHint==='function')renderHint();}if(typeof fitZone==='function')fitZone();},PC.VERSION_NOTE_MS);}
 function bootWorker(){if(!('serviceWorker' in navigator)||location.protocol==='file:')return;const had=!!navigator.serviceWorker.controller;let reloaded=false,pending=false,idle=false,idleT=0,waitKind='';
   function clearIdle(){if(!idleT)return;if(waitKind==='idle'&&typeof cancelIdleCallback==='function')cancelIdleCallback(idleT);else clearTimeout(idleT);idleT=0;waitKind='';}
   function arm(){clearIdle();const go=()=>{idleT=0;waitKind='';idle=true;consider();};
@@ -83,7 +88,7 @@ function bootWorker(){if(!('serviceWorker' in navigator)||location.protocol==='f
     if(!PC.reloadDue(snap))return;reloaded=true;pending=false;clearIdle();location.reload();}
   navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!PC.workerUpdated(had,reloaded))return;pending=true;consider();if(pending)arm();});
   document.addEventListener('visibilitychange',consider);bootWorker.consider=consider;
-  navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(reg=>{const poke=()=>{if(document.visibilityState==='visible')reg.update().catch(()=>{});};document.addEventListener('visibilitychange',poke);addEventListener('pageshow',poke);poke();}).catch(()=>{});}
+  navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(reg=>{if(!reg)return;const poke=()=>{if(document.visibilityState==='visible')reg.update().catch(()=>{});};document.addEventListener('visibilitychange',poke);addEventListener('pageshow',poke);poke();}).catch(()=>{});}
 // The closed pitcher control keeps the jersey. The font can shrink to 14px, then the name ellipsizes.
 function fitPitcherFace(){const sel=$('pitcher');if(!sel||!sel.options.length)return;const opt=sel.options[sel.selectedIndex];if(!opt||!opt.value)return;const p=pById(sel.value);if(!p)return;
   const face=PC.pitcherFace(p);const name=face.name,jersey=face.num?'#'+face.num:'',full=face.label;sel.title=full;

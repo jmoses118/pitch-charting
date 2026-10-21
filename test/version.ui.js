@@ -80,17 +80,17 @@ function labelOf(id){
     await p.goto(BASE);
     await p.evaluate(g=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'12',throws:'R'}];S.curPitcher='p_a';S.games.push(g);S.activeGame='g1';__app.render();},GAME);
     const note=await p.evaluate(()=>{
-      const el=document.getElementById('verNote'),z=document.getElementById('cZone').getBoundingClientRect(),r=el.getBoundingClientRect();
+      const h=document.getElementById('cxHint'),z=document.getElementById('cZone').getBoundingClientRect(),r=h.getBoundingClientRect();
       const miss=r.right<=z.left+1||r.left>=z.right-1||r.bottom<=z.top+1||r.top>=z.bottom-1;
-      return {on:el.classList.contains('on'),text:el.textContent,pe:getComputedStyle(el).pointerEvents,seen:localStorage.getItem(PC.VERSION_SEEN_KEY),ver:PC.APP_VERSION,miss,coach:document.body.classList.contains('coachmode')};
+      return {banner:document.getElementById('verNote').classList.contains('on'),text:(h.textContent||'').trim(),pe:getComputedStyle(h).pointerEvents,seen:localStorage.getItem(PC.VERSION_SEEN_KEY),ver:PC.APP_VERSION,miss,coach:document.body.classList.contains('coachmode')};
     });
-    ok(note.on&&note.text==='Updated to '+note.ver&&note.seen===note.ver&&note.pe==='none'&&note.miss&&note.coach,`update note once, off the zone ${JSON.stringify(note)}`);
+    ok(!note.banner&&note.text==='Updated to '+note.ver&&note.seen===note.ver&&note.pe==='none'&&note.miss&&note.coach,`update note once, in the status line, off the zone ${JSON.stringify(note)}`);
     await p.evaluate(()=>render());
-    ok(await p.evaluate(()=>document.getElementById('verNote').classList.contains('on')&&document.getElementById('verNote').textContent==='Updated to '+PC.APP_VERSION),'a redraw does not clear the note or show it twice');
+    ok(await p.evaluate(()=>{const h=document.getElementById('cxHint');return !document.getElementById('verNote').classList.contains('on')&&(h.textContent||'').trim()==='Updated to '+PC.APP_VERSION;}),'a redraw does not clear the note or show it twice');
     if(SHOT)await p.screenshot({path:SHOT+'version-notice-844x390-field.png'});
     const ms=await p.evaluate(()=>PC.VERSION_NOTE_MS);
     await p.clock.fastForward(ms+50);
-    await p.waitForFunction(()=>!document.getElementById('verNote').classList.contains('on'));
+    await p.waitForFunction(()=>!document.getElementById('verNote').classList.contains('on')&&!/Updated to v\d+/.test(document.getElementById('cxHint').textContent||''));
     ok(true,'the note dismisses itself');
     await p.reload();
     const quiet=await p.evaluate(()=>({on:document.getElementById('verNote').classList.contains('on'),text:document.getElementById('verNote').textContent,seen:localStorage.getItem(PC.VERSION_SEEN_KEY),ver:PC.APP_VERSION}));
@@ -159,9 +159,10 @@ function labelOf(id){
       const row=document.querySelector('#cMenuDlg .row.sp').getBoundingClientRect();
       const lbl=document.getElementById('cMenuT').getBoundingClientRect();
       const btn=document.querySelector('#cMenuDlg .cmenu-g button').getBoundingClientRect();
-      return {lblTop:lbl.top-row.top,rowH:row.height,lblH:lbl.height,gap:btn.top-lbl.bottom};
+      const cancel=document.querySelector('#cMenuDlg .dlgfoot button[value="cancel"]').getBoundingClientRect();
+      return {lblTop:lbl.top-row.top,rowH:row.height,lblH:lbl.height,gap:btn.top-lbl.bottom,cancelTop:cancel.top,cancelBot:cancel.bottom,cancelH:cancel.height,ih:innerHeight};
     });
-    ok(Math.abs(menu.lblTop)<=1&&Math.abs(menu.rowH-menu.lblH)<=1&&Math.abs(menu.gap-8)<=1,`${W}x${H}: game menu title keeps its row ${JSON.stringify(menu)}`);
+    ok(Math.abs(menu.lblTop)<=1&&Math.abs(menu.rowH-menu.lblH)<=1&&Math.abs(menu.gap-8)<=1&&menu.cancelH>=44&&menu.cancelBot<=menu.ih+1&&menu.cancelTop>=-1,`${W}x${H}: game menu title keeps its row ${JSON.stringify(menu)}`);
     await c.close();
   }
   {const c=await b.newContext({viewport:{width:844,height:390},isMobile:true,hasTouch:true,serviceWorkers:'allow'});

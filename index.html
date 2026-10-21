@@ -22,6 +22,7 @@ var m=document.querySelector('meta[name="theme-color"]');if(m)m.content=window.P
  <div id="gameHead" class="row sp">
   <div class="count"><div><small>INN</small><span id="inn">1</span></div><div><small>COUNT</small><span id="cnt">0-0</span></div><div><small>OUTS</small><span class="dots" id="outs"></span></div><div><small>PITCHES</small><span id="pc">0</span></div></div>
  </div>
+ <div id="verNote" role="status" aria-live="polite"></div>
 </header>
 <main>
 <!-- GAME -->
@@ -219,7 +220,7 @@ var m=document.querySelector('meta[name="theme-color"]');if(m)m.content=window.P
  </div>
 </section>
 <div id="rotate" class="rotate hide" role="dialog" aria-labelledby="rotT"><div class="rot-ic" aria-hidden="true">↻</div><div id="rotT" class="rot-t">Turn your phone sideways</div><div class="mut">Pitch calling shows the whole wristband, the zone and the results together in landscape.</div><button id="rotOk" class="ghost">Chart in portrait instead</button></div>
-<dialog id="cMenuDlg" class="sheet" aria-labelledby="cMenuT"><form method="dialog"><div class="row sp"><div class="lbl" id="cMenuT">Game</div><span id="menuVer" class="appver"></span></div>
+<dialog id="cMenuDlg" class="sheet" aria-labelledby="cMenuT"><form method="dialog"><div class="row sp verrow"><div class="lbl" id="cMenuT">Game</div><span id="menuVer" class="appver"></span></div>
  <div id="cmRo" class="robar cmro hide" role="status"><span>👁 Scoring on another phone · view only. Game changes are off here.</span><button type="button" id="cmTake">Take over scoring</button></div>
  <div class="cmenu-g"><button type="button" id="cmOutM">Out −</button><button type="button" id="cmOutP">Out +</button><button type="button" id="cmEnd" class="danger">End game</button><button type="button" id="cmInn">Next inning</button><button type="button" id="cmIbb">Intentional walk</button>
  <button type="button" id="cmKd3">K – reached (D3)</button><button type="button" id="cmKd3o">K – D3 thrown out</button><button type="button" id="cmBand">Band setup</button><button type="button" id="cmTheme"></button><button type="button" id="cmMirror"></button>
@@ -271,7 +272,6 @@ var m=document.querySelector('meta[name="theme-color"]');if(m)m.content=window.P
  <div id="ddCap" style="font-size:15px;line-height:1.4;margin-top:6px"></div><div id="ddKey" class="mut" style="font-size:12px;margin-top:6px"></div>
  <button id="ddClose" style="width:100%;margin-top:10px">Close</button></dialog>
 <div id="foulChips" class="foulchips hide" role="group" aria-label="Foul timing, optional"><button type="button" data-ft="early">Early</button><button type="button" data-ft="ontime">On time</button><button type="button" data-ft="late">Late</button></div>
-<div id="verNote" role="status" aria-live="polite"></div>
 <div id="toast"></div>
 <script src="js/core/config.js"></script><script src="js/core/version.js"></script><script src="config.js"></script><script src="js/core/grid.js"></script><script src="js/core/calls.js"></script><script src="js/core/location.js"></script><script src="js/core/flow.js"></script>
 <script src="js/core/game.js"></script><script src="js/core/scoring.js"></script><script src="js/core/csv.js"></script><script src="js/core/workload.js"></script><script src="js/core/sync.js"></script><script src="js/core/modes.js"></script><script src="js/core/store.js"></script>

@@ -4,6 +4,7 @@
 ### Changed
 - **INFRA-4.** Jim asked on 20 October 2026. Setup and the game menu show the version, so a home-screen app shows when it has updated. The first open after an update says it updated, then the note goes away. A new install stays quiet. The number is the copy that is actually running.
 - An update waits until the pitch on screen is finished, cloud sync is not running, and no sheet is open, and until the app is in the background or the phone is idle, so a pitch is not lost. A stored value that is not a version stays quiet.
+- The update note sits under the count. On the coach screen it uses the status line, so it stays off the pitcher, the band, and the menu. The game menu title keeps its spacing. A blocked service worker does not throw.
 - Cache: `te-pitch-v82`.
 
 ## v81 – Night is the default palette
