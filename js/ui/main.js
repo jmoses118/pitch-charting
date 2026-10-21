@@ -68,13 +68,21 @@ function render(skipCallInput){const s=S();applyViewOnly(viewOnly());if(typeof r
   if(tab==='setup'){renderCodes();renderPitchers();renderRoster();$('cTypes').innerHTML=s.customTypes.map((c,i)=>`<span class="tag" data-ct="${i}">${H(c.code)} = ${H(c.name)} ✕</span> `).join('')||'None yet';
     $('storeMsg').textContent=store.isTest?'Test mode: storage untouched.':(storage?'Saved on this device (localStorage). Export a JSON backup regularly.':'Storage is blocked here – open in Safari (not private browsing).');}
   if(tab==='stats'){renderStats();renderHeat();}
-  renderSync();if(tab==='setup'&&!store.isTest&&document.activeElement!==$('teamCode'))$('teamCode').value=store.real.sync.teamCode||'';fitPitcherFace();paintVersion();}
+  renderSync();if(tab==='setup'&&!store.isTest&&document.activeElement!==$('teamCode'))$('teamCode').value=store.real.sync.teamCode||'';fitPitcherFace();paintVersion();if(bootWorker.consider)bootWorker.consider();}
 function paintVersion(){const t=PC.APP_VERSION;const a=$('setupVer'),b=$('menuVer');if(a)a.textContent=t;if(b)b.textContent=t;}
 function noteVersion(){if(!storage)return;let seen=null;try{seen=storage.getItem(PC.VERSION_SEEN_KEY);}catch(e){return;}
-  const n=PC.versionNotice(seen,PC.APP_VERSION);try{storage.setItem(PC.VERSION_SEEN_KEY,n.store);}catch(e){}
+  const n=PC.versionNotice(seen,PC.APP_VERSION);try{storage.setItem(PC.VERSION_SEEN_KEY,n.store);}catch(e){return;}
   if(!n.show)return;const el=$('verNote');if(!el)return;el.textContent=n.text;el.classList.add('on');clearTimeout(noteVersion.t);noteVersion.t=setTimeout(()=>el.classList.remove('on'),PC.VERSION_NOTE_MS);}
-function bootWorker(){if(!('serviceWorker' in navigator)||location.protocol==='file:')return;const had=!!navigator.serviceWorker.controller;let reloaded=false;
-  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!PC.workerUpdated(had,reloaded))return;reloaded=true;location.reload();});
+function bootWorker(){if(!('serviceWorker' in navigator)||location.protocol==='file:')return;const had=!!navigator.serviceWorker.controller;let reloaded=false,pending=false,idle=false,idleT=0,waitKind='';
+  function clearIdle(){if(!idleT)return;if(waitKind==='idle'&&typeof cancelIdleCallback==='function')cancelIdleCallback(idleT);else clearTimeout(idleT);idleT=0;waitKind='';}
+  function arm(){clearIdle();const go=()=>{idleT=0;waitKind='';idle=true;consider();};
+    if(typeof requestIdleCallback==='function'){waitKind='idle';idleT=requestIdleCallback(go);}else{waitKind='time';idleT=setTimeout(go,1500);}}
+  function sheetOpen(){return !!(D.sheet||D.ip||D.foul||document.querySelector('dialog[open]'));}
+  function consider(){if(!pending||reloaded)return;const snap={draft:pullDraft(),syncing:syncing,sheetOpen:sheetOpen(),hidden:document.visibilityState==='hidden',idle:idle};
+    if(!PC.safeToReload(snap)){idle=false;clearIdle();waitKind='time';idleT=setTimeout(()=>{idleT=0;waitKind='';arm();},800);return;}
+    if(!PC.reloadDue(snap))return;reloaded=true;pending=false;clearIdle();location.reload();}
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!PC.workerUpdated(had,reloaded))return;pending=true;consider();if(pending)arm();});
+  document.addEventListener('visibilitychange',consider);bootWorker.consider=consider;
   navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(reg=>{const poke=()=>{if(document.visibilityState==='visible')reg.update().catch(()=>{});};document.addEventListener('visibilitychange',poke);addEventListener('pageshow',poke);poke();}).catch(()=>{});}
 // The closed pitcher control keeps the jersey. The font can shrink to 14px, then the name ellipsizes.
 function fitPitcherFace(){const sel=$('pitcher');if(!sel||!sel.options.length)return;const opt=sel.options[sel.selectedIndex];if(!opt||!opt.value)return;const p=pById(sel.value);if(!p)return;
