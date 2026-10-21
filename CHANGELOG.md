@@ -1,5 +1,10 @@
 # Changelog
 
+## v86 – The bullpen report counts a low change-up as a hit
+### Changed
+- A change-up aimed at box 8 that lands in box 18 hits the spot. The way-off bullpen report leads with 3 of 6 (50%), not 2 of 6 (33%).
+- Cache: `te-pitch-v86`.
+
 ## v85 – Heat map totals for each cell and pitch
 ### Changed
 - A game cell with fewer than 3 pitches fades, and a season cell with fewer than 5 fades. An empty cell stays solid.
