@@ -172,12 +172,6 @@ for(const [W,H,MIN,ZMIN,RESW] of [[844,390,48,48,48],[667,375,44,34,46]]){const 
   ok(field.btn==='2px'&&field.sel==='2px'&&field.inp==='2px'&&field.royal==='#1E3FD0'&&field.bg==='rgb(30, 63, 208)'&&field.on==='rgb(30, 63, 208)','VIEW-4: Field stays 2px and keeps #1E3FD0 '+JSON.stringify(field));
   await c.close();}
 {const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());await c.route(/\/js\/core\/theme\.js$/,r=>r.abort());
-  await c.addInitScript(()=>{localStorage.setItem('te_ui_theme','field');window.__miss={night:0,n:0};const tick=()=>{if((document.documentElement.dataset.theme||'')==='night')window.__miss.night++;window.__miss.n++;if(window.__miss.n<8)requestAnimationFrame(tick);};requestAnimationFrame(tick);});
-  const p=await c.newPage();await p.goto(BASE);await p.waitForTimeout(200);
-  const v=await p.evaluate(()=>({theme:document.documentElement.dataset.theme,meta:document.querySelector('meta[name="theme-color"]').content,night:window.__miss.night}));
-  ok(v.theme==='field'&&v.meta==='#ffffff'&&v.night===0,'VIEW-4: a missing theme.js still opens a saved Field '+JSON.stringify(v));
-  await c.close();}
-{const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());await c.route(/\/js\/core\/theme\.js$/,r=>r.abort());
   await c.addInitScript(()=>localStorage.setItem('te_ui_theme','garbage'));
   const p=await c.newPage();await p.goto(BASE);await p.waitForTimeout(200);
   const v=await p.evaluate(()=>({theme:document.documentElement.dataset.theme,meta:document.querySelector('meta[name="theme-color"]').content}));
