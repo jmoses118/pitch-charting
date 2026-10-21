@@ -446,6 +446,7 @@ body.padmode #actBtns button{min-height:48px;height:auto}
 .cslot .cact,.cslot .ccontact{height:48px;min-height:48px}
 .ccontact{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px}
 .ipcontact{grid-column:1 / -1;display:grid;grid-template-columns:repeat(5,minmax(48px,1fr));gap:6px}
+body.onehand #ipBtns .ipcontact button{min-width:0;padding:0 2px;font-size:14px;font-weight:800;letter-spacing:-.03em;line-height:1.05;white-space:nowrap}
 .cslot button{min-height:48px;height:48px;padding:0 2px}
 .ccontact button{min-width:0;padding:0;font-size:10px;line-height:1.05;white-space:normal;font-weight:800}
 .coach.compact .ccontact{gap:1px}
