@@ -123,7 +123,7 @@ function summarize(pitches,opt){const P=pitches.filter(countsAsPitch);
         whiff:q.filter(x=>x.result==='swinging').length,inPlay:q.filter(x=>x.result==='inplay').length};}return out;};
   let ks=pitches.filter(p=>p.end==='K'||p.end==='K-D3');if(opt&&opt.all&&opt.pid!=null){const m=kCredit(opt.all);ks=[...m].filter(([,by])=>by===opt.pid).map(([p])=>p);}
   return{k:ks.length,kd3:ks.filter(p=>p.end==='K-D3').length,n:P.length,strikes:P.filter(strikeOf).length,strikePct:strikePct(P),compPct:pct(P.filter(p=>isCompetitive(landOf(p))).length,P.filter(p=>landOf(p)!=null).length),wayOff:P.filter(p=>isWay(landOf(p))).length,wasteN:P.filter(p=>isBullpenPitch(p)&&wasteAim(p)&&landOf(p)!=null).length,wasteGood:P.filter(p=>isBullpenPitch(p)&&wasteAim(p)&&landOf(p)!=null&&onTarget(p,pitchMiss(p))).length,
-    fps:fp.filter(strikeOf).length,fpsN:fp.length,fpsPct:strikePct(fp),
+    fps:fp.filter(strikeOf).length,fpsN:fp.filter(p=>strikeOf(p)!=null).length,fpsPct:strikePct(fp),
     spotN:called.length,spot:spotHits(called),spotPct:pct(spotHits(called),called.length),
     byType:group(p=>p.type),byLoc:group(p=>{const z=landOf(p);return z!=null?String(z):null;}),byCall:group(p=>p.call||null),
     callVsThrown:group(p=>{const z=landOf(p);return p.call?(p.call+(p.shook?' ⤺ shook → ':' → ')+p.type+(z!=null?z:'')):null;}),
