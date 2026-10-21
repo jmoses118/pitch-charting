@@ -293,14 +293,15 @@ test('ring is competitive, way off is a miss, a low call into the low ring is go
   const box5=M(bp('FB',5,5));assert.equal(box5.box5,true);assert.equal(box5.sev,2);assert.equal(box5.good,false);assert.equal(PC.hitSpot(bp('FB',5,5)),false);
   // report: competitive % = strikes + ring / all; raw strike % visible; way-off count
   const L=[bp('FB',3,3),bp('FB',3,12),bp('FB',9,17),bp('CH',8,18),bp('FB',16,16),bp('FB',3,21),bp('FB',9,22),bp('FB',5,5),bp('FB',1,1),bp('FB',2,2)];
-  const r=PC.sessionReport(L,{p_larbus:'R'});assert.equal(r.n,10);assert.equal(r.strikes,0);assert.equal(r.strikePct,0);assert.equal(r.compPct,80);assert.equal(r.wayOff,2);
+  const r=PC.sessionReport(L,{p_larbus:'R'});assert.equal(r.n,10);assert.equal(r.strikes,0);assert.equal(r.strikePct,null,'HM-13 a bullpen strike % is left out');assert.equal(r.compPct,80);assert.equal(r.wayOff,2);
   assert.ok(r.feedback.some(x=>/2 pitches way off/.test(x)),JSON.stringify(r.feedback));assert.ok(!r.feedback.some(x=>/Only \d+% (strikes|competitive)/.test(x)),'40% strikes but 80% competitive -> no ding');
   assert.deepEqual(r.waste,{n:1,good:1});
   const md=PC.missData(L.map(p=>({p})));assert.equal(md.cells[3].land[21].n,1);assert.equal(md.cells[3].land[21].sev,3);assert.equal(md.cells[3].land[21].d,3);assert.equal(md.cells[8].good,1,'CH low ring good on heat map');
+  assert.equal(md.cells[5].typeMiss,1,'HM-7a FB 5 to 5');assert.equal(md.cells[5].hit,0);assert.equal(md.cells[5].land[5].typeMiss,1);assert.equal(md.cells[5].land[5].d,0);
   // drill-down landing data and actual heat data tolerate way-off spots
   assert.equal(PC.heatData(L.map(p=>({p})),{},'actual').total,8);assert.equal(PC.locInfo(21,'R').label,'way high (not competitive)');
   // bullpen summarize: raw strike %, competitive %, way off
-  const s=PC.summarize(L);assert.equal(s.strikePct,0);assert.equal(PC.strikeOf(L[0]),null);assert.equal(s.compPct,80);assert.equal(s.wayOff,2);
+  const s=PC.summarize(L);assert.equal(s.strikePct,null,'HM-13 a bullpen strike % is left out');assert.equal(PC.strikeOf(L[0]),null);assert.equal(s.strikes,0);assert.equal(s.compPct,80);assert.equal(s.wayOff,2);
   // game: strike % unchanged (GameChanger), low ring not auto-good, way off can be recorded and synced
   const g=L.map((p,i)=>Object.assign({},p,{abn:i,inning:1,result:PC.isZone(p.loc)?'called':'ball'}));assert.equal(PC.summarize(g).strikePct,40);assert.ok(!PC.pitchMiss(Object.assign({},bp('CH',1,14),{abn:1,inning:1}),'R').good);
   const st=PC.defaultState();st.sync={queue:{pitchers:{},games:{},sessions:{},pitches:{},call_sheets:{}},tomb:{}};PC.mergeRemote(st,{pitches:[{id:PC.uuid(),mode:'bullpen',session_id:'s1',pitcher_id:'p_woods',loc:22,targets:[8],type:'FB',ts:1}],sessions:[{id:'s1',date:'d'}]});
@@ -1533,4 +1534,175 @@ test('INFRA-4: the worker takes control only after the new cache is ready',async
   bad.fetchRelease();
   await assert.rejects(badP);
   assert.equal(bad.skip(),0);
+});
+// HM-3, HM-6, HM-7a, HM-10, HM-12, HM-13, HM-15, HM-26, HM-26a, HM-27, HM-28. Aggregation only.
+test('HM-10: Loose hit is the aimed cell or an edge neighbour, never a diagonal or a type miss',()=>{
+  const fb=(aim,loc,over)=>Object.assign({type:'FB',targets:[aim],loc,hand:'R'},over);
+  for(const loc of [2,4,6,8])assert.equal(PC.looseHit(fb(5,loc)),true,'aim 5 landing '+loc);
+  assert.equal(PC.looseHit(fb(5,1)),false,'aim 5 landing 1 is a diagonal');
+  assert.equal(PC.looseHit(fb(15,2)),true,'aim 15 landing 2 shares an edge');
+  assert.equal(PC.looseHit(fb(8,31)),false,'dirt is never a loose hit by adjacency');
+  const low=fb(8,14,{inning:1,abn:1,result:'ball'});
+  assert.equal(PC.hitSpot(low),true);assert.equal(PC.looseHit(low),true,'a strict hit is a loose hit');assert.equal(PC.pitchMiss(low).d,2);
+  const cb={type:'CB',targets:[5],loc:2,hand:'R'};
+  assert.equal(PC.pitchMiss(cb).d,1);assert.equal(PC.pitchMiss(cb).typeMiss,true);assert.equal(PC.hitSpot(cb),false);assert.equal(PC.looseHit(cb),false,'CB 5 to 2 is within 1 and not loose');
+});
+test('HM-12: median miss is the middle of d, with a .5 kept and an empty list left out',()=>{
+  assert.equal(PC.medianMiss([0,1,3]),1);
+  assert.equal(PC.medianMiss([1,2]),1.5);
+  assert.equal(PC.medianMiss([1,1,2,2]),1.5);
+  assert.equal(PC.medianMiss([]),null);
+  assert.equal(PC.medianMiss([3]),3);
+});
+test('HM-3: a cell fades under 3 pitches in a game and under 5 in a season',()=>{
+  assert.equal(PC.lowSample(2,'game'),true);assert.equal(PC.lowSample(3,'game'),false);
+  assert.equal(PC.lowSample(4,'season'),true);assert.equal(PC.lowSample(5,'season'),false);
+  assert.equal(PC.lowSample(0,'game'),false);assert.equal(PC.lowSample(0,'season'),false);
+  assert.equal(PC.lowSample(1,'game'),true);assert.equal(PC.lowSample(4,'game'),false);
+});
+test('HM-6 HM-28: miss class rounds the median, and low dirt is 1 off',()=>{
+  assert.equal(PC.missClass([0,0,1]),0);
+  assert.equal(PC.missClass([0,1]),1,'median 0.5 rounds to 1 off');
+  assert.equal(PC.missClass([1,2]),2,'median 1.5 rounds to 2+');
+  assert.equal(PC.missClass([3,3]),2);
+  const dirt=PC.pitchMiss({type:'CH',targets:[8],loc:31});
+  const hit=PC.pitchMiss({type:'FB',targets:[8],loc:8});
+  assert.equal(dirt.lowDirt,true);assert.equal(dirt.sev,2);assert.equal(dirt.d,3);
+  assert.equal(PC.missClass([dirt]),1,'low dirt uses class value 1, not sev 2 or d 3');
+  assert.equal(PC.missClass([dirt,dirt]),1);
+  assert.equal(PC.missClass([dirt,3]),2);
+  assert.equal(PC.missClass([dirt,PC.pitchMiss({type:'DR',targets:[8],loc:31}),hit]),1,'cell 8 median of two low dirt and a spot is 1 off');
+  const fbDirt=PC.pitchMiss({type:'FB',targets:[8],loc:31});
+  assert.equal(fbDirt.lowDirt,false);assert.equal(fbDirt.sev,3);assert.equal(PC.missClass([fbDirt]),2);
+  assert.equal(PC.missClass([]),null);
+});
+test('HM-7a: an aimed cell carries the type-miss count, the loose hits, and the class',()=>{
+  const d=PC.missData([{p:{type:'CH',targets:[8],loc:31}},{p:{type:'DR',targets:[8],loc:31}},{p:{type:'FB',targets:[8],loc:8}}]);
+  assert.equal(d.cells[8].n,3);assert.equal(d.cells[8].hit,1);assert.equal(d.cells[8].loose,1);
+  assert.equal(d.cells[8].strictPct,33);assert.equal(d.cells[8].loosePct,33);assert.equal(d.cells[8].cls,1);
+  assert.equal(d.cells[8].typeMiss,0);assert.equal(d.cells[8].land[31].d,3);assert.equal(d.cells[8].land[31].typeMiss,0);
+  assert.equal(d.lowDirt,2);
+  const five=PC.missData([{p:{type:'FB',targets:[5],loc:6,hand:'R'}}]);
+  assert.equal(five.cells[5].hit,0);assert.equal(five.cells[5].loose,1);assert.equal(five.cells[5].typeMiss,0);assert.equal(five.cells[5].strictPct,0);assert.equal(five.cells[5].loosePct,100);
+});
+test('HM-13: strike % leaves bullpen pitches out of both sides and rounds to a whole percent',()=>{
+  const game=(result,loc,abn)=>Object.assign({type:'FB',targets:[loc],loc,result,inning:1,abn,hand:'R'});
+  const games=[game('called',5,1),game('ball',11,2),game('foul',4,3),game('inplay',6,4)];
+  const pens=[{type:'FB',targets:[5],loc:5},{type:'CH',targets:[8],loc:8},{type:'FB',targets:[7],loc:14}];
+  assert.equal(PC.strikePct(games),75);
+  assert.equal(PC.strikePct(games.concat(pens)),75);
+  assert.equal(PC.strikePct(pens),null);
+  assert.equal(PC.summarize(games).strikePct,75);
+  assert.equal(PC.summarize(games.concat(pens)).strikePct,75);
+  assert.equal(PC.summarize(pens).strikePct,null);
+  assert.equal(PC.grpStats(games).strikePct,75);
+  assert.equal(PC.grpStats(pens).strikePct,null);
+  assert.equal(PC.strikeOf({loc:5,inning:1,abn:1}),true,'no result in the zone is a strike');
+  assert.equal(PC.strikeOf({loc:11,inning:1,abn:1}),false,'no result in the ring is not a strike');
+  assert.equal(PC.summarize(games).strikes,3);
+});
+test('HM-15: filters keep scope, pitcher, pitch type, batter side, count, and result',()=>{
+  const row=(p,box)=>Object.assign({p,src:'game',gameId:'g1',sessionId:null,side:p.hand==='L'?'L':'R',throws:'R',batter:''},box);
+  const P=[
+    row({type:'FB',pitcherId:'p1',hand:'R',b:0,s:0,result:'called',loc:5,inning:1,abn:1}),
+    row({type:'CH',pitcherId:'p1',hand:'L',b:0,s:1,result:'ball',loc:11,inning:1,abn:2}),
+    row({type:'FB',pitcherId:'p1',hand:'R',b:1,s:0,result:'foul',loc:4,inning:1,abn:3}),
+    row({type:'CB',pitcherId:'p2',hand:'R',b:0,s:2,result:'called',loc:2,inning:1,abn:4},{gameId:'g2'}),
+    row({type:'FB',pitcherId:'p2',hand:'R',b:1,s:2,result:'inplay',ip:'1B',loc:6,inning:1,abn:5},{gameId:'g2'}),
+    row({type:'FB',pitcherId:'p1',hand:'R',b:2,s:2,result:'swinging',loc:8,inning:1,abn:6}),
+    row({type:'DR',pitcherId:'p1',hand:'R',b:3,s:2,result:'hbp',loc:9,inning:1,abn:7}),
+    row({type:'FB',pitcherId:'p1',hand:'N',b:1,s:1,loc:8},{src:'bullpen',gameId:null,sessionId:'s1',side:'N'}),
+    row({type:'FB',pitcherId:'p1',hand:'R',b:2,s:0,result:'ball',loc:16,inning:1,abn:8}),
+    row({type:'FB',pitcherId:'p1',hand:'R',b:3,s:0,result:'ball',loc:14,inning:1,abn:9}),
+    row({type:'FB',pitcherId:'p1',hand:'R',b:2,s:1,result:'called',loc:7,inning:1,abn:10}),
+    row({type:'FB',pitcherId:'p1',hand:'R',b:3,s:1,result:'ball',loc:13,inning:1,abn:11})
+  ];
+  const ids=f=>PC.heatFilter(P,f).map(it=>it.p.b+'-'+it.p.s).sort();
+  assert.deepEqual(ids({counts:['ahead'],twoStrike:true}),['0-2','1-2']);
+  assert.deepEqual(ids({counts:['ahead']}),['0-1','0-2','1-2']);
+  assert.deepEqual(ids({twoStrike:true}),['0-2','1-2','2-2','3-2']);
+  assert.deepEqual(ids({counts:['even'],twoStrike:true}),['2-2']);
+  assert.deepEqual(ids({counts:['behind'],twoStrike:true}),['3-2']);
+  assert.deepEqual(ids({counts:['ahead','behind'],twoStrike:true}),['0-2','1-2','3-2']);
+  assert.deepEqual(PC.heatFilter(P,{scope:'game',game:'g1'}).map(it=>it.p.abn).sort(),[1,2,3,6,7,8,9,10,11]);
+  assert.equal(PC.heatFilter(P,{scope:'game',game:'g2'}).length,2);
+  assert.equal(PC.heatFilter(P,{scope:'season'}).length,P.length);
+  assert.equal(PC.heatFilter(P,{scope:'season',game:'g1'}).length,P.length,'season keeps every game and the bullpen');
+  assert.deepEqual(PC.heatFilter(P,{game:'g2'}).map(it=>it.p.abn).sort(),[4,5],'a game id without a scope still filters');
+  assert.equal(PC.heatFilter(P,{pitcher:'p2'}).length,2);
+  assert.deepEqual(PC.heatFilter(P,{types:['CH','CB']}).map(it=>it.p.type).sort(),['CB','CH']);
+  assert.equal(PC.heatFilter(P,{type:'CH'}).length,1,'a single type still matches');
+  assert.equal(PC.heatFilter(P,{side:'L'}).length,1);
+  assert.equal(PC.heatFilter(P,{side:'L'})[0].p.type,'CH');
+  const strike=PC.heatFilter(P,{result:'strike'}).map(it=>it.p.result).sort();
+  assert.deepEqual(strike,['called','called','called','foul','inplay','swinging']);
+  assert.deepEqual(PC.heatFilter(P,{result:'ball'}).map(it=>it.p.result).sort(),['ball','ball','ball','ball','hbp']);
+  assert.deepEqual(PC.heatFilter(P,{result:'inplay'}).map(it=>it.p.ip),['1B']);
+  const zone=row({type:'FB',pitcherId:'p1',hand:'R',loc:5,inning:1,abn:12});
+  const ring=row({type:'FB',pitcherId:'p1',hand:'R',loc:11,inning:1,abn:13});
+  assert.equal(PC.heatFilter([zone,ring],{result:'strike'}).length,1);
+  assert.equal(PC.heatFilter([zone,ring],{result:'strike'})[0].p.loc,5);
+  assert.equal(PC.heatFilter([zone,ring],{result:'ball'}).length,1);
+  assert.equal(PC.heatFilter([zone,ring],{result:'ball'})[0].p.loc,11);
+});
+test('HM-26 HM-26a: middle misses split into buckets that sum, and toward-the-middle is stricter than a neighbour',()=>{
+  const cases=[
+    ['inplay','1B','hit'],['inplay','2B','hit'],['inplay','3B','hit'],['inplay','HR','hit'],
+    ['inplay','out','inplay'],['inplay','E','inplay'],['inplay','FC','inplay'],['inplay','DP','inplay'],['inplay',null,'inplay'],
+    ['foul',null,'foul'],['called',null,'strike'],['swinging',null,'strike'],['foultip',null,'strike'],['kd3',null,'strike'],['kd3out',null,'strike'],
+    ['ball',null,'ball'],['hbp',null,'hbp']
+  ];
+  const pitches=cases.map(([result,ip])=>({type:'FB',targets:[8],loc:5,result,ip,hand:'R',inning:1,abn:1}));
+  pitches.push({type:'FB',targets:[8],loc:5,hand:'R'});
+  cases.forEach(([result,ip,bucket],i)=>assert.equal(PC.middleBucket(pitches[i]),bucket,String(result)+' '+(ip||'')));
+  assert.equal(PC.middleBucket(pitches[pitches.length-1]),'none');
+  assert.equal(PC.middleBucket({type:'FB',targets:[8],loc:5,result:'hbp',inning:1,abn:1}),'hbp');
+  const tally={};pitches.forEach(p=>{assert.equal(PC.pitchMiss(p).mm,true);const b=PC.middleBucket(p);tally[b]=(tally[b]||0)+1;});
+  assert.equal(Object.values(tally).reduce((a,b)=>a+b,0),pitches.length);
+  const fb=(loc,result,ip)=>Object.assign({type:'FB',targets:[8],loc,hand:'R',inning:1,abn:1,result},ip?{ip}:{});
+  const sample=[].concat(
+    Array.from({length:16},()=>fb(8,'ball')),
+    fb(5,'inplay','1B'),fb(5,'foul'),fb(5,'called'),fb(5,'hbp')
+  );
+  assert.equal(sample.length,20);
+  const st=PC.heatStats(sample,'R');
+  assert.equal(st.middle.n,4);assert.equal(st.middle.base,20);assert.equal(st.middle.pct,20);
+  assert.equal(st.middle.hit,1);assert.equal(st.middle.inplay,0);assert.equal(st.middle.foul,1);
+  assert.equal(st.middle.strike,1);assert.equal(st.middle.ball,0);assert.equal(st.middle.hbp,1);assert.equal(st.middle.none,0);
+  assert.equal(st.middle.hit+st.middle.inplay+st.middle.foul+st.middle.strike+st.middle.ball+st.middle.hbp+st.middle.none,st.middle.n);
+  const toward=[[1,5,true],[1,2,false],[11,1,true],[16,9,true],[11,15,false],[7,13,false],[5,1,false],[2,31,false]];
+  toward.forEach(([a,l,yes])=>assert.equal(PC.towardMiddle(a,l),yes,a+' to '+l));
+  assert.equal(st.toward,4,'8 to 5 moves closer to the middle');assert.equal(st.towardPct,20);
+  const low={type:'FB',targets:[7],loc:13,hand:'R',inning:1,abn:1,result:'ball'};
+  assert.equal(PC.heatStats([low],'R').toward,0);assert.equal(PC.hitSpot(low),true);
+});
+test('HM-27: glove mode names arm and glove, and a tie has no direction',()=>{
+  const miss=(aim,loc,throws)=>PC.pitchMiss({type:'FB',targets:[aim],loc,hand:'R'},throws,{glove:true});
+  const downGlove=miss(6,7,'R'),downOnly=miss(2,8,'R'),armOnly=miss(4,6,'R');
+  assert.equal(downGlove.vert,'down');assert.equal(downGlove.horiz,'glove side');
+  assert.equal(downOnly.vert,'down');assert.equal(downOnly.horiz,null);
+  assert.equal(armOnly.vert,null);assert.equal(armOnly.horiz,'arm side');
+  const count=rows=>{const g={};rows.forEach(m=>{if(m.d>0&&m.vert)g[m.vert]=(g[m.vert]||0)+1;if(m.d>0&&m.horiz)g[m.horiz]=(g[m.horiz]||0)+1;});return g;};
+  assert.deepEqual(PC.topDir(count([downGlove,downOnly,armOnly]),{glove:true}),['down',2]);
+  const lhp=count([miss(6,7,'L'),miss(2,8,'L'),miss(4,6,'L')]);
+  assert.equal(lhp['arm side'],1);assert.equal(lhp['glove side'],1);assert.equal(lhp.down,2);
+  assert.deepEqual(PC.topDir(lhp,{glove:true}),['down',2]);
+  assert.equal(PC.topDir({up:1,down:1},{glove:true}),null);
+  assert.deepEqual(PC.topDir({up:1,away:3}),['away',3]);
+  assert.deepEqual(PC.topDir({up:2,down:2}),['up',2],'without glove mode a tie keeps the old order');
+  const bare=PC.pitchMiss({type:'FB',targets:[5],loc:6,hand:'R'},'R');
+  assert.equal(bare.horiz,'in');
+  assert.equal(PC.pitchMiss({type:'FB',targets:[5],loc:6,hand:'R'},'R',{glove:true}).horiz,'arm side');
+  const aimed=[
+    {type:'FB',targets:[6],loc:7,hand:'R'},
+    {type:'FB',targets:[2],loc:8,hand:'R'},
+    {type:'FB',targets:[4],loc:6,hand:'R'},
+    {type:'FB',targets:[2],loc:22,hand:'R'}
+  ];
+  const stats=PC.heatStats(aimed,'R');
+  assert.deepEqual(stats.dir,['down',2],'way off is left out of the direction');
+  assert.equal(stats.aimed,4);assert.equal(stats.median,2);
+  assert.equal(stats.lowDirt,0);
+  const oneDirt=PC.heatStats([{type:'CH',targets:[8],loc:31,hand:'R'}],'R');
+  assert.equal(oneDirt.lowDirt,1);assert.equal(oneDirt.strict,0);assert.equal(oneDirt.loose,0);assert.equal(oneDirt.median,3);assert.equal(oneDirt.dir,null);
 });
