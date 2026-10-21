@@ -312,7 +312,7 @@ test('round1: pitching-coach roleAllows + notes rows + bb column',()=>{const sy=
   st.sync.queue.notes={n_s1_p_woods:1,n_g1_p_crich:1};const b=PC.buildRows(st);assert.equal(b.rows.notes.length,1);assert.equal(b.rows.notes[0].body,'Keep it low');assert.equal(b.held,1);
   const s2=PC.defaultState();s2.sync={queue:{pitchers:{},games:{},sessions:{},pitches:{},call_sheets:{},notes:{}},tomb:{}};PC.mergeRemote(s2,{notes:[{id:'n_s1_p_woods',pitcher_id:'p_woods',session_id:'s1',body:'Keep it low',author:'pcoach',updated_at:'2026-10-13'}]});
   assert.equal(PC.findNote(s2,{sessionId:'s1',pitcherId:'p_woods'}).body,'Keep it low');assert.equal(PC.noteId({gameId:'g1',pitcherId:'p_a'}),'n_g1_p_a');
-  assert.equal(PC.pitchRow({id:'x',bb:'LD'},{mode:'game'}).bb,'LD');assert.equal(PC.pitchRow({id:'x',bb:'ZZ'},{mode:'game'}).bb,null,'ZZ is sent as no contact');});
+  assert.equal(PC.pitchRow({id:'x',bb:'LD'},{mode:'game'}).bb,'LD');assert.equal(PC.pitchRow({id:'x',bb:'ZZ'},{mode:'game'}).bb,'ZZ');});
 test('round1: count stats, first-pitch strike, 0-2 outcomes',()=>{const c={inning:1,outs:0,slot:0,b:0,s:0,abn:0};const P=[];
   const pt=(res,type,loc,ip)=>{const r={id:PC.uuid(),pitcherId:'p',type,loc,targets:[loc],result:res,ip:ip||null,b:c.b,s:c.s,abn:c.abn,inning:c.inning,slot:c.slot};const o=PC.applyPitch(c,res,ip);r.end=o.end;c.b=o.b;c.s=o.s;if(o.end){c.abn++;c.slot++;c.b=0;c.s=0;}P.push(r);};
   pt('called','FB',3);pt('swinging','CH',7);pt('swinging','FB',2);// K from 0-2
@@ -1194,8 +1194,8 @@ test('RULE-13: contact is Ground, Liner, Fly, Pop up, and Bunt',()=>{
   for(const code of PC.BB_TYPES)assert.equal(PC.pitchRow({id:'x',bb:code},{mode:'game'}).bb,code,code);
   assert.equal(PC.pitchRow({id:'x'},{mode:'game'}).bb,null,'contact stays optional');
   for(const code of PC.BB_TYPES)assert.equal(PC.rowPitch({id:'p',mode:'game',type:'FB',ts:1,bb:code}).bb,code);
-  const sent=PC.pitchRow({id:'x',bb:'ZZ'},{mode:'game'});assert.equal(sent.bb,null,'ZZ is sent as no contact');
-  assert.equal(PC.rowPitch({id:'x',mode:'game',type:'FB',ts:1,bb:'ZZ'}).bb,undefined,'an unknown code is not kept on read');
+  const sent=PC.pitchRow({id:'x',bb:'ZZ'},{mode:'game'});assert.equal(sent.bb,'ZZ');
+  assert.equal(PC.rowPitch({id:'x',mode:'game',type:'FB',ts:1,bb:sent.bb}).bb,'ZZ','an unknown code round-trips unchanged');
   assert.equal(PC.bbOf({bb:'PU'}),'Pop up');
   assert.equal(PC.csvApply({id:'p'},{contact:'ZZ'}).bb,undefined,'ZZ imports as no contact');
   assert.equal(PC.csvApply({id:'p'},{contact:' bu '}).bb,'BU','import accepts a listed code in any case');
