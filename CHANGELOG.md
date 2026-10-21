@@ -4,6 +4,7 @@
 ### Changed
 - **RULE-13.** Jim approved this on 20 October 2026. Ball in play can note a bunt, with Ground, Liner, Fly, and Pop up. The saved codes stay GB, LD, FB, and PU, and a bunt is BU. Older pitches keep the contact they already have. The choice stays optional on the game screen and the coach screen.
 - The pitches table check has to allow BU. Take a database backup before that migration runs.
+- Rollback is a restore from the backup taken before that migration. Putting the four-code check back would fail while any pitch is saved as BU, and clearing those bunts needs Jim's sign-off.
 - Cache: `te-pitch-v83`.
 
 ## v82 – The app shows which version is running

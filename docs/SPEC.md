@@ -55,6 +55,7 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
   A pitch can be saved with none selected. A saved pitch keeps its code.
   Stats and reports that name a contact type use that list, so a bunt reads Bunt.
   `pitches.bb` allows null or those five codes. Take a database backup before the migration that allows BU.
+  A future GB/FB ratio has to decide how a bunt (BU) counts.
 
 ## SCORING
 SCORE-1, SCORE-2, SCORE-3, SCORE-4, and SCORE-5 are in `docs/SCORING.md`.
