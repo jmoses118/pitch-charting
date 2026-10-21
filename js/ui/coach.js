@@ -220,19 +220,37 @@ function fitCoachCol(o) {
   const zg = need0 > bh + 2 ? Math.max(o.v("--c-zgap-min"), o.ZG - (need0 - bh) / 2) : o.ZG;
   if (!o.compact && bh > 0) o.set("--zgap", zg);
   if (!o.compact && bh > 0) o.set("--colh", Math.max(bh, o.STH + zg + zoneH + zg + o.ACT));
-  // RULE-13. Five 48px chips need a wider slot than the zone. Grow it only when the row fits.
+  // RULE-13. Five chips share the zone column. Idle and in play use the same width.
   const el = $("coach");
-  const zoneW = parseFloat(el.style.getPropertyValue("--mid")) || 0;
-  el.style.setProperty("--zonew", zoneW + "px");
-  el.classList.toggle("ip", !!D.ip);
-  if (D.ip && !o.compact) {
-    const n = (PC.BB_TYPES || []).length;
-    const need = n * 48 + Math.max(0, n - 1) * 2;
-    const cs = getComputedStyle(el);
-    const W = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-    const used = o.RH + o.LW + o.cols * o.k + o.v("--c-gap") * 2 + o.v("--c-res");
-    if (need > zoneW && used + need <= W) el.style.setProperty("--mid", need + "px");
+  el.style.removeProperty("--zw");
+  const natural = parseFloat(el.style.getPropertyValue("--mid")) || 0;
+  const n = (PC.BB_TYPES || []).length || 5;
+  const minW = n * 48;
+  const cs = getComputedStyle(el);
+  const inner = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const gap = o.v("--c-gap"), res = o.v("--c-res");
+  let band = parseFloat(el.style.getPropertyValue("--bandw")) || 0;
+  let room = inner - band - gap * 2 - res;
+  if (room + 0.5 < minW && o.compact) {
+    const k = Math.floor((inner - gap * 2 - res - minW - o.RH - o.LW) / o.cols);
+    if (k >= 33 && k < o.k) {
+      o.set("--k", k);
+      let bandW = o.RH + o.LW + o.cols * k;
+      o.set("--bandw", bandW);
+      const need = $("cBand").scrollWidth;
+      if (need > bandW + 1) { bandW = need; o.set("--bandw", bandW); }
+      band = bandW;
+      room = inner - band - gap * 2 - res;
+    }
   }
+  let width = natural;
+  if (room > natural + 0.5) width = Math.min(room, Math.max(natural, minW));
+  width = Math.floor(width);
+  if (width > natural + 0.5) {
+    o.set("--mid", width);
+    el.style.setProperty("--zw", ((width - 8) * 3) / 13 + "px");
+  }
+  el.style.setProperty("--ccontact-gap", width >= minW + (n - 1) * 2 ? "2px" : "0px");
 }
 // VIEW-4. themeFromStorage reads THEME_KEY. A missing theme.js keeps the theme the head script already set.
 function paletteNow(hour){

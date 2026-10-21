@@ -321,7 +321,7 @@ html[data-theme="night"] .cstatus{background:#0D121B}
 #cSpray{width:100%;height:56px;flex:0 0 56px;display:block;cursor:crosshair}.sp-fair{fill:#DCEFE6}.sp-inf{fill:#F6DDB0}#cSprayDot{fill:#1C1C1C;stroke:#fff;stroke-width:2}
 .coach.compact .cs-ip{font-size:10px;line-height:1.1}
 .coach.compact #cSpray{height:48px;flex-basis:48px}
-.czone{display:grid;grid-template-columns:calc(var(--z)*2/3) var(--z) var(--z) var(--z) calc(var(--z)*2/3);grid-template-rows:calc(var(--z)*2/3) var(--z) var(--z) var(--z) calc(var(--z)*2/3);gap:2px}
+.czone{display:grid;grid-template-columns:calc(var(--zw,var(--z))*2/3) var(--zw,var(--z)) var(--zw,var(--z)) var(--zw,var(--z)) calc(var(--zw,var(--z))*2/3);grid-template-rows:calc(var(--z)*2/3) var(--z) var(--z) var(--z) calc(var(--z)*2/3);gap:2px}
 .czone button{min-height:0;padding:0;border:0;border-radius:4px;font-weight:800;font-size:15px;color:var(--c-zone-text);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
 .czone .zr{background:var(--c-zone-ring)}.czone .zi{background:var(--c-zone-in)}
 .czone .aim{outline:3px dashed var(--c-royal-text);outline-offset:-5px;color:var(--c-royal-text)}.czone .aim small{font-size:8px;font-weight:900}
@@ -444,14 +444,11 @@ body.padmode #actBtns button{min-height:48px;height:auto}
 .optchip.sel,.optchip.on{background:var(--c-royal-tint);color:var(--c-text);border-color:var(--c-royal)}
 .cslot{height:48px;flex:0 0 48px;min-height:48px}
 .cslot .cact,.cslot .ccontact{height:48px;min-height:48px}
-.ccontact{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px}
+.ccontact{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--ccontact-gap,0px)}
 .ipcontact{grid-column:1 / -1;display:grid;grid-template-columns:repeat(5,minmax(48px,1fr));gap:6px}
 body.onehand #ipBtns .ipcontact button{min-width:0;padding:0 2px;font-size:14px;font-weight:800;letter-spacing:-.03em;line-height:1.05;white-space:nowrap}
 .cslot button{min-height:48px;height:48px;padding:0 2px}
-.ccontact button{min-width:0;padding:0;font-size:10px;line-height:1.05;white-space:normal;font-weight:800}
-.coach.compact .ccontact{gap:1px}
-.coach.compact .ccontact button{font-size:8px;letter-spacing:-.05em;border-width:1px}
-.coach.ip .cstatus,.coach.ip .czone{width:var(--zonew);max-width:100%;margin-inline:auto}
+.ccontact button{min-width:0;padding:0;font-size:11px;line-height:1.05;white-space:nowrap;font-weight:800}
 .foulchips{position:fixed;z-index:9;left:8px;right:8px;top:calc(var(--hdr-h,56px) + 4px);display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:6px;background:var(--c-surface);border:2px solid var(--c-line-strong);border-radius:12px;box-shadow:var(--shadow-2)}
 .foulchips button{min-height:48px;font-weight:800}
 .foulchips button.on{background:var(--c-royal-tint);border-color:var(--c-royal);color:var(--c-text)}
@@ -508,7 +505,7 @@ details.arch{margin-top:8px}details.arch>summary{min-height:48px;display:flex;al
 /* bug-landscape-956: compact keeps the old column; wide screens align to the measured band */
 .coach:not(.compact){align-content:center}
 .coach.compact{--c-gap:5px;--c-rh:20px;--c-res:102px;--c-kmax:44px;--c-zmax:48px;--c-sth:112px;
-  grid-template-columns:auto var(--mid,216px) var(--c-res,106px)}
+  grid-template-columns:var(--bandw,auto) var(--mid,216px) var(--c-res,106px)}
 #cBand{width:auto}
 .coach.compact #cBand{width:100%}
 .coach:not(.compact) .cmid{height:var(--colh)}

@@ -4,8 +4,9 @@
 const $=id=>document.getElementById(id);
 const H=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // RULE-13. Both contact rows render the one core list. The page does not keep its own copy.
-function paintContact(){const html=(PC.BB_TYPES||[]).map(code=>{const on=D.bb===code;return `<button type="button" class="optchip${on?' sel on':''}" data-bb="${H(code)}" aria-pressed="${on?'true':'false'}">${H(PC.BB_NAME[code]||code)}</button>`;}).join('');
-  const ip=$('ipContact');if(ip)ip.innerHTML=html;const cc=$('cContact');if(cc)cc.innerHTML=html;}
+function paintContact(){const btn=(code,text)=>{const on=D.bb===code;const name=PC.BB_NAME[code]||code;return `<button type="button" class="optchip${on?' sel on':''}" data-bb="${H(code)}" aria-label="${H(name)}" aria-pressed="${on?'true':'false'}">${H(text)}</button>`;};
+  const list=PC.BB_TYPES||[];const ip=$('ipContact');if(ip)ip.innerHTML=list.map(code=>btn(code,PC.BB_NAME[code]||code)).join('');
+  const cc=$('cContact');if(cc)cc.innerHTML=list.map(code=>btn(code,code)).join('');}
 let storage=null;try{storage=window.localStorage;storage.setItem('__t','1');storage.removeItem('__t');}catch(e){storage=null;}
 const store=PC.makeStore(storage);
 const S=()=>store.state;
