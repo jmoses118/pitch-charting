@@ -29,7 +29,7 @@ function pitchRow(p,ctx){const row=pitchRow0(p,ctx);if(p.shook){row.call_raw=SHO
   return row;}
 function pitchRow0(p,ctx){return{id:p.id,mode:ctx.mode,game_id:ctx.game_id||null,session_id:ctx.session_id||null,pitcher_id:p.pitcherId||null,ts:p.ts||null,hand:p.hand||null,type:p.type||null,call:p.call||null,call_raw:p.callRaw||null,
   targets:p.targets||[],loc:p.loc==null?null:p.loc,result:p.result||null,ip:p.ip||null,end_event:p.end||null,inning:p.inning==null?null:p.inning,outs_before:p.outsBefore==null?null:p.outsBefore,slot:p.slot==null?null:p.slot,
-  batter:p.batter==null?null:p.batter,batter_num:p.batterNum==null?null:String(p.batterNum),b:p.b==null?null:p.b,s:p.s==null?null:p.s,abn:p.abn==null?null:p.abn,first_pitch:p.firstPitch==null?null:!!p.firstPitch,no_pitch:!!p.noPitch,prev_hand:p.prevHand||null,bb:BB_TYPES.includes(p.bb)?p.bb:null,deleted:!!p.deleted};}
+  batter:p.batter==null?null:p.batter,batter_num:p.batterNum==null?null:String(p.batterNum),b:p.b==null?null:p.b,s:p.s==null?null:p.s,abn:p.abn==null?null:p.abn,first_pitch:p.firstPitch==null?null:!!p.firstPitch,no_pitch:!!p.noPitch,prev_hand:p.prevHand||null,bb:p.bb||null,deleted:!!p.deleted};}
 function rowPitch(r){let raw=r.call_raw,edited=false;if(typeof raw==='string'&&raw.endsWith(EDITED_TAG)){edited=true;raw=raw.slice(0,-EDITED_TAG.length);}
   // Read keeps a grid aim that fails validCalled and flags the row. Junk off the grid is dropped. Writes still use validCalled.
   const shookNow=rowShook(r,raw);
@@ -38,7 +38,7 @@ function rowPitch(r){let raw=r.call_raw,edited=false;if(typeof raw==='string'&&r
   let calledLoc=null;if(r.called_loc!=null&&r.called_loc!==''){const z=+r.called_loc;if(onGrid(z))calledLoc=z;}
   const calledFlag=PC.aimFlag(calledType,calledLoc!=null?spots.concat(calledLoc):spots);
   const loc=r.loc!=null&&r.loc!==''&&onGrid(+r.loc)?+r.loc:null;
-  const p={id:r.id,ts:+r.ts||0,pitcherId:r.pitcher_id,hand:r.hand,type:r.type,call:r.call,callRaw:raw||null,targets:spots,loc,result:r.result,ip:r.ip,end:r.end_event,edited:edited};if(calledLoc!=null)p.calledLoc=calledLoc;if(calledFlag)p.calledFlag=true;if(BB_TYPES.includes(r.bb))p.bb=r.bb;if(shookNow){p.shook=true;p.callRaw=typeof raw==='string'&&raw.startsWith(SHOOK_TAG)?raw.slice(SHOOK_TAG.length)||null:raw||null;}
+  const p={id:r.id,ts:+r.ts||0,pitcherId:r.pitcher_id,hand:r.hand,type:r.type,call:r.call,callRaw:raw||null,targets:spots,loc,result:r.result,ip:r.ip,end:r.end_event,edited:edited};if(calledLoc!=null)p.calledLoc=calledLoc;if(calledFlag)p.calledFlag=true;if(r.bb)p.bb=r.bb;if(shookNow){p.shook=true;p.callRaw=typeof raw==='string'&&raw.startsWith(SHOOK_TAG)?raw.slice(SHOOK_TAG.length)||null:raw||null;}
   if(r.mode==='game')Object.assign(p,{inning:r.inning,outsBefore:r.outs_before,slot:r.slot,batter:r.batter,batterNum:r.batter_num,b:r.b,s:r.s,abn:r.abn,firstPitch:r.first_pitch,prevHand:r.prev_hand});else{p.b=0;p.s=0;delete p.result;delete p.ip;delete p.end;delete p.bpResult;}
   if(r.no_pitch)p.noPitch=true;p.mode=r.mode==='bullpen'?'bullpen':'game';
   if(r.actual_loc!=null&&r.actual_loc!==''&&onGrid(+r.actual_loc))p.actualLoc=+r.actual_loc;else if(p.loc!=null)p.actualLoc=p.loc;
