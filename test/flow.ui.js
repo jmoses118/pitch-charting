@@ -100,7 +100,7 @@ const spot=async p=>p.evaluate(()=>({called:(D.called||[]).slice(),actual:D.loc,
 // HM-9b. A warned call is accepted and the screen shows the core sentence. A change-up outside its boxes is still refused.
 const BOX5='Box 5 is always scored as a missed spot';
 {const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());await c.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));
-  const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());const ev=f=>p.evaluate(f);
+  const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());const ev=(f,a)=>p.evaluate(f,a);
   await p.goto(BASE);await ev(g=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';S.games=[g];S.activeGame='g1';S.sessions=[];__app.store.save();__app.render();},GAME);
   await p.click('nav [data-t="game"]');await p.waitForTimeout(200);
   await p.click('#types [data-c="CB"]');await tapZ(p,3);await p.waitForTimeout(150);
@@ -125,12 +125,15 @@ const BOX5='Box 5 is always scored as a missed spot';
   await p.goto(BASE);await ev(()=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';S.games=[{id:'g1',date:'2026-10-14',opponent:'Storm',homeAway:'home',status:'active',started:1,lineup:[{slot:1,name:'Batter 1',num:'1',hand:'R'}],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:1},pitches:[]}];S.activeGame='g1';__app.store.save();__app.render();});
   await p.waitForTimeout(300);
   await ev(()=>{placeCall('FB',[]);render();});await p.click('#cZone button[data-z="5"]');await p.waitForTimeout(150);
-  const hint=(await p.textContent('#cxHint')).trim();
-  const fit=await ev(()=>{const h=document.getElementById('cxHint');return h.scrollWidth<=h.clientWidth+1;});
-  ok(hint===BOX5&&fit,'HM-9b coach: fastball on 5 shows the box 5 warning in full ('+hint+', fit '+fit+')');
+  const shown=async()=>{const hint=(await p.textContent('#cxHint')).trim();const fit=await ev(()=>{const h=document.getElementById('cxHint'),s=document.getElementById('cStatus'),hr=h.getBoundingClientRect(),sr=s.getBoundingClientRect();return hr.top>=sr.top-1&&hr.bottom<=sr.bottom+1&&hr.left>=sr.left-1&&hr.right<=sr.right+1&&h.scrollHeight<=h.clientHeight+1&&h.scrollWidth<=h.clientWidth+1;});return {hint,fit};};
+  let box=await shown();
+  ok(box.hint===BOX5&&box.fit,'HM-9b coach: fastball on 5 shows the box 5 warning in full ('+box.hint+', fit '+box.fit+')');
   ok(await ev(()=>pullDraft().called[0]===5&&PC.scoreStep(pullDraft())==='actual'),'HM-9b coach: fastball on 5 is accepted');
+  await p.screenshot({path:`${SHOT}/flow-callwarn-coach.png`});
+  await ev(()=>{placeCall('DC',[]);render();});await p.click('#cZone button[data-z="6"]');await p.waitForTimeout(150);
+  box=await shown();
+  ok(box.hint==='drop curve is usually not aimed in the middle row'&&box.fit,'HM-9b coach: drop curve on 6 shows the middle-row warning in full ('+box.hint+', fit '+box.fit+')');
   await ev(()=>{placeCall('CH',[]);render();});await p.click('#cZone button[data-z="2"]');await p.waitForTimeout(150);
   ok(await ev(()=>!(pullDraft().called||[]).length)&&/aim low|CH: aim low/i.test(await p.textContent('#cxHint')),'HM-9b coach: change-up on 2 stays a hard block');
-  await p.screenshot({path:`${SHOT}/flow-callwarn-coach.png`});
   ok(!errs.length,'HM-9b coach: no page errors '+errs.join('|'));await c.close();}
 await b.close();console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);})().catch(e=>{console.error(e);process.exit(1);});
