@@ -92,5 +92,20 @@ for(const [W,H,inset] of land)for(const theme of ['field','night']){const tag=`$
   const undo=await p.evaluate(()=>({n:__app.store.real.games[0].pitches.length,ips:[...document.querySelectorAll('#cRes [data-ip]')].length,bbs:document.querySelectorAll('#cRes [data-bb]').length}));
   ok(undo.n===3&&undo.ips===8&&undo.bbs===0,'RULE-13a Undo cancels the contact step and leaves no pitch saved');
   await c.close();}
+{const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+  await c.route(/supabase\.co/,r=>r.abort());
+  await c.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));
+  const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());
+  await p.goto(BASE);
+  await p.evaluate(g=>{const row=(id,bb,ts)=>({id,pitcherId:'p_a',type:'FB',targets:[5],loc:5,result:'inplay',ip:'out',bb,abn:1,inning:1,b:0,s:0,hand:'R',ts});g.pitches=[row('none',null,1),row('unk','ZZ',2)];
+    const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';S.games=[g];S.activeGame='g1';__app.store.save();__app.render();},GAME);
+  await p.click('nav [data-t="game"]').catch(()=>{});await p.waitForTimeout(150);
+  const view=await p.evaluate(()=>{const pack=(sel,sub)=>[...document.querySelectorAll(sel)].map(e=>{const r=e.getBoundingClientRect();const bit=sub?e.querySelector(sub):e;return {t:(bit?bit.textContent:'').replace(/\s+/g,' ').trim(),h:r.height,w:r.width};});
+    return {recent:pack('#recent .rrow','.r-main b'),log:pack('#log .plist','.plist-res'),stored:__app.store.real.games[0].pitches.map(x=>x.bb||null)};});
+  const same=(a,b)=>!!a&&!!b&&a.t===b.t&&!/ZZ/.test(a.t)&&Math.abs(a.h-b.h)<=1&&Math.abs(a.w-b.w)<=1;
+  ok(view.recent.length===2&&same(view.recent[0],view.recent[1])&&view.log.length===2&&same(view.log[0],view.log[1]),'RULE-13 an unknown code shows as no contact '+JSON.stringify(view));
+  ok(view.stored.join(',')==='null,ZZ','RULE-13 the stored unknown code stays');
+  ok(!errs.length,'RULE-13 unknown contact: no page errors '+errs.join('|'));
+  await c.close();}
 await b.close();console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);
 })().catch(e=>{console.error(e);process.exit(1);});

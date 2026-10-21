@@ -1196,7 +1196,14 @@ test('RULE-13: contact is Ground, Liner, Fly, Pop up, and Bunt',()=>{
   for(const code of PC.BB_TYPES)assert.equal(PC.rowPitch({id:'p',mode:'game',type:'FB',ts:1,bb:code}).bb,code);
   const sent=PC.pitchRow({id:'x',bb:'ZZ'},{mode:'game'});assert.equal(sent.bb,'ZZ');
   assert.equal(PC.rowPitch({id:'x',mode:'game',type:'FB',ts:1,bb:sent.bb}).bb,'ZZ','an unknown code round-trips unchanged');
+  for(const code of ['BU','ZZ']){const pulled=PC.rowPitch({id:'e'+code,mode:'game',type:'FB',ts:1,loc:5,actual_loc:5,targets:[5],bb:code,result:'inplay',ip:'out',inning:1,abn:1});
+    assert.equal(PC.editActual(pulled,8),true);assert.equal(pulled.bb,code);assert.equal(PC.pitchRow(pulled,{mode:'game',chartCol:true}).bb,code,'an edited pull re-uploads '+code);}
   assert.equal(PC.bbOf({bb:'PU'}),'Pop up');
+  assert.equal(PC.bbOf({bb:'ZZ'}),'','an unknown code shows as no contact');
+  assert.equal(PC.bbOf({bb:'BU'}),'Bunt');
+  const hidden=PC.shakeoffs([{id:'z',ts:1,abn:1,b:0,s:0,type:'FB',call:'FB5',shook:true,loc:5,result:'inplay',ip:'out',bb:'ZZ'}]);
+  const blank=PC.shakeoffs([{id:'n',ts:1,abn:1,b:0,s:0,type:'FB',call:'FB5',shook:true,loc:5,result:'inplay',ip:'out'}]);
+  assert.equal(hidden.list[0].outcome,blank.list[0].outcome,'an unknown code reads like no contact');
   assert.equal(PC.csvApply({id:'p'},{contact:'ZZ'}).bb,undefined,'ZZ imports as no contact');
   assert.equal(PC.csvApply({id:'p'},{contact:' bu '}).bb,'BU','import accepts a listed code in any case');
   const bunt=PC.shakeoffs([{id:'b',ts:1,abn:1,b:0,s:0,type:'FB',call:'FB5',shook:true,loc:5,result:'inplay',ip:'out',bb:'BU'}]);
