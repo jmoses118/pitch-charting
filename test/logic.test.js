@@ -1312,6 +1312,7 @@ test('INFRA-4: a controller change does not reload by itself',()=>{
   assert.match(boot,/PC\.safeToReload/);
   assert.match(boot,/PC\.reloadDue/);
   assert.match(boot,/requestIdleCallback/);
+  assert.match(boot,/if\(!reg\)return;/);
   const note=main.slice(main.indexOf('function noteVersion'),main.indexOf('function bootWorker'));
   assert.match(note,/storage\.setItem\(PC\.VERSION_SEEN_KEY,n\.store\);\}catch\(e\)\{return;\}/);
 });

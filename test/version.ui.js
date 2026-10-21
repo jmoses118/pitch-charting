@@ -111,6 +111,59 @@ function labelOf(id){
     }).then(cache=>({cache,running:PC.APP_VERSION,shown:document.getElementById('setupVer').textContent.trim(),controlled:!!navigator.serviceWorker.controller})));
     ok(sw.controlled&&sw.shown===sw.running&&sw.cache==='te-pitch-'+sw.running,`running label matches the worker ${JSON.stringify(sw)}`);
     await c.close();}
+  const GAME2={id:'g1',date:'2026-10-20',opponent:'Storm',homeAway:'home',status:'active',started:1,lineup:[{slot:1,name:'Batter 1',num:'1',hand:'R'}],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:1},pitches:[]};
+  const NOTE_SIZES=[[375,667,0,0,0],[390,844,0,0,0],[430,932,0,0,0],[844,390,0,0,0],[844,390,47,47,21],[667,375,0,0,0],[667,375,47,47,21],[956,440,0,0,0],[956,440,47,47,21],[956,384,0,0,0],[956,360,0,0,0],[932,430,0,0,0]];
+  for(const [W,H,L,R,Bin] of NOTE_SIZES){
+    const tag=`${W}x${H}${L||R||Bin?' inset '+L+'/'+R+'/'+Bin:''}`;
+    const c=await b.newContext({viewport:{width:W,height:H},isMobile:true,hasTouch:true,serviceWorkers:'allow'});
+    await c.route(/supabase\.co/,r=>r.abort());
+    await c.addInitScript(()=>{localStorage.setItem('te_ui_theme','field');localStorage.setItem('pc_version_seen','v0');});
+    const p=await c.newPage();
+    const errs=[];p.on('pageerror',e=>errs.push(e.message));
+    await p.clock.install();
+    await p.clock.pauseAt(Date.now());
+    if(L||R||Bin){const cdp=await c.newCDPSession(p);await cdp.send('Emulation.setSafeAreaInsetsOverride',{insets:{top:0,left:L,right:R,bottom:Bin}});}
+    await p.goto(BASE);
+    await p.evaluate(g=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'12',throws:'R'}];S.curPitcher='p_a';S.games.push(g);S.activeGame='g1';__app.render();},GAME2);
+    const hit=await p.evaluate(()=>{
+      const boxOf=el=>{if(!el)return null;const cs=getComputedStyle(el);if(cs.display==='none'||cs.visibility==='hidden')return null;const r=el.getBoundingClientRect();return r.width>2&&r.height>2?r:null;};
+      const v=document.getElementById('verNote'),h=document.getElementById('cxHint');
+      let node=null,r=null;
+      if(v&&v.classList.contains('on')&&/Updated to v\d+/.test(v.textContent||'')){node=v;r=boxOf(v);}
+      if(!r&&h&&/Updated to v\d+/.test(h.textContent||'')){node=h;r=boxOf(h);}
+      if(!node||!r)return {ok:false,why:'note missing',on:!!(v&&v.classList.contains('on')),hint:(h&&h.textContent)||''};
+      const sels=['#cBand','#cStatus .cs-top','#cStatus .cs-bat','#cStatus .cs-call','#cxMenu','#cRes','#cRes button','#types','#types button','#foulChips','#foulChips button','nav','nav button','#pitcher','#jerseyEdit','#addPQuick','#gameHead','#cZone','#resTog','#syncTag'];
+      const bad=[];
+      for(const sel of sels)for(const el of document.querySelectorAll(sel)){
+        if(el===node||node.contains(el)||el.contains(node))continue;
+        const cs=getComputedStyle(el);if(cs.display==='none'||cs.visibility==='hidden')continue;
+        const q=el.getBoundingClientRect();if(q.width<2||q.height<2)continue;
+        const iw=Math.min(r.right,q.right)-Math.max(r.left,q.left),ih=Math.min(r.bottom,q.bottom)-Math.max(r.top,q.top);
+        if(iw>1&&ih>1)bad.push(sel);}
+      const onScreen=r.top>=-1&&r.left>=-1&&r.bottom<=innerHeight+1&&r.right<=innerWidth+1;
+      return {ok:!bad.length&&onScreen,bad:[...new Set(bad)],onScreen,text:node.textContent.trim(),id:node.id};
+    });
+    ok(hit.ok,`${tag}: update note misses the band, status, results, chips, nav and header ${JSON.stringify(hit)}`);
+    ok(!errs.length,`${tag}: no page errors ${errs.join('|')}`);
+    await c.close();
+  }
+  for(const [W,H] of [[956,440],[932,430]]){
+    const c=await b.newContext({viewport:{width:W,height:H},isMobile:true,hasTouch:true});
+    await c.route(/supabase\.co/,r=>r.abort());
+    const p=await c.newPage();
+    await p.goto(BASE);
+    await p.evaluate(g=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'12',throws:'R'}];S.curPitcher='p_a';S.games.push(g);S.activeGame='g1';__app.render();},GAME2);
+    await p.click('#cxMenu');
+    await p.waitForFunction(()=>document.getElementById('cMenuDlg').open);
+    const menu=await p.evaluate(()=>{
+      const row=document.querySelector('#cMenuDlg .row.sp').getBoundingClientRect();
+      const lbl=document.getElementById('cMenuT').getBoundingClientRect();
+      const btn=document.querySelector('#cMenuDlg .cmenu-g button').getBoundingClientRect();
+      return {lblTop:lbl.top-row.top,rowH:row.height,lblH:lbl.height,gap:btn.top-lbl.bottom};
+    });
+    ok(Math.abs(menu.lblTop)<=1&&Math.abs(menu.rowH-menu.lblH)<=1&&Math.abs(menu.gap-8)<=1,`${W}x${H}: game menu title keeps its row ${JSON.stringify(menu)}`);
+    await c.close();
+  }
   {const c=await b.newContext({viewport:{width:844,height:390},isMobile:true,hasTouch:true,serviceWorkers:'allow'});
     await c.route(/supabase\.co/,r=>r.abort());
     const p=await c.newPage();
