@@ -8,7 +8,7 @@ const PC=root.PC=root.PC||{};
 const BB_CONTACT=[['GB','Ground'],['LD','Liner'],['FB','Fly'],['PU','Pop up'],['BU','Bunt']];
 const BB_TYPES=BB_CONTACT.map(x=>x[0]);
 const BB_NAME=Object.fromEntries(BB_CONTACT);
-function bbOf(p){const c=p&&p.bb;return c?(BB_NAME[c]||c):'';}
+function bbOf(p){const c=p&&p.bb;return c&&BB_NAME[c]?BB_NAME[c]:'';}
 // ---------- Count logic (GameChanger style) ----------
 const RESULTS={kd3:'K – reached (dropped 3rd)',kd3out:'K – dropped 3rd, thrown out',foultip:'Foul tip',ball:'Ball',called:'Called strike',swinging:'Swinging strike',foul:'Foul',inplay:'In play',hbp:'HBP'};
 const IP_RESULTS={out:'Out','1B':'1B','2B':'2B','3B':'3B',HR:'HR',E:'Error',FC:'FC',DP:'Double play'};

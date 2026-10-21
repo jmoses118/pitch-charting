@@ -53,6 +53,7 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
 - **RULE-13** Ball-in-play contact is optional. The five choices are Ground (GB), Liner (LD), Fly (FB), Pop up (PU), and Bunt (BU).
   `BB_TYPES` and `BB_NAME` in `js/core/game.js` are the only list. Portrait Game (`#ipBtns`) and the coach screen render those chips.
   A pitch can be saved with none selected. A saved pitch keeps its code.
+  A code that is not on that list stays stored. The screen shows it as no contact.
   Stats and reports that name a contact type use that list, so a bunt reads Bunt.
   `pitches.bb` allows null or those five codes. Take a database backup before the migration that allows BU.
   CSV import keeps a contact only when the text is one of those five codes.
