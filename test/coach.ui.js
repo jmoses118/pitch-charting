@@ -71,7 +71,7 @@ for(const [W,H,MIN,ZMIN,RESW] of [[844,390,48,48,48],[667,375,44,34,46]]){const 
   // ---- in play + spray ----
   await p.click('#cZone button[data-z="2"]');await p.click('#cRes [data-r="inplay"]');await wait();
   ok(await ev(()=>!document.getElementById('cSprayWrap').classList.contains('hide')&&document.querySelectorAll('#cRes [data-ip]').length===8),`${tag}: In play swaps in outcomes + spray field`);
-  ok(await ev(()=>document.getElementById('cContact').classList.contains('hide')),`${tag}: RULE-13a no chip row under the zone`);
+  ok(await ev(()=>!document.getElementById('cContact')),`${tag}: RULE-13a no chip row under the zone`);
   {const r=await p.$eval('#cSpray',e=>e.getBoundingClientRect());await p.mouse.click(r.x+r.width*.3,r.y+r.height*.4);}await wait();await shot('coach-inplay');
   await p.click('#cRes [data-ip="1B"]');await wait();
   {const chips=await ev(()=>{const list=[...document.querySelectorAll('#cRes [data-bb]')];return {codes:list.map(b=>b.dataset.bb),labels:list.map(b=>b.textContent),aria:list.map(b=>b.getAttribute('aria-label')),box:list.map(b=>{const r=b.getBoundingClientRect();return {w:r.width,h:r.height,clip:b.scrollWidth>b.clientWidth+1,off:r.left<-1||r.right>innerWidth+1||r.bottom>innerHeight+1};})};});

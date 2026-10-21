@@ -62,8 +62,11 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
   After the in-play outcome (out, 1B, and so on), the result column shows the five chips.
   Each chip is at least 48×48. The chip row under the zone is gone.
   A chip shows the code, and the full name is its aria-label, when the full name does not fit.
-  Skip records that pitch with no contact. Back and Cancel keep the pitch too.
+  Skip records that pitch with no contact. Escape records that pitch with no contact too.
+  Back returns to the outcome choices and saves nothing.
+  Undo, while a pitch is waiting for contact, cancels that step and leaves no pitch saved.
   The band and the result column stay put from idle, to in play, to this step.
+  The result column's top and bottom stay put too.
 
 ## SCORING
 SCORE-1, SCORE-2, SCORE-3, SCORE-4, and SCORE-5 are in `docs/SCORING.md`.
@@ -128,7 +131,7 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | RULE-11, RULE-12 | UI: edit jersey number saves, and Cancel leaves it unchanged; smoke: branding unchanged |
 | RULE-11a | unit: `0` and `00` are allowed, empty is allowed, and a duplicate active number errors |
 | RULE-13 | unit: “RULE-13: contact is Ground, Liner, Fly, Pop up, and Bunt”; `test/detail.ui.js` portrait Bunt saves and can be skipped |
-| RULE-13a | `test/contact.ui.js`: coach chips are at least 48×48 in the result column, columns do not move, and Skip, Back, and Cancel keep the pitch |
+| RULE-13a | `test/contact.ui.js`: coach chips are at least 48×48 in the result column, top and bottom stay put, Back and Undo save nothing, Skip and Escape record no contact, and 440×956 portrait insets are included |
 | VIEW-1, VIEW-2 | `zonegfx.ui.js`: numbered, colored markers and list; one-tap scheduled start |
 | VIEW-3 | unit: “VIEW-2 todaysScheduled returns only that day's scheduled games” |
 | VIEW-4 | unit: “VIEW-4: nothing saved is Night, and a saved Field or Night stays”; “VIEW-4: themeFromStorage reads THEME_KEY and stays Night when getItem throws”; `test/coach.ui.js`: Night by default, the game menu reaches Field and Night, a saved Field stays Field, no Field frame paints on load, a throwing theme read stays Night, Night controls are 2px, Night fills are #3A5CF0, themeColor paints the bar, a missing theme.js opens Night and the coach screen, and Night boxes match Field |

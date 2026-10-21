@@ -1194,8 +1194,9 @@ test('RULE-13: contact is Ground, Liner, Fly, Pop up, and Bunt',()=>{
   for(const code of PC.BB_TYPES)assert.equal(PC.pitchRow({id:'x',bb:code},{mode:'game'}).bb,code,code);
   assert.equal(PC.pitchRow({id:'x'},{mode:'game'}).bb,null,'contact stays optional');
   for(const code of PC.BB_TYPES)assert.equal(PC.rowPitch({id:'p',mode:'game',type:'FB',ts:1,bb:code}).bb,code);
-  const sent=PC.pitchRow({id:'x',bb:'ZZ'},{mode:'game'});assert.equal(sent.bb,'ZZ');
-  assert.equal(PC.rowPitch({id:'x',mode:'game',type:'FB',ts:1,bb:sent.bb}).bb,'ZZ','an unknown code round-trips unchanged');
+  const sent=PC.pitchRow({id:'x',bb:'ZZ'},{mode:'game'});assert.equal(sent.bb,null,'ZZ is sent as no contact');
+  assert.equal(PC.rowPitch({id:'x',mode:'game',type:'FB',ts:1,bb:'ZZ'}).bb,undefined,'an unknown code is not kept on read');
+  assert.equal(PC.bbOf({bb:'PU'}),'Pop up');
   assert.equal(PC.csvApply({id:'p'},{contact:'ZZ'}).bb,undefined,'ZZ imports as no contact');
   assert.equal(PC.csvApply({id:'p'},{contact:' bu '}).bb,'BU','import accepts a listed code in any case');
   const bunt=PC.shakeoffs([{id:'b',ts:1,abn:1,b:0,s:0,type:'FB',call:'FB5',shook:true,loc:5,result:'inplay',ip:'out',bb:'BU'}]);
@@ -1225,7 +1226,11 @@ test('RULE-13: contact is Ground, Liner, Fly, Pop up, and Bunt',()=>{
   assert.match(spec,/Jim ruled on 20 October 2026/);
   assert.match(spec,/Each chip is at least 48×48/);
   assert.match(spec,/Skip records that pitch with no contact/);
-  assert.match(spec,/Back and Cancel keep the pitch too/);
+  assert.match(spec,/Escape records that pitch with no contact too/);
+  assert.match(spec,/Back returns to the outcome choices and saves nothing/);
+  assert.match(spec,/Undo, while a pitch is waiting for contact, cancels that step and leaves no pitch saved/);
+  assert.match(spec,/The result column's top and bottom stay put too/);
+  assert.doesNotMatch(spec,/Back and Cancel keep the pitch too/);
   const log=fs.readFileSync(path.join(root,'CHANGELOG.md'),'utf8');
   assert.match(log,/Rollback is a restore from the backup taken before that migration/);
 });
