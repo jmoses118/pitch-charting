@@ -237,7 +237,7 @@ body.entrymode .count small{font-size:10px;display:inline;margin-right:4px}
 .stepline .steps li{padding-top:2px;border-top-width:2px;font-size:11px;letter-spacing:0;white-space:nowrap;overflow:visible;text-overflow:clip}
 button.mini{min-height:var(--tap);padding:0 var(--s3);font-size:var(--fs-xs);font-weight:700;border-radius:var(--r-pill)}
 button.mini[aria-expanded="true"]{background:var(--c-royal);color:#fff}
-.entrybar .phase{padding:2px 0 0;margin:0;background:none;font-size:var(--fs-xs);color:var(--c-text-2);white-space:normal;overflow:visible;text-overflow:clip}
+.entrybar .phase{padding:2px 0 0;margin:0;background:none;font-size:13px;color:var(--c-text-2);white-space:normal;overflow:visible;text-overflow:clip}
 body.entrymode #zone{max-width:none}
 button.zchip{position:absolute;z-index:2;min-height:var(--tap);min-width:var(--tap);padding:0 var(--s2);border-radius:var(--r-pill);font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--c-surface-2);border-color:var(--c-line-strong)}
 .seg3{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:var(--s2)}.seg3 button{min-height:var(--tap-lg);font-weight:700}.seg3 button.sel{background:var(--c-royal);border-color:var(--c-royal-text);color:#fff}
@@ -313,7 +313,8 @@ html[data-theme="night"] .cstatus{background:#0D121B}
 .cs-aim{font-size:14px;color:#9DB2FF;font-weight:800}.cs-none{color:#7D8AA0;font-size:18px}
 .cs-hint{font-size:11px;color:#EEF2F8;display:block;height:1.4em;line-height:1.4em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}.cs-hint .cs-n{margin-right:4px;vertical-align:1px}
 .cs-n{display:inline-grid;place-items:center;min-width:18px;height:18px;border-radius:5px;background:#9DB2FF;color:#0B0F17;font-size:11px;font-weight:900}
-.cs-hint.msg{font-weight:800}.cs-hint.msg.ok{color:#7EE2A0}.cs-hint.msg.warn{color:#FFD27A;font-size:11px;white-space:normal;height:auto;line-height:1.15}
+.cs-hint.msg{font-weight:800}.cs-hint.msg.ok{color:#7EE2A0}
+.cs-hint.msg.warn{color:#9FB4FF;font-size:13px;line-height:1.2;white-space:normal;height:auto;max-height:2.4em;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
 .cs-hint.msg.warn + .cs-net{display:none}
 .cs-net{font-size:11px;color:#A9B4C6}
 .cs-ip{font-size:11.5px;font-weight:700;color:#EEF2F8;line-height:1.25}
@@ -359,6 +360,7 @@ body.padmode main{padding-bottom:calc(var(--pad-h,0px) + 12px)}
 .coach.compact{gap:5px}.coach.compact .cres{grid-template-columns:var(--tap) var(--tap)}.coach.compact .cs-bat{font-size:11px}
 .coach.compact .cs-top{font-size:11px}.coach.compact .cs-count{font-size:14px}.coach.compact .cchip{font-size:10px;line-height:14px;padding:0 3px}
 .coach.compact .cs-hint{font-size:10px}
+.coach.compact .cs-hint.msg.warn{font-size:13px;line-height:1.2}
 .coach.compact .cmenu{width:44px;padding:0;font-size:20px}
 #wayBtns button{min-height:48px}body.padmode .bpad #wayBtns button,body.padmode #wayBtns button{min-height:48px}
 @media (max-height:720px){body.padmode .bpad{padding:2px 8px 2px;row-gap:2px}body.padmode .padact{margin-top:2px}body.padmode #wayBtns button,body.padmode #actBtns button{min-height:48px;height:auto;font-size:11px;line-height:1.05}}

@@ -70,33 +70,34 @@ function callWarn(type,z){
   const rule=PC.TYPE_MISS[type];
   return !!(rule&&Array.isArray(rule.warn)&&rule.warn.includes(z));
 }
-function callWarnMsg(type,z){
+function callWarnMsg(type,z,opt){
   if(!callWarn(type,z))return '';
   z=+z;
-  if(z===5)return BOX5_WARN;
+  const short=!!(opt&&opt.short);
+  if(z===5)return short?'Box 5 = missed spot':BOX5_WARN;
   const row=PC.BASE_TYPES.find(t=>t.code===type);
   const name=(row&&row.name?row.name:String(type||'Pitch')).toLowerCase();
-  if(PC.TOP_ROW.includes(z))return name+' is usually not aimed up';
-  return name+' is usually not aimed in the middle row';
+  if(PC.TOP_ROW.includes(z))return short?name+': not up':name+' is usually not aimed up';
+  return short?name+': not middle':name+' is usually not aimed in the middle row';
 }
 // The aim is calledBoxes. The called type is calledTypeOf. A box that fails validCalled is kept and is not a soft warning.
-function callWarnOf(p){
+function callWarnOf(p,opt){
   const type=PC.calledTypeOf(p);
   const boxes=PC.calledBoxes(p);
   for(let i=0;i<boxes.length;i++){
     if(!PC.validCalled(type,boxes[i]))continue;
-    const msg=callWarnMsg(type,boxes[i]);
+    const msg=callWarnMsg(type,boxes[i],opt);
     if(msg)return msg;
   }
   return '';
 }
 // A live draft's called list is the aim until scoreCommit stores it. calledBoxes reads that list as targets.
-function callWarnDraft(d){
+function callWarnDraft(d,opt){
   d=d||{};
   const called=Array.isArray(d.called)?d.called.slice():[];
-  return callWarnOf({type:d.type||'',calledType:d.type||'',targets:called,shook:!!d.shook,call:d.call||'',hand:d.hand||''});
+  return callWarnOf({type:d.type||'',calledType:d.type||'',targets:called,shook:!!d.shook,call:d.call||'',hand:d.hand||''},opt);
 }
-// The hard refusal wins. Otherwise the soft warning. Empty when the aim is fine.
-function aimLine(d){const note=aimNote(d);return note||callWarnDraft(d);}
+// The hard refusal wins. Otherwise the soft warning. {short:true} asks callWarnMsg for the coach line.
+function aimLine(d,opt){const note=aimNote(d);return note||callWarnDraft(d,opt);}
 Object.assign(PC,{FLOW,GAME_RESULTS,flowSteps,flowLabel,scoreStep,scoreApply,scoreTap,scoreCommit,validCalled,validActual,aimFlag,aimNote,callWarn,callWarnMsg,callWarnOf,callWarnDraft,aimLine});
 })(typeof window!=='undefined'?window:globalThis);

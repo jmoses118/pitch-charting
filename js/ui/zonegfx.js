@@ -45,7 +45,7 @@ function pitchLine(p,i,mode){const who=mode==='game'?H(String(pName(p.pitcherId)
   const aimRaw=PC.calledOf(p);const aimN=aimRaw==null?'':aimRaw;
   const actRaw=PC.actualOf(p);const act=actRaw!=null?locTxt(actRaw):'';
   const aimBit=mode==='stats'?`<span class="plist-aim">aim ${H(aimN===''?'–':aimN)} → ${H(act===''?'–':act)}</span>`:'';
-  const warn=PC.callWarnOf(p);
+  const warn=PC.callWarnOf(p,{short:true});
   const warnBit=warn?`<span class="plist-warn mut">${H(warn)}</span>`:'';
   const spot=p.loc?' <span class="tag">'+H(locTxt(p.loc))+'</span>':'';
   const mark=p.targets&&p.targets.length&&p.loc?(PC.hitSpot(p)?' ✓':' ✗'):'';
