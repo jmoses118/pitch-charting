@@ -75,10 +75,10 @@ function callWarnMsg(type,z,opt){
   if(!callWarn(type,z))return '';
   z=+z;
   const short=!!(opt&&opt.short);
-  if(z===5)return short?'Box 5 = missed spot':BOX5_WARN;
+  if(z===5)return short?'Box 5: always a miss':BOX5_WARN;
   const name=PC.BASE_TYPES.find(t=>t.code===type).name.toLowerCase();
   if(PC.TOP_ROW.includes(z))return short?name+': not up':name+' is usually not aimed up';
-  return short?name+': not middle':name+' is usually not aimed in the middle row';
+  return short?name+': not aimed middle':name+' is usually not aimed in the middle row';
 }
 // The aim is calledBoxes. The called type is calledTypeOf. A box that fails validCalled is kept and is not a soft warning.
 function callWarnOf(p,opt){
