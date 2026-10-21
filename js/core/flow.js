@@ -1,5 +1,6 @@
 /* Thunder Elite pitch charting – flow.js: one scoring state machine for every mode.
    Pure logic (no DOM). Loads after calls.js and location.js, before game.js. validCalled is the only aim validator.
+   callWarn is the soft warning beside it. It does not refuse a call and it is not stored.
    Game: type → called location → actual location → result.
    Bullpen: type → called location → actual location → save. No ball/strike step.
    Optional and outside the required list: shake-off, velocity, in-play detail, editing a past location. */
@@ -61,5 +62,40 @@ function scoreCommit(d){d=clone(d);const boxes=d.called.slice();
   const row={type:d.type,targets:boxes,loc:d.actual,actualLoc:d.actual,calledLoc:PC.nearestTarget(boxes,d.actual),result:d.mode==='bullpen'?null:d.result,ip:d.ip||null,shook:!!d.shook,velo:d.velo};
   if(aimFlag(d.type,boxes))row.calledFlag=true;
   return row;}
-Object.assign(PC,{FLOW,GAME_RESULTS,flowSteps,flowLabel,scoreStep,scoreApply,scoreTap,scoreCommit,validCalled,validActual,aimFlag,aimNote});
+// HM-9b. Box 5 warns for every type. Every other warned box is TYPE_MISS[type].warn. No type list lives here.
+const BOX5_WARN='Box 5 is always scored as a missed spot';
+function callWarn(type,z){
+  z=+z;
+  if(z===5)return true;
+  const rule=PC.TYPE_MISS[type];
+  return !!(rule&&Array.isArray(rule.warn)&&rule.warn.includes(z));
+}
+function callWarnMsg(type,z){
+  if(!callWarn(type,z))return '';
+  z=+z;
+  if(z===5)return BOX5_WARN;
+  const row=(PC.BASE_TYPES||[]).find(t=>t.code===type);
+  const name=(row&&row.name?row.name:String(type||'Pitch')).toLowerCase();
+  if((PC.TOP_ROW||[]).includes(z))return name+' is usually not aimed up';
+  return name+' is usually not aimed in the middle row';
+}
+// The aim is calledBoxes. The called type is calledTypeOf. Nothing here is written onto the pitch.
+function callWarnOf(p){
+  const type=PC.calledTypeOf(p);
+  const boxes=PC.calledBoxes(p);
+  for(let i=0;i<boxes.length;i++){
+    const msg=callWarnMsg(type,boxes[i]);
+    if(msg)return msg;
+  }
+  return '';
+}
+// A live draft's called list is the aim until scoreCommit stores it. calledBoxes reads that list as targets.
+function callWarnDraft(d){
+  d=d||{};
+  const called=Array.isArray(d.called)?d.called.slice():[];
+  return callWarnOf({type:d.type||'',calledType:d.type||'',targets:called,shook:!!d.shook,call:d.call||'',hand:d.hand||''});
+}
+// The hard refusal wins. Otherwise the soft warning. Empty when the aim is fine.
+function aimLine(d){const note=aimNote(d);return note||callWarnDraft(d);}
+Object.assign(PC,{FLOW,GAME_RESULTS,flowSteps,flowLabel,scoreStep,scoreApply,scoreTap,scoreCommit,validCalled,validActual,aimFlag,aimNote,callWarn,callWarnMsg,callWarnOf,callWarnDraft,aimLine});
 })(typeof window!=='undefined'?window:globalThis);

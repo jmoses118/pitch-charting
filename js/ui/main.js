@@ -43,7 +43,7 @@ function render(skipCallInput){const s=S();applyViewOnly(viewOnly());if(typeof r
   $('callDesc').textContent=D.callTxt?(D.parsed?`${D.parsed.norm} = ${types.find(t=>t.code===D.parsed.type)?.name||D.parsed.type}${D.parsed.targets.length?' → zone '+D.parsed.targets.join('/'):' → tap target on grid'}${D.target?' '+D.target:''} · ${D.parsed.desc}`:'Unrecognized code'):'Type a code or tap buttons. Digits = zone (pitcher\'s view).';
   renderSteps();
   const step=PC.scoreStep(pullDraft()),aims=aimSet();
-  const aimNote=PC.aimNote(pullDraft());
+  const aimNote=PC.aimLine(pullDraft());
   $('phase').innerHTML=aimNote?H(aimNote):tab==='bullpen'?bpPhase():step==='type'?'Pick the pitch type':step==='called'?'Tap the <b>called target</b> on the grid':step==='actual'?'Tap where it went':`Tap the result${aims.length?` · ${aims.join('/')} → ${locTxt(D.loc)}`:''}`;
   $('resBtns').classList.toggle('hide',!!D.ip);$('ipBtns').classList.toggle('hide',!D.ip);
   $('undo').textContent=D.loc?'Undo location':(editUndo?'Undo edit':tab==='bullpen'&&(D.type||D.target||D.callTxt)?'Undo step':'Undo');
