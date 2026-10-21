@@ -40,7 +40,7 @@ function importSpots(r){r=r||{};const named=r.called_type!=null&&String(r.called
   return{targets,calledLoc,loc,actualLoc,calledFlag};}
 function importFlagCount(rows){return (rows||[]).reduce((n,r)=>n+(importSpots(r).calledFlag?1:0),0);}
 // Re-import: called_type sets calledType; 1 / true / yes sets shook. from_video does the same for a corrected pitch. An older file's edited column still counts. Empty or 0 leaves them unset.
-function csvApply(base,r){base=base||{};if(r&&r.called_type)base.calledType=String(r.called_type).trim();if(r&&csvFlag(r.shook))base.shook=true;if(r&&(csvFlag(r.from_video)||csvFlag(r.edited)))base.edited=true;if(r&&String(r.contact||'').trim())base.bb=String(r.contact).trim();return base;}
+function csvApply(base,r){base=base||{};if(r&&r.called_type)base.calledType=String(r.called_type).trim();if(r&&csvFlag(r.shook))base.shook=true;if(r&&(csvFlag(r.from_video)||csvFlag(r.edited)))base.edited=true;const c=String(r&&r.contact||'').trim().toUpperCase();if(PC.BB_TYPES.includes(c))base.bb=c;return base;}
 function csvToken(s){return String(s||'').replace(/[^A-Za-z0-9]+/g,'-').replace(/^-+|-+$/g,'');}
 // File name: first name and jersey only. The rest of the roster text never lands in the name.
 function csvPitcherFile(pitcher,date){const raw=pitcher&&pitcher.name;const first=typeof PC.firstName==='function'?PC.firstName(raw):String(raw||'').trim().split(/\s+/)[0];

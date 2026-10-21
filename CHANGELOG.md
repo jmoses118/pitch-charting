@@ -6,6 +6,7 @@
 - The pitches table check has to allow BU. Take a database backup before that migration runs.
 - Rollback is a restore from the backup taken before that migration. Putting the four-code check back would fail while any pitch is saved as BU, and clearing those bunts needs Jim's sign-off.
 - On the coach screen those five chips show GB, LD, FB, PU, and BU and stay inside the zone. Each chip is at least 48px wide when the zone is at least 240px wide. The game screen still shows the full names.
+- A CSV import keeps a contact only when it is one of those five codes. Anything else, including ZZ, comes in with no contact.
 - Cache: `te-pitch-v83`.
 
 ## v82 – The app shows which version is running

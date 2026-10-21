@@ -55,6 +55,7 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
   A pitch can be saved with none selected. A saved pitch keeps its code.
   Stats and reports that name a contact type use that list, so a bunt reads Bunt.
   `pitches.bb` allows null or those five codes. Take a database backup before the migration that allows BU.
+  CSV import keeps a contact only when the text is one of those five codes.
   A future GB/FB ratio has to decide how a bunt (BU) counts.
   The coach screen shows each code on the chip and the full name as its aria-label. The game screen shows the full name. The chips stay inside the zone. Each one is at least 48px wide when that zone is at least 240px wide; a shorter zone divides evenly, with no gap.
 

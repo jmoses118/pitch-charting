@@ -1197,6 +1197,7 @@ test('RULE-13: contact is Ground, Liner, Fly, Pop up, and Bunt',()=>{
   const sent=PC.pitchRow({id:'x',bb:'ZZ'},{mode:'game'});assert.equal(sent.bb,'ZZ');
   assert.equal(PC.rowPitch({id:'x',mode:'game',type:'FB',ts:1,bb:sent.bb}).bb,'ZZ','an unknown code round-trips unchanged');
   assert.equal(PC.csvApply({id:'p'},{contact:'ZZ'}).bb,undefined,'ZZ imports as no contact');
+  assert.equal(PC.csvApply({id:'p'},{contact:' bu '}).bb,'BU','import accepts a listed code in any case');
   const bunt=PC.shakeoffs([{id:'b',ts:1,abn:1,b:0,s:0,type:'FB',call:'FB5',shook:true,loc:5,result:'inplay',ip:'out',bb:'BU'}]);
   assert.equal(bunt.list[0].outcome,'out (Bunt)');
   const ground=PC.shakeoffs([{id:'g',ts:1,abn:1,b:0,s:0,type:'FB',call:'FB5',shook:true,loc:5,result:'inplay',ip:'1B',bb:'GB'}]);
@@ -1220,6 +1221,7 @@ test('RULE-13: contact is Ground, Liner, Fly, Pop up, and Bunt',()=>{
   for(const code of PC.BB_TYPES)assert.match(sql,new RegExp("'"+code+"'"));
   const spec=fs.readFileSync(path.join(root,'docs/SPEC.md'),'utf8');
   assert.match(spec,/A future GB\/FB ratio has to decide how a bunt \(BU\) counts/);
+  assert.match(spec,/CSV import keeps a contact only when the text is one of those five codes/);
   assert.match(spec,/The coach screen shows each code on the chip and the full name as its aria-label/);
   assert.match(spec,/at least 48px wide when that zone is at least 240px wide/);
   const log=fs.readFileSync(path.join(root,'CHANGELOG.md'),'utf8');

@@ -223,7 +223,7 @@ function fitCoachCol(o) {
   // RULE-13. The five chips share the zone that is already there. Idle and in play use the same column.
   const el = $("coach");
   const zoneW = parseFloat(el.style.getPropertyValue("--mid")) || 0;
-  const n = (PC.BB_TYPES || []).length || 5;
+  const n = (PC.BB_TYPES || []).length;
   el.style.setProperty("--ccontact-gap", zoneW >= n * 48 + (n - 1) * 2 ? "2px" : "0px");
 }
 // VIEW-4. themeFromStorage reads THEME_KEY. A missing theme.js keeps the theme the head script already set.
