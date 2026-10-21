@@ -1219,6 +1219,9 @@ test('RULE-13: contact is Ground, Liner, Fly, Pop up, and Bunt',()=>{
   for(const code of PC.BB_TYPES)assert.match(sql,new RegExp("'"+code+"'"));
   const spec=fs.readFileSync(path.join(root,'docs/SPEC.md'),'utf8');
   assert.match(spec,/A future GB\/FB ratio has to decide how a bunt \(BU\) counts/);
+  assert.match(spec,/The coach screen shows each code on the chip and the full name as its aria-label/);
+  assert.match(spec,/each one is at least 48px wide/);
+  assert.match(spec,/band 33, zone 34, and results 46/);
   const log=fs.readFileSync(path.join(root,'CHANGELOG.md'),'utf8');
   assert.match(log,/Rollback is a restore from the backup taken before that migration/);
 });

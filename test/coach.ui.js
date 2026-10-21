@@ -6,7 +6,7 @@ const {chromium}=require('playwright-core');const {AUDIT}=require('./lib/audit')
 const SHOT=process.env.SHOT_DIR||'';if(SHOT)require('fs').mkdirSync(SHOT,{recursive:true});
 const GAME={id:'g1',date:'2026-10-13',opponent:'Storm',homeAway:'home',status:'active',started:1,lineup:[{slot:1,name:'Batter 1',num:'1',hand:'R'},{slot:2,name:'Batter 2',num:'2',hand:'R'},{slot:3,name:'Batter 3',num:'3',hand:'L'}],cur:{inning:1,outs:1,slot:1,b:1,s:1,abn:3},pitches:[]};
 (async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});
-for(const [W,H,MIN,ZMIN,RESW] of [[844,390,48,48,48],[667,375,44,34,46]]){const tag=`${W}x${H}`;
+for(const [W,H,MIN,ZMIN,RESW] of [[844,390,48,48,48],[667,375,33,34,46]]){const tag=`${W}x${H}`;
   const c=await b.newContext({viewport:{width:W,height:H},isMobile:true,hasTouch:true,deviceScaleFactor:SHOT?3:1});await c.route(/supabase\.co/,r=>r.abort());
   const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());const ev=(f,a)=>p.evaluate(f,a);const wait=ms=>p.waitForTimeout(ms||150);
   const shot=async n=>{if(SHOT){await wait(250);await p.screenshot({path:SHOT+(W===844?'after-':'se667-after-')+n+'.png'});}};
@@ -71,10 +71,10 @@ for(const [W,H,MIN,ZMIN,RESW] of [[844,390,48,48,48],[667,375,44,34,46]]){const 
   // ---- in play + spray ----
   await p.click('#cZone button[data-z="2"]');await p.click('#cRes [data-r="inplay"]');await wait();
   ok(await ev(()=>!document.getElementById('cSprayWrap').classList.contains('hide')&&document.querySelectorAll('#cRes [data-ip]').length===8),`${tag}: In play swaps in outcomes + spray field`);
-  {const chips=await ev(()=>{const list=[...document.querySelectorAll('#cContact [data-bb]')];return {hide:document.getElementById('cContact').classList.contains('hide'),codes:list.map(b=>b.dataset.bb),labels:list.map(b=>b.textContent),box:list.map(b=>{const r=b.getBoundingClientRect();return {w:r.width,h:r.height,clip:b.scrollWidth>b.clientWidth+1,off:r.left<-1||r.right>innerWidth+1||r.bottom>innerHeight+1};})};});
-    ok(!chips.hide&&chips.codes.join(',')==='GB,LD,FB,PU,BU'&&chips.labels.join(',')==='Ground,Liner,Fly,Pop up,Bunt',`${tag}: RULE-13 five contact chips`);
-    const fit=chips.box.every(b=>b.h>=47.5&&!b.clip&&!b.off)&&(W===844?chips.box.every(b=>b.w>=47.5):true);
-    ok(fit,`${tag}: RULE-13 contact ${W===844?'is 48px':'fits'} (${chips.box.map(b=>b.w.toFixed(0)+'×'+b.h.toFixed(0)+(b.clip?' clip':'')).join(' ')})`);}
+  {const chips=await ev(()=>{const list=[...document.querySelectorAll('#cContact [data-bb]')];return {hide:document.getElementById('cContact').classList.contains('hide'),codes:list.map(b=>b.dataset.bb),labels:list.map(b=>b.textContent),aria:list.map(b=>b.getAttribute('aria-label')),box:list.map(b=>{const r=b.getBoundingClientRect();return {w:r.width,h:r.height,clip:b.scrollWidth>b.clientWidth+1,off:r.left<-1||r.right>innerWidth+1||r.bottom>innerHeight+1};})};});
+    ok(!chips.hide&&chips.codes.join(',')==='GB,LD,FB,PU,BU'&&chips.labels.join(',')==='GB,LD,FB,PU,BU'&&chips.aria.join(',')==='Ground,Liner,Fly,Pop up,Bunt',`${tag}: RULE-13 coach chips show the code`);
+    const fit=chips.box.every(b=>b.h>=47.5&&b.w>=47.5&&!b.clip&&!b.off);
+    ok(fit,`${tag}: RULE-13 contact is 48px (${chips.box.map(b=>b.w.toFixed(0)+'×'+b.h.toFixed(0)+(b.clip?' clip':'')).join(' ')})`);}
   {const pr=await ev(AUDIT);ok(!pr.length,`${tag}: no clipping/overlap (in play)${pr.length?' → '+pr.slice(0,5).join(' | '):''}`);}
   {const r=await p.$eval('#cSpray',e=>e.getBoundingClientRect());await p.mouse.click(r.x+r.width*.3,r.y+r.height*.4);}await wait();await shot('coach-inplay');
   await p.click('#cContact [data-bb="BU"]');await wait();
