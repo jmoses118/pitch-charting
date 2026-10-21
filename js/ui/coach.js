@@ -101,8 +101,11 @@ function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,h
   // in play: spray field replaces the status details
   $('cSprayWrap').classList.toggle('hide',!D.ip);['cs-bat','cs-call','cs-hint','cs-foot'].forEach(k=>$('cStatus').querySelector('.'+k).classList.toggle('hide',!!D.ip));
   if(D.ip){$('cxIp').textContent=`IN PLAY · ${code?code+' ':''}${D.callTxt||''}${aims.length?' → '+aims.join('/'):''}${D.loc?' · landed '+D.loc:''} · spray optional`;const dot=$('cSprayDot');dot.classList.toggle('hide',!D.spray);if(D.spray){dot.setAttribute('cx',D.spray[0]*200);dot.setAttribute('cy',D.spray[1]*92);}}
-  $('cAct').classList.toggle('hide',false);$('cContact').classList.toggle('hide',true);
-  document.querySelectorAll('#cContact [data-bb]').forEach(b=>b.classList.toggle('on',b.dataset.bb===D.bb));
+  $('cAct').classList.toggle('hide',false);
+  // RULE-13a. The chip row under the zone is gone.
+  // Contact chips live in the result column, after the outcome.
+  // Skip and Escape record the pitch with no contact.
+  // Back and Undo return to the outcomes and save nothing.
   // zone
   const am=new Set(aims);$('cZone').innerHTML=Z5.map(row=>row.map(z=>{const isA=am.has(z),isL=D.loc===z;
     return `<button type="button" data-z="${z}" class="${z<10?'zi':'zr'}${isA?' aim':''}${isA&&D.aimEdit?' editing':''}${D.aimEdit&&!PC.validCalled(D.type,z)?' noaim':''}${isL?' act':''}" aria-label="Zone ${z}${isA?', aim':''}${isL?', landed':''}"><span>${z}</span>${isA?'<small>AIM</small>':''}</button>`;}).join('')).join('');
@@ -147,12 +150,12 @@ $('cRes').addEventListener('click',e=>{const b=e.target.closest('button');if(!b|
 $('cAct').addEventListener('click',e=>{if(viewOnly()){toast(PC.SCORING_ELSEWHERE);return;}const b=e.target.closest('[data-z]');if(!b)return;sideCard=null;coachZoneAct(+b.dataset.z,false);});
 $('cRes').addEventListener('pointerdown',e=>{if(e.target.closest('[data-r]'))clearFoulChips();});
 $('cRes').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||!D.bbAsk)return;if(b.dataset.bb)coachKeep(b.dataset.bb);else if(b.dataset.cx==='skip')coachKeep(null);});
-// RULE-13a. Contact is a step after the outcome. Back and Skip keep the pitch.
+// RULE-13a. Contact is a step after the outcome. Skip and Escape keep the pitch. Back saves nothing.
 function coachRes(){if(!D.bbAsk)return IP_BTNS.map(([v,l])=>`<button data-ip="${v}" class="${/^(out|1B|2B|3B|HR)$/.test(v)?'b-ip':''}">${l}</button>`).join('')+'<button data-cx="back">← Back</button>';
-  return PC.BB_TYPES.map(code=>`<button type="button" data-bb="${H(code)}" aria-label="${H(PC.BB_NAME[code]||code)}">${H(code)}</button>`).join('')+'<button data-cx="skip" aria-label="Record with no contact">Skip</button><button data-cx="back" aria-label="Keep the pitch">← Back</button>';}
+  return PC.BB_TYPES.map(code=>contactChip(code,code)).join('')+'<button data-cx="skip" aria-label="Record with no contact">Skip</button><button data-cx="back" aria-label="Back to the outcome">← Back</button>';}
 function coachKeep(bb){if(!D.bbAsk)return;D.bb=bb||null;const ip=D.bbAsk;recordGame('inplay',ip);}
 function coachIp(ip){D.bb=null;D.bbAsk=ip;render();}
-function coachBack(){if(D.bbAsk)return coachKeep(null);D.ip=false;D.spray=null;render();}
+function coachBack(){if(D.bbAsk){D.bbAsk=null;render();return;}D.ip=false;D.spray=null;render();}
 $('cSpray').addEventListener('click',e=>{const r=$('cSpray').getBoundingClientRect();D.spray=[+((e.clientX-r.left)/r.width).toFixed(3),+((e.clientY-r.top)/r.height).toFixed(3)];renderCoach();});
 $('cSideUndo').onclick=()=>{sideCard=null;undoLast();};$('cSidePause').onclick=()=>{sideCard=null;pauseGame();};$('cSideOk').onclick=()=>{sideCard=null;render();};
 // game menu (⋯): the rarely used controls live here, off the charting screen
@@ -229,11 +232,6 @@ function fitCoachCol(o) {
   const zg = need0 > bh + 2 ? Math.max(o.v("--c-zgap-min"), o.ZG - (need0 - bh) / 2) : o.ZG;
   if (!o.compact && bh > 0) o.set("--zgap", zg);
   if (!o.compact && bh > 0) o.set("--colh", Math.max(bh, o.STH + zg + zoneH + zg + o.ACT));
-  // RULE-13. The five chips share the zone that is already there. Idle and in play use the same column.
-  const el = $("coach");
-  const zoneW = parseFloat(el.style.getPropertyValue("--mid")) || 0;
-  const n = (PC.BB_TYPES || []).length;
-  el.style.setProperty("--ccontact-gap", zoneW >= n * 48 + (n - 1) * 2 ? "2px" : "0px");
 }
 // VIEW-4. themeFromStorage reads THEME_KEY. A missing theme.js keeps the theme the head script already set.
 function paletteNow(hour){
