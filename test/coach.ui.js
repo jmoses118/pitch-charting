@@ -38,6 +38,7 @@ for(const [W,H,MIN,ZMIN,RESW] of [[844,390,48,48,48],[667,375,44,34,46]]){const 
   ok(await ev(()=>{const e=document.getElementById('cxHint');const cs=getComputedStyle(e);return e.getBoundingClientRect().height<=20&&cs.whiteSpace==='nowrap'&&e.scrollWidth<=e.clientWidth+1;}),`${tag}: status hint is one line and fully visible`);
   ok((await p.textContent('#cxCode')).replace(/\s+/g,' ').trim()==='3-05 Fb In'&&/aim 6/.test(await p.textContent('#cxAim')),`${tag}: spoken call big in the status box ("3-05 Fb In", aim 6 vs RHB)`);
   ok(await ev(()=>{const e=document.querySelector('#cBand td button.on');const probe=document.createElement('span');probe.style.color=getComputedStyle(document.documentElement).getPropertyValue('--c-royal-hi').trim();document.body.appendChild(probe);const want=getComputedStyle(probe).color;probe.remove();return !!e&&want&&getComputedStyle(e).backgroundColor===want;}),`${tag}: VIEW-4 Night selected cell uses --c-royal-hi`);
+  if(W===844)ok(await ev(()=>{const c=getComputedStyle(document.getElementById('cStatus'));return [c.borderTopWidth,c.borderRightWidth,c.borderBottomWidth,c.borderLeftWidth].join(' ')==='0px 0px 0px 5px';}),`${tag}: VIEW-4 Night status card keeps the left stripe only`);
   ok(await ev(()=>!!document.querySelector('#cZone button.aim[data-z="6"]')),`${tag}: aim auto-mapped and outlined on the zone`);
   {const pr=await ev(AUDIT);ok(!pr.length,`${tag}: no clipping/overlap (called)${pr.length?' → '+pr.slice(0,5).join(' | '):''}`);}
   await p.click('#cZone button[data-z="4"]');await wait();ok(await ev(()=>!!document.querySelector('#cZone button.act[data-z="4"]')),`${tag}: actual spot marked`);{const g2=await geo();ok(g2===g0,`${tag}: no layout shift after the zone tap`);}await shot('coach-called');
@@ -167,6 +168,11 @@ for(const [W,H,MIN,ZMIN,RESW] of [[844,390,48,48,48],[667,375,44,34,46]]){const 
   ok(night.btn==='2px'&&night.sel==='2px'&&night.inp==='2px','VIEW-4: Night buttons, selects and inputs are 2px '+JSON.stringify(night));
   ok(night.royal==='#3A5CF0'&&night.bg==='rgb(58, 92, 240)'&&night.hdr==='rgb(58, 92, 240)'&&night.on==='rgb(58, 92, 240)'&&night.accent==='rgb(58, 92, 240)','VIEW-4: Night fills use #3A5CF0 '+JSON.stringify(night));
   ok(night.fg==='rgb(255, 255, 255)'&&night.text>=4.5,'VIEW-4: white on the Night primary stays readable '+night.text.toFixed(2));
+  await p.evaluate(()=>{const b=document.createElement('button');b.id='pressProbe';b.className='primary';b.textContent='Go';b.style.cssText='position:fixed;z-index:99;left:8px;bottom:80px';document.body.appendChild(b);});
+  {const box=await p.locator('#pressProbe').boundingBox();await p.mouse.move(box.x+8,box.y+8);await p.mouse.down();await p.waitForTimeout(220);
+    const press=await p.evaluate(()=>getComputedStyle(document.getElementById('pressProbe')).backgroundColor);await p.mouse.up();
+    ok(press==='rgb(44, 69, 180)','VIEW-4: Night primary press is a darker shade of #3A5CF0 '+press);}
+  await p.evaluate(()=>{const b=document.getElementById('pressProbe');if(b)b.remove();});
   await p.evaluate(()=>{document.documentElement.dataset.theme='field';});await p.waitForTimeout(200);
   const field=await read();
   ok(field.btn==='2px'&&field.sel==='2px'&&field.inp==='2px'&&field.royal==='#1E3FD0'&&field.bg==='rgb(30, 63, 208)'&&field.on==='rgb(30, 63, 208)','VIEW-4: Field stays 2px and keeps #1E3FD0 '+JSON.stringify(field));
@@ -176,5 +182,22 @@ for(const [W,H,MIN,ZMIN,RESW] of [[844,390,48,48,48],[667,375,44,34,46]]){const 
   const p=await c.newPage();await p.goto(BASE);await p.waitForTimeout(200);
   const v=await p.evaluate(()=>({theme:document.documentElement.dataset.theme,meta:document.querySelector('meta[name="theme-color"]').content}));
   ok(v.theme==='night'&&v.meta==='#000000','VIEW-4: a missing theme.js still opens Night for an unknown value '+JSON.stringify(v));
+  await c.close();}
+{const c=await b.newContext({viewport:{width:844,height:390},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());await c.route(/\/js\/core\/theme\.js$/,r=>r.abort());
+  const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));await p.goto(BASE);
+  await p.evaluate(g=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';S.games.push(g);S.activeGame='g1';__app.store.save();__app.render();},GAME);
+  await p.click('nav [data-t="game"]').catch(()=>{});await p.waitForTimeout(300);
+  await p.click('#cBand button[data-r="2"][data-c="4"]').catch(()=>{});await p.click('#cxMenu').catch(()=>{});await p.waitForTimeout(150);await p.click('#cmTheme').catch(()=>{});
+  const v=await p.evaluate(()=>({coach:document.body.classList.contains('coachmode'),theme:document.documentElement.dataset.theme,band:document.querySelectorAll('#cBand td button').length,zone:document.querySelectorAll('#cZone button').length,menu:document.getElementById('cMenuDlg').open,label:document.getElementById('cmTheme').textContent}));
+  ok(!errs.length&&v.coach&&v.theme==='night'&&v.band===56&&v.zone===25&&v.menu&&/Night/.test(v.label),'VIEW-4: a missing theme.js still opens the coach screen '+JSON.stringify(v)+' '+errs.join('|'));
+  await c.close();}
+{const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());await c.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));
+  const p=await c.newPage();await p.goto(BASE);
+  await p.evaluate(g=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';g.pitches=[1,2,3].map(n=>({id:'p'+n,pitcherId:'p_a',ts:n,type:'FB',result:'ball',b:n-1,s:0,inning:1,abn:g.cur.abn,slot:0,loc:4,targets:[5],hand:'R',batter:'Batter 1'}));S.games.push(g);S.activeGame='g1';__app.store.save();__app.render();},GAME);
+  await p.click('nav [data-t="game"]').catch(()=>{});await p.waitForTimeout(250);
+  const v=await p.evaluate(()=>{function pack(){const row=document.querySelector('#recent .rrow');const cs=getComputedStyle(row);const st=getComputedStyle(document.getElementById('cStatus'));return {row:[cs.borderTopWidth,cs.borderRightWidth,cs.borderBottomWidth,cs.borderLeftWidth].join(' '),ur:document.getElementById('urHome').getBoundingClientRect().top,st:[st.borderTopWidth,st.borderRightWidth,st.borderBottomWidth,st.borderLeftWidth].join(' ')};}
+    document.documentElement.dataset.theme='night';const night=pack();document.documentElement.dataset.theme='field';const field=pack();return {night,field,delta:+(night.ur-field.ur).toFixed(2)};});
+  ok(v.night.row==='0px 0px 1px 0px'&&v.night.row===v.field.row&&v.delta===0,'VIEW-4: Night pitch-log rows match Field and the rows below do not drop '+JSON.stringify(v));
+  ok(v.night.st==='0px 0px 0px 5px'&&v.night.st===v.field.st,'VIEW-4: Night status card keeps the same left stripe as Field '+v.night.st);
   await c.close();}
 await b.close();console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);})();
