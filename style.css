@@ -366,6 +366,7 @@ body.padmode #flash{top:56px;font-size:16px;padding:8px 16px;transform:translate
 body.padmode #locRow{display:none}
 .thseg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}.thseg button{min-height:44px;font-weight:800}.thseg button.on{background:var(--c-royal);color:#fff;border-color:var(--c-royal)}
 .coach.compact .cres button{font-size:12px}
+.coach.compact .cres{align-self:stretch;height:auto}
 
 /* finished at-bat shown faded with a note (bug: 0-0 next to old balls looked like a stuck count) */
 .zonenote{position:absolute;top:2px;left:50%;transform:translateX(-50%);z-index:2;max-width:94%;background:var(--c-surface,#161b22);color:var(--c-text);border:1px solid var(--c-line);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
@@ -443,11 +444,10 @@ body.padmode #actBtns button{min-height:48px;height:auto}
 .optchip{background:transparent;color:var(--c-text);border:2px solid var(--c-line-strong);font-weight:700}
 .optchip.sel,.optchip.on{background:var(--c-royal-tint);color:var(--c-text);border-color:var(--c-royal)}
 .cslot{height:48px;flex:0 0 48px;min-height:48px}
-.cslot .cact,.cslot .ccontact{height:48px;min-height:48px}
-.ccontact{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.cslot .cact{height:48px;min-height:48px}
+.ipcontact{grid-column:1 / -1;display:grid;grid-template-columns:repeat(5,minmax(48px,1fr));gap:6px}
+body.onehand #ipBtns .ipcontact button{min-width:0;padding:0 2px;font-size:14px;font-weight:800;letter-spacing:-.03em;line-height:1.05;white-space:nowrap}
 .cslot button{min-height:48px;height:48px;padding:0 2px}
-.ccontact button{font-size:11px;line-height:1.05;white-space:normal;font-weight:800}
-.coach.compact .ccontact button{font-size:9px;letter-spacing:-.03em}
 .foulchips{position:fixed;z-index:9;left:8px;right:8px;top:calc(var(--hdr-h,56px) + 4px);display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;padding:6px;background:var(--c-surface);border:2px solid var(--c-line-strong);border-radius:12px;box-shadow:var(--shadow-2)}
 .foulchips button{min-height:48px;font-weight:800}
 .foulchips button.on{background:var(--c-royal-tint);border-color:var(--c-royal);color:var(--c-text)}

@@ -94,7 +94,7 @@ var m=document.querySelector('meta[name="theme-color"]');if(m)m.content=window.P
     <button class="b-ss sub" data-r="foultip">Foul tip</button><button class="b-ss sub" data-r="kd3">K – reached (D3)</button><button class="b-ss sub" data-r="kd3out">K – D3 thrown out</button>
    </div>
    <div id="ipBtns" class="resgrid hide">
-    <button type="button" class="optchip" data-bb="GB">Ground</button><button type="button" class="optchip" data-bb="LD">Liner</button><button type="button" class="optchip" data-bb="FB">Fly</button><button type="button" class="optchip" data-bb="PU">Pop up</button>
+    <div id="ipContact" class="ipcontact" role="group" aria-label="Contact type, optional"></div>
     <button type="button" data-ip="out">Out</button><button type="button" data-ip="1B">1B</button><button type="button" data-ip="2B">2B</button><button type="button" data-ip="3B">3B</button>
     <button type="button" data-ip="HR">HR</button><button type="button" data-ip="E">Error</button><button type="button" data-ip="FC">FC</button><button type="button" data-ip="DP">DP</button>
    </div>
@@ -209,7 +209,6 @@ var m=document.querySelector('meta[name="theme-color"]');if(m)m.content=window.P
   <div id="cZone" class="czone" role="group" aria-label="Strike zone, pitcher's view"></div>
   <div id="cSlot" class="cslot">
    <div id="cAct" class="cact" role="group" aria-label="Actual location outside the zone"><button type="button" data-z="31">In dirt</button><button type="button" data-z="32" aria-label="Over catcher/backstop">Over catcher</button></div>
-   <div id="cContact" class="ccontact hide" role="group" aria-label="Contact type, optional"><button type="button" class="optchip" data-bb="GB">Ground</button><button type="button" class="optchip" data-bb="LD">Liner</button><button type="button" class="optchip" data-bb="FB">Fly</button><button type="button" class="optchip" data-bb="PU">Pop up</button></div>
   </div>
   <div id="cSide" class="cside hide" role="alertdialog" aria-labelledby="cSideT"><div id="cSideT" class="cside-t">⚑ Side retired</div><div id="cSideSum" class="mut"></div>
    <button id="cSideUndo">↶ Undo last pitch</button><button id="cSidePause" class="success">❚❚ We're batting – pause</button><button id="cSideOk" class="ghost">Keep charting</button></div>

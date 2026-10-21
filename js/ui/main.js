@@ -55,7 +55,7 @@ function render(skipCallInput){const s=S();applyViewOnly(viewOnly());if(typeof r
   document.querySelectorAll('#pitchExtra [data-flag]').forEach(b=>b.classList.toggle('sel',b.dataset.flag===D.wpPb));
   if(document.activeElement!==$('velo'))$('velo').value=D.velo==null?'':D.velo;
   const wbOn=!$('wbCard').classList.contains('hide');$('wbTog').classList.toggle('hide',!wbOn);if(!wbOn)$('wbDet').open=false;
-  renderModes(lk,showEntry);drawZone();fitZone();if(typeof paintFoulChips==='function')paintFoulChips();
+  if(typeof paintContact==='function')paintContact();renderModes(lk,showEntry);drawZone();fitZone();if(typeof paintFoulChips==='function')paintFoulChips();
   {const msg=(window.PC_CONFIG&&window.PC_CONFIG.banner)||'';
    const both=!!(store.isTest&&msg&&!showEntry&&!document.body.classList.contains('coachmode'));
    const n=$('envNote');if(n)n.textContent=both?' · '+msg:'';

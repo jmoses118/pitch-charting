@@ -190,7 +190,7 @@ const isK=p=>p.end==='K'||p.end==='K-D3';
 const isHard=p=>p.result==='inplay'&&(p.bb==='LD'||['2B','3B','HR'].includes(p.ip));
 function shakeLine(P){const n=P.length;return{n,strikePct:pct(P.filter(p=>p.result&&isStrike(p.result)).length,n),balls:P.filter(p=>p.result==='ball').length,
   hits:P.filter(p=>p.result==='inplay'&&HITS.includes(p.ip)).length,hard:P.filter(isHard).length,k:P.filter(isK).length};}
-function outcomeOf(p){if(!p)return '';if(p.result==='inplay')return (p.ip?p.ip:'In play')+(p.bb?' ('+p.bb+')':'');const r={ball:'Ball',called:'Called strike',swinging:'Swinging strike',foul:'Foul',foultip:'Foul tip',hbp:'HBP',kd3:'K – reached',kd3out:'K – thrown out'}[p.result]||p.result||'';return r+(isK(p)&&!/^K/.test(r)?' · K':'');}
+function outcomeOf(p){if(!p)return '';if(p.result==='inplay'){const name=PC.bbOf(p);return (p.ip?p.ip:'In play')+(name?' ('+name+')':'');}const r={ball:'Ball',called:'Called strike',swinging:'Swinging strike',foul:'Foul',foultip:'Foul tip',hbp:'HBP',kd3:'K – reached',kd3out:'K – thrown out'}[p.result]||p.result||'';return r+(isK(p)&&!/^K/.test(r)?' · K':'');}
 function shakeoffs(pitches){const P=(pitches||[]).filter(p=>!p.deleted&&countsAsPitch(p));const byT=P.slice().sort((a,b)=>(a.ts||0)-(b.ts||0));
   const prevOf=p=>{const q=byT[byT.indexOf(p)-1];return q&&p.abn!=null&&q.abn===p.abn?q:null;}; // pitch before it in the same at-bat
   const S=byT.filter(p=>p.shook),F=byT.filter(p=>!p.shook&&p.call);

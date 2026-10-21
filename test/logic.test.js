@@ -51,7 +51,10 @@ test('test mode does not persist and is cleared on exit',()=>{const m=mem();cons
   st.enterTest();assert.equal(st.isTest,true);assert.equal(st.state.games.length,0);st.state.games.push({id:'tg',pitches:[{result:'ball'}]});st.addPitcher({name:'Temp',throws:'R'});assert.equal(st.save(),false);
   assert.equal(m.getItem(PC.KEY),before);st.exitTest();assert.equal(st.isTest,false);assert.deepEqual(st.state.games.map(g=>g.id),['real']);assert.ok(!st.state.pitchers.some(p=>p.name==='Temp'));
   st.enterTest();assert.equal(st.state.games.length,0);});
-test('CSV round trip',()=>{const csv=PC.toCSV([{mode:'game',batter:'O"Neil, J',pitch_no:1}]);const r=PC.parseCSV(csv);assert.equal(r[0].batter,'O"Neil, J');});
+test('CSV round trip',()=>{const csv=PC.toCSV([{mode:'game',batter:'O"Neil, J',pitch_no:1}]);const r=PC.parseCSV(csv);assert.equal(r[0].batter,'O"Neil, J');
+  for(const code of PC.BB_TYPES){const row=PC.csvRow({type:'FB',result:'inplay',ip:'out',bb:code,hand:'R',targets:[5],loc:5},{mode:'game',game_id:'g'});
+    assert.equal(row.contact,code,code);const back=PC.parseCSV(PC.toCSV([row]))[0];assert.equal(back.contact,code);assert.equal(PC.csvApply({id:'p'},back).bb,code);}
+  assert.equal(PC.csvRow({type:'FB'},{mode:'game'}).contact,'','empty contact stays blank');});
 test('dropped 3rd: K for pitcher, no out, batter reaches, counts as pitch',()=>{const o=PC.applyPitch({b:1,s:2},'kd3');assert.equal(o.end,'K-D3');assert.equal(o.outs,0);assert.equal(o.s,3);assert.ok(PC.isStrike('kd3'));assert.equal(PC.pitchCount([{result:'kd3'}]),1);});
 test('FB IN stays mid inside edge: 6 RHB, 4 LHB',()=>{assert.deepEqual(PC.parseCall('FB IN','R').targets,[6]);assert.deepEqual(PC.parseCall('FBIN','L').targets,[4]);});
 test('Avery stays left-handed',()=>{assert.equal(PC.defaultState().pitchers.find(p=>p.id==='p_woods').throws,'L');});
@@ -309,7 +312,7 @@ test('round1: pitching-coach roleAllows + notes rows + bb column',()=>{const sy=
   st.sync.queue.notes={n_s1_p_woods:1,n_g1_p_crich:1};const b=PC.buildRows(st);assert.equal(b.rows.notes.length,1);assert.equal(b.rows.notes[0].body,'Keep it low');assert.equal(b.held,1);
   const s2=PC.defaultState();s2.sync={queue:{pitchers:{},games:{},sessions:{},pitches:{},call_sheets:{},notes:{}},tomb:{}};PC.mergeRemote(s2,{notes:[{id:'n_s1_p_woods',pitcher_id:'p_woods',session_id:'s1',body:'Keep it low',author:'pcoach',updated_at:'2026-10-13'}]});
   assert.equal(PC.findNote(s2,{sessionId:'s1',pitcherId:'p_woods'}).body,'Keep it low');assert.equal(PC.noteId({gameId:'g1',pitcherId:'p_a'}),'n_g1_p_a');
-  assert.equal(PC.pitchRow({id:'x',bb:'LD'},{mode:'game'}).bb,'LD');assert.equal(PC.pitchRow({id:'x',bb:'ZZ'},{mode:'game'}).bb,null);});
+  assert.equal(PC.pitchRow({id:'x',bb:'LD'},{mode:'game'}).bb,'LD');assert.equal(PC.pitchRow({id:'x',bb:'ZZ'},{mode:'game'}).bb,'ZZ');});
 test('round1: count stats, first-pitch strike, 0-2 outcomes',()=>{const c={inning:1,outs:0,slot:0,b:0,s:0,abn:0};const P=[];
   const pt=(res,type,loc,ip)=>{const r={id:PC.uuid(),pitcherId:'p',type,loc,targets:[loc],result:res,ip:ip||null,b:c.b,s:c.s,abn:c.abn,inning:c.inning,slot:c.slot};const o=PC.applyPitch(c,res,ip);r.end=o.end;c.b=o.b;c.s=o.s;if(o.end){c.abn++;c.slot++;c.b=0;c.s=0;}P.push(r);};
   pt('called','FB',3);pt('swinging','CH',7);pt('swinging','FB',2);// K from 0-2
@@ -673,7 +676,7 @@ test('shake-off: summary per pitcher – shook vs followed, hard contact, K, pre
     {id:'c',ts:3,abn:2,b:0,s:0,type:'FB',call:'FB3',loc:3,result:'called'},
     {id:'d',ts:4,abn:2,b:0,s:1,type:'DR',call:'FB3',shook:true,loc:7,result:'swinging',end:'K'}];
   const r=PC.shakeoffs(P);assert.equal(r.n,2);assert.equal(r.shook.hits,1);assert.equal(r.shook.hard,1);assert.equal(r.shook.k,1);assert.equal(r.followed.n,2);assert.equal(r.followed.hits,0);
-  assert.deepEqual(r.list[0],{id:'b',called:'CH8',thrown:'FB 5',count:'0-2',prev:'CH · Foul',outcome:'2B (LD)',inning:undefined,batter:''});
+  assert.deepEqual(r.list[0],{id:'b',called:'CH8',thrown:'FB 5',count:'0-2',prev:'CH · Foul',outcome:'2B (Liner)',inning:undefined,batter:''});
   assert.equal(r.list[1].prev,'FB · Called strike');assert.match(r.list[1].outcome,/Swinging strike · K/);});
 test('shake-off scoring: hit spot uses her own aim only; unknown aim = no aim (never the coach call)',()=>{
   assert.equal(PC.hitSpot({type:'FB',call:'CH8',shook:true,targets:[],loc:8}),false);assert.equal(PC.summarize([{type:'FB',call:'CH8',shook:true,targets:[],loc:8,result:'called'}]).spotN,0,'no aim = left out of hit-spot %');
@@ -1183,6 +1186,60 @@ test('VIEW-4: coach.js reads the document theme and has no night literal',()=>{
   assert.equal(/['"]night['"]/.test(src),false);
   assert.match(src,/document\.documentElement\.dataset\.theme/);
   assert.match(src,/PC\.themeColor/);
+});
+test('RULE-13: contact is Ground, Liner, Fly, Pop up, and Bunt',()=>{
+  const fs=require('fs'),path=require('path');
+  assert.deepEqual(PC.BB_TYPES,['GB','LD','FB','PU','BU']);
+  assert.deepEqual(PC.BB_NAME,{GB:'Ground',LD:'Liner',FB:'Fly',PU:'Pop up',BU:'Bunt'});
+  for(const code of PC.BB_TYPES)assert.equal(PC.pitchRow({id:'x',bb:code},{mode:'game'}).bb,code,code);
+  assert.equal(PC.pitchRow({id:'x'},{mode:'game'}).bb,null,'contact stays optional');
+  for(const code of PC.BB_TYPES)assert.equal(PC.rowPitch({id:'p',mode:'game',type:'FB',ts:1,bb:code}).bb,code);
+  const sent=PC.pitchRow({id:'x',bb:'ZZ'},{mode:'game'});assert.equal(sent.bb,'ZZ');
+  assert.equal(PC.rowPitch({id:'x',mode:'game',type:'FB',ts:1,bb:sent.bb}).bb,'ZZ','an unknown code round-trips unchanged');
+  for(const code of ['BU','ZZ']){const pulled=PC.rowPitch({id:'e'+code,mode:'game',type:'FB',ts:1,loc:5,actual_loc:5,targets:[5],bb:code,result:'inplay',ip:'out',inning:1,abn:1});
+    assert.equal(PC.editActual(pulled,8),true);assert.equal(pulled.bb,code);assert.equal(PC.pitchRow(pulled,{mode:'game',chartCol:true}).bb,code,'an edited pull re-uploads '+code);}
+  assert.equal(PC.bbOf({bb:'PU'}),'Pop up');
+  assert.equal(PC.bbOf({bb:'ZZ'}),'','an unknown code shows as no contact');
+  assert.equal(PC.bbOf({bb:'BU'}),'Bunt');
+  const hidden=PC.shakeoffs([{id:'z',ts:1,abn:1,b:0,s:0,type:'FB',call:'FB5',shook:true,loc:5,result:'inplay',ip:'out',bb:'ZZ'}]);
+  const blank=PC.shakeoffs([{id:'n',ts:1,abn:1,b:0,s:0,type:'FB',call:'FB5',shook:true,loc:5,result:'inplay',ip:'out'}]);
+  assert.equal(hidden.list[0].outcome,blank.list[0].outcome,'an unknown code reads like no contact');
+  assert.equal(PC.csvApply({id:'p'},{contact:'ZZ'}).bb,undefined,'ZZ imports as no contact');
+  assert.equal(PC.csvApply({id:'p'},{contact:' bu '}).bb,'BU','import accepts a listed code in any case');
+  const bunt=PC.shakeoffs([{id:'b',ts:1,abn:1,b:0,s:0,type:'FB',call:'FB5',shook:true,loc:5,result:'inplay',ip:'out',bb:'BU'}]);
+  assert.equal(bunt.list[0].outcome,'out (Bunt)');
+  const ground=PC.shakeoffs([{id:'g',ts:1,abn:1,b:0,s:0,type:'FB',call:'FB5',shook:true,loc:5,result:'inplay',ip:'1B',bb:'GB'}]);
+  assert.equal(ground.list[0].outcome,'1B (Ground)');
+  assert.equal(PC.isHard({result:'inplay',ip:'out',bb:'BU'}),false,'a bunt is not hard contact');
+  assert.equal(PC.isHard({result:'inplay',ip:'2B',bb:'LD'}),true);
+  const root=path.join(__dirname,'..');
+  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+  assert.equal((html.match(/data-bb=/g)||[]).length,0,'the page does not hardcode contact chips');
+  const ui=fs.readdirSync(path.join(root,'js/ui')).filter(f=>f.endsWith('.js')).map(f=>fs.readFileSync(path.join(root,'js/ui',f),'utf8')).join('\n');
+  assert.equal(/data-bb="(?:GB|LD|FB|PU|BU)"/.test(ui),false,'ui renders the core list');
+  const migDir=path.join(root,'supabase','migrations');
+  const file=fs.readdirSync(migDir).find(f=>/bunt/.test(f));
+  assert.ok(file,'migration allowing BU');
+  const sql=fs.readFileSync(path.join(migDir,file),'utf8');
+  assert.match(sql,/backup/i);
+  assert.match(sql,/Rollback: restore pitches from the backup taken before this migration/);
+  assert.match(sql,/begin;/);
+  assert.match(sql,/commit;/);
+  assert.doesNotMatch(sql,/do\s+\$\$/);
+  for(const code of PC.BB_TYPES)assert.match(sql,new RegExp("'"+code+"'"));
+  const spec=fs.readFileSync(path.join(root,'docs/SPEC.md'),'utf8');
+  assert.match(spec,/A future GB\/FB ratio has to decide how a bunt \(BU\) counts/);
+  assert.match(spec,/CSV import keeps a contact only when the text is one of those five codes/);
+  assert.match(spec,/Jim ruled on 20 October 2026/);
+  assert.match(spec,/Each chip is at least 48×48/);
+  assert.match(spec,/Skip records that pitch with no contact/);
+  assert.match(spec,/Escape records that pitch with no contact too/);
+  assert.match(spec,/Back returns to the outcome choices and saves nothing/);
+  assert.match(spec,/Undo, while a pitch is waiting for contact, cancels that step and leaves no pitch saved/);
+  assert.match(spec,/The result column's top and bottom stay put too/);
+  assert.doesNotMatch(spec,/Back and Cancel keep the pitch too/);
+  const log=fs.readFileSync(path.join(root,'CHANGELOG.md'),'utf8');
+  assert.match(log,/Rollback is a restore from the backup taken before that migration/);
 });
 test('RULE-4a: CH box 2 is kept, calledFlag is true, and an off-grid called box is null',()=>{
   const csv=PC.importSpots({type:'CH',call_target:'2',called_location:'2',location:'8'});

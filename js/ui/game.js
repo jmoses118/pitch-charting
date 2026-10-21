@@ -45,7 +45,7 @@ function recordGame(result,ip,noPitch){const g=game();if(!g||scoreGuard())return
   const r=Object.assign(baseRec(),{inning:c.inning,outsBefore:c.outs,slot:c.slot,batter:b.name||'',batterNum:b.num||'',b:c.b,s:c.s,abn:c.abn,result,ip:ip||null,firstPitch:c.b===0&&c.s===0,prevHand:c.hand||null});
   if(applied){const chart=PC.scoreCommit(applied.draft);if(chart){r.type=chart.type;r.targets=chart.targets;r.loc=chart.loc;r.actualLoc=chart.actualLoc;r.calledLoc=chart.calledLoc;r.result=chart.result;if(result==='inplay')r.ip=ip||chart.ip||null;}}
   let o;if(noPitch){o={b:c.b,s:c.s,end:'IBB',outs:0};r.noPitch=true;r.type=null;r.loc=null;r.call=null;r.targets=[];}else{try{o=PC.applyPitch(c,result,ip);}catch(e){toast(String(e.message||e));return;}}
-  if(result==='inplay'&&D.bb)r.bb=D.bb;if(result==='inplay'&&D.spray)r.spray=D.spray;if(result==='foul')r.foulTime=null;r.mode='game';if(noPitch){r.calledLoc=null;r.actualLoc=null;r.calledType=null;r.wpPb=null;r.velo=null;}const inn0=c.inning;const pcBefore=PC.pitchCount(g.pitches,r.pitcherId);r.end=o.end;clearRedo();clearEditUndo();g.pitches.push(r);dirty('pitches',r.id);dirty('games',g.id);c.b=o.b;c.s=o.s;if(result==='foul')armFoulChips(r.id);
+  if(result==='inplay'&&PC.BB_TYPES.includes(D.bb))r.bb=D.bb;if(result==='inplay'&&D.spray)r.spray=D.spray;if(result==='foul')r.foulTime=null;r.mode='game';if(noPitch){r.calledLoc=null;r.actualLoc=null;r.calledType=null;r.wpPb=null;r.velo=null;}const inn0=c.inning;const pcBefore=PC.pitchCount(g.pitches,r.pitcherId);r.end=o.end;clearRedo();clearEditUndo();g.pitches.push(r);dirty('pitches',r.id);dirty('games',g.id);c.b=o.b;c.s=o.s;if(result==='foul')armFoulChips(r.id);
   if(o.end){c.outs+=o.outs;let msg={BB:'Walk',K:'Strikeout',HBP:'Hit by pitch',IBB:'Intentional walk','K-D3':'Strikeout – reached on dropped 3rd',out:'Out',E:'Reached on error',FC:"Fielder's choice",DP:'Double play'}[o.end]||o.end;
     c.b=0;c.s=0;c.abn++;c.slot=(c.slot+1)%Math.max(1,g.lineup.length);c.hand=null;
     if(c.outs>=3){c.outs=0;c.inning++;msg+=' · side retired';sideCard={inning:inn0,gameId:g.id};}toast(msg);}
@@ -54,6 +54,7 @@ function recordGame(result,ip,noPitch){const g=game();if(!g||scoreGuard())return
   resetDraft();save();render();if(oneHand())advance('call');}
 $('ibb').onclick=async()=>{if(scoreGuard())return;if(await ask('Intentional walk (no pitches counted, per GC)?',false))recordGame('ibb',null,true);};
 function undoLast(){if(scoreGuard())return;
+  if(D.bbAsk){D.bbAsk=null;render();return;}
   if(D.ip){D.ip=false;D.spray=null;render();return;}
   if(D.draft&&D.draft.actual!=null){pushRedo({kind:'loc',loc:D.draft.actual,sheet:!!D.sheet});D.draft.actual=null;D.draft.result=null;mirrorDraft();D.sheet=false;render();toast('Location cleared');return;}
   if(tab!=='game'&&((D.draft&&D.draft.called&&D.draft.called.length)||D.callTxt)){pushRedo({kind:'aim',called:aimSet(),callTxt:D.callTxt,type:D.type,parsed:D.parsed});if(D.draft&&D.draft.called&&D.draft.called.length){D.draft.called=[];mirrorDraft();}else resetDraft();render();return;}
