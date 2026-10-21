@@ -1255,7 +1255,7 @@ test('RULE-4a: CH box 2 is kept, calledFlag is true, and an off-grid called box 
   assert.ok(sync.targets.includes(2));assert.equal(sync.calledLoc,2);assert.equal(sync.calledFlag,true);
   assert.equal(PC.rowPitch({id:'b',mode:'game',type:'CH',targets:[2],called_loc:99,loc:8,inning:1,abn:1}).calledLoc,null);
 });
-// HM-5, HM-9, HM-9a, HM-10a, HM-11. PR 1a rules. callWarn (HM-9b) and looseHit (HM-10) are later PRs.
+// HM-5, HM-9, HM-9a, HM-10a, HM-11. PR 1a rules. looseHit (HM-10) landed in PR 1b. HM-9b is below.
 test('HM-5: off-grid distance is 3, raw Chebyshev stays, and a tie keeps the earlier target',()=>{
   const raw=PC.missDist;
   assert.equal(raw(1,31),5);assert.equal(raw(1,22),4);assert.equal(raw(1,32),3);
@@ -1743,4 +1743,113 @@ test('HM-27: glove mode names arm and glove, and a tie has no direction',()=>{
   assert.equal(stats.lowDirt,0);
   const oneDirt=PC.heatStats([{type:'CH',targets:[8],loc:31,hand:'R'}],'R');
   assert.equal(oneDirt.lowDirt,1);assert.equal(oneDirt.strict,0);assert.equal(oneDirt.loose,0);assert.equal(oneDirt.median,3);assert.equal(oneDirt.dir,null);
+});
+// HM-9b. Soft call warning. Box 5 warns for every type. Other rows are TYPE_MISS.warn. The change-up list stays a hard block.
+const BOX5_WARN='Box 5 is always scored as a missed spot';
+test('HM-9b: callWarn follows box 5 and TYPE_MISS.warn, with the exact sentences',()=>{
+  assert.equal(PC.callWarn('FB',5),true);
+  assert.equal(PC.callWarn('CB',3),true);
+  assert.equal(PC.callWarn('DR',11),true);
+  assert.equal(PC.callWarn('DR',4),true);
+  assert.equal(PC.callWarn('DC',6),true);
+  assert.equal(PC.callWarn('CB',4),false);
+  assert.equal(PC.callWarn('CH',4),false);
+  assert.equal(PC.callWarn('DC',16),false);
+  assert.equal(PC.callWarn('FB',1),false);
+  assert.equal(PC.callWarn('RS',2),false);
+  assert.equal(PC.callWarn('RS',8),false);
+  assert.equal(PC.callWarn('DR',7),false);
+  assert.equal(PC.callWarn('DR',16),false);
+  for(const t of ['FB','CH','CB','DR','DC','RS','SC']){
+    assert.equal(PC.callWarn(t,5),true,t);
+    assert.equal(PC.callWarnMsg(t,5),BOX5_WARN,t);
+  }
+  assert.equal(PC.callWarnMsg('CB',3),'curveball is usually not aimed up');
+  assert.equal(PC.callWarnMsg('CB',15),'curveball is usually not aimed up');
+  assert.equal(PC.callWarnMsg('DR',11),'drop is usually not aimed up');
+  assert.equal(PC.callWarnMsg('DR',4),'drop is usually not aimed in the middle row');
+  assert.equal(PC.callWarnMsg('DC',6),'drop curve is usually not aimed in the middle row');
+  assert.equal(PC.callWarnMsg('DC',1),'drop curve is usually not aimed up');
+  assert.equal(PC.callWarnMsg('CB',4),'');
+  assert.equal(PC.callWarnMsg('FB',1),'');
+  assert.equal(PC.callWarnMsg('CH',4),'');
+  assert.deepEqual(PC.TYPE_MISS.CH.warn.slice(),[]);
+  assert.deepEqual(PC.TYPE_MISS.CB.warn.slice(),PC.TOP_ROW.slice());
+  const dropWarn=PC.TOP_ROW.concat([4,6]);
+  assert.deepEqual(PC.TYPE_MISS.DR.warn.slice(),dropWarn);
+  assert.deepEqual(PC.TYPE_MISS.DC.warn.slice(),dropWarn);
+  for(const z of PC.AIM_ALL){
+    assert.equal(PC.callWarn('CB',z),z===5||PC.TOP_ROW.includes(z),'CB '+z);
+    assert.equal(PC.callWarn('DR',z),z===5||dropWarn.includes(z),'DR '+z);
+    assert.equal(PC.callWarn('DC',z),z===5||dropWarn.includes(z),'DC '+z);
+    assert.equal(PC.callWarn('CH',z),z===5,'CH '+z);
+    assert.equal(PC.callWarn('FB',z),z===5,'FB '+z);
+    assert.equal(PC.callWarn('RS',z),z===5,'RS '+z);
+    assert.equal(PC.callWarn('SC',z),z===5,'SC '+z);
+  }
+});
+test('HM-9b: a warned call is accepted, a change-up outside its boxes is still refused, and the warning is not stored',()=>{
+  assert.equal(PC.validCalled('CB',3),true);
+  assert.equal(PC.validCalled('FB',5),true);
+  assert.equal(PC.validCalled('DR',4),true);
+  assert.equal(PC.validCalled('DC',6),true);
+  assert.equal(PC.validCalled('CH',2),false);
+  assert.equal(PC.validCalled('CH',5),false);
+  const cb=PC.scoreTap({mode:'game',type:'CB',called:[]},3);
+  assert.equal(cb.ok,true);
+  assert.equal(cb.op,'called');
+  assert.equal(cb.reason,null);
+  assert.deepEqual(cb.draft.called,[3]);
+  assert.equal(Object.hasOwn(cb.draft,'callWarn'),false);
+  assert.equal(PC.aimLine(cb.draft),'curveball is usually not aimed up');
+  const fb=PC.scoreTap({mode:'game',type:'FB',called:[]},5);
+  assert.equal(fb.ok,true);
+  assert.equal(fb.reason,null);
+  assert.deepEqual(fb.draft.called,[5]);
+  assert.equal(Object.hasOwn(fb.draft,'callWarn'),false);
+  assert.equal(PC.aimLine(fb.draft),BOX5_WARN);
+  const typed=PC.parseCall('CB 3','R','R',[]);
+  const applied=PC.scoreApply({mode:'game'},{op:'call',type:typed.type,called:typed.targets});
+  assert.equal(applied.ok,true);
+  assert.deepEqual(applied.draft.called,[3]);
+  assert.equal(Object.hasOwn(applied.draft,'callWarn'),false);
+  assert.equal(PC.aimLine(applied.draft),'curveball is usually not aimed up');
+  assert.equal(PC.scoreTap({mode:'game',type:'CH',called:[]},2).reason,'bad_target');
+  assert.equal(PC.scoreTap({mode:'game',type:'CH',called:[]},5).reason,'bad_target');
+  assert.equal(PC.aimLine({type:'CH',called:[5]}),PC.aimRejectMsg('CH',5));
+  const saved=PC.scoreCommit({mode:'bullpen',type:'FB',called:[5],actual:5});
+  assert.equal(Object.hasOwn(saved,'callWarn'),false);
+  assert.deepEqual(PC.calledBoxes(saved),[5]);
+  assert.equal(PC.callWarnOf(saved),BOX5_WARN);
+  const miss=PC.pitchMiss({type:'CB',targets:[3],loc:3});
+  assert.equal(Object.hasOwn(miss,'callWarn'),false);
+  assert.equal(miss.chUp,true);
+  assert.equal(PC.hitSpot({type:'FB',targets:[5],loc:5}),false);
+  assert.equal(PC.pitchMiss({type:'FB',targets:[5],loc:5}).sev,2);
+});
+test('HM-9b: import and sync keep the pitch, leave calledFlag alone, and the warning is computed on read',()=>{
+  const spots=PC.importSpots({type:'DC',called_type:'DC',call_target:'1',called_location:'1',location:'8'});
+  assert.equal(spots.calledFlag,false);
+  assert.equal(Object.hasOwn(spots,'callWarn'),false);
+  assert.deepEqual(spots.targets,[1]);
+  assert.equal(spots.calledLoc,1);
+  const pitch=PC.csvApply({type:'DC',targets:spots.targets,calledLoc:spots.calledLoc,loc:spots.loc,actualLoc:spots.actualLoc},{called_type:'DC'});
+  assert.equal(Object.hasOwn(pitch,'callWarn'),false);
+  assert.equal(PC.callWarn('DC',1),true);
+  assert.deepEqual(PC.calledBoxes(pitch),[1]);
+  assert.equal(PC.callWarnOf(pitch),'drop curve is usually not aimed up');
+  const exported=PC.csvRow(pitch,{mode:'game'});
+  assert.equal(Object.hasOwn(exported,'callWarn'),false);
+  assert.equal(PC.CSV_COLS.includes('callWarn'),false);
+  assert.equal(PC.CSV_COLS.includes('call_warn'),false);
+  const sync=PC.rowPitch({id:'dc1',mode:'game',type:'DC',targets:[1],called_loc:1,loc:8,inning:1,abn:1});
+  assert.equal(sync.calledFlag,undefined);
+  assert.equal(Object.hasOwn(sync,'callWarn'),false);
+  assert.equal(PC.callWarnOf(sync),'drop curve is usually not aimed up');
+  const reaim={type:'DC',targets:[8],calledLoc:6,loc:8};
+  assert.deepEqual(PC.calledBoxes(reaim),[6]);
+  assert.equal(PC.callWarnOf(reaim),'drop curve is usually not aimed in the middle row');
+  const shook={type:'CB',shook:true,call:'CH8',targets:[3],calledLoc:3,loc:3};
+  assert.equal(PC.calledTypeOf(shook),'CB');
+  assert.equal(PC.callWarnOf(shook),'curveball is usually not aimed up');
 });
