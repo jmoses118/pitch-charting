@@ -465,6 +465,8 @@ body.viewonly #foulChips,body.viewonly #cSlot{display:none!important}
 .plist-main{flex:1 1 auto;min-width:0}
 .plist-res{flex:0 1 auto;text-align:right}
 .rrow{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:var(--s3);align-items:center;padding:4px 0}
+.r-warn,.plist-warn{display:block;min-width:0;line-height:1.15;white-space:normal}
+.r-warn{grid-column:1 / -1}
 .recent .badge{width:30px;height:30px;display:block}
 .fromvid{display:inline;color:var(--c-text-2);font-size:12px;font-weight:650}
 html[data-theme="field"] .plist,html[data-theme="field"] .rrow,html[data-theme="night"] .plist,html[data-theme="night"] .rrow{border-width:0 0 1px;background:transparent}
