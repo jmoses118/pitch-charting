@@ -74,16 +74,17 @@ function callWarnMsg(type,z){
   if(!callWarn(type,z))return '';
   z=+z;
   if(z===5)return BOX5_WARN;
-  const row=(PC.BASE_TYPES||[]).find(t=>t.code===type);
+  const row=PC.BASE_TYPES.find(t=>t.code===type);
   const name=(row&&row.name?row.name:String(type||'Pitch')).toLowerCase();
-  if((PC.TOP_ROW||[]).includes(z))return name+' is usually not aimed up';
+  if(PC.TOP_ROW.includes(z))return name+' is usually not aimed up';
   return name+' is usually not aimed in the middle row';
 }
-// The aim is calledBoxes. The called type is calledTypeOf. Nothing here is written onto the pitch.
+// The aim is calledBoxes. The called type is calledTypeOf. A box that fails validCalled is kept and is not a soft warning.
 function callWarnOf(p){
   const type=PC.calledTypeOf(p);
   const boxes=PC.calledBoxes(p);
   for(let i=0;i<boxes.length;i++){
+    if(!PC.validCalled(type,boxes[i]))continue;
     const msg=callWarnMsg(type,boxes[i]);
     if(msg)return msg;
   }
