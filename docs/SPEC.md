@@ -72,6 +72,19 @@ Thunder Elite softball pitch charting. Static site on GitHub Pages with Supabase
 ## SCORING
 SCORE-1, SCORE-2, SCORE-3, SCORE-4, and SCORE-5 are in `docs/SCORING.md`.
 
+## C: Core functions (heat map aggregation)
+The UI only renders these. `heatStats` is the per-type rollup.
+
+| Function | File | Inputs → output |
+|---|---|---|
+| `heatStats(list, throws)` | scoring.js | pitches → counts, strict and loose hit %, within 1, median, low dirt, middle buckets, toward the middle, direction, strike % |
+| `dirCounts(c, opt)` | scoring.js | `{p, m}` rows and `{glove, frameOnly}` → direction counts. `grpStats` and `heatStats` both call it |
+| `strikePct(list)` | scoring.js | → whole % or null. The only strike-% math, including first-pitch % and shake-offs |
+| `wholePct(a, b)` | grid.js | → whole % or null, next to `pct` |
+| `towardMiddle(aim, land)` | grid.js | → bool |
+
+- **HM-26a.** Aim 21 landing 2 is toward the middle. Chebyshev distance to box 5 goes from 3 to 1, and box 2 is in the frame.
+
 ## VIEW
 - **VIEW-1** The zone is shown Gameday-style, from the catcher's eye. Each pitch is a small numbered softball colored by its result. The pitch list sits under the zone.
 - **VIEW-2** As in GameChanger, a scheduled game starts with one tap, and the result buttons are big.
