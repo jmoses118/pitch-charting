@@ -112,7 +112,7 @@ function labelOf(id){
     ok(sw.controlled&&sw.shown===sw.running&&sw.cache==='te-pitch-'+sw.running,`running label matches the worker ${JSON.stringify(sw)}`);
     await c.close();}
   const GAME2={id:'g1',date:'2026-10-20',opponent:'Storm',homeAway:'home',status:'active',started:1,lineup:[{slot:1,name:'Batter 1',num:'1',hand:'R'}],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:1},pitches:[]};
-  const NOTE_SIZES=[[375,667,0,0,0],[390,844,0,0,0],[430,932,0,0,0],[844,390,0,0,0],[844,390,47,47,21],[667,375,0,0,0],[667,375,47,47,21],[956,440,0,0,0],[956,440,47,47,21],[956,384,0,0,0],[956,360,0,0,0],[932,430,0,0,0]];
+  const NOTE_SIZES=[[375,667,0,0,0],[390,844,0,0,0],[430,932,0,0,0],[440,956,0,0,0],[844,390,0,0,0],[844,390,47,47,21],[667,375,0,0,0],[667,375,47,47,21],[956,440,0,0,0],[956,440,47,47,21],[956,384,0,0,0],[956,360,0,0,0],[932,430,0,0,0]];
   for(const [W,H,L,R,Bin] of NOTE_SIZES){
     const tag=`${W}x${H}${L||R||Bin?' inset '+L+'/'+R+'/'+Bin:''}`;
     const c=await b.newContext({viewport:{width:W,height:H},isMobile:true,hasTouch:true,serviceWorkers:'allow'});
@@ -127,9 +127,10 @@ function labelOf(id){
     await p.evaluate(g=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'12',throws:'R'}];S.curPitcher='p_a';S.games.push(g);S.activeGame='g1';__app.render();},GAME2);
     const hit=await p.evaluate(()=>{
       const boxOf=el=>{if(!el)return null;const cs=getComputedStyle(el);if(cs.display==='none'||cs.visibility==='hidden')return null;const r=el.getBoundingClientRect();return r.width>2&&r.height>2?r:null;};
-      const v=document.getElementById('verNote'),h=document.getElementById('cxHint');
+      const v=document.getElementById('verNote'),h=document.getElementById('cxHint'),w=document.getElementById('wlMini');
       let node=null,r=null;
       if(v&&v.classList.contains('on')&&/Updated to v\d+/.test(v.textContent||'')){node=v;r=boxOf(v);}
+      if(!r&&w&&/Updated to v\d+/.test(w.textContent||'')){node=w;r=boxOf(w);}
       if(!r&&h&&/Updated to v\d+/.test(h.textContent||'')){node=h;r=boxOf(h);}
       if(!node||!r)return {ok:false,why:'note missing',on:!!(v&&v.classList.contains('on')),hint:(h&&h.textContent)||''};
       const sels=['#cBand','#cStatus .cs-top','#cStatus .cs-bat','#cStatus .cs-call','#cxMenu','#cRes','#cRes button','#types','#types button','#foulChips','#foulChips button','nav','nav button','#pitcher','#jerseyEdit','#addPQuick','#gameHead','#cZone','#resTog','#syncTag'];
@@ -145,6 +146,36 @@ function labelOf(id){
     });
     ok(hit.ok,`${tag}: update note misses the band, status, results, chips, nav and header ${JSON.stringify(hit)}`);
     ok(!errs.length,`${tag}: no page errors ${errs.join('|')}`);
+    await c.close();
+  }
+  for(const [W,H] of [[375,667],[390,844],[430,932],[440,956]]){
+    const c=await b.newContext({viewport:{width:W,height:H},isMobile:true,hasTouch:true,serviceWorkers:'allow'});
+    await c.route(/supabase\.co/,r=>r.abort());
+    await c.addInitScript(()=>{localStorage.setItem('te_ui_theme','field');localStorage.setItem('te_ui_portrait_ok','1');localStorage.setItem('pc_version_seen','v0');});
+    const p=await c.newPage();
+    await p.clock.install();
+    await p.clock.pauseAt(Date.now());
+    await p.goto(BASE);
+    await p.evaluate(g=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'12',throws:'R'}];S.curPitcher='p_a';S.games.push(g);S.activeGame='g1';__app.render();},GAME2);
+    const during=await p.evaluate(()=>{
+      const shown=()=>{const v=document.getElementById('verNote'),w=document.getElementById('wlMini'),h=document.getElementById('cxHint');
+        if(v&&v.classList.contains('on')&&/Updated to v\d+/.test(v.textContent||''))return v.textContent.trim();
+        if(w&&/Updated to v\d+/.test(w.textContent||''))return w.textContent.trim();
+        if(h&&/Updated to v\d+/.test(h.textContent||''))return h.textContent.trim();return '';};
+      const box=el=>{const r=el.getBoundingClientRect();return {t:+r.top.toFixed(2),l:+r.left.toFixed(2),w:+r.width.toFixed(2),h:+r.height.toFixed(2)};};
+      return {text:shown(),header:box(document.querySelector('header')),main:box(document.querySelector('main'))};
+    });
+    ok(/Updated to v\d+/.test(during.text),`${W}x${H}: update note is showing ${during.text}`);
+    await p.clock.fastForward(await p.evaluate(()=>PC.VERSION_NOTE_MS)+50);
+    await p.waitForFunction(()=>{const v=document.getElementById('verNote'),w=document.getElementById('wlMini'),h=document.getElementById('cxHint');
+      return !(v&&v.classList.contains('on')&&/Updated to v\d+/.test(v.textContent||''))&&!(w&&/Updated to v\d+/.test(w.textContent||''))&&!(h&&/Updated to v\d+/.test(h.textContent||''));});
+    const after=await p.evaluate(()=>{
+      const box=el=>{const r=el.getBoundingClientRect();return {t:+r.top.toFixed(2),l:+r.left.toFixed(2),w:+r.width.toFixed(2),h:+r.height.toFixed(2)};};
+      return {header:box(document.querySelector('header')),main:box(document.querySelector('main')),today:(document.getElementById('wlMini').textContent||'').trim()};
+    });
+    const same=(a,b)=>Math.abs(a.t-b.t)<=1&&Math.abs(a.l-b.l)<=1&&Math.abs(a.w-b.w)<=1&&Math.abs(a.h-b.h)<=1;
+    ok(same(during.header,after.header)&&same(during.main,after.main),`${W}x${H}: header and main stay put ${JSON.stringify({during:during.header,afterH:after.header,main:during.main,afterM:after.main})}`);
+    ok(/^Today \d+ · Wknd \d+$/.test(after.today),`${W}x${H}: Today line comes back ${after.today}`);
     await c.close();
   }
   for(const [W,H] of [[956,440],[932,430]]){
