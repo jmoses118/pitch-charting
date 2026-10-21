@@ -39,8 +39,8 @@ for(const [W,H] of [[844,390],[667,375],[932,430]]){const tag=`${W}x${H}`;const 
   await p.click('#cRes [data-cx=undo]');await w(250);ok(await ev(()=>__app.store.real.games[0].pitches.length===0),`${tag} coach: Undo removes the shake-off pitch`);
   await ev(()=>{curSheet().rows[0][0]='FB 2';});await ev(()=>callCell(0,0));await w();
   await p.click('#cRes [data-cx=shake]');await w();await p.click('#cRes [data-ty=CH]');await w();
-  {const msg=await ev(()=>PC.aimRejectMsg('CH',2,'short'));const ht=(await p.textContent('#cxHint')).trim();
-    ok(await ev(()=>{const d=pullDraft();return d.called[0]===2&&d.calledFlag===true&&PC.scoreStep(d)==='actual';})&&ht===msg,`${tag} coach: FB2 shaken to CH keeps box 2 (${ht})`);}
+  {const msg=await ev(()=>PC.aimRejectMsg('CH',2,'short'));const shown=(await p.textContent(W<700?'#cxAim':'#cxHint')).trim();
+    ok(await ev(()=>{const d=pullDraft();return d.called[0]===2&&d.calledFlag===true&&PC.scoreStep(d)==='actual';})&&shown===msg,`${tag} coach: FB2 shaken to CH keeps box 2 (${shown})`);}
   ok(!errs.length,`${tag}: no page errors ${errs.join('|')}`);await c.close();}
 // ---- portrait ----
 for(const [W,H] of [[390,844],[375,667],[430,932]]){const tag=`${W}x${H}`;const c=await ctx(W,H);const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));const ev=(f,a)=>p.evaluate(f,a),w=ms=>p.waitForTimeout(ms||150);
