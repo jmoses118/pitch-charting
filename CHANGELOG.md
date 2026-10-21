@@ -3,6 +3,7 @@
 ## v87 – A risky aim warns and still counts
 ### Changed
 - Calling box 5 warns that it always counts as a missed spot, for every pitch. A curve aimed up, or a drop or drop curve aimed up or in the middle, warns and still counts. A change-up outside its low boxes is still refused. The warning is shown on screen and is not saved.
+- The coach screen and the pitch log use a short warning, such as "Box 5 = missed spot" or "drop: not middle". A coach message that is showing stays up until it clears, and then the warning comes back.
 - Cache: `te-pitch-v87`.
 
 ## v86 – The bullpen report counts a low change-up as a hit

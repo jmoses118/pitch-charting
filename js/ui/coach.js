@@ -33,7 +33,7 @@ function hintText(){const cmp=$('coach').classList.contains('compact');if(sideCa
   const step=PC.scoreStep(pullDraft());
   if(step==='type')return['1',cmp?'Tap a cell':'Tap a wristband cell'];
   if(step==='called')return['2',cmp?'Aim?':'Tap the aim'];if(step==='actual')return['2',cmp?'Where?':'Tap where it went'];return['3',cmp?'Result?':'Tap the result'];}
-function renderHint(){const e=$('cxHint');if(!e)return;const d=pullDraft();const note=(D.ip||D.bbAsk)?'':PC.aimLine(d,{short:true});if(note){e.className='cs-hint msg warn';e.textContent=note;return;}if(cMsg&&(!d.aimEdit||cMsg.kind==='warn')){e.className='cs-hint msg '+cMsg.kind;e.textContent=cMsg.t;return;}const h=hintText();e.className='cs-hint';e.innerHTML=h?`<span class="cs-n">${H(h[0])}</span>${H(h[1])}`:'';}
+function renderHint(){const e=$('cxHint');if(!e)return;const d=pullDraft();if(cMsg&&(!d.aimEdit||cMsg.kind==='warn')){e.className='cs-hint msg '+cMsg.kind;e.textContent=cMsg.t;return;}const note=(D.ip||D.bbAsk)?'':PC.aimLine(d,{short:true});if(note){e.className='cs-hint msg warn';e.textContent=note;return;}const h=hintText();e.className='cs-hint';e.innerHTML=h?`<span class="cs-n">${H(h[0])}</span>${H(h[1])}`:'';}
 function sizeCoach() {
   const sh = curSheet(),
     cols = sh ? Math.max(...sh.rows.map((r) => r.length), 1) : 8,

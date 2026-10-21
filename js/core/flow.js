@@ -30,7 +30,7 @@ function validCalled(type,z){z=+z;if(!PC.GRID_XY[z])return false;if(PC.isWay(z)|
 function validActual(z){return !!PC.GRID_XY[+z];}
 // One bad-aim check for commit, CSV import, and sync. True when any box fails validCalled.
 function aimFlag(type,boxes){return (boxes||[]).some(z=>!validCalled(type,z));}
-function aimNote(draft){const boxes=((draft&&draft.called)||[]).map(z=>+z).filter(z=>Number.isFinite(z));const bad=boxes.find(z=>!validCalled(draft.type,z));return bad==null?'':PC.aimRejectMsg(draft.type,bad);}
+function aimNote(draft,compact){const boxes=((draft&&draft.called)||[]).map(z=>+z).filter(z=>Number.isFinite(z));const bad=boxes.find(z=>!validCalled(draft.type,z));return bad==null?'':PC.aimRejectMsg(draft.type,bad,compact);}
 function fail(op,d,reason){return{ok:false,op,draft:d,step:scoreStep(d),reason};}
 function scoreApply(draft,ev){const d=clone(draft);ev=ev||{};const op=ev.op;
   if(op==='call'){d.type=ev.type||null;const raw=Array.isArray(ev.called)?ev.called:[];const nums=raw.map(z=>+z).filter(z=>Number.isFinite(z));
@@ -70,13 +70,13 @@ function callWarn(type,z){
   const rule=PC.TYPE_MISS[type];
   return !!(rule&&Array.isArray(rule.warn)&&rule.warn.includes(z));
 }
+// Does not check validCalled: a refused change-up on 5 still gets the box 5 text here. Callers that show a stored aim go through callWarnOf.
 function callWarnMsg(type,z,opt){
   if(!callWarn(type,z))return '';
   z=+z;
   const short=!!(opt&&opt.short);
   if(z===5)return short?'Box 5 = missed spot':BOX5_WARN;
-  const row=PC.BASE_TYPES.find(t=>t.code===type);
-  const name=(row&&row.name?row.name:String(type||'Pitch')).toLowerCase();
+  const name=PC.BASE_TYPES.find(t=>t.code===type).name.toLowerCase();
   if(PC.TOP_ROW.includes(z))return short?name+': not up':name+' is usually not aimed up';
   return short?name+': not middle':name+' is usually not aimed in the middle row';
 }
@@ -97,7 +97,7 @@ function callWarnDraft(d,opt){
   const called=Array.isArray(d.called)?d.called.slice():[];
   return callWarnOf({type:d.type||'',calledType:d.type||'',targets:called,shook:!!d.shook,call:d.call||'',hand:d.hand||''},opt);
 }
-// The hard refusal wins. Otherwise the soft warning. {short:true} asks callWarnMsg for the coach line.
-function aimLine(d,opt){const note=aimNote(d);return note||callWarnDraft(d,opt);}
+// The hard refusal wins. Otherwise the soft warning. {short:true} picks the short refusal and the short warning for the coach line.
+function aimLine(d,opt){const note=aimNote(d,opt&&opt.short?'short':undefined);return note||callWarnDraft(d,opt);}
 Object.assign(PC,{FLOW,GAME_RESULTS,flowSteps,flowLabel,scoreStep,scoreApply,scoreTap,scoreCommit,validCalled,validActual,aimFlag,aimNote,callWarn,callWarnMsg,callWarnOf,callWarnDraft,aimLine});
 })(typeof window!=='undefined'?window:globalThis);
