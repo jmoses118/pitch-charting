@@ -1,5 +1,6 @@
 /* Thunder Elite pitch charting – flow.js: one scoring state machine for every mode.
    Pure logic (no DOM). Loads after calls.js and location.js, before game.js. validCalled is the only aim validator.
+   callWarn is the soft warning beside it. It does not refuse a call and it is not stored.
    Game: type → called location → actual location → result.
    Bullpen: type → called location → actual location → save. No ball/strike step.
    Optional and outside the required list: shake-off, velocity, in-play detail, editing a past location. */
@@ -29,7 +30,7 @@ function validCalled(type,z){z=+z;if(!PC.GRID_XY[z])return false;if(PC.isWay(z)|
 function validActual(z){return !!PC.GRID_XY[+z];}
 // One bad-aim check for commit, CSV import, and sync. True when any box fails validCalled.
 function aimFlag(type,boxes){return (boxes||[]).some(z=>!validCalled(type,z));}
-function aimNote(draft){const boxes=((draft&&draft.called)||[]).map(z=>+z).filter(z=>Number.isFinite(z));const bad=boxes.find(z=>!validCalled(draft.type,z));return bad==null?'':PC.aimRejectMsg(draft.type,bad);}
+function aimNote(draft,compact){const boxes=((draft&&draft.called)||[]).map(z=>+z).filter(z=>Number.isFinite(z));const bad=boxes.find(z=>!validCalled(draft.type,z));return bad==null?'':PC.aimRejectMsg(draft.type,bad,compact);}
 function fail(op,d,reason){return{ok:false,op,draft:d,step:scoreStep(d),reason};}
 function scoreApply(draft,ev){const d=clone(draft);ev=ev||{};const op=ev.op;
   if(op==='call'){d.type=ev.type||null;const raw=Array.isArray(ev.called)?ev.called:[];const nums=raw.map(z=>+z).filter(z=>Number.isFinite(z));
@@ -61,5 +62,42 @@ function scoreCommit(d){d=clone(d);const boxes=d.called.slice();
   const row={type:d.type,targets:boxes,loc:d.actual,actualLoc:d.actual,calledLoc:PC.nearestTarget(boxes,d.actual),result:d.mode==='bullpen'?null:d.result,ip:d.ip||null,shook:!!d.shook,velo:d.velo};
   if(aimFlag(d.type,boxes))row.calledFlag=true;
   return row;}
-Object.assign(PC,{FLOW,GAME_RESULTS,flowSteps,flowLabel,scoreStep,scoreApply,scoreTap,scoreCommit,validCalled,validActual,aimFlag,aimNote});
+// HM-9b. Box 5 warns for every type. Every other warned box is TYPE_MISS[type].warn. No type list lives here.
+const BOX5_WARN='Box 5 is always scored as a missed spot';
+function callWarn(type,z){
+  z=+z;
+  if(z===5)return true;
+  const rule=PC.TYPE_MISS[type];
+  return !!(rule&&Array.isArray(rule.warn)&&rule.warn.includes(z));
+}
+// Does not check validCalled: a refused change-up on 5 still gets the box 5 text here. Callers that show a stored aim go through callWarnOf.
+function callWarnMsg(type,z,opt){
+  if(!callWarn(type,z))return '';
+  z=+z;
+  const short=!!(opt&&opt.short);
+  if(z===5)return short?'Box 5 = missed spot':BOX5_WARN;
+  const name=PC.BASE_TYPES.find(t=>t.code===type).name.toLowerCase();
+  if(PC.TOP_ROW.includes(z))return short?name+': not up':name+' is usually not aimed up';
+  return short?name+': not middle':name+' is usually not aimed in the middle row';
+}
+// The aim is calledBoxes. The called type is calledTypeOf. A box that fails validCalled is kept and is not a soft warning.
+function callWarnOf(p,opt){
+  const type=PC.calledTypeOf(p);
+  const boxes=PC.calledBoxes(p);
+  for(let i=0;i<boxes.length;i++){
+    if(!PC.validCalled(type,boxes[i]))continue;
+    const msg=callWarnMsg(type,boxes[i],opt);
+    if(msg)return msg;
+  }
+  return '';
+}
+// A live draft's called list is the aim until scoreCommit stores it. calledBoxes reads that list as targets.
+function callWarnDraft(d,opt){
+  d=d||{};
+  const called=Array.isArray(d.called)?d.called.slice():[];
+  return callWarnOf({type:d.type||'',calledType:d.type||'',targets:called,shook:!!d.shook,call:d.call||'',hand:d.hand||''},opt);
+}
+// The hard refusal wins. Otherwise the soft warning. {short:true} picks the short refusal and the short warning for the coach line.
+function aimLine(d,opt){const note=aimNote(d,opt&&opt.short?'short':undefined);return note||callWarnDraft(d,opt);}
+Object.assign(PC,{FLOW,GAME_RESULTS,flowSteps,flowLabel,scoreStep,scoreApply,scoreTap,scoreCommit,validCalled,validActual,aimFlag,aimNote,callWarn,callWarnMsg,callWarnOf,callWarnDraft,aimLine});
 })(typeof window!=='undefined'?window:globalThis);

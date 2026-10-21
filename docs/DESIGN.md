@@ -4,6 +4,7 @@ The app is used on an iPhone, one-handed, in a dugout, often in direct sun. It i
 
 ## Tokens
 - **Color:** `--c-bg`, `--c-surface` / `-2` / `-3` (raised layers), `--c-line` / `--c-line-strong`, text `--c-text` / `-2` / `-3`, brand `--c-royal` (fills), `--c-royal-hi` (focus and selected borders), `--c-royal-text` (blue text on dark), `--c-royal-tint` (active nav, lock card), plus semantic `--c-success`, `--c-danger`, `--c-warn` with `-text` variants. Body and secondary text are ≥4.5:1.
+  `--c-coach-accent` (#9DB2FF) is the blue on the dark coach panel: the aim label, the step number, the undo button, and the call warning and change-up refusal. It does not change with Field, because that panel stays dark.
   Night sets `--c-royal` to #3A5CF0 so white text on a fill stays readable. Buttons, selects and inputs are 2px in both palettes. The Night status card and pitch-log rows match Field. A pressed Night primary uses `--c-royal-press` (#2C45B4). The wordmark file is unchanged.
 - **Space:** a 4-pt scale `--s1`…`--s6` (4, 8, 12, 16, 24, 32 px).
 - **Radius:** `--r-sm` 8, `--r-md` 12 (controls), `--r-lg` 16 (cards, sheets), `--r-pill`.

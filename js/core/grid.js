@@ -50,7 +50,7 @@ const OFF_D=MAX_MISS-1;
 function missD(aim,land){const z=+land;if(isWay(z)||isActualOnly(z))return OFF_D;return missDist(aim,land);}
 // HM-26a. Closer to box 5 on the grid, and still inside the frame. Aim 5 never counts.
 function towardMiddle(aim,land){const a=+aim,l=+land;if(!(a>0)||a===5||l===a||!isCompetitive(l))return false;const da=missDist(a,5),dl=missDist(l,5);return da!=null&&dl!=null&&dl<da;}
-// HM-9a. One table. chUp reads miss bands that are not the 16/17 ring. A later callWarn reads warn. Box 5 is every type and is not listed here.
+// HM-9a. One table. chUp reads miss bands that are not the 16/17 ring. callWarn reads warn. Box 5 is every type and is not listed here.
 // sev 'floor' means at least CH_MIN_SEV. sev 'worst' means MAX_MISS. ring marks the DR/DC 16/17 competitive miss.
 const TOP_ROW=[1,2,3,11,12,15],MID_ROW=[4,5,6],DROP_SIDE=[16,17];
 const DROP_MISS={miss:[{boxes:TOP_ROW,sev:'worst'},{boxes:MID_ROW,sev:'floor'},{boxes:DROP_SIDE,sev:'floor',ring:true}],warn:TOP_ROW.concat([4,6])};

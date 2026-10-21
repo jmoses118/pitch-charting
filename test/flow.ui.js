@@ -97,4 +97,67 @@ const spot=async p=>p.evaluate(()=>({called:(D.called||[]).slice(),actual:D.loc,
   const shown=await p3.evaluate(()=>{const on=id=>{const e=document.getElementById(id);return e.offsetParent!==null;};return{n:on('hN'),l:on('hL'),r:on('hR')};});
   ok(shown.n&&shown.l&&shown.r,'FLOW-8 LHB/RHB shown with the setting on '+JSON.stringify(shown));
   ok(!errs3.length,'FLOW-1 bullpen: no page errors');await c3.close();}
+// HM-9b. A warned call is accepted and the screen shows the core sentence. A change-up outside its boxes is still refused.
+const BOX5='Box 5 is always scored as a missed spot';
+{const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());await c.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));
+  const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());const ev=(f,a)=>p.evaluate(f,a);
+  await p.goto(BASE);await ev(g=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';S.games=[g];S.activeGame='g1';S.sessions=[];__app.store.save();__app.render();},GAME);
+  await p.click('nav [data-t="game"]');await p.waitForTimeout(200);
+  await p.click('#types [data-c="CB"]');await tapZ(p,3);await p.waitForTimeout(150);
+  ok((await p.textContent('#phase')).trim()==='curveball is usually not aimed up','HM-9b portrait: curve on 3 warns and names the curveball');
+  ok(await ev(()=>{const d=pullDraft();return d.called[0]===3&&PC.scoreStep(d)==='actual'&&!Object.hasOwn(d,'callWarn');}),'HM-9b portrait: curve on 3 is accepted and not stored');
+  await tapZ(p,3);await p.waitForTimeout(100);await p.click('#resBtns [data-r="ball"]');await p.waitForTimeout(150);
+  const logged=await ev(()=>{const x=__app.store.real.games[0].pitches.at(-1);const phase=getComputedStyle(document.getElementById('phase'));return {has:Object.hasOwn(x,'callWarn'),warn:PC.callWarnOf(x),short:PC.callWarnOf(x,{short:true}),log:document.getElementById('log').textContent,recent:document.getElementById('recent').textContent,px:phase.fontSize};});
+  ok(logged.has===false&&logged.warn==='curveball is usually not aimed up'&&logged.short==='curveball: not up'&&logged.log.includes(logged.short)&&logged.recent.includes(logged.warn)&&logged.px==='12px','HM-9b portrait: the saved pitch shows the warning on read '+JSON.stringify({has:logged.has,warn:logged.warn,px:logged.px}));
+  await p.screenshot({path:`${SHOT}/flow-callwarn-cb3.png`});
+  await ev(()=>{resetDraft();render();});await p.click('#types [data-c="FB"]');await tapZ(p,5);await p.waitForTimeout(150);
+  ok((await p.textContent('#phase')).trim()===BOX5,'HM-9b portrait: fastball on 5 shows the box 5 warning');
+  ok(await ev(()=>pullDraft().called[0]===5&&PC.scoreStep(pullDraft())==='actual'),'HM-9b portrait: fastball on 5 is accepted');
+  await ev(()=>{resetDraft();render();});await p.click('#types [data-c="CH"]');await tapZ(p,5);await p.waitForTimeout(150);
+  const refused=await ev(()=>PC.aimRejectMsg('CH',5));
+  const shown=((await p.textContent('#toast'))||'')+((await p.textContent('#phase'))||'');
+  ok(shown.includes(refused)&&!shown.includes(BOX5)&&await ev(()=>!(pullDraft().called||[]).includes(5)),'HM-9b portrait: change-up on 5 stays a hard block ('+shown.trim()+')');
+  await ev(()=>{resetDraft();render();});await p.click('#types [data-c="DR"]');await tapZ(p,4);await p.waitForTimeout(150);
+  ok((await p.textContent('#phase')).trim()==='drop is usually not aimed in the middle row','HM-9b portrait: drop on 4 warns about the middle row');
+  ok(!errs.length,'HM-9b portrait: no page errors '+errs.join('|'));await c.close();}
+{const c=await b.newContext({viewport:{width:844,height:390},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());
+  const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());const ev=f=>p.evaluate(f);
+  await p.goto(BASE);await ev(()=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';S.games=[{id:'g1',date:'2026-10-14',opponent:'Storm',homeAway:'home',status:'active',started:1,lineup:[{slot:1,name:'Batter 1',num:'1',hand:'R'}],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:1},pitches:[]}];S.activeGame='g1';__app.store.save();__app.render();});
+  await p.waitForTimeout(300);
+  const hintIs=t=>p.waitForFunction(t=>document.getElementById('cxHint').textContent.trim()===t,t,{timeout:5000}).then(()=>true,()=>false);
+  await ev(()=>{placeCall('FB',[]);render();});await p.click('#cZone button[data-z="5"]');await p.waitForTimeout(150);
+  ok((await p.textContent('#cxHint')).trim()==='✎ Aim → 5','HM-9b coach: the aim confirmation shows before the warning');
+  ok(await hintIs('Box 5 = missed spot'),'HM-9b coach: the warning returns after the confirmation clears');
+  await ev(()=>toast('View only – another phone is scoring'));await p.waitForTimeout(100);
+  ok((await p.textContent('#cxHint')).trim()==='View only – another phone is scoring','HM-9b coach: an active toast shows before the warning');
+  ok(await hintIs('Box 5 = missed spot'),'HM-9b coach: the warning returns after the toast clears');
+  const shown=async()=>{const hint=(await p.textContent('#cxHint')).trim();const fit=await ev(()=>{const h=document.getElementById('cxHint'),s=document.getElementById('cStatus'),hr=h.getBoundingClientRect(),sr=s.getBoundingClientRect(),cs=getComputedStyle(h);const lines=Math.round(h.clientHeight/parseFloat(cs.lineHeight));return {in:hr.top>=sr.top-1&&hr.bottom<=sr.bottom+1&&hr.left>=sr.left-1&&hr.right<=sr.right+1&&h.scrollHeight<=h.clientHeight+1&&h.scrollWidth<=h.clientWidth+1,px:cs.fontSize,lh:cs.lineHeight,color:cs.color,clamp:cs.webkitLineClamp,lines};});return {hint,fit};};
+  let box=await shown();
+  ok(box.hint==='Box 5 = missed spot'&&box.fit.in&&box.fit.px==='13px'&&box.fit.lh==='15.6px'&&box.fit.color==='rgb(157, 178, 255)'&&box.fit.clamp==='2'&&box.fit.lines<=2,'HM-9b coach: fastball on 5 shows the short box 5 warning ('+JSON.stringify(box)+')');
+  ok(await ev(()=>pullDraft().called[0]===5&&PC.scoreStep(pullDraft())==='actual'),'HM-9b coach: fastball on 5 is accepted');
+  await p.screenshot({path:`${SHOT}/flow-callwarn-coach.png`});
+  await p.click('#cZone button[data-z="5"]');await p.waitForTimeout(100);
+  await p.click('#cRes [data-r="inplay"]');await p.waitForTimeout(100);
+  await p.click('#cRes [data-ip="out"]');await p.waitForTimeout(100);
+  const contact=await ev(()=>{const h=document.getElementById('cxHint'),r=h.getBoundingClientRect();return {hide:h.classList.contains('hide'),bb:!!D.bbAsk,h:r.height};});
+  ok(contact.bb&&contact.hide&&contact.h<1,'HM-9b coach: the warning stays hidden while the contact chips show '+JSON.stringify(contact));
+  await ev(()=>{D.bbAsk=null;D.ip=false;placeCall('DC',[]);render();});await p.click('#cZone button[data-z="6"]');await hintIs('drop curve: not middle');
+  box=await shown();
+  ok(box.hint==='drop curve: not middle'&&box.fit.in&&box.fit.lines<=2,'HM-9b coach: drop curve on 6 shows the short middle warning ('+JSON.stringify(box)+')');
+  await ev(()=>{placeCall('CH',[]);render();});await p.click('#cZone button[data-z="2"]');await p.waitForTimeout(150);
+  const blocked=await ev(()=>{const h=document.getElementById('cxHint'),cs=getComputedStyle(h);return {text:h.textContent,color:cs.color,hidden:h.classList.contains('hide')};});
+  ok(!(await ev(()=>(pullDraft().called||[]).length))&&/aim low|CH: aim low/i.test(blocked.text)&&blocked.color==='rgb(157, 178, 255)'&&!blocked.hidden,'HM-9b coach: change-up on 2 stays a hard block in team blue ('+JSON.stringify(blocked)+')');
+  await ev(()=>{const d=pullDraft();takeDraft({ok:true,draft:Object.assign(d,{type:'CH',called:[2],calledFlag:true,actual:null})});cMsg=null;render();});await p.waitForTimeout(100);
+  const kept=await ev(()=>{const h=document.getElementById('cxHint'),cs=getComputedStyle(h);return {text:h.textContent.trim(),need:Math.round(h.scrollHeight/parseFloat(cs.lineHeight))};});
+  ok(kept.text==='Change-up: aim low'&&kept.need<=2,'HM-9b coach: a kept change-up on 2 shows the short refusal in two lines or fewer '+JSON.stringify(kept));
+  ok(!errs.length,'HM-9b coach: no page errors '+errs.join('|'));await c.close();}
+{const c=await b.newContext({viewport:{width:667,height:375},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());
+  const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));const ev=f=>p.evaluate(f);
+  await p.goto(BASE);await ev(()=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';S.games=[{id:'g1',date:'2026-10-14',opponent:'Storm',homeAway:'home',status:'active',started:1,lineup:[{slot:1,name:'Batter 1',num:'1',hand:'R'}],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:1},pitches:[]}];S.activeGame='g1';__app.store.save();__app.render();});
+  await p.waitForTimeout(300);
+  await ev(()=>{placeCall('DC',[]);render();});await p.click('#cZone button[data-z="6"]');
+  await p.waitForFunction(()=>document.getElementById('cxHint').textContent.trim()==='drop curve: not middle',null,{timeout:5000}).catch(()=>{});
+  const narrow=await ev(()=>{const h=document.getElementById('cxHint'),cs=getComputedStyle(h);return {hint:h.textContent.trim(),px:cs.fontSize,lines:Math.round(h.clientHeight/parseFloat(cs.lineHeight)),fit:h.scrollHeight<=h.clientHeight+1&&h.scrollWidth<=h.clientWidth+1};});
+  ok(narrow.hint==='drop curve: not middle'&&narrow.px==='13px'&&narrow.lines<=2&&narrow.fit,'HM-9b coach 667: short warning is 13px and at most two lines '+JSON.stringify(narrow));
+  ok(!errs.length,'HM-9b coach 667: no page errors '+errs.join('|'));await c.close();}
 await b.close();console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);})().catch(e=>{console.error(e);process.exit(1);});
