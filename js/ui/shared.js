@@ -139,7 +139,11 @@ $('types').addEventListener('click',e=>{const c=e.target.dataset.c;if(!c)return;
   placeCall(c,[]);render();if(tab==='game'&&D.type)advance('loc');});
 [['hL','L'],['hR','R'],['hN','N']].forEach(([id,h])=>$(id).onclick=()=>{$('batDlg').close('ok');setHand(h);});
 $('batTog').onclick=()=>openSheet($('batDlg'));$('bpTest').onclick=()=>toggleTest();
-function setHand(h){if(tab==='game'&&game()){game().cur.hand=h;dirty('games',game().id);save();}else bpHand=PC.sessionHand(S().settings,h);if(D.callTxt)D.parsed=PC.parseCall(D.callTxt,curHand(),pitcherHand(),S().customTypes);render();}
+function reparseCall(){if(D.callTxt)D.parsed=PC.parseCall(D.callTxt,curHand(),pitcherHand(),S().customTypes);}
+function sheetOptions(sh){return sheets().map(x=>`<option value="${H(x.id)}" ${sh&&x.id===sh.id?'selected':''}>${H(x.name)}</option>`).join('');}
+function sheetTable(sh,headCell,bodyCell){return `<tr><th class="rh"></th>${sh.cols.map(headCell).join('')}</tr>`+sh.rows.map((row,r)=>`<tr class="${r%2?'b':''}"><th class="rh">${r+1}</th>${sh.cols.map((_,c)=>bodyCell(row,r,c)).join('')}</tr>`).join('');}
+function stampChart(r,chart){r.type=chart.type;r.targets=chart.targets;r.loc=chart.loc;r.actualLoc=chart.actualLoc;r.calledLoc=chart.calledLoc;return r;}
+function setHand(h){if(tab==='game'&&game()){game().cur.hand=h;dirty('games',game().id);save();}else bpHand=PC.sessionHand(S().settings,h);reparseCall();render();}
 // ---------- record building ----------
 // the planned spot(s) for the pitch in progress: ✎ Aim / band-setup aim, else the call's own spot, else a tapped target
 // One flow draft. The screen reads it; it does not keep a second called/actual copy or a second validator.

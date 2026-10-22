@@ -1,5 +1,10 @@
 # Changelog
 
+## v88 – Shared code stays in one place
+### Changed
+- No visible change. Shared code for the heat map, call sheet and saved pitches, to keep future fixes in one place.
+- Cache: `te-pitch-v88`.
+
 ## v87 – A risky aim warns and still counts
 ### Changed
 - Calling box 5 warns that it always counts as a missed spot, for every pitch. A curve aimed up, or a drop or drop curve aimed up or in the middle, warns and still counts. A change-up outside its low boxes is still refused. The warning is shown on screen and is not saved.

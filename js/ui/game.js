@@ -13,10 +13,9 @@ function wbRefGo(){const sh=curSheet();const x=PC.parseCellRef($('wbRef').value,
 $('wbGo').onclick=wbRefGo;$('wbRef').addEventListener('keydown',e=>{if(e.key==='Enter')wbRefGo();});
 $('wbSheet').onchange=e=>{S().activeSheet=e.target.value;D.cell=null;save();render();};
 function renderWristband(){const show=tab==='game'&&!!game()&&role()==='coach';$('wbCard').classList.toggle('hide',!show);if(!show)return;const sh=curSheet();
-  $('wbSheet').innerHTML=sheets().map(x=>`<option value="${H(x.id)}" ${sh&&x.id===sh.id?'selected':''}>${H(x.name)}</option>`).join('');if(!sh){$('wbTbl').innerHTML='';return;}
+  $('wbSheet').innerHTML=sheetOptions(sh);if(!sh){$('wbTbl').innerHTML='';return;}
   const h=curHand(),th=pitcherHand(),ct=S().customTypes;
-  $('wbTbl').innerHTML=`<tr><th class="rh"></th>${sh.cols.map(c=>`<th>${H(c)}</th>`).join('')}</tr>`+sh.rows.map((row,r)=>`<tr class="${r%2?'b':''}"><th class="rh">${r+1}</th>${sh.cols.map((_,c)=>{const t=row[c]||'';const on=D.cell&&D.cell.sheet===sh.id&&D.cell.r===r&&D.cell.c===c;const bad=t.trim()&&!PC.parseCall(t,h,th,ct);
-    return `<td class="${on?'on':''} ${bad?'bad':''}"><button data-r="${r}" data-c="${c}">${H(t)}</button></td>`;}).join('')}</tr>`).join('');}
+  $('wbTbl').innerHTML=sheetTable(sh,c=>`<th>${H(c)}</th>`,(row,r,c)=>{const t=row[c]||'';const on=D.cell&&D.cell.sheet===sh.id&&D.cell.r===r&&D.cell.c===c;const bad=t.trim()&&!PC.parseCall(t,h,th,ct);return `<td class="${on?'on':''} ${bad?'bad':''}"><button data-r="${r}" data-c="${c}">${H(t)}</button></td>`;});}
 // game result — big buttons. Foul logs immediately; Early / On time / Late can update that pitch for a few seconds. In play opens the drill-down. Cancel logs nothing.
 var redoStack=[];
 var foulWatch=null,foulTimer=null;
@@ -43,7 +42,7 @@ $('velo').addEventListener('input',e=>{D.velo=e.target.value;});
 $('velo').addEventListener('change',e=>{const v=noteVelo(e.target.value);D.velo=v;e.target.value=v==null?'':v;});
 function recordGame(result,ip,noPitch){const g=game();if(!g||scoreGuard())return;if(!g.scorer)g.scorer=myDevice();const c=g.cur;if((result==='kd3'||result==='kd3out')&&c.s!==2){toast('Dropped 3rd strike only with 2 strikes');return;}if(g.ended){toast('Game is over');return;}let applied=null;if(!noPitch){applied=PC.scoreApply(pullDraft(),{op:'result',result,ip:ip||null});if(!applied.ok){toast({need_type:D.shook?'Pick the pitch she threw':'Pick the pitch type first',need_called:'Tap the called location first',need_actual:'Tap where it went first'}[applied.reason]||'Finish the pitch first');return;}}if(c.outs>=3){toast('3 outs – tap Next inn first');return;}clearFoulChips();const b=g.lineup[c.slot]||{};
   const r=Object.assign(baseRec(),{inning:c.inning,outsBefore:c.outs,slot:c.slot,batter:b.name||'',batterNum:b.num||'',b:c.b,s:c.s,abn:c.abn,result,ip:ip||null,firstPitch:c.b===0&&c.s===0,prevHand:c.hand||null});
-  if(applied){const chart=PC.scoreCommit(applied.draft);if(chart){r.type=chart.type;r.targets=chart.targets;r.loc=chart.loc;r.actualLoc=chart.actualLoc;r.calledLoc=chart.calledLoc;r.result=chart.result;if(result==='inplay')r.ip=ip||chart.ip||null;}}
+  if(applied){const chart=PC.scoreCommit(applied.draft);if(chart){stampChart(r,chart);r.result=chart.result;if(result==='inplay')r.ip=ip||chart.ip||null;}}
   let o;if(noPitch){o={b:c.b,s:c.s,end:'IBB',outs:0};r.noPitch=true;r.type=null;r.loc=null;r.call=null;r.targets=[];}else{try{o=PC.applyPitch(c,result,ip);}catch(e){toast(String(e.message||e));return;}}
   if(result==='inplay'&&PC.BB_TYPES.includes(D.bb))r.bb=D.bb;if(result==='inplay'&&D.spray)r.spray=D.spray;if(result==='foul')r.foulTime=null;r.mode='game';if(noPitch){r.calledLoc=null;r.actualLoc=null;r.calledType=null;r.wpPb=null;r.velo=null;}const inn0=c.inning;const pcBefore=PC.pitchCount(g.pitches,r.pitcherId);r.end=o.end;clearRedo();clearEditUndo();g.pitches.push(r);dirty('pitches',r.id);dirty('games',g.id);c.b=o.b;c.s=o.s;if(result==='foul')armFoulChips(r.id);
   if(o.end){c.outs+=o.outs;let msg={BB:'Walk',K:'Strikeout',HBP:'Hit by pitch',IBB:'Intentional walk','K-D3':'Strikeout – reached on dropped 3rd',out:'Out',E:'Reached on error',FC:"Fielder's choice",DP:'Double play'}[o.end]||o.end;
