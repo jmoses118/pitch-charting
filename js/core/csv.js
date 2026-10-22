@@ -40,15 +40,15 @@ function importSpots(r){r=r||{};const named=r.called_type!=null&&String(r.called
   let loc=null;if(r.location!=null&&String(r.location).trim()!==''){const z=+r.location;if(keep(z))loc=z;}
   let actualLoc=null;if(r.actual_location!=null&&String(r.actual_location).trim()!==''){const z=+r.actual_location;if(keep(z))actualLoc=z;}else if(loc!=null)actualLoc=loc;
   return{targets,calledLoc,loc,actualLoc,calledFlag};}
-function importFlagCount(rows){return (rows||[]).reduce((n,r)=>n+(importSpots(r).calledFlag?1:0),0);}
+function importFlagCount(rows){return (rows||[]).reduce((n,r)=>n+(importSpots(r).calledFlag&&!csvXY(r).error?1:0),0);}
 // Re-import: called_type sets calledType; 1 / true / yes sets shook. from_video does the same for a corrected pitch. An older file's edited column still counts. Empty or 0 leaves them unset.
 function csvApply(base,r){base=base||{};if(r&&r.called_type)base.calledType=String(r.called_type).trim();if(r&&csvFlag(r.shook))base.shook=true;if(r&&(csvFlag(r.from_video)||csvFlag(r.edited)))base.edited=true;const c=String(r&&r.contact||'').trim().toUpperCase();if(PC.BB_TYPES.includes(c))base.bb=c;
   const xy=csvXY(r);if(xy.x!=null)Object.assign(base,{actual_x:xy.x,actual_y:xy.y,xy_loc:xy.xy_loc});return base;}
 // D-5. One row's tap point, captured on actual_location. Both blank is no point.
-// Half a pair, a value outside 0 to 1, or a frame point off actual_location is a row error, not clamped.
+// Half a pair, anything but a plain decimal from 0 to 1, or a frame point off actual_location is a row error, not clamped.
 function csvXY(r){r=r||{};const blank=v=>v==null||String(v).trim()==='';if(blank(r.actual_x)&&blank(r.actual_y))return {x:null,y:null,xy_loc:null};
   if(blank(r.actual_x)||blank(r.actual_y))return {error:'actual_x and actual_y go together'};
-  const x=+r.actual_x,y=+r.actual_y;if(!Number.isFinite(x)||!Number.isFinite(y)||x<0||x>1||y<0||y>1)return {error:'actual_x and actual_y are 0 to 1'};
+  const num=v=>/^\d*\.?\d+$/.test(String(v).trim())?+v:NaN,x=num(r.actual_x),y=num(r.actual_y);if(!(x<=1&&y<=1))return {error:'actual_x and actual_y are plain decimals from 0 to 1'};
   const at=importSpots(r).actualLoc,ax=PC.roundXY(x),ay=PC.roundXY(y);if(at==null)return {error:'a tap point needs actual_location'};
   if(!PC.isWay(at)&&!PC.isActualOnly(at)&&PC.cellOfXY(ax,ay)!==at)return {error:'the tap point is not in actual_location'};
   return {x:ax,y:ay,xy_loc:at};}

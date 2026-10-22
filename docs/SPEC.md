@@ -84,7 +84,7 @@ The UI only renders these. `heatStats` is the per-type rollup.
 | `towardMiddle(aim, land)` | grid.js | → bool |
 | `tapXY(u, v, bin)` | grid.js | one tap → `{actual_x, actual_y, xy_loc, loc, actualLoc}`, or null. A frame tap's cell is `cellOfXY`. A way-off, dirt, or backstop bin keeps its code |
 | `xyOf(p)` | location.js | → `{actual_x, actual_y, xy_loc}` while `xy_loc` is the landed code, otherwise all null. `pitchRow`, `rowPitch`, and `csvRow` read the point through it |
-| `csvXY(row)` | csv.js | CSV row → `{x, y, xy_loc}` or `{error}`. Half a pair, a value outside 0 to 1, or a frame point off `actual_location` is a row error |
+| `csvXY(row)` | csv.js | CSV row → `{x, y, xy_loc}` or `{error}`. Half a pair, anything but a plain decimal from 0 to 1, or a frame point off `actual_location` is a row error |
 | `xyDropped(row)` | sync.js | pulled row → true when the read cleared its point. Derived, never stored |
 
 - **HM-26a.** Aim 21 landing 2 is toward the middle. Chebyshev distance to box 5 goes from 3 to 1, and box 2 is in the frame.
