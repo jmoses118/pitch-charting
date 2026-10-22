@@ -1,5 +1,11 @@
 # Changelog
 
+## v95 – The tap-a-box view names the right pitch
+### Fixed
+- When a curveball, drop, or drop curve misses up, the tap-a-box view now tags it "CB up", "DR up", or "DC up" and says, for example, "2 curveballs were up in the zone." It used to call every one of them a change-up.
+- The tap-a-box key now says "Thick outline + AIM = where you aimed", and the report and heat map legends list the high-miss rows for curves and drops as well as change-ups.
+- Cache: `te-pitch-v95`.
+
 ## v94 – The heat map uses team colours
 ### Changed
 - The heat map's Miss view colours each box by how close the pitches came: dark blue with ✓ for on the spot, light blue with ◐ for 1 box off, and pale blue with ✗ for 2 or more off. The old green and red scale is gone.
