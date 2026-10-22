@@ -70,7 +70,7 @@ function callWarn(type,z){
   const rule=PC.TYPE_MISS[type];
   return !!(rule&&Array.isArray(rule.warn)&&rule.warn.includes(z));
 }
-// One short label per warning for the narrow coach cell. Box 5 wins inside this map. A refused change-up wins in aimLine.
+// One short label per warning for the narrow coach cell. Box 5 wins inside this map. A refused change-up reads TINY_WARN.CH.
 const TINY_WARN={5:'5: miss',CB:'CB: low',CH:'CH: low',DR:'Drop: low',DC:'DC: low'};
 // Does not check validCalled: a refused change-up on 5 still gets the box 5 text here. Callers that show a stored aim go through callWarnOf.
 function callWarnMsg(type,z,opt){
@@ -110,11 +110,8 @@ function callWarnDraft(d,opt){
 function aimLine(d,opt){
   const tiny=!!(opt&&opt.tiny);
   const note=aimNote(d,tiny?'tiny':opt&&opt.short?'short':undefined);
-  if(note){
-    if(tiny&&note!==PC.ACTUAL_ONLY_MSG&&TINY_WARN[d&&d.type])return TINY_WARN[d.type];
-    return note;
-  }
+  if(note)return note;
   return callWarnDraft(d,opt);
 }
-Object.assign(PC,{FLOW,GAME_RESULTS,flowSteps,flowLabel,scoreStep,scoreApply,scoreTap,scoreCommit,validCalled,validActual,aimFlag,aimNote,callWarn,callWarnMsg,callWarnOf,callWarnDraft,aimLine});
+Object.assign(PC,{FLOW,GAME_RESULTS,flowSteps,flowLabel,scoreStep,scoreApply,scoreTap,scoreCommit,validCalled,validActual,aimFlag,aimNote,callWarn,callWarnMsg,callWarnOf,callWarnDraft,aimLine,TINY_WARN});
 })(typeof window!=='undefined'?window:globalThis);

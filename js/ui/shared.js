@@ -142,7 +142,7 @@ $('batTog').onclick=()=>openSheet($('batDlg'));$('bpTest').onclick=()=>toggleTes
 // short: number and hand, no name. wide: icon plus name. The pitch count stays on every form.
 function batLabel(b,slot,hand,o){o=o||{};b=b||{};const side=hand==='L'?'LHB':'RHB';const rawNum=b.num?String(b.num):'';const rawName=b.name||('Batter '+(+slot+1));const num=rawNum?'#'+H(rawNum):'';const name=H(rawName);const who=num||name;const n=o.count==null?'':String(o.count);const ball=n===''?'':`<span class="pit" title="Pitches">⚾ ${H(n)}</span>`;
   const html=o.short?`<b>${who}</b> ${side}${ball?' '+ball:''}`:o.wide?`<span class="ic" aria-hidden="true">👤</span><b>${num?num+' ':''}${name}</b> · ${side}${ball?' · '+ball:''}`:`<b>${who}</b> · ${side}${ball?' · '+ball:''}`;
-  return {html,label:[(rawNum?'#'+rawNum+' ':'')+rawName,side,n===''?'':'⚾ '+n].filter(Boolean).join(' · ')};}
+  return {html,label:[(rawNum?'#'+rawNum+' ':'')+rawName,side,n===''?'':n==='1'?'1 pitch':n+' pitches'].filter(Boolean).join(' · ')};}
 function reparseCall(){if(D.callTxt)D.parsed=PC.parseCall(D.callTxt,curHand(),pitcherHand(),S().customTypes);}
 function sheetOptions(sh){return sheets().map(x=>`<option value="${H(x.id)}" ${sh&&x.id===sh.id?'selected':''}>${H(x.name)}</option>`).join('');}
 function sheetTable(sh,headCell,bodyCell){return `<tr><th class="rh"></th>${sh.cols.map(headCell).join('')}</tr>`+sh.rows.map((row,r)=>`<tr class="${r%2?'b':''}"><th class="rh">${r+1}</th>${sh.cols.map((_,c)=>bodyCell(row,r,c)).join('')}</tr>`).join('');}

@@ -24,7 +24,7 @@ const Z5=[[11,11,15,12,12],[11,1,2,3,12],[16,4,5,6,17],[13,7,8,9,14],[13,13,18,1
 // ---------- status strip messages (replace toasts while calling: nothing covers the count) ----------
 function coachMsg(t,kind,ms,label){cMsg={t,kind:kind||'info',at:Date.now(),label:label||''};renderHint();clearTimeout(coachMsg.t);coachMsg.t=setTimeout(()=>{cMsg=null;renderHint();},ms||2600);}
 function coachAimWarn(type,z){
-  if(!$('coach').classList.contains('compact')||PC.isWay(+z)||PC.isActualOnly(+z))return {text:'',label:''};
+  if(!$('coach').classList.contains('compact'))return {text:'',label:''};
   const text=PC.callWarnMsg(type,z,{tiny:true});
   return {text,label:text?PC.aimLine({type:type,called:[+z]}):''};
 }
