@@ -10,9 +10,17 @@ await pen('FB',3,12);await pen('FB',3,21);await pen('CH',8,18);await pen('FB',9,
 const P=await p.evaluate(()=>__app.store.state.sessions.at(-1).pitches.map(x=>x.loc));ok(JSON.stringify(P)==='[3,12,21,18,22,16]','logged locs '+JSON.stringify(P));
 const log=await p.textContent('#log');ok(/way high/.test(log)&&/way low/.test(log),'log shows way high / way low');
 await p.click('#bpEnd');await p.waitForTimeout(300);const rt=await p.textContent('#rDlg');
-ok(/Competitive/.test(rt)&&/67%/.test(rt),'report: competitive 67% (4 of 6)');ok(/Way off/.test(rt),'report: way off tile');ok(/2 pitches way off/.test(rt),'report feedback mentions way off');ok(/Hit spot/.test(rt)&&/50%/.test(rt),'bullpen report leads with hit spot (3 of 6)');
+ok(/Competitive/.test(rt)&&/67%/.test(rt),'report: competitive 67% (4 of 6)');ok(/Way off/.test(rt),'report: way off tile');ok(/2 pitches way off/.test(rt),'report feedback mentions way off');ok(!/Change-ups only count/.test(rt)&&/curve in the top row/.test(rt),'HM-9a report legend names every type-miss row, not only the change-up');ok(/Hit spot/.test(rt)&&/50%/.test(rt),'bullpen report leads with hit spot (3 of 6)');
 await p.$eval('#rMap [data-z="3"]',e=>e.scrollIntoView({block:'center'}));await p.dispatchEvent('#rMap [data-z="3"]','click');await p.waitForTimeout(250);const dd=await p.textContent('#ddCap');
 ok(/2 on target/.test(dd)&&/1 way off/.test(dd)&&/way high/.test(dd),'drill-down: 2 on target (3, ring 12), 1 way high: '+dd);
+await p.evaluate(()=>document.querySelectorAll('dialog[open]').forEach(d=>d.close()));
+// HM-9a drill: a curveball up is tagged CB up and the caption names curveballs; the key names the thick outline and AIM.
+const up=async(ty,ls)=>{await p.evaluate(([ty,ls])=>{document.querySelectorAll('dialog[open]').forEach(d=>d.close());openDrill('7',PC.missData(ls.map(l=>({p:{type:ty,targets:[7],loc:l}})),{}).cells[7],PC.TYPE_NAME[ty]);},[ty,ls]);await p.waitForTimeout(150);
+  return {cap:await p.textContent('#ddCap'),tags:await p.$$eval('#ddMap text',e=>e.map(x=>x.textContent).filter(t=>/ up$/.test(t))),key:await p.textContent('#ddKey')};};
+const cb=await up('CB',[1,2,7,8]);ok(/2 curveballs were up in the zone\./.test(cb.cap)&&!/change-up/.test(cb.cap),'HM-9a drill caption names curveballs: '+cb.cap);
+ok(JSON.stringify(cb.tags)==='["CB up","CB up"]','HM-9a drill tags CB up, never CH up: '+JSON.stringify(cb.tags));ok(/^Thick outline \+ AIM = where you aimed\./.test(cb.key),'drill key: Thick outline + AIM = where you aimed');
+const dc=await up('DC',[4]);ok(/1 drop curve was up in the zone\./.test(dc.cap)&&JSON.stringify(dc.tags)==='["DC up"]','HM-9a drill names a drop curve: '+dc.cap);
+const ch=await up('CH',[2,7]);ok(/1 change-up was up in the zone\./.test(ch.cap)&&JSON.stringify(ch.tags)==='["CH up"]','HM-9a drill still names a change-up');
 await p.evaluate(()=>document.querySelectorAll('dialog[open]').forEach(d=>d.close()));
 await p.click('nav [data-t="setup"]');await p.click('#testBtn');await p.click('#askOk');await p.waitForTimeout(150);ok(await p.evaluate(()=>!__app.store.real.sessions.some(s=>s.pitches.some(x=>x.loc>20))),'nothing kept after test mode');
 ok(errs.length===0,'no page errors '+errs.join('|'));console.log(fails?`${fails} FAILED`:'ALL PASS');await b.close();process.exit(fails?1:0);})().catch(e=>{console.error(e);process.exit(1)});
