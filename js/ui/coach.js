@@ -120,8 +120,7 @@ function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,h
   $('cxBat').innerHTML=bat.html;$('cxBat').setAttribute('aria-label',bat.label);
   const code=callCode(),aims=aimSet();$('cxCode').innerHTML=D.shook?`⤺ ${H(D.shook.norm)} → ${H(D.type||'?')}`:D.parsed?`${H(code)}&nbsp; ${H(D.callTxt)}`:'<span class="cs-none">– –&nbsp; no call yet</span>';
   const own=D.parsed&&D.parsed.targets&&D.parsed.targets.length===1&&D.aim===+D.parsed.targets[0]; // pencil only for an override, not the call's own spot
-  paintAim(own, aims, cmp?aimWarn:'', cmp&&aimWarn?aimFull:'');placeAim(!!(cmp&&aimWarn));
-  if(aimAside){const e=$('cxAim');e.textContent=aimSpot(own, aims);e.classList.add('warn');e.removeAttribute('aria-label');}
+  paintAim(own, aims, cmp?aimWarn:'', cmp&&aimWarn?aimFull:'');
   renderHint(aimWarn);const n=store.pendingCount(),st=store.real.sync;$('cxNet').textContent=store.isTest?'Test mode – not saved':!navigator.onLine?`Offline – saved on phone${n?' · '+n+' to sync':''}`:(!st.teamCode?'Saved on phone':n?`Saved on phone · ${n} to sync`:'Saved · synced');
   // in play: spray field replaces the status details
   $('cSprayWrap').classList.toggle('hide',!D.ip);['cs-bat','cs-call','cs-hint','cs-foot'].forEach(k=>$('cStatus').querySelector('.'+k).classList.toggle('hide',!!D.ip));
@@ -157,7 +156,8 @@ function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,h
 // The five chips are not a row under the zone.
 // ---------- coach input ----------
 function aimSpot(own, aims){return D.shook?(D.aim?'aim '+D.aim+' ✎':''):D.parsed?(aims.length?'aim '+aims.join('/'):'no spot')+(D.aim&&!own?' ✎':''):'';}
-function paintAim(own, aims, aimWarn, aimLabel){const e=$('cxAim');e.classList.toggle('warn',!!aimWarn);e.textContent=aimWarn||aimSpot(own, aims);if(aimLabel)e.setAttribute('aria-label',aimLabel);else e.removeAttribute('aria-label');}
+function paintAim(own, aims, aimWarn, aimLabel){const e=$('cxAim');e.classList.toggle('warn',!!aimWarn);e.textContent=aimWarn||aimSpot(own, aims);if(aimLabel)e.setAttribute('aria-label',aimLabel);else e.removeAttribute('aria-label');
+  placeAim(!!aimWarn);if(aimAside){e.textContent=aimSpot(own, aims);e.removeAttribute('aria-label');}}
 function coachLocked(){if(!viewOnly())return false;toast(PC.SCORING_ELSEWHERE);return true;}
 $('cBand').addEventListener('click',e=>{if(coachLocked())return;const b=e.target.closest('button[data-r]');if(b&&!b.disabled){sideCard=null;cMsg=null;callCell(+b.dataset.r,+b.dataset.c);}});
 let lpT=null,lpDone=false; // long-press (≥400 ms) on a zone cell sets the aim directly
