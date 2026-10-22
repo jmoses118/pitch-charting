@@ -1,5 +1,12 @@
 # Changelog
 
+## v94 – The heat map uses team colours
+### Changed
+- The heat map's Miss view colours each box by how close the pitches came: dark blue with ✓ for on the spot, light blue with ◐ for 1 box off, and pale blue with ✗ for 2 or more off. The old green and red scale is gone.
+- The Landed view and the tap-a-box view shade each box in six blue steps, one step for every 2 pitches, in place of the old purple-to-yellow scale. Every box has a white edge at Night and a black edge in Field so it stands out from the page, and the strike zone outline is thicker.
+- The bullpen report's map and image use the same three colours. Nothing moves on the screen.
+- Cache: `te-pitch-v94`.
+
 ## v93 – The database restore checks where it is running
 ### Changed
 - The script that puts saved exact spots back now refuses to run on any database but this computer's own, even when someone runs it by hand. Jim can still run it on the live database by adding `-v jim_go_ahead=yes`.

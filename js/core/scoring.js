@@ -74,12 +74,19 @@ const pz=n=>`${n} pitch${n===1?'':'es'}`;
 function heatSummary(d,miss){const out=d.matched-d.total;
   if(miss)return `Showing ${d.total} of ${pz(d.matched)} (the ones with an aim). Box = where she aimed · color = how far off.`+(d.mm?` 🎁 ${d.mm} souvenir${d.mm===1?'':'s'}.`:'')+(out?` ${out} with no aim aren't shown – see Landed.`:'');
   return `${pz(d.total)} · where they landed`+(out?` · ${pz(out)} with no location left out`:'');}
-// Jim's scale: hit or 1 square = green (no ding); then darker red as the average miss grows, darkest at 4
-const MISS_SCALE=[{max:1,fill:'#2ea043',text:'#fff',label:'0–1 good'},{max:2,fill:'#f47067',text:'#000',label:'1–2'},{max:3,fill:'#c93c37',text:'#fff',label:'2–3'},{max:4,fill:'#7d1414',text:'#fff',label:'3–4'}];
-function missColor(avg){if(avg==null)return null;for(const s of MISS_SCALE)if(avg<=s.max)return s;return MISS_SCALE[MISS_SCALE.length-1];}
-// colorblind-friendly sequential palette (viridis) for the actual-location frequency view
-const VIRIDIS=['#440154','#46327e','#365c8d','#277f8e','#1fa187','#4ac16d','#a0da39','#fde725'];
-function heatColor(n,max){if(!n||!max)return null;const t=Math.min(1,n/max);const i=Math.min(VIRIDIS.length-1,Math.floor(t*(VIRIDIS.length-1)+0.0001));return{fill:VIRIDIS[i],text:i>=5?'#000':'#fff'};}
+// HM-6. One colour, icon and word per missClass. Team palette only (P-1).
+const MISS_CLASS=[{fill:'#1E3FD0',text:'#FFFFFF',icon:'✓',word:'spot'},{fill:'#9FB4FF',text:'#000000',icon:'◐',word:'1 off'},{fill:'#E8EDFF',text:'#000000',icon:'✗',word:'2+ off'}];
+// HM-8. Steps for 0, 1–2, 3–4, 5–6, 7–8 and 9+. Text is whichever of black or white reads better on the step.
+const LAND_RAMP={night:['#0B1433','#14298F','#1E3FD0','#4F74FF','#9FB4FF','#DCE4FF'],field:['#FFFFFF','#DCE4FF','#9FB4FF','#4F74FF','#1E3FD0','#0B1A5C']};
+const LAND_INK={night:['#FFFFFF','#FFFFFF','#FFFFFF','#000000','#000000','#000000'],field:['#000000','#000000','#000000','#000000','#FFFFFF','#FFFFFF']};
+const LAND_STEPS=['0','1–2','3–4','5–6','7–8','9+'];
+const landStep=n=>{n=+n||0;return n<=0?0:Math.min(5,Math.ceil(n/2));};
+const rampOf=theme=>theme==='field'?'field':'night';
+function landColor(n,theme){const t=rampOf(theme),i=landStep(n);return {fill:LAND_RAMP[t][i],text:LAND_INK[t][i]};}
+// An aim cell with no class (nothing aimed there) is ramp step 0.
+function classColor(cls,theme){return cls==null?landColor(0,theme):MISS_CLASS[cls];}
+// P-4 / HM-7. The cell edge and the selected outline: white at Night, black in Field.
+const heatEdge=theme=>rampOf(theme)==='field'?'#000000':'#FFFFFF';
 // Kid-clear miss text. 0 is a hit, up through 1 box is Close, and 1.33 rounds up to "2 off" so it never says "1 off".
 function missTxt(a){if(a==null||a==='')return '';const n=+a;if(!Number.isFinite(n))return '';if(n===0)return 'Hit spot';if(n<=1)return 'Close';return Math.max(2,Math.round(n))+' off';}
 // Official K rule (Jim's choice): if a pitcher leaves with 2 strikes on the batter and the reliever finishes the strikeout
@@ -332,5 +339,5 @@ function shakeoffs(pitches){const P=(pitches||[]).filter(p=>!p.deleted&&countsAs
     list:S.map(p=>{const q=prevOf(p);const z=landOf(p);return{id:p.id,called:p.call||p.callRaw||'?',thrown:(p.type||'?')+(z!=null?' '+z:''),count:(p.b!=null&&p.s!=null)?`${p.b}-${p.s}`:'',
       prev:q?`${q.type||'?'} · ${outcomeOf(q)}`:'',outcome:outcomeOf(p),inning:p.inning,batter:p.batter||''};})};}
 Object.assign(PC,{shakeoffs,shakeLine,isHard,heatSummary,strikeOf,strikePct,hitSpot,looseHit,lowSample,missClass,medianMiss,middleBucket,heatStats,dirCounts,missTxt,MISS_DIRS,topDir,bestWeak,pitchMark,MARK_LABEL,recentPitches,heatItems,HEAT_KEYS,heatFilter,heatData});
-Object.assign(PC,{CH_MIN_SEV,GOOD_MAX_SEV,isGoodSev,wasteAim,isBullpenPitch,WAY_SEV,LOW_RING,LOW_TYPES,LOW_CALL,penaltyType,lowGood,adjSev,chUp,missData,MISS_SCALE,missColor,VIRIDIS,heatColor,kCredit,summarize,pitchMiss,grpStats,TYPE_NAME,FIX,sessionReport,typeFeedback,COUNTS,countStats,trendPoints});
+Object.assign(PC,{CH_MIN_SEV,GOOD_MAX_SEV,isGoodSev,wasteAim,isBullpenPitch,WAY_SEV,LOW_RING,LOW_TYPES,LOW_CALL,penaltyType,lowGood,adjSev,chUp,missData,MISS_CLASS,LAND_RAMP,LAND_STEPS,landStep,landColor,classColor,heatEdge,kCredit,summarize,pitchMiss,grpStats,TYPE_NAME,FIX,sessionReport,typeFeedback,COUNTS,countStats,trendPoints});
 })(typeof window!=='undefined'?window:globalThis);

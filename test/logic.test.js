@@ -165,17 +165,36 @@ test('SCORE-1: the heat map uses hit spot; a change-up on box 4 is a hit',()=>{
   assert.equal(aimed.cells[4].n,2);
   assert.equal(aimed.cells[4].hit,2);
 });
-test('heat colors: sequential viridis, empty cells uncolored, readable text',()=>{assert.equal(PC.heatColor(0,5),null);assert.equal(PC.heatColor(5,5).fill,'#fde725');assert.equal(PC.heatColor(5,5).text,'#000');assert.equal(PC.heatColor(1,10).text,'#fff');});
+const lumOf=h=>{const c=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255).map(v=>v<=0.03928?v/12.92:((v+0.055)/1.055)**2.4);return 0.2126*c[0]+0.7152*c[1]+0.0722*c[2];};
+const ratioOf=(a,b)=>{const x=lumOf(a),y=lumOf(b);return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05);};
+test('HM-8: the Landed ramp has six steps per theme and the better of black or white text',()=>{
+  assert.deepEqual([0,1,2,3,4,5,6,7,8,9,40].map(PC.landStep),[0,1,1,2,2,3,3,4,4,5,5]);
+  assert.deepEqual(PC.LAND_RAMP.night,['#0B1433','#14298F','#1E3FD0','#4F74FF','#9FB4FF','#DCE4FF']);
+  assert.deepEqual(PC.LAND_RAMP.field,['#FFFFFF','#DCE4FF','#9FB4FF','#4F74FF','#1E3FD0','#0B1A5C']);
+  let low=99;for(const t of ['night','field'])for(let n=0;n<=9;n++){const c=PC.landColor(n,t);const bk=ratioOf(c.fill,'#000000'),wh=ratioOf(c.fill,'#FFFFFF');
+    assert.equal(c.text,bk>=wh?'#000000':'#FFFFFF',t+' '+n);low=Math.min(low,Math.max(bk,wh));}
+  assert.equal(low.toFixed(2),'5.27','lowest is black on #4F74FF');
+  assert.equal(PC.landColor(9,'auto').fill,'#DCE4FF','anything not field reads as Night');
+  assert.equal(PC.heatEdge('night'),'#FFFFFF');assert.equal(PC.heatEdge('field'),'#000000');
+  assert.equal(PC.heatColor,undefined);assert.equal(PC.VIRIDIS,undefined);
+});
+test('HM-6: miss classes use the three team colours with an icon and a word',()=>{
+  assert.deepEqual(PC.MISS_CLASS.map(c=>[c.fill,c.text,c.icon,c.word]),[['#1E3FD0','#FFFFFF','✓','spot'],['#9FB4FF','#000000','◐','1 off'],['#E8EDFF','#000000','✗','2+ off']]);
+  PC.MISS_CLASS.forEach(c=>assert.ok(ratioOf(c.fill,c.text)>=4.5,c.word));
+  assert.equal(PC.classColor(0,'night'),PC.MISS_CLASS[0]);assert.equal(PC.classColor(2,'field'),PC.MISS_CLASS[2]);
+  assert.deepEqual(PC.classColor(null,'night'),PC.landColor(0,'night'),'an empty aim cell is ramp step 0');
+  assert.equal(PC.missColor,undefined);assert.equal(PC.MISS_SCALE,undefined);
+});
 test('miss distance: Chebyshev squares on the 5x5 grid incl. outside spots',()=>{const d=PC.missDist;assert.equal(d(5,5),0);assert.equal(d(1,5),1);assert.equal(d(3,7),2);assert.equal(d(11,14),4);assert.equal(d(15,2),1);assert.equal(d(16,6),3);assert.equal(d(17,6),1);assert.equal(d(18,2),3);assert.equal(d(13,3),3);assert.equal(d(12,13),4);});
-test('miss heat map: per intended cell avg miss + colors (green <=1, darker red to 4)',()=>{const st=PC.defaultState();st.sessions.push({id:'s',date:'d',pitches:[
+test('miss heat map: per intended cell avg miss + HM-6 class colours',()=>{const st=PC.defaultState();st.sessions.push({id:'s',date:'d',pitches:[
   {id:'1',pitcherId:'p_woods',type:'FB',targets:[3],loc:3,hand:'N'},{id:'2',pitcherId:'p_woods',type:'FB',targets:[3],loc:6,hand:'N'},{id:'3',pitcherId:'p_woods',type:'FB',targets:[7],loc:14,hand:'N'},{id:'4',pitcherId:'p_woods',type:'CB',targets:[11],loc:14,hand:'N'},{id:'5',pitcherId:'p_woods',type:'FB',targets:[],loc:5}]});
   const d=PC.missData(PC.heatItems(st),{});assert.equal(d.total,4);assert.equal(d.cells[3].n,2);assert.equal(d.cells[3].avg,0.5);assert.equal(d.cells[3].hit,1);assert.equal(d.cells[7].avg,1);assert.equal(d.cells[11].avg,4);
-  assert.equal(PC.missColor(0.5).fill,'#2ea043');assert.equal(PC.missColor(1).fill,'#2ea043');assert.equal(PC.missColor(1.5).fill,'#f47067');assert.equal(PC.missColor(3).fill,'#c93c37');assert.equal(PC.missColor(4).fill,'#7d1414');assert.equal(PC.missColor(null),null);
+  assert.deepEqual([3,7,11,1].map(z=>d.cells[z].cls),[1,2,2,null]);assert.equal(PC.classColor(d.cells[3].cls,'night').fill,'#9FB4FF');assert.equal(PC.classColor(d.cells[11].cls,'night').fill,'#E8EDFF');
   assert.equal(PC.missData(PC.heatItems(st),{type:'FB'}).total,3);});
 test("middle-middle rule: landing in 5 when aimed elsewhere = max severity, counted as MM",()=>{const st=PC.defaultState();st.sessions.push({id:'s',date:'d',pitches:[
   {id:'1',pitcherId:'p_woods',type:'FB',targets:[2],loc:5,hand:'N'},{id:'2',pitcherId:'p_woods',type:'FB',targets:[2],loc:2,hand:'N'},{id:'3',pitcherId:'p_woods',type:'CH',targets:[5],loc:5,hand:'N'},{id:'4',pitcherId:'p_woods',type:'CH',targets:[9],loc:6,hand:'N'}]});
   const d=PC.missData(PC.heatItems(st),{});assert.equal(d.mm,1);assert.equal(d.cells[2].mm,1);assert.equal(d.cells[2].avg,2);assert.equal(d.cells[5].avg,2);assert.equal(d.cells[5].mm,0);assert.equal(d.cells[9].avg,1); // CH on the middle-row side is a normal distance miss (HM-9a)
-  const only=PC.missData(PC.heatItems({pitchers:st.pitchers,games:[],sessions:[{id:'x',pitches:[{type:'FB',targets:[6],loc:5}]}]}),{});assert.equal(only.cells[6].avg,4);assert.equal(PC.missColor(only.cells[6].avg).fill,'#7d1414');});
+  const only=PC.missData(PC.heatItems({pitchers:st.pitchers,games:[],sessions:[{id:'x',pitches:[{type:'FB',targets:[6],loc:5}]}]}),{});assert.equal(only.cells[6].avg,4);assert.equal(only.cells[6].cls,2);assert.equal(PC.classColor(only.cells[6].cls,'night').icon,'✗');});
 test("session report: good = on target/1 off, MM severe, feedback + best/weakest + trend",()=>{const P=[];const add=(type,t,l)=>P.push({type,targets:[t],loc:l,hand:'R'});
   [[7,4],[7,1],[7,4],[7,7],[7,4],[7,4]].forEach(([t,l])=>add('DR',t,l));[[6,6],[6,6],[6,3],[6,6],[6,5]].forEach(([t,l])=>add('FB',t,l));
   const r=PC.sessionReport(P);assert.equal(r.n,11);assert.equal(r.mm,1);assert.equal(r.called,11);

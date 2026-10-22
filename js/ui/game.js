@@ -170,10 +170,9 @@ $('editWay').addEventListener('click',e=>{const b=e.target.closest('[data-z]');i
 $('editAct').addEventListener('click',e=>{const b=e.target.closest('[data-z]');if(b)pickEdit(+b.dataset.z);});
 $('editDlg').addEventListener('close',()=>{const id=editId;editId=null;if($('editDlg').returnValue!=='ok')return;const hit=findPitch(id);
   if(!hit||!editAllowed(hit))return toast('Only the scoring phone can change a pitch.');if(editLoc==null)return toast('Tap where it actually went');
-  const n=hit.box.pitches.length,snap=Object.assign({id},PC.editSnap(hit.p));
+  const n=hit.box.pitches.length,before=PC.editSnap(hit.p),snap=Object.assign({id},before);
   if(!PC.editActual(hit.p,editLoc)||hit.box.pitches.length!==n)return;
-  const calledNow=hit.p.calledLoc==null?null:hit.p.calledLoc,nowX=hit.p.actual_x==null?null:hit.p.actual_x,nowY=hit.p.actual_y==null?null:hit.p.actual_y,nowXY=hit.p.xy_loc==null?null:hit.p.xy_loc;
-  if(hit.p.loc===snap.loc&&hit.p.actualLoc===snap.actualLoc&&calledNow===snap.calledLoc&&!!hit.p.edited===snap.edited&&nowX===snap.actual_x&&nowY===snap.actual_y&&nowXY===snap.xy_loc)return;
+  const after=PC.editSnap(hit.p);if(Object.keys(before).every(k=>after[k]===before[k]))return;
   editUndo=snap;
   dirty('pitches',hit.p.id);save();render();undoToast('Location updated',()=>{if(undoEditSnap(snap))toast('Location restored');},5000);});
 loadRedo();
