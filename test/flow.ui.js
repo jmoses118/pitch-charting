@@ -280,7 +280,7 @@ const BOX5='Box 5 is always scored as a missed spot';
     const hit=(x,y)=>!(x.right<=y.left+0.5||y.right<=x.left+0.5||x.bottom<=y.top+0.5||y.bottom<=x.top+0.5);
     return {hint:a.text,shown:a.shown,fit:a.fit,end:a.end,gap:getComputedStyle(st).columnGap,sep:hr.left-br.right,ov:getComputedStyle(h).overflow,
       codeTop:cr.top,bat:bat.textContent.replace(/\s+/g,' ').trim(),batX:bat.querySelector('b').getBoundingClientRect().left,space:gap,font:getComputedStyle(h).fontFamily,
-      toast:t.text,toastShown:t.shown,toastFit:t.fit,toastEnd:t.end,toastLabel:toast.getAttribute('aria-label')||'',cardR:sr.right,overlap:hit(hr,cr)||hit(tr,cr),warn:h.classList.contains('warn')};
+      toast:t.text,toastShown:t.shown,toastFit:t.fit,toastEnd:t.end,toastLabel:toast.getAttribute('aria-label')||'',cardR:sr.right,overlap:hit(hr,cr)||hit(tr,cr),warn:h.classList.contains('warn'),prompt:(toast.textContent||'').replace(/\s+/g,' ').trim()};
   });
   const fb=[['FB 5','5: miss','Box 5 is always scored as a missed spot'],['CB 3','CB: low','curveball is usually not aimed up'],['DR 4','Drop: low','drop is usually not aimed in the middle row'],['DC 6','DC: low','drop curve is usually not aimed in the middle row'],['CH 2','CH: low','Change-ups are aimed low: 4, 7, 8, 9 or 13, 14, 18']];
   for(const [cell,hint,full] of fb){
@@ -288,8 +288,8 @@ const BOX5='Box 5 is always scored as a missed spot';
     else await ev(t=>{curSheet().rows[0][0]=t;render();callCell(0,0);},cell);
     const row=await read();
     const same=Math.abs(row.batX-parked.batX)<0.5&&Math.abs(row.batX-410)<0.5&&row.bat==='#2 LHB ⚾ 0'&&row.space>=2;
-    const inCell=row.hint===hint&&row.shown===hint&&row.fit&&row.gap==='6px'&&row.sep>=5.5&&row.sep<=6.5&&row.ov==='visible'&&(hint!=='Drop: low'||row.end<550)&&/Where\?/.test(row.toast);
-    const inHint=row.hint==='aim 4'&&row.shown==='aim 4'&&row.toast===hint&&row.toastShown===hint&&row.toastLabel===full&&row.toastFit&&row.toastEnd<=row.cardR&&row.warn&&row.gap==='6px'&&!/Where\?|Result\?/.test(row.toast);
+    const inCell=row.hint===hint&&row.shown===hint&&row.fit&&row.gap==='6px'&&row.sep>=5.5&&row.sep<=6.5&&row.ov==='visible'&&(hint!=='Drop: low'||row.end<550)&&/Where\?/.test(row.prompt);
+    const inHint=row.hint==='aim 4'&&row.shown==='aim 4'&&row.toast===hint&&row.toastShown===hint&&row.toastLabel===full&&row.toastFit&&row.toastEnd<=row.cardR&&row.warn&&row.gap==='6px'&&!/Where\?|Result\?/.test(row.prompt);
     const one=hint==='Drop: low'?inHint&&!inCell:inCell&&!inHint;
     ok(one&&!row.overlap&&Math.abs(row.codeTop-parked.codeTop)<0.5&&same,'VIEW-5: wider fallback font '+(hint==='Drop: low'?'moves '+hint+' to the hint':'keeps '+hint+' in the cell')+' '+JSON.stringify(row));
   }
