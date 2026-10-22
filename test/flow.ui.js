@@ -188,7 +188,7 @@ const BOX5='Box 5 is always scored as a missed spot';
   const parked=await coachAt();
   ok(parked.on&&parked.bat.includes('#2 · LHB')&&parked.bat.includes('⚾')&&parked.st===112&&Math.abs(parked.menuX-506)<0.5&&Math.abs(parked.menuY-71)<0.5,'HM-9b coach 667: the batter line starts full and the menu is at 506, 71 '+JSON.stringify(parked));
   await p.click('#cBand button[data-r="0"][data-c="0"]');
-  await p.waitForFunction(()=>document.getElementById('cxAim').textContent.trim()==='drop curve: not aimed middle',null,{timeout:5000}).catch(()=>{});
+  await p.waitForFunction(()=>document.getElementById('cxAim').textContent.trim()===PC.aimLine(pullDraft(),{tiny:true}),null,{timeout:5000}).catch(()=>{});
   const warnAt=()=>ev(()=>{
     const h=document.getElementById('cxAim'),code=document.getElementById('cxCode'),bat=document.getElementById('cxBat');
     const menu=document.getElementById('cxMenu'),st=document.getElementById('cStatus'),pit=bat.querySelector('.pit');
@@ -210,15 +210,16 @@ const BOX5='Box 5 is always scored as a missed spot';
     const inside=pr.left>=sr.left-1&&pr.right<=sr.right+1&&pr.top>=sr.top-1&&pr.bottom<=sr.bottom+1;
     const pitMid=(pr.top+pr.bottom)/2;
     const pitOn=pr.height>8&&pitMid>=br.top&&pitMid<=br.bottom&&pr.left>=br.left-1&&pr.right<=br.right+1;
-    return {hint:h.textContent.trim(),px:cs.fontSize,codePx:ccs.fontSize,batPx:bcs.fontSize,batLs:bcs.letterSpacing,
+    return {hint:h.textContent.trim(),label:h.getAttribute('aria-label')||'',px:cs.fontSize,codePx:ccs.fontSize,batPx:bcs.fontSize,batLs:bcs.letterSpacing,
       code:code.textContent.replace(/\s+/g,' ').trim(),vis:ccs.visibility,seen:mid===code||code.contains(mid),
       overlap:hit(hr,cr)||rects.some(r=>hit(r,cr)),beside,bat:bat.textContent.replace(/\s+/g,' ').trim(),
       pitIn:inside&&pr.height>8&&!hit(pr,cr)&&!hit(pr,mr)&&(seenPit===pit||pit.contains(seenPit)),
-      pitOn,codeTop:cr.top,lines:rects.length,shown,indent:cs.textIndent,col:cs.gridColumn,clamp:cs.webkitLineClamp};
+      pitOn,codeTop:cr.top,lines:rects.length,shown,fit:h.scrollWidth<=h.clientWidth+1,indent:cs.textIndent,col:cs.gridColumn,clamp:cs.webkitLineClamp};
   });
   const narrow=await warnAt();
-  ok(narrow.hint==='drop curve: not aimed middle'&&narrow.px==='13px'&&narrow.beside&&!narrow.overlap&&narrow.lines<=2&&narrow.clamp==='2','HM-9b coach 667: the warning stays on two lines beside the batter and off the call code '+JSON.stringify(narrow));
-  ok(narrow.indent==='0px'&&/^2(\s|\/|$)/.test(narrow.col)&&narrow.shown.startsWith('drop'),'HM-9b coach 667: the warning is its own cell and the first word is not clipped '+JSON.stringify(narrow));
+  const narrowExp=await ev(()=>({tiny:PC.aimLine(pullDraft(),{tiny:true}),full:PC.aimLine(pullDraft())}));
+  ok(narrow.hint==='DC: low'&&narrow.hint===narrowExp.tiny&&narrow.shown===narrow.hint&&narrow.lines===1&&narrow.fit&&narrow.px==='13px'&&narrow.beside&&!narrow.overlap,'HM-9b coach 667: DC: low paints in full on one line beside the batter '+JSON.stringify(narrow));
+  ok(narrow.label===narrowExp.full&&narrow.label==='drop curve is usually not aimed in the middle row'&&narrow.indent==='0px'&&/^2(\s|\/|$)/.test(narrow.col),'HM-9b coach 667: the warning cell keeps the full sentence for the screen reader '+JSON.stringify(narrow));
   ok(/DC 6/.test(narrow.code)&&narrow.codePx==='18px'&&narrow.vis==='visible'&&narrow.seen&&Math.abs(narrow.codeTop-parked.codeTop)<0.5,'HM-9b coach 667: the call code stays 18px and in the same place '+JSON.stringify({narrow,parked:parked.codeTop}));
   ok(narrow.batPx==='11px'&&narrow.batLs==='normal'&&narrow.pitIn&&narrow.pitOn&&narrow.bat==='#2 LHB ⚾ 0','HM-9b coach 667: the batter number, hand and pitch count stay on the batter line '+JSON.stringify(narrow));
   const aimed=await coachAt();
@@ -228,14 +229,16 @@ const BOX5='Box 5 is always scored as a missed spot';
   still(aimed,'on the aim');still(resulted,'on the result');
   const held=row=>Math.abs(row.menuX-parked.menuX)<0.5&&Math.abs(row.menuY-parked.menuY)<0.5&&Math.abs(row.zone-parked.zone)<0.5&&row.st===112;
   ok(held(aimed)&&held(resulted),'HM-9b coach 667: menu and zone stay at the start '+JSON.stringify({parked,aimed,resulted}));
-  const warns=[['FB 5','Box 5: always a miss','Box'],['CB 3','curveball: not up','curveball'],['DR 4','drop: not aimed middle','drop'],['DC 6','drop curve: not aimed middle','drop']];
-  for(const [cell,hint,word] of warns){
+  const warns=[['FB 5','5: miss','Box 5 is always scored as a missed spot'],['CB 3','CB: low','curveball is usually not aimed up'],['DR 4','Drop: low','drop is usually not aimed in the middle row'],['DC 6','DC: low','drop curve is usually not aimed in the middle row']];
+  for(const [cell,hint,full] of warns){
     await p.evaluate(t=>{curSheet().rows[0][0]=t;render();callCell(0,0);},cell);await p.waitForTimeout(80);
     const row=await warnAt();
-    ok(row.hint===hint&&row.shown.startsWith(word)&&row.lines<=2&&row.clamp==='2'&&!row.overlap&&row.indent==='0px'&&/^2(\s|\/|$)/.test(row.col)&&row.bat==='#2 LHB ⚾ 0'&&row.pitOn&&Math.abs(row.codeTop-parked.codeTop)<0.5&&row.codePx==='18px','HM-9b coach 667: '+hint+' keeps its first word, the count, and the call code '+JSON.stringify(row));
+    const exp=await p.evaluate(()=>({tiny:PC.aimLine(pullDraft(),{tiny:true}),full:PC.aimLine(pullDraft())}));
+    ok(exp.tiny===hint&&exp.full===full&&row.hint===exp.tiny&&row.shown===row.hint&&row.label===exp.full&&row.lines===1&&row.fit&&!row.overlap&&row.indent==='0px'&&/^2(\s|\/|$)/.test(row.col)&&row.bat==='#2 LHB ⚾ 0'&&row.pitOn&&Math.abs(row.codeTop-parked.codeTop)<0.5&&row.codePx==='18px','HM-9b coach 667: '+hint+' paints in full on one line '+JSON.stringify(row));
   }
   await ev(()=>{const d=pullDraft();d.type='CH';d.called=[2];d.calledFlag=true;d.actual=null;takeDraft({ok:true,draft:d});cMsg=null;render();});await p.waitForTimeout(80);
   const ch=await warnAt();
-  ok(ch.hint==='Change-up: aim low'&&ch.hint.startsWith(ch.shown)&&ch.shown.startsWith('Change')&&ch.lines<=2&&ch.clamp==='2'&&!ch.overlap&&ch.indent==='0px'&&/^2(\s|\/|$)/.test(ch.col)&&ch.bat==='#2 LHB ⚾ 0'&&ch.pitOn&&Math.abs(ch.codeTop-parked.codeTop)<0.5,'HM-9b coach 667: Change-up: aim low keeps its first word, the count, and the call code '+JSON.stringify(ch));
+  const chExp=await ev(()=>({tiny:PC.aimLine(pullDraft(),{tiny:true}),full:PC.aimLine(pullDraft())}));
+  ok(chExp.tiny==='CH: low'&&chExp.full==='Change-ups are aimed low: 4, 7, 8, 9 or 13, 14, 18'&&ch.hint===chExp.tiny&&ch.shown===ch.hint&&ch.label===chExp.full&&ch.lines===1&&ch.fit&&!ch.overlap&&ch.indent==='0px'&&/^2(\s|\/|$)/.test(ch.col)&&ch.bat==='#2 LHB ⚾ 0'&&ch.pitOn&&Math.abs(ch.codeTop-parked.codeTop)<0.5,'HM-9b coach 667: CH: low paints in full on one line and the label stays the full sentence '+JSON.stringify(ch));
   ok(!errs.length,'HM-9b coach 667: no page errors '+errs.join('|'));await c.close();}
 await b.close();console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);})().catch(e=>{console.error(e);process.exit(1);});

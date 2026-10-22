@@ -87,7 +87,7 @@ for(const [W,H,MIN,ZMIN,RESW] of [[844,390,48,48,48],[667,375,44,34,46]]){const 
   await p.click('#cBand button[data-r="1"][data-c="7"]');await wait();
   ok(/Tap the aim|Aim\?/.test(await p.textContent('#cxHint')),`${tag}: change-up with no spot asks for the aim`);
   await ev(()=>document.querySelectorAll('#cZone button')[3].click());await wait();
-  ok(await ev(()=>D.aim==null&&D.loc==null&&/aim low|CH: aim low/i.test(document.getElementById('cxHint').textContent)),`${tag}: change-up cannot aim above box 3`);
+  ok(await ev(narrow=>{const hint=document.getElementById('cxHint').textContent.trim();const exp=narrow?PC.callWarnMsg('CH',12,{tiny:true}):PC.aimRejectMsg('CH',12,'short');const label=document.getElementById('cxHint').getAttribute('aria-label')||'';return D.aim==null&&D.loc==null&&hint===exp&&exp===(narrow?'CH: low':'Change-up: aim low')&&(narrow?label===PC.aimRejectMsg('CH',12):label==='');},W<700),`${tag}: change-up cannot aim above box 3`);
   await p.click('#cZone button[data-z="8"]');await wait();
   ok(await ev(()=>D.aim===8&&D.loc==null&&!!document.querySelector('#cZone .aim[data-z="8"]')),`${tag}: first legal tap is the change-up aim, not the landing`);
   await ev(()=>document.querySelectorAll('#cZone button')[3].click());await wait();
