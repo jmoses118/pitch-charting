@@ -3,7 +3,8 @@
 ## v92 – The exact spot can be saved and exported
 ### Changed
 - A pitch's exact spot can now go to the cloud and into the CSV file. Cloud saving stays off until Jim adds the new columns to the live database. Before that, the database must be backed up with `supabase/backup/pitches_backup.sh`.
-- The CSV file gets two new last columns, `actual_x` and `actual_y`, with 3 decimals. Older files still import. A row whose spot is broken or sits outside its box is skipped, and the import message says how many were rejected.
+- The CSV file gets two new last columns, `actual_x` and `actual_y`, with 3 decimals. Older files still import. A row whose spot is broken, is not a plain decimal, or sits outside its box is skipped. The import message stays up longer and says how many were skipped and why, and skipped rows are not counted as flagged.
+- The backup script only works on this computer's own database unless Jim gives the go-ahead, and checking a backup always stays on this computer. If the new columns are ever removed, their saved spots are kept in a locked copy, and a restore script puts them back.
 - When a pitch's box is changed on another phone, its old exact spot is cleared on the next sync.
 - Cache: `te-pitch-v92`.
 
