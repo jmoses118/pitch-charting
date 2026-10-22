@@ -50,8 +50,10 @@ for(const [W,H] of [[844,390],[667,375],[932,430]]){const tag=`${W}x${H}`;const 
   await p.click('#cRes [data-cx="aim"]');await w();
   ok(await ev(()=>{const n=[...document.querySelectorAll('#cZone button.noaim')].map(e=>+e.dataset.z);return [1,2,3,5,6,11,12,15,16,17].every(z=>n.includes(z))&&![4,7,8,9,13,14,18].some(z=>n.includes(z));}),`${tag} coach ✎ Aim: only 4, 7, 8, 9, 13, 14, 18 are offered for a change-up`);
   ok(await ev(()=>{const b=document.querySelector('#cZone button.noaim[data-z="2"]'),cs=getComputedStyle(b);return cs.opacity==='1'&&cs.borderTopStyle==='dashed'&&getComputedStyle(b.querySelector('span')).color==='rgb(91, 100, 114)';}),`${tag} coach: faded boxes are dashed outlines with #5B6472 numbers`);
-  await p.click('#cZone button[data-z="2"]');await w();{const exp=W<700?'CH: aim low':'Change-up: aim low';
-   ok((await p.textContent('#cxHint')).trim()===exp&&await ev(()=>!!document.querySelector('#cZone .aim[data-z="7"]')),`${tag} coach: box 2 refused with "${exp}", aim stays 7`);
+  await p.click('#cZone button[data-z="2"]');await w();{const exp=await ev(narrow=>narrow?PC.callWarnMsg('CH',2,{tiny:true}):PC.aimRejectMsg('CH',2,'short'),W<700);
+   const label=await ev(()=>document.getElementById('cxHint').getAttribute('aria-label')||'');
+   const full=W<700?await ev(()=>PC.aimRejectMsg('CH',2)):'';
+   ok((await p.textContent('#cxHint')).trim()===exp&&exp===(W<700?'CH: low':'Change-up: aim low')&&(W<700?label===full:label==='')&&await ev(()=>!!document.querySelector('#cZone .aim[data-z="7"]')),`${tag} coach: box 2 refused with "${exp}", aim stays 7`);
    ok(await ev(()=>{const h=document.getElementById('cxHint'),m=document.getElementById('cxMenu');return h.scrollWidth<=h.clientWidth+1&&m.scrollWidth<=m.clientWidth+1&&m.getBoundingClientRect().width>=44;}),`${tag} coach: warning not truncated and ⋯ Game label not squeezed`);}
   if(SHOT){await w(100);await p.screenshot({path:`${SHOT}coach-ch-aim-${tag}.png`});}
   await p.click('#cZone button[data-z="8"]');await w();ok(await ev(()=>!!document.querySelector('#cZone .aim[data-z="8"]')),`${tag} coach: box 8 accepted`);

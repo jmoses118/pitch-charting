@@ -8,7 +8,7 @@ The app is used on an iPhone, one-handed, in a dugout, often in direct sun. It i
   Night sets `--c-royal` to #3A5CF0 so white text on a fill stays readable. Buttons, selects and inputs are 2px in both palettes. The Night status card and pitch-log rows match Field. A pressed Night primary uses `--c-royal-press` (#2C45B4). The wordmark file is unchanged.
 - **Space:** a 4-pt scale `--s1`…`--s6` (4, 8, 12, 16, 24, 32 px).
 - **Radius:** `--r-sm` 8, `--r-md` 12 (controls), `--r-lg` 16 (cards, sheets), `--r-pill`.
-- **Type:** system SF font, 1.2 scale `--fs-xs` 12 … `--fs-2xl` 28, tabular numerals everywhere.
+- **Type:** system SF font, 1.2 scale `--fs-xs` 12 … `--fs-2xl` 28, tabular numerals everywhere. Warning text uses `--fs-13` (13px), between `--fs-xs` and `--fs-sm`.
 - **Touch:** `--tap` 48px minimum and `--tap-lg` 56px for entry buttons (60–64px in one-hand mode).
 - Legacy aliases (`--card`, `--acc`, `--grn`, …) map onto the tokens for older inline styles.
 
@@ -66,12 +66,13 @@ Rule: on a 390×844 phone (and 375×667 for an SE), everything needed to log a p
 Landscape only (`(orientation: landscape) and (max-height: 500px)`). The grid is band, then status + zone, then results. `sizeCoach()` caps the band and the zone at 56px.
 At 844×390 the band cell is 49px. At 667×375 the zone is about 34px. Palettes use `html[data-theme=field|night]`. Band setup maps a cell with no zone to a spot once per sheet. The bullpen pad (`#bpPad`) is fixed above the nav, and fitZone subtracts `--pad-h`.
 
-Review fixes (v37): `.cs-hint` is a fixed single line (ellipsis), `.cstatus` has a fixed height (`--c-sth`), and `sizeCoach()` caps the zone by height and counts the 1.5px grid lines. Under 700px width `.coach.compact` uses `--c-rh` 20, `--c-res` 102, band 44, a compact status and a ⋯ icon. Elements marked `data-ellipsis` may truncate on purpose (the layout audit skips them).
+Review fixes (v37): `.cs-hint` is a fixed single line (ellipsis), `.cstatus` has a fixed height (`--c-sth`), and `sizeCoach()` caps the zone by height and counts the 1.5px grid lines. Under 700px width `.coach.compact` uses `--c-rh` 20, `--c-res` 102, band 44, a compact status and a ⋯ icon.
+The batter line stays visible. The status stays 112px tall, so the menu stays at (506, 71) and the zone does not move. On the narrow screen a 13px warning sits in its own cell beside the batter line, and the call code stays 18px in the same place. The pitch count stays on the batter line. The narrow cell says 5: miss, CB: low, CH: low, Drop: low, or DC: low, and the screen-reader label keeps the full sentence. Elements marked `data-ellipsis` may truncate on purpose (the layout audit skips them).
 
 ## Sync problems dialog (v39)
 Setup → Cloud sync shows a red "⚠ Sync problems (N) – view" button only when the server refused changes. The bottom sheet lists each change in plain words: what (first name, pitch, where) and "Why: <sentence> · Oct 14, 8:56 AM" from `PC.syncWhy` (401 sign-in ran out, 403 not allowed, 409/duplicate already saved, other 4xx couldn't read). The raw server text is behind a closed "Details" toggle. Each row has a Keep / Retry / Discard segmented control (44px; Discard has red text and outline, and turns solid red when picked). After Apply, discards get a 6-second "N change(s) discarded · Undo" toast. "Retry all" sets every row to Retry. The Cancel / Apply footer is sticky, and nothing changes until Apply.
 
-Change-up aims: in ✎ Aim mode, boxes a change-up can't be aimed at become dashed outlines with no fill and #5B6472 numbers. A tap there shows a short yellow warning in the status strip ("Change-up: aim low", or "CH: aim low" under 700px). The bullpen toast keeps the full list. Band setup shows "Change-ups aim low: 4, 7, 8, 9, 13, 14 or 18." under change-up rows and flags an old high aim with a yellow left border.
+Change-up aims: in ✎ Aim mode, boxes a change-up can't be aimed at become dashed outlines with no fill and #5B6472 numbers. A tap there shows a short yellow warning in the status strip ("Change-up: aim low", or "CH: low" on the narrow coach screen). The bullpen toast keeps the full list. Band setup shows "Change-ups aim low: 4, 7, 8, 9, 13, 14 or 18." under change-up rows and flags an old high aim with a yellow left border.
 
 ## Scoring lock (v39)
 - View-only phone, portrait: amber bar at the top of entry – "👁 Scoring on another phone · view only" + **Take over scoring** (≥44px). Scoring controls hidden; count, zone and recent pitches stay visible.

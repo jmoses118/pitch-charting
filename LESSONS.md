@@ -1,5 +1,6 @@
 ## Gotchas
 
+An or-branch in the narrow warning test let Drop: low sit in the cell or on the hint. Jim ruled it moves to the hint only when it does not fit, and that hint replaces the step prompt. The aim text stays. Regression: test/flow.ui.js VIEW-5.
 A spec exception must be implemented as an explicit rule in code (a named CSS variable or branch) and tested with exact values on both sides of the boundary, never accepted because one screen size happens to land on the number. bug-landscape-956: the 46px under-400px floor passed at 384 by coincidence and broke at 375/360.
 PR body claims like "unchanged" must be verified with a pixel diff before posting.
 bug-landscape-956 reached Jim on his iPhone 17 Pro Max. The wristband left dead strips, the results sat low, and In dirt sat below the band. Regression: test/layout.ui.js.
