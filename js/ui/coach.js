@@ -38,9 +38,9 @@ function hintText(){const cmp=$('coach').classList.contains('compact');if(sideCa
   const step=PC.scoreStep(pullDraft());
   if(step==='type')return['1',cmp?'Tap a cell':'Tap a wristband cell'];
   if(step==='called')return['2',cmp?'Aim?':'Tap the aim'];if(step==='actual')return['2',cmp?'Where?':'Tap where it went'];return['3',cmp?'Result?':'Tap the result'];}
-let aimHold=null;
+let aimAside=false;
 function renderHint(note){const e=$('cxHint');if(!e)return;const d=pullDraft();if(cMsg&&(!d.aimEdit||cMsg.kind==='warn')){e.className='cs-hint msg '+cMsg.kind;e.textContent=cMsg.t;if(cMsg.label)e.setAttribute('aria-label',cMsg.label);else e.removeAttribute('aria-label');return;}
-  if(aimHold){e.className='cs-hint msg warn';e.textContent=aimHold.text;if(aimHold.label)e.setAttribute('aria-label',aimHold.label);else e.removeAttribute('aria-label');return;}
+  if(aimAside){const text=PC.aimLine(d,{tiny:true}),label=PC.aimLine(d);e.className='cs-hint msg warn';e.textContent=text;if(label)e.setAttribute('aria-label',label);else e.removeAttribute('aria-label');return;}
   e.removeAttribute('aria-label');
   if(note==null)note=(D.ip||D.bbAsk)?'':PC.aimLine(d,{short:true});
   if(note&&!$('coach').classList.contains('compact')){e.className='cs-hint msg warn';e.textContent=note;return;}
@@ -97,15 +97,10 @@ function sizeCoach() {
 function placeAim(warn){
   const aim=$('cxAim'),row=$('cxAimRow'),call=$('cStatus').querySelector('.cs-call');
   if(!aim||!row||!call)return;
-  if(!warn){aimHold=null;if(aim.parentNode!==call)call.appendChild(aim);return;}
+  if(!warn){aimAside=false;if(aim.parentNode!==call)call.appendChild(aim);return;}
   if(aim.parentNode!==row)row.appendChild(aim);
-  if(aim.scrollWidth>aim.clientWidth){
-    aimHold={text:aim.textContent,label:aim.getAttribute('aria-label')||''};
-    aim.textContent='';
-    aim.classList.remove('warn');
-    aim.removeAttribute('aria-label');
-    if(aim.parentNode!==call)call.appendChild(aim);
-  }else aimHold=null;
+  aimAside=aim.scrollWidth>aim.clientWidth;
+  if(aimAside&&aim.parentNode!==call)call.appendChild(aim);
 }
 function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,hand=curHand(),cp=curPitcherId();
   document.body.classList.toggle('mirror',PREF.get('mirror','0')==='1');
@@ -126,6 +121,7 @@ function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,h
   const code=callCode(),aims=aimSet();$('cxCode').innerHTML=D.shook?`⤺ ${H(D.shook.norm)} → ${H(D.type||'?')}`:D.parsed?`${H(code)}&nbsp; ${H(D.callTxt)}`:'<span class="cs-none">– –&nbsp; no call yet</span>';
   const own=D.parsed&&D.parsed.targets&&D.parsed.targets.length===1&&D.aim===+D.parsed.targets[0]; // pencil only for an override, not the call's own spot
   paintAim(own, aims, cmp?aimWarn:'', cmp&&aimWarn?aimFull:'');placeAim(!!(cmp&&aimWarn));
+  if(aimAside){const e=$('cxAim');e.textContent=aimSpot(own, aims);e.classList.add('warn');e.removeAttribute('aria-label');}
   renderHint(aimWarn);const n=store.pendingCount(),st=store.real.sync;$('cxNet').textContent=store.isTest?'Test mode – not saved':!navigator.onLine?`Offline – saved on phone${n?' · '+n+' to sync':''}`:(!st.teamCode?'Saved on phone':n?`Saved on phone · ${n} to sync`:'Saved · synced');
   // in play: spray field replaces the status details
   $('cSprayWrap').classList.toggle('hide',!D.ip);['cs-bat','cs-call','cs-hint','cs-foot'].forEach(k=>$('cStatus').querySelector('.'+k).classList.toggle('hide',!!D.ip));
@@ -160,7 +156,8 @@ function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,h
 // Idle, in play, and contact keep the same band and the same result column.
 // The five chips are not a row under the zone.
 // ---------- coach input ----------
-function paintAim(own, aims, aimWarn, aimLabel){const e=$('cxAim');e.classList.toggle('warn',!!aimWarn);e.textContent=aimWarn||(D.shook?(D.aim?'aim '+D.aim+' ✎':''):D.parsed?(aims.length?'aim '+aims.join('/'):'no spot')+(D.aim&&!own?' ✎':''):'');if(aimLabel)e.setAttribute('aria-label',aimLabel);else e.removeAttribute('aria-label');}
+function aimSpot(own, aims){return D.shook?(D.aim?'aim '+D.aim+' ✎':''):D.parsed?(aims.length?'aim '+aims.join('/'):'no spot')+(D.aim&&!own?' ✎':''):'';}
+function paintAim(own, aims, aimWarn, aimLabel){const e=$('cxAim');e.classList.toggle('warn',!!aimWarn);e.textContent=aimWarn||aimSpot(own, aims);if(aimLabel)e.setAttribute('aria-label',aimLabel);else e.removeAttribute('aria-label');}
 function coachLocked(){if(!viewOnly())return false;toast(PC.SCORING_ELSEWHERE);return true;}
 $('cBand').addEventListener('click',e=>{if(coachLocked())return;const b=e.target.closest('button[data-r]');if(b&&!b.disabled){sideCard=null;cMsg=null;callCell(+b.dataset.r,+b.dataset.c);}});
 let lpT=null,lpDone=false; // long-press (≥400 ms) on a zone cell sets the aim directly
