@@ -189,9 +189,27 @@ const BOX5='Box 5 is always scored as a missed spot';
   ok(parked.on&&parked.bat.includes('#2 · LHB')&&parked.bat.includes('⚾')&&parked.st===112&&Math.abs(parked.menuX-506)<0.5&&Math.abs(parked.menuY-71)<0.5,'HM-9b coach 667: the batter line starts full and the menu is at 506, 71 '+JSON.stringify(parked));
   await p.click('#cBand button[data-r="0"][data-c="0"]');
   await p.waitForFunction(()=>document.getElementById('cxAim').textContent.trim()==='drop curve: not aimed middle',null,{timeout:5000}).catch(()=>{});
-  const narrow=await ev(()=>{const h=document.getElementById('cxAim'),code=document.getElementById('cxCode'),bat=document.getElementById('cxBat'),cs=getComputedStyle(h),ccs=getComputedStyle(code),hr=h.getBoundingClientRect(),cr=code.getBoundingClientRect(),br=bat.getBoundingClientRect();const mid=document.elementFromPoint(cr.left+Math.min(12,cr.width/2),cr.top+cr.height/2);const range=document.createRange();range.selectNodeContents(h);const first=[...range.getClientRects()][0];const overlap=!(hr.right<=cr.left||cr.right<=hr.left||hr.bottom<=cr.top||cr.bottom<=hr.top);const beside=!!first&&first.left>=br.right-1&&first.top<=br.bottom&&br.top<=first.bottom;return {hint:h.textContent.trim(),px:cs.fontSize,codePx:ccs.fontSize,code:code.textContent.replace(/\s+/g,' ').trim(),vis:ccs.visibility,seen:mid===code||code.contains(mid),overlap,beside,bat:bat.textContent.replace(/\s+/g,' ').trim()};});
-  ok(narrow.hint==='drop curve: not aimed middle'&&narrow.px==='13px'&&narrow.beside&&!narrow.overlap,'HM-9b coach 667: the warning sits on its own line beside the batter '+JSON.stringify(narrow));
+  const narrow=await ev(()=>{
+    const h=document.getElementById('cxAim'),code=document.getElementById('cxCode'),bat=document.getElementById('cxBat');
+    const menu=document.getElementById('cxMenu'),st=document.getElementById('cStatus'),pit=bat.querySelector('span');
+    const cs=getComputedStyle(h),ccs=getComputedStyle(code),bcs=getComputedStyle(bat);
+    const hr=h.getBoundingClientRect(),cr=code.getBoundingClientRect(),br=bat.getBoundingClientRect();
+    const mr=menu.getBoundingClientRect(),sr=st.getBoundingClientRect(),pr=pit.getBoundingClientRect();
+    const at=r=>document.elementFromPoint(r.left+Math.min(12,r.width/2),r.top+r.height/2);
+    const mid=at(cr),seenPit=at(pr),range=document.createRange();range.selectNodeContents(h);
+    const first=[...range.getClientRects()][0];
+    const hit=(a,b)=>!(a.right<=b.left||b.right<=a.left||a.bottom<=b.top||b.bottom<=a.top);
+    const beside=!!first&&first.left>=br.right-1&&first.top<=br.bottom&&br.top<=first.bottom;
+    const inside=pr.left>=sr.left-1&&pr.right<=sr.right+1&&pr.top>=sr.top-1&&pr.bottom<=sr.bottom+1;
+    return {hint:h.textContent.trim(),px:cs.fontSize,codePx:ccs.fontSize,batPx:bcs.fontSize,batLs:bcs.letterSpacing,
+      code:code.textContent.replace(/\s+/g,' ').trim(),vis:ccs.visibility,seen:mid===code||code.contains(mid),
+      overlap:hit(hr,cr),beside,bat:bat.textContent.replace(/\s+/g,' ').trim(),
+      full:h.scrollHeight<=h.clientHeight+1&&h.scrollWidth<=h.clientWidth+1,
+      pitIn:inside&&pr.height>8&&!hit(pr,cr)&&!hit(pr,mr)&&(seenPit===pit||pit.contains(seenPit))};
+  });
+  ok(narrow.hint==='drop curve: not aimed middle'&&narrow.px==='13px'&&narrow.beside&&!narrow.overlap&&narrow.full,'HM-9b coach 667: the warning sits on its own line beside the batter '+JSON.stringify(narrow));
   ok(/DC 6/.test(narrow.code)&&narrow.codePx==='18px'&&narrow.vis==='visible'&&narrow.seen,'HM-9b coach 667: the call code stays 18px and visible '+JSON.stringify(narrow));
+  ok(narrow.batPx==='11px'&&narrow.batLs==='normal'&&narrow.pitIn,'HM-9b coach 667: the batter number, hand and pitch count stay full size '+JSON.stringify(narrow));
   const aimed=await coachAt();
   await p.click('#cZone button[data-z="16"]');await p.waitForTimeout(150);
   const resulted=await coachAt();
