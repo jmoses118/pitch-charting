@@ -45,13 +45,24 @@ function cleanVelo(v){if(v==null||v==='')return null;const n=+v;return Number.is
 function sessionHand(settings,hand){if(!settings||!settings.showBatterHand)return 'N';return hand==='L'||hand==='R'?hand:'N';}
 // Correct where a past pitch actually went. Does not remove it, reorder the list, or touch the result or the count.
 // One target (or none) keeps calledLoc. Several targets recompute it as the nearest to the new spot, so CSV called_location matches.
-function editActual(pitch,loc){loc=+loc;if(!pitch||!PC.validActual(loc))return false;const same=pitch.loc===loc&&pitch.actualLoc===loc;pitch.loc=loc;pitch.actualLoc=loc;
+// D-4. A cell edit clears the exact point. It does not invent a new one.
+function editActual(pitch,loc){loc=+loc;if(!pitch||!PC.validActual(loc))return false;const same=pitch.loc===loc&&pitch.actualLoc===loc;const had=pitch.actual_x!=null||pitch.actual_y!=null||pitch.xy_loc!=null;
+  pitch.loc=loc;pitch.actualLoc=loc;pitch.actual_x=null;pitch.actual_y=null;pitch.xy_loc=null;
   const targets=Array.isArray(pitch.targets)?pitch.targets:[];let calledMoved=false;
   if(targets.length>1){const next=PC.nearestTarget(targets,loc);if(next!=null&&next!==pitch.calledLoc){pitch.calledLoc=next;calledMoved=true;}}
-  if(!same||calledMoved)pitch.edited=true;return true;}
+  if(!same||calledMoved||had)pitch.edited=true;return true;}
+function pointOf(src){return {x:src&&src.actual_x!=null?src.actual_x:null,y:src&&src.actual_y!=null?src.actual_y:null,loc:src&&src.xy_loc!=null?src.xy_loc:null};}
+// D-4. The snapshot undo restores, including x, y, and xy_loc.
+function editSnap(p){if(!p)return null;const xy=pointOf(p);return {loc:p.loc,actualLoc:p.actualLoc,calledLoc:p.calledLoc==null?null:p.calledLoc,edited:!!p.edited,actual_x:xy.x,actual_y:xy.y,xy_loc:xy.loc};}
 // Put a corrected pitch back to the spot it had before the edit. Returns false when nothing changed.
-function revertEdit(pitch,snap){if(!pitch||!snap)return false;const was=!!pitch.edited,called=pitch.calledLoc==null?null:pitch.calledLoc;const nextCalled=snap.calledLoc==null?null:snap.calledLoc;
-  const same=pitch.loc===snap.loc&&pitch.actualLoc===snap.actualLoc&&called===nextCalled&&was===!!snap.edited;pitch.loc=snap.loc;pitch.actualLoc=snap.actualLoc;
+function revertEdit(pitch,snap){if(!pitch||!snap)return false;const was=!!pitch.edited,called=pitch.calledLoc==null?null:pitch.calledLoc,nextCalled=snap.calledLoc==null?null:snap.calledLoc,now=pointOf(pitch),back=pointOf(snap);
+  const same=pitch.loc===snap.loc&&pitch.actualLoc===snap.actualLoc&&called===nextCalled&&was===!!snap.edited&&now.x===back.x&&now.y===back.y&&now.loc===back.loc;
+  pitch.loc=snap.loc;pitch.actualLoc=snap.actualLoc;pitch.actual_x=back.x;pitch.actual_y=back.y;pitch.xy_loc=back.loc;
   if(nextCalled==null)delete pitch.calledLoc;else pitch.calledLoc=nextCalled;if(snap.edited)pitch.edited=true;else delete pitch.edited;return !same;}
-Object.assign(PC,{BB_TYPES,BB_NAME,bbOf,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,REDO_MAX,FOUL_TIMES,redoPush,redoPop,redoState,cleanFoul,cleanFlag,cleanVelo,sessionHand,editActual,revertEdit});
+// D-4. Ten fields: type, targets, loc, actualLoc, calledLoc, result, ip when the result is in play, actual_x, actual_y, xy_loc.
+function applyChart(row,chart){if(!row||!chart)return null;const xy=PC.cleanXY(chart.actual_x,chart.actual_y,chart.xy_loc);
+  row.type=chart.type;row.targets=Array.isArray(chart.targets)?chart.targets.slice():[];row.loc=chart.loc;row.actualLoc=chart.actualLoc;row.calledLoc=chart.calledLoc==null?null:chart.calledLoc;row.result=chart.result==null?null:chart.result;
+  if(chart.result==='inplay')row.ip=chart.ip==null?null:chart.ip;else delete row.ip;
+  row.actual_x=xy.actual_x;row.actual_y=xy.actual_y;row.xy_loc=xy.xy_loc;return row;}
+Object.assign(PC,{BB_TYPES,BB_NAME,bbOf,RESULTS,IP_RESULTS,isStrike,applyPitch,countsAsPitch,pitchCount,REDO_MAX,FOUL_TIMES,redoPush,redoPop,redoState,cleanFoul,cleanFlag,cleanVelo,sessionHand,editActual,revertEdit,editSnap,applyChart});
 })(typeof window!=='undefined'?window:globalThis);

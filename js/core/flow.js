@@ -14,11 +14,13 @@ function flowSteps(mode){return (mode==='bullpen'?FLOW.bullpen:FLOW.game).slice(
 function flowLabel(step){return STEP_LABEL[step]||step;}
 function clone(d){d=d||{};
   const called=Array.isArray(d.called)?d.called.map(z=>+z).filter(z=>Number.isFinite(z)):[] ;
+  const xy=PC.cleanXY(d.actual_x,d.actual_y,d.xy_loc);
+  const point=xy.actual_x==null?{}:{actual_x:xy.actual_x,actual_y:xy.actual_y,xy_loc:xy.xy_loc};
   return{mode:d.mode==='bullpen'?'bullpen':'game',type:d.type||null,called,
     actual:d.actual==null||!Number.isFinite(+d.actual)?null:+d.actual,
     result:d.result||null,ip:d.ip||null,
     shook:d.shook?{type:d.shook.type||null,called:(d.shook.called||[]).map(z=>+z).filter(z=>Number.isFinite(z)),norm:d.shook.norm||null,raw:d.shook.raw||null}:null,
-    velo:d.velo==null?null:d.velo,aimEdit:!!d.aimEdit,...(d.calledFlag?{calledFlag:true}:{})};}
+    velo:d.velo==null?null:d.velo,aimEdit:!!d.aimEdit,...point,...(d.calledFlag?{calledFlag:true}:{})};}
 function scoreStep(d){d=d||{};const steps=flowSteps(d.mode);
   if(!d.type)return 'type';
   if(!(d.called&&d.called.length))return 'called';
@@ -60,6 +62,7 @@ function scoreCommit(d){d=clone(d);const boxes=d.called.slice();
   if(flowSteps(d.mode).indexOf('result')>=0&&!d.result)return null;
   if(scoreStep(d)!=='done')return null;
   const row={type:d.type,targets:boxes,loc:d.actual,actualLoc:d.actual,calledLoc:PC.nearestTarget(boxes,d.actual),result:d.mode==='bullpen'?null:d.result,ip:d.ip||null,shook:!!d.shook,velo:d.velo};
+  if(d.actual_x!=null){row.actual_x=d.actual_x;row.actual_y=d.actual_y;row.xy_loc=d.xy_loc;}
   if(aimFlag(d.type,boxes))row.calledFlag=true;
   return row;}
 // HM-9b. Box 5 warns for every type. Every other warned box is TYPE_MISS[type].warn. No type list lives here.

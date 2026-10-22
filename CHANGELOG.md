@@ -1,5 +1,10 @@
 # Changelog
 
+## v91 – The chart can keep the exact spot a pitch was touched
+### Changed
+- The exact spot is two numbers from 0 to 1, on the zone, the ring, way off, the dirt, or the backstop. Changing the cell clears that spot, and undo puts it back.
+- Cache: `te-pitch-v91`.
+
 ## v90 – The aim text keeps its size
 ### Changed
 - On the narrow coach screen the aim text stays 14px with a space after the call code when a warning moves to the hint line, and the short warnings use normal letter spacing.

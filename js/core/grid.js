@@ -63,5 +63,26 @@ function nearestTarget(targets,loc){const t=(Array.isArray(targets)?targets:[]).
 function pct(a,b){return b?Math.round(1000*a/b)/10:null;}
 // Whole percent. Null when the denominator is empty, which is how a bullpen-only strike % prints.
 function wholePct(a,b){return b?Math.round(100*a/b):null;}
-Object.assign(PC,{insideCol,awayCol,cz,isZone,isCorner,isOut,WAY,isWay,ACTUAL_ONLY,isActualOnly,isCompetitive,gloveCol,locInfo,locInfoRaw,ALL_CELLS,GRID_XY,MAX_MISS,OFF_D,missDist,missD,towardMiddle,TOP_ROW,MID_ROW,TYPE_MISS,typeMissBand,nearestTarget,pct,wholePct});
+// D-1. Half-up to 3 decimals. The database does not round. This does not clamp.
+function roundXY(v){if(v==null||v==='')return null;const n=+v;if(!Number.isFinite(n))return null;const neg=n<0,scaled=Math.abs(n)*1000,base=Math.floor(scaled+1e-8),rest=scaled-base,next=rest+1e-8>=0.5?base+1:base,out=(neg?-next:next)/1000;return Object.is(out,-0)?0:out;}
+// D-2. Frame only. Half-open 5 by 5 bins, pitcher's view. x and y are 0 to 1 across the zone plus the ring.
+function cellOfXY(x,y){const nx=+x,ny=+y;if(!Number.isFinite(nx)||!Number.isFinite(ny))return null;const c=Math.min(4,Math.floor(5*nx)),r=Math.min(4,Math.floor(5*ny));
+  if(c>=1&&c<=3&&r>=1&&r<=3)return (r-1)*3+c;if(r===0)return c===0?11:c===4?12:15;if(r===4)return c===0?13:c===4?14:18;if(c===0)return 16;if(c===4)return 17;return null;}
+// One stored triple. All three null, or x and y in 0..1 and loc a real code. A half pair or an out-of-range value is all null.
+function cleanXY(x,y,loc){const none={actual_x:null,actual_y:null,xy_loc:null};if(x==null||x===''||y==null||y===''||loc==null||loc==='')return none;const ax=roundXY(x),ay=roundXY(y),z=+loc;
+  if(ax==null||ay==null||ax<0||ax>1||ay<0||ay>1||!GRID_XY[z])return none;return {actual_x:ax,actual_y:ay,xy_loc:z};}
+// Read a stored point. Way-off and actual-only keep loc. Null x or y keeps loc. A frame point uses cellOfXY.
+function xyCell(x,y,loc){const z=+loc;if(isWay(z)||isActualOnly(z))return z;if(x==null||x===''||y==null||y===''||!Number.isFinite(+x)||!Number.isFinite(+y))return Number.isFinite(z)?z:null;return cellOfXY(x,y);}
+function clamp01(v){const n=+v;if(!Number.isFinite(n))return null;return n<0?0:n>1?1:n;}
+// D-2 and D-3. One tap. Frame x,y decide the cell. A way-off, dirt, or backstop bin keeps that code and its own 0..1 box.
+function tapXY(u,v,bin){const x=clamp01(u),y=clamp01(v);if(x==null||y==null)return null;const ax=roundXY(x),ay=roundXY(y),b=+bin,off=isWay(b)||isActualOnly(b),loc=off?b:cellOfXY(ax,ay);if(loc==null)return null;
+  const xy=cleanXY(ax,ay,loc);return {actual_x:xy.actual_x,actual_y:xy.actual_y,xy_loc:xy.xy_loc,loc,actualLoc:loc};}
+// HM-21. FNV-1a 32-bit of id + ':scatter', then mulberry32. The spec names the seed and mulberry32.
+function hash32(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
+const SCATTER_INSET=0.12;
+function scatterBox(cell){const n=+cell;if(isWay(n)||isActualOnly(n))return [0,0,1,1];const p=GRID_XY[n];if(!p||p[0]<0||p[1]<0||p[0]>4||p[1]>4)return null;return [p[0]/5,p[1]/5,1/5,1/5];}
+function scatterXY(id,cell){const box=scatterBox(cell);if(!box)return null;const rnd=mulberry32(hash32(String(id)+':scatter')),u=rnd(),v=rnd(),w=box[2],h=box[3],ix=w*SCATTER_INSET,iy=h*SCATTER_INSET;
+  return [box[0]+ix+u*(w-2*ix),box[1]+iy+v*(h-2*iy)];}
+Object.assign(PC,{insideCol,awayCol,cz,isZone,isCorner,isOut,WAY,isWay,ACTUAL_ONLY,isActualOnly,isCompetitive,gloveCol,locInfo,locInfoRaw,ALL_CELLS,GRID_XY,MAX_MISS,OFF_D,missDist,missD,towardMiddle,TOP_ROW,MID_ROW,TYPE_MISS,typeMissBand,nearestTarget,pct,wholePct,roundXY,cellOfXY,cleanXY,xyCell,tapXY,scatterXY});
 })(typeof window!=='undefined'?window:globalThis);
