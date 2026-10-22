@@ -96,10 +96,13 @@ function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,h
   $('coach').classList.toggle('dim',!!(D.aimEdit||D.ip));sizeCoach();
   // status
   const pit=S().pitchers.find(p=>p.id===cp);$('cxPitcher').textContent=pit?PC.pitcherLabel(pit):'Pick a pitcher';$('cxInn').textContent=inningTag(g);const cmp=$('coach').classList.contains('compact');$('cxOuts').textContent=cmp?'●'.repeat(c.outs)+'○'.repeat(Math.max(0,3-c.outs)):c.outs+(c.outs===1?' out':' outs');$('cxOuts').setAttribute('aria-label',c.outs+' out'+(c.outs===1?'':'s'));$('cxCount').textContent=c.b+'-'+c.s;
-  const b=g.lineup[c.slot]||{};$('cxBat').innerHTML=cmp?`<b>${b.num?'#'+H(b.num):H(b.name||'Batter '+(c.slot+1))}</b> · ${hand==='L'?'LHB':'RHB'} · <span title="Pitches">⚾ ${PC.pitchCount(g.pitches,cp)}</span>`:`<span class="ic" aria-hidden="true">👤</span><b>${b.num?'#'+H(b.num)+' ':''}${H(b.name||'Batter '+(c.slot+1))}</b> · ${hand==='L'?'LHB':'RHB'} · <span title="Pitches">⚾ ${PC.pitchCount(g.pitches,cp)}</span>`;
+  const b=g.lineup[c.slot]||{};
+  const aimWarn=(D.ip||D.bbAsk)?'':PC.aimLine(pullDraft(),{short:true});
+  const side=hand==='L'?'LHB':'RHB',who=b.num?'#'+H(b.num):H(b.name||'Batter '+(c.slot+1));
+  const pitches=`<span title="Pitches">⚾ ${PC.pitchCount(g.pitches,cp)}</span>`;
+  $('cxBat').innerHTML=cmp&&aimWarn?`<b>${who}</b> ${side}`:cmp?`<b>${who}</b> · ${side} · ${pitches}`:`<span class="ic" aria-hidden="true">👤</span><b>${b.num?'#'+H(b.num)+' ':''}${H(b.name||'Batter '+(c.slot+1))}</b> · ${side} · ${pitches}`;
   const code=callCode(),aims=aimSet();$('cxCode').innerHTML=D.shook?`⤺ ${H(D.shook.norm)} → ${H(D.type||'?')}`:D.parsed?`${H(code)}&nbsp; ${H(D.callTxt)}`:'<span class="cs-none">– –&nbsp; no call yet</span>';
   const own=D.parsed&&D.parsed.targets&&D.parsed.targets.length===1&&D.aim===+D.parsed.targets[0]; // pencil only for an override, not the call's own spot
-  const aimWarn=(D.ip||D.bbAsk)?'':PC.aimLine(pullDraft(),{short:true});
   paintAim(own, aims, cmp?aimWarn:'');
   renderHint(aimWarn);const n=store.pendingCount(),st=store.real.sync;$('cxNet').textContent=store.isTest?'Test mode – not saved':!navigator.onLine?`Offline – saved on phone${n?' · '+n+' to sync':''}`:(!st.teamCode?'Saved on phone':n?`Saved on phone · ${n} to sync`:'Saved · synced');
   // in play: spray field replaces the status details

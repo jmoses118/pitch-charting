@@ -3,6 +3,7 @@
 ## v89 – The pitch log matches the recent list
 ### Changed
 - The pitch log's short warning for box 5 says "Box 5: always a miss", and a middle-row warning says "drop: not aimed middle", so it lines up with the recent list. The portrait warning is 13px and keeps the same line height, so the zone does not shift. On the narrow coach screen the batter line stays up and the menu stays put.
+- The call code stays visible on the narrow coach screen.
 - Cache: `te-pitch-v89`.
 
 ## v88 – Shared code stays in one place
