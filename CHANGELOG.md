@@ -1,5 +1,9 @@
 # Changelog
 
+## v90 – The aim text keeps its size
+### Changed
+- On the narrow coach screen the aim text stays 14px with a space after the call code when a warning moves to the hint line, and the short warnings use normal letter spacing.
+
 ## v89 – The pitch log matches the recent list
 ### Changed
 - The pitch log's short warning for box 5 says "Box 5: always a miss", and a middle-row warning says "drop: not aimed middle", so it lines up with the recent list. The portrait warning is 13px and keeps the same line height, so the zone does not shift. On the narrow coach screen the batter line stays up and the menu stays put.

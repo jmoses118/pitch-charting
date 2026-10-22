@@ -2,7 +2,7 @@
 (function(root){
 'use strict';
 const PC=root.PC=root.PC||{};
-const APP_VERSION='v89';
+const APP_VERSION='v90';
 const VERSION_SEEN_KEY='pc_version_seen';
 const VERSION_NOTE_MS=2800;
 function cacheNameOf(version){return 'te-pitch-'+version;}
