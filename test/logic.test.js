@@ -2091,8 +2091,6 @@ test('D-5: export then import round-trips 0.123 and 0.987 and sets xy_loc to act
   assert.deepEqual(PC.csvXY(back),{x:0.987,y:0.123,xy_loc:12});
   const got=PC.csvApply({},back);
   assert.equal(got.actual_x,0.987);assert.equal(got.actual_y,0.123);assert.equal(got.xy_loc,12);
-  const r14=PC.csvApply({},{location:'14',actual_location:'14',actual_x:'0.9',actual_y:'0.95'});
-  assert.deepEqual([r14.actual_x,r14.actual_y,r14.xy_loc],[0.9,0.95,14]);
   const dirt=PC.csvApply({},{location:'31',actual_location:'31',actual_x:'0.25',actual_y:'0.5'});
   assert.deepEqual([dirt.actual_x,dirt.actual_y,dirt.xy_loc],[0.25,0.5,31]);
   const onlyLoc=PC.csvApply({},{location:'5',actual_x:'0.5',actual_y:'0.5'});
@@ -2120,6 +2118,21 @@ test('D-5: an old 40-column file has no point, and a bad point is a row error',(
   assert.deepEqual(PC.csvXY(row('0.1','0.1','23')),{x:0.1,y:0.1,xy_loc:23});
   const bad=PC.csvApply({},row('1.2','0.5','5'));
   XY_KEYS.forEach(k=>assert.equal(Object.hasOwn(bad,k),false,k));
+});
+test('D-5: import a row with actual_location 14 and x/y, and xy_loc is 14',()=>{
+  const r14=PC.csvApply({},{location:'14',actual_location:'14',actual_x:'0.9',actual_y:'0.95'});
+  assert.deepEqual([r14.actual_x,r14.actual_y,r14.xy_loc],[0.9,0.95,14]);
+});
+test('D-5: x and y are plain decimals, so hex, exponents, and Infinity are row errors',()=>{
+  const row=(x,y)=>({location:'5',actual_location:'5',actual_x:x,actual_y:y});
+  ['0x1','1e-1','.5e0','Infinity','+0.5','0.5.1','1.'].forEach(v=>{assert.ok(PC.csvXY(row(v,'0.5')).error,v);assert.ok(PC.csvXY(row('0.5',v)).error,v);});
+  assert.deepEqual(PC.csvXY(row(' 0.500 ','.5')),{x:0.5,y:0.5,xy_loc:5});
+});
+test('D-5: importFlagCount does not count a row the x/y check rejects',()=>{
+  const flagged={type:'CH',call_target:'2/8',location:'5',actual_location:'5'};
+  assert.equal(PC.importFlagCount([flagged]),1);
+  assert.equal(PC.importFlagCount([flagged,Object.assign({},flagged,{actual_x:'0x1',actual_y:'0.5'}),Object.assign({},flagged,{actual_x:'0.5'})]),1);
+  assert.equal(PC.importFlagCount([Object.assign({},flagged,{actual_x:'0.5',actual_y:'0.5'})]),1);
 });
 test('D-6: x, y, and xy_loc stay off the wire until xyCol is set, then values and null round-trip',()=>{
   const p={id:'p1',ts:1,type:'FB',targets:[8],calledLoc:8,loc:8,actualLoc:8,result:'ball',mode:'game',actual_x:0.5,actual_y:0.7,xy_loc:8};
