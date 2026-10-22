@@ -72,12 +72,15 @@ refuses() { local why=$1; shift
   if env "$@" >/dev/null 2>"$out/err"; then echo "allowed: $*" >&2; exit 1; fi
   grep -q "$why" "$out/err" || { echo "wrong refusal for $*: $(cat "$out/err")" >&2; exit 1; }
   test ! -e "$out/neg"; }
-# stub DIR ADDR [LATER]: a psql whose server address reads as ADDR, or as LATER in the session that writes (scratch DDL or restore).
+# stub DIR ADDR [LATER [WHEN]]: a psql whose server address reads as ADDR, or as LATER in a session whose arguments match WHEN
+# (by default the sessions that write: scratch DDL or restore). The fake_* schemas shadow inet_server_addr() on search_path.
+for a in 10.1.2.3 127.0.0.1; do
+  q -c "create schema if not exists fake_${a//./_}" -c "create or replace function fake_${a//./_}.inet_server_addr() returns inet language sql as \$\$ select inet '$a' \$\$" >/dev/null
+done
 stub() { mkdir -p "$1"; cat > "$1/psql" <<EOF
 #!/bin/bash
-rep="'$2'::inet"; case "\$*" in *'create schema'*|*_restore.sql*) rep="'${3:-$2}'::inet";; esac
-a=(); for x in "\$@"; do a+=("\${x//inet_server_addr()/\$rep}"); done
-exec $(command -v psql) "\${a[@]}"
+a='$2'; case "\$*" in ${4:-*'create schema'*|*_restore.sql*}) a='${3:-$2}';; esac
+PGOPTIONS="-c search_path=fake_\${a//./_},pg_catalog,public" exec $(command -v psql) "\$@"
 EOF
   chmod +x "$1/psql"; }
 stub "$out/fake" 10.1.2.3
@@ -102,6 +105,18 @@ JIM_GO_AHEAD=yes PATH="$out/fake:$PATH" bash "$bk" backup "$out/go" >/dev/null
 test "$(ls "$out/go" | wc -l)" = 3
 echo "D-7 guard: PGHOSTADDR, PGSERVICE, PGSERVICEFILE, PGLOADBALANCEHOSTS, PGTARGETSESSIONATTRS, a comma in PGHOST, PGPORT or SOURCE_URL, a SOURCE_URL with ? or host=, and a remote server address are refused for backup, verify and restore; JIM_GO_AHEAD lets only backup through"
 
+# A bracketed IPv6 loopback in SOURCE_URL is local; any other IPv6 host is not.
+mkdir "$out/ok"; printf '#!/bin/sh\nexit 0\n' > "$out/ok/psql"; chmod +x "$out/ok/psql"
+PATH="$out/ok:$PATH" SOURCE_URL='postgresql://postgres@[::1]:5432/pitch' bash "$bk" restore pitches_xy_backup_none
+refuses '2001:db8::1' PATH="$out/ok:$PATH" SOURCE_URL='postgresql://postgres@[2001:db8::1]:5432/pitch' bash "$bk" restore pitches_xy_backup_none
+echo "D-7 guard: SOURCE_URL with [::1] passes the local-only guard, and [2001:db8::1] is refused"
+
+# The counts query checks its own session, so a backup whose counts land on another host is refused and writes no counts.
+stub "$out/cnt" 127.0.0.1 10.1.2.3 '*string_agg*'
+refuses 'connected to 10.1.2.3' PATH="$out/cnt:$PATH" bash "$bk" backup "$out/cntbk"
+if grep -sq . "$out"/cntbk/*.counts.txt; then echo "counts were written from another host" >&2; exit 1; fi
+echo "D-7 guard: the backup's counts session checks its own address"
+
 # CI's Postgres is a service container. Through the port mapping the server sees its own bridge address, and the real guard refuses it.
 # There the runs below get 127.0.0.1 for the address query from a stub psql. Locally they go through the real check.
 lo=$PATH
@@ -114,6 +129,18 @@ case "$real" in
      echo "D-7 guard: the real guard refuses the container address $real, so the runs below report 127.0.0.1";;
 esac
 bkl() { PATH="$lo" bash "$bk" "$@"; }
+# realbk runs the script with no stub, so the real guard has to pass. In CI it runs inside the service container, on its socket.
+at=$PWD
+if [ "$lo" = "$PATH" ]; then realbk() { bash "$bk" "$@"; }
+else
+  id=$(docker ps -q --filter publish=5432 | head -1)
+  [ -n "$id" ] || { echo "D-7 guard: no session where the real guard can pass" >&2; exit 1; }
+  at=/tmp/te-d7
+  docker exec -u 0 "$id" sh -c "rm -rf $at && mkdir -p $at"
+  docker cp supabase "$id:$at/supabase"
+  docker exec -u 0 "$id" chown -R postgres "$at"
+  realbk() { docker exec -u postgres -e PGDATABASE="${PGDATABASE:-postgres}" "$id" bash "$at/$bk" "$@"; }
+fi
 
 # The backup refuses a folder inside the repo.
 if bkl backup "$PWD/tmp-backup" 2>/dev/null; then echo "a backup inside the repo was allowed" >&2; exit 1; fi
@@ -129,6 +156,10 @@ grep -q '^t|3|' "$out/bk/$name.counts.txt"
 grep -q '^u|1|' "$out/bk/$name.counts.txt"
 bkl verify "$dump"
 test "$(q -c "select count(*) from information_schema.schemata where schema_name like 'scratch_%'")" = 0
+rdump=$dump
+if [ "$at" != "$PWD" ]; then docker cp "$out/bk" "$id:$at/bk"; docker exec -u 0 "$id" chown -R postgres "$at/bk"; rdump=$at/bk/$name.dump; fi
+realbk verify "$rdump" | grep -q "restore matches $name.counts.txt"
+echo "D-7 guard: verify passes the real guard on a local session"
 
 # The scratch DDL session checks its own address, so a later session that lands on another host is refused before it writes.
 stub "$out/split" 127.0.0.1 10.1.2.3
@@ -179,8 +210,18 @@ if q -f "$res" >/dev/null 2>&1; then echo "the restore SQL ran without -v backup
 if bkl restore >/dev/null 2>&1; then echo "the restore ran without a backup name" >&2; exit 1; fi
 refuses 'connected to 10.1.2.3' PATH="$out/split:$PATH" bash "$bk" restore "pitches_xy_backup_${day}"
 test "$(q -c "select count(*) from public.pitches where actual_x is not null")" = 0
-bkl restore "pitches_xy_backup_${day}" >/dev/null
+# Run by hand, the restore SQL checks its own session too. Only -v jim_go_ahead=yes skips that.
+raw="psql -X -v ON_ERROR_STOP=1 -q -v backup=pitches_xy_backup_${day} -f $res"
+refuses 'connected to 10.1.2.3' PATH="$out/fake:$PATH" $raw
+refuses 'connected to 10.1.2.3' PATH="$out/fake:$PATH" $raw -v jim_go_ahead=1
+test "$(q -c "select count(*) from public.pitches where actual_x is not null")" = 0
+PATH="$out/fake:$PATH" $raw -v jim_go_ahead=yes >/dev/null
 test "$(point)" = '0.500,0.500,5'
+echo "D-7 guard: the restore SQL refuses another host when run by hand, and -v jim_go_ahead=yes (only yes) runs it"
+q -c "update public.pitches set actual_x = null, actual_y = null, xy_loc = null"
+realbk restore "pitches_xy_backup_${day}" >/dev/null
+test "$(point)" = '0.500,0.500,5'
+echo "D-7 guard: restore passes the real guard on a local session"
 q -c "update public.pitches set actual_x = 0.6, actual_y = 0.6 where id = 'd7000000-0000-0000-0000-000000000001'"
 bkl restore "pitches_xy_backup_${day}" >/dev/null
 test "$(point)" = '0.600,0.600,5'
@@ -189,6 +230,7 @@ echo "D-7 postgres: verify and restore refuse a session on another host; the res
 
 # Leave the schema migrated for anything that runs later.
 q -c "drop table private.pitches_xy_backup_${day}"
+q -c "drop schema fake_10_1_2_3 cascade" -c "drop schema fake_127_0_0_1 cascade"
 q -c "truncate public.pitches"
 q -f "$mig" >/dev/null
 test "$(cols)" = 3

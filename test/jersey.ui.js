@@ -1,5 +1,6 @@
 // RULE-11: editing a jersey number saves, and Cancel leaves it unchanged.
 // RULE-12: the Thunder Elite branding stays.
+// D-5: a CSV row with a bad x/y is skipped, and the import toast names it and stays up longer.
 // usage: node test/jersey.ui.js <url>
 const {chromium}=require('playwright-core');const BASE=process.argv[2]||'http://127.0.0.1:8766/';
 let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};
@@ -41,6 +42,17 @@ await p.fill('#pdNum','12');await p.click('#pdOk');await p.waitForTimeout(200);
 ok(await num()==='12'&&/Avery #12/.test(await label()),'RULE-11 saving the jersey number updates the pitcher');
 const list=await p.textContent('#pList');
 ok(!/Woods|Crich|Larbus/.test(list),'RULE-10 no surnames in the pitcher list');
+// D-5: a row with a bad x/y is skipped, and the toast says so and stays up for 4 seconds instead of 1.3.
+const imp=async(rows)=>{const csv=await p.evaluate(r=>PC.toCSV(r.map((o,i)=>Object.assign({mode:'bullpen',session:'s_d5_'+o.k,date:'2026-10-22',pitcher:'Avery',pitcher_num:'12',throws:'R',bats:'R',type:'FB',call_target:'8',location:'8',actual_location:'8',ts:new Date(Date.UTC(2026,9,22,15,i)).toISOString()},o))),rows);
+  await p.evaluate(()=>{document.querySelectorAll('details').forEach(d=>{if(d.querySelector('#impCSV'))d.open=true;});});
+  const [fc]=await Promise.all([p.waitForEvent('filechooser'),p.click('#impCSV')]);await fc.setFiles({name:'d5.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});
+  await p.waitForTimeout(200);const text=await p.textContent('#toast');await p.waitForTimeout(1800);
+  return {text,up:await p.evaluate(()=>document.getElementById('toast').classList.contains('on'))};};
+const clean=await imp([{k:'a',actual_x:'0.500',actual_y:'0.700'}]);
+ok(clean.text==='Imported 1 pitch'&&!clean.up,'D-5 a clean import says Imported 1 pitch and the toast is gone after 2 s ('+JSON.stringify(clean)+')');
+const bad=await imp([{k:'b',actual_x:'0.500',actual_y:'0.700'},{k:'b',actual_x:'1.2',actual_y:'0.500'}]);
+ok(bad.text==='Imported 1 pitch ·\u00a01\u00a0skipped\u00a0(bad\u00a0x/y)'&&bad.up,'D-5 a bad x/y row is skipped, the toast names it and is still up after 2 s ('+JSON.stringify(bad)+')');
+ok(await p.evaluate(()=>__app.store.real.sessions.filter(s=>/^s_d5_/.test(s.id)).map(s=>s.pitches.length).join(','))==='1,1','D-5 the skipped row is not saved');
 const box=sel=>p.evaluate(s=>{const e=document.querySelector(s);const r=e.getBoundingClientRect();return Math.round(Math.min(r.width,r.height));},sel);
 await p.click('nav [data-t="bullpen"]');await p.waitForTimeout(150);
 ok(await box('#bpHands')>=44,'batter-hand checkbox is at least 44px');
