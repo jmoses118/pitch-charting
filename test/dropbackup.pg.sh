@@ -37,3 +37,5 @@ for t in pitches sessions games notes; do
 done
 psql -v ON_ERROR_STOP=1 -f "$mig"
 echo "backup tables dropped; pitches, sessions, games, and notes are unchanged"
+# D-1, D-6, D-7 run here too, because the CI workflow is a gate file.
+bash test/xy.pg.sh

@@ -1,0 +1,108 @@
+#!/bin/bash
+# D-1, D-6, D-7. The tap-point columns, an upsert that leaves them alone, and the scratch dry run of the backup and rollback.
+# The schema is the one test/pg-migrate.sh built. Do not point this at production.
+set -euo pipefail
+case "${PGHOST:-localhost}" in
+  localhost|127.0.0.1) ;;
+  *) echo "database host must be localhost or 127.0.0.1" >&2; exit 1;;
+esac
+mig=supabase/migrations/20261022120000_pitches_xy.sql
+back=supabase/rollback/20261022120000_pitches_xy.sql
+bk=supabase/backup/pitches_backup.sh
+q() { psql -v ON_ERROR_STOP=1 -tA "$@"; }
+cols() { q -c "select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'pitches' and column_name in ('actual_x','actual_y','xy_loc')"; }
+out=$(mktemp -d)
+trap 'rm -rf "$out"' EXIT
+
+# D-1. The check rejects a half point and anything outside 0..1, and accepts a full point or none.
+q -f "$mig" >/dev/null
+test "$(cols)" = 3
+q <<'SQL'
+truncate public.pitches;
+do $$
+declare t record;
+begin
+  for t in select * from (values (1.001::numeric, 0.5::numeric, 5::smallint), (0.5, null, 5), (0.5, 0.5, null), (-0.001, 0.2, 1)) v(x, y, l) loop
+    begin
+      insert into public.pitches (id, team_id, mode, actual_x, actual_y, xy_loc) values (gen_random_uuid(), 't', 'game', t.x, t.y, t.l);
+      raise exception 'accepted (%, %, %)', t.x, t.y, t.l;
+    exception when check_violation then
+      null;
+    end;
+  end loop;
+end $$;
+insert into public.pitches (id, team_id, mode, actual_x, actual_y, xy_loc) values
+  ('d1000000-0000-0000-0000-000000000001', 't', 'game', 0, 1, 13),
+  ('d1000000-0000-0000-0000-000000000002', 't', 'game', null, null, null),
+  ('d1000000-0000-0000-0000-000000000003', 't', 'game', 0.123, 0.987, 12);
+SQL
+test "$(q -c "select count(*) from public.pitches")" = 3
+test "$(q -c "select actual_x || ',' || actual_y || ',' || xy_loc from public.pitches where id = 'd1000000-0000-0000-0000-000000000003'")" = '0.123,0.987,12'
+echo "D-1 postgres: the check rejects 4 bad points and keeps (0, 1, 13), none, and (0.123, 0.987, 12)"
+
+# D-6. merge-duplicates updates only the columns it sends, so a phone without xyCol leaves x and y alone.
+q <<'SQL'
+insert into public.pitches (id, team_id, mode, loc) values ('d1000000-0000-0000-0000-000000000003', 't', 'game', 12)
+on conflict (id) do update set loc = excluded.loc;
+SQL
+test "$(q -c "select loc || ':' || actual_x || ',' || actual_y || ',' || xy_loc from public.pitches where id = 'd1000000-0000-0000-0000-000000000003'")" = '12:0.123,0.987,12'
+echo "D-6 postgres: a row without the x/y columns keeps the stored point"
+
+# D-7. Start from today's production shape: no x/y columns.
+day=$(q -c "select to_char(now(), 'YYYYMMDD')")
+q -c "drop table if exists private.pitches_xy_backup_${day}"
+q -c "truncate public.pitches"
+q -f "$back" >/dev/null
+test "$(cols)" = 0
+test "$(q -c "select count(*) from private.pitches_xy_backup_${day}")" = 0
+q -c "drop table private.pitches_xy_backup_${day}"
+q <<'SQL'
+insert into public.pitches (id, team_id, mode, loc) values
+  ('d7000000-0000-0000-0000-000000000001', 't', 'game', 5),
+  ('d7000000-0000-0000-0000-000000000002', 't', 'game', 8),
+  ('d7000000-0000-0000-0000-000000000003', 't', 'bullpen', 31),
+  ('d7000000-0000-0000-0000-000000000004', 'u', 'game', 14);
+SQL
+
+# The backup refuses a folder inside the repo and a remote host without Jim's go-ahead.
+if bash "$bk" backup "$PWD/tmp-backup" 2>/dev/null; then echo "a backup inside the repo was allowed" >&2; exit 1; fi
+test ! -e "$PWD/tmp-backup"
+if SOURCE_URL='postgresql://u@db.example.com/x' bash "$bk" backup "$out/remote" 2>/dev/null; then echo "a remote backup ran without JIM_GO_AHEAD" >&2; exit 1; fi
+
+# Backup, then the sha256 verifies and the restore into a scratch schema matches the counts.
+dump=$(bash "$bk" backup "$out/bk" | tail -1)
+name=$(basename "$dump" .dump)
+test -s "$dump"
+test -s "$out/bk/$name.dump.sha256"
+test "$(wc -l < "$out/bk/$name.counts.txt")" = 2
+grep -q '^t|3|' "$out/bk/$name.counts.txt"
+grep -q '^u|1|' "$out/bk/$name.counts.txt"
+bash "$bk" verify "$dump"
+test "$(q -c "select count(*) from information_schema.schemata where schema_name like 'scratch_%'")" = 0
+
+# A changed dump fails the sha256 check.
+mkdir "$out/bad"
+cp "$out/bk/$name".* "$out/bad/"
+printf 'x' >> "$out/bad/$name.dump"
+if bash "$bk" verify "$out/bad/$name.dump" 2>/dev/null; then echo "a changed dump passed" >&2; exit 1; fi
+
+# Migrate (twice changes nothing), write (0.5, 0.5, 5), then roll back.
+q -f "$mig" >/dev/null
+q -f "$mig" >/dev/null
+test "$(cols)" = 3
+test "$(q -c "select count(*) from public.pitches where actual_x is not null")" = 0
+q -c "update public.pitches set actual_x = 0.5, actual_y = 0.5, xy_loc = 5 where id = 'd7000000-0000-0000-0000-000000000001'"
+q -f "$back" >/dev/null
+test "$(cols)" = 0
+test "$(q -c "select count(*) from private.pitches_xy_backup_${day}")" = 1
+test "$(q -c "select id || ':' || actual_x || ',' || actual_y || ',' || xy_loc from private.pitches_xy_backup_${day}")" = 'd7000000-0000-0000-0000-000000000001:0.500,0.500,5'
+test "$(q -c "select has_table_privilege('anon', 'private.pitches_xy_backup_${day}', 'select')")" = f
+now=$(q -c "select team_id || '|' || count(*) || '|' || md5(string_agg(id::text, ',' order by id)) from public.pitches group by team_id order by team_id")
+test "$now" = "$(cat "$out/bk/$name.counts.txt")"
+echo "D-7 postgres: backup, sha256, restore, migrate, write (0.5, 0.5, 5), roll back: 1 row kept, counts match"
+
+# Leave the schema migrated for anything that runs later.
+q -c "drop table private.pitches_xy_backup_${day}"
+q -c "truncate public.pitches"
+q -f "$mig" >/dev/null
+test "$(cols)" = 3
