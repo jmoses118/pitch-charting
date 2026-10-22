@@ -1,5 +1,11 @@
 # Changelog
 
+## v93 – The database restore checks where it is running
+### Changed
+- The script that puts saved exact spots back now refuses to run on any database but this computer's own, even when someone runs it by hand. Jim can still run it on the live database by adding `-v jim_go_ahead=yes`.
+- The backup script and that restore share one check, which also covers the backup's pitch counts, and a local address written as `[::1]` is no longer refused.
+- Cache: `te-pitch-v93`.
+
 ## v92 – The exact spot can be saved and exported
 ### Changed
 - A pitch's exact spot can now go to the cloud and into the CSV file. Cloud saving stays off until Jim adds the new columns to the live database. Before that, the database must be backed up with `supabase/backup/pitches_backup.sh`.
