@@ -268,23 +268,28 @@ const BOX5='Box 5 is always scored as a missed spot';
   await p.waitForTimeout(200);
   const parked=await ev(()=>{const bat=document.getElementById('cxBat'),code=document.getElementById('cxCode');return {codeTop:code.getBoundingClientRect().top,batX:bat.querySelector('b').getBoundingClientRect().left};});
   const read=()=>ev(()=>{
-    const h=document.getElementById('cxAim'),bat=document.getElementById('cxBat'),code=document.getElementById('cxCode'),st=document.getElementById('cStatus');
-    const hr=h.getBoundingClientRect(),br=bat.getBoundingClientRect(),cr=code.getBoundingClientRect();
-    const node=h.firstChild,text=node&&node.textContent||'';
-    const range=document.createRange();
-    let shown='';
-    if(node&&node.nodeType===3){for(let i=0;i<text.length;i++){range.setStart(node,i);range.setEnd(node,i+1);const r=range.getBoundingClientRect();const cx=(r.left+r.right)/2,cy=(r.top+r.bottom)/2;if(cx>=hr.left-0.5&&cx<=hr.right+0.5&&cy>=hr.top-0.5&&cy<=hr.bottom+0.5)shown+=text[i];}}
-    const end=node&&text.length?(range.setStart(node,text.length-1),range.setEnd(node,text.length),range.getBoundingClientRect().right):0;
-    const spNode=bat.querySelector('b').nextSibling;
-    const space=spNode&&spNode.nodeType===3&&spNode.textContent.includes(' ')?(range.setStart(spNode,spNode.textContent.indexOf(' ')),range.setEnd(spNode,spNode.textContent.indexOf(' ')+1),range.getBoundingClientRect().width):0;
-    return {hint:text.trim(),shown,fit:h.scrollWidth<=h.clientWidth+1,gap:getComputedStyle(st).columnGap,sep:hr.left-br.right,ov:getComputedStyle(h).overflow,codeTop:cr.top,bat:bat.textContent.replace(/\s+/g,' ').trim(),batX:bat.querySelector('b').getBoundingClientRect().left,end,space,font:getComputedStyle(h).fontFamily};
+    const h=document.getElementById('cxAim'),bat=document.getElementById('cxBat'),code=document.getElementById('cxCode'),st=document.getElementById('cStatus'),toast=document.getElementById('cxHint');
+    const hr=h.getBoundingClientRect(),br=bat.getBoundingClientRect(),cr=code.getBoundingClientRect(),tr=toast.getBoundingClientRect(),sr=st.getBoundingClientRect();
+    const paint=(el,box)=>{const node=el.firstChild,text=node&&node.nodeType===3?node.textContent:'';const range=document.createRange();let shown='';
+      if(node&&node.nodeType===3){for(let i=0;i<text.length;i++){range.setStart(node,i);range.setEnd(node,i+1);const r=range.getBoundingClientRect();const cx=(r.left+r.right)/2,cy=(r.top+r.bottom)/2;if(cx>=box.left-0.5&&cx<=box.right+0.5&&cy>=box.top-0.5&&cy<=box.bottom+0.5)shown+=text[i];}}
+      const end=node&&text.length?(range.setStart(node,text.length-1),range.setEnd(node,text.length),range.getBoundingClientRect().right):0;
+      return {text:text.trim(),shown,end,fit:el.scrollWidth<=el.clientWidth+1};};
+    const a=paint(h,hr),t=paint(toast,tr),sp=bat.querySelector('b').nextSibling,si=sp&&sp.nodeType===3?sp.textContent.indexOf(' '):-1;
+    const gap=si>=0?(()=>{const r=document.createRange();r.setStart(sp,si);r.setEnd(sp,si+1);return r.getBoundingClientRect().width;})():0;
+    const hit=(x,y)=>!(x.right<=y.left+0.5||y.right<=x.left+0.5||x.bottom<=y.top+0.5||y.bottom<=x.top+0.5);
+    return {hint:a.text,shown:a.shown,fit:a.fit,end:a.end,gap:getComputedStyle(st).columnGap,sep:hr.left-br.right,ov:getComputedStyle(h).overflow,
+      codeTop:cr.top,bat:bat.textContent.replace(/\s+/g,' ').trim(),batX:bat.querySelector('b').getBoundingClientRect().left,space:gap,font:getComputedStyle(h).fontFamily,
+      toast:t.text,toastShown:t.shown,toastFit:t.fit,toastEnd:t.end,toastLabel:toast.getAttribute('aria-label')||'',cardR:sr.right,overlap:hit(hr,cr)||hit(tr,cr)};
   });
-  for(const [cell,hint] of [['FB 5','5: miss'],['CB 3','CB: low'],['DR 4','Drop: low'],['DC 6','DC: low'],['CH 2','CH: low']]){
+  const fb=[['FB 5','5: miss','Box 5 is always scored as a missed spot'],['CB 3','CB: low','curveball is usually not aimed up'],['DR 4','Drop: low','drop is usually not aimed in the middle row'],['DC 6','DC: low','drop curve is usually not aimed in the middle row'],['CH 2','CH: low','Change-ups are aimed low: 4, 7, 8, 9 or 13, 14, 18']];
+  for(const [cell,hint,full] of fb){
     if(cell==='CH 2')await ev(()=>{const d=pullDraft();d.type='CH';d.called=[2];d.calledFlag=true;d.actual=null;takeDraft({ok:true,draft:d});cMsg=null;render();});
     else await ev(t=>{curSheet().rows[0][0]=t;render();callCell(0,0);},cell);
     const row=await read();
     const same=Math.abs(row.batX-parked.batX)<0.5&&Math.abs(row.batX-410)<0.5&&row.bat==='#2 LHB ⚾ 0'&&row.space>=2;
-    ok(row.hint===hint&&row.shown===hint&&row.fit&&row.gap==='6px'&&row.sep>=5.5&&row.sep<=6.5&&row.ov==='visible'&&Math.abs(row.codeTop-parked.codeTop)<0.5&&same&&(hint!=='Drop: low'||row.end<550),'HM-9b coach 667 fallback font: '+hint+' paints in full, and #2 stays at x410 '+JSON.stringify(row));
+    const inCell=row.hint===hint&&row.shown===hint&&row.fit&&row.gap==='6px'&&row.sep>=5.5&&row.sep<=6.5&&row.ov==='visible'&&(hint!=='Drop: low'||row.end<550);
+    const inHint=row.hint===''&&row.toast===hint&&row.toastShown===hint&&row.toastLabel===full&&row.toastFit&&row.toastEnd<=row.cardR;
+    ok((inCell||inHint)&&!row.overlap&&Math.abs(row.codeTop-parked.codeTop)<0.5&&same,'HM-9b coach 667 fallback font: '+hint+' paints in full, and #2 stays at x410 '+JSON.stringify(row));
   }
   await c.close();}
 async function longBat(deja, setup, tag){
