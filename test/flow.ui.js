@@ -201,10 +201,11 @@ const BOX5='Box 5 is always scored as a missed spot';
     const hit=(a,b)=>!(a.right<=b.left||b.right<=a.left||a.bottom<=b.top||b.bottom<=a.top);
     const beside=!!first&&first.left>=br.right-1&&first.top<=br.bottom&&br.top<=first.bottom;
     const inside=pr.left>=sr.left-1&&pr.right<=sr.right+1&&pr.top>=sr.top-1&&pr.bottom<=sr.bottom+1;
+    const rects=[...range.getClientRects()];
+    const shown=rects.length>=1&&rects.every(r=>r.left>=sr.left-1&&r.right<=sr.right+1&&r.top>=sr.top-1&&r.bottom<=cr.top+1)&&h.scrollWidth<=h.clientWidth+1;
     return {hint:h.textContent.trim(),px:cs.fontSize,codePx:ccs.fontSize,batPx:bcs.fontSize,batLs:bcs.letterSpacing,
       code:code.textContent.replace(/\s+/g,' ').trim(),vis:ccs.visibility,seen:mid===code||code.contains(mid),
-      overlap:hit(hr,cr),beside,bat:bat.textContent.replace(/\s+/g,' ').trim(),
-      full:h.scrollHeight<=h.clientHeight+1&&h.scrollWidth<=h.clientWidth+1,
+      overlap:hit(hr,cr),beside,bat:bat.textContent.replace(/\s+/g,' ').trim(),full:shown,
       pitIn:inside&&pr.height>8&&!hit(pr,cr)&&!hit(pr,mr)&&(seenPit===pit||pit.contains(seenPit))};
   });
   ok(narrow.hint==='drop curve: not aimed middle'&&narrow.px==='13px'&&narrow.beside&&!narrow.overlap&&narrow.full,'HM-9b coach 667: the warning sits on its own line beside the batter '+JSON.stringify(narrow));

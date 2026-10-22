@@ -140,7 +140,7 @@ $('types').addEventListener('click',e=>{const c=e.target.dataset.c;if(!c)return;
 [['hL','L'],['hR','R'],['hN','N']].forEach(([id,h])=>$(id).onclick=()=>{$('batDlg').close('ok');setHand(h);});
 $('batTog').onclick=()=>openSheet($('batDlg'));$('bpTest').onclick=()=>toggleTest();
 // short: number and hand, no name. wide: icon plus name. The pitch count stays on every form.
-function batLabel(b,slot,hand,o){o=o||{};b=b||{};const side=hand==='L'?'LHB':'RHB';const rawNum=b.num?String(b.num):'';const rawName=b.name||('Batter '+(+slot+1));const num=rawNum?'#'+H(rawNum):'';const name=H(rawName);const who=num||name;const n=o.count==null?'':String(o.count);const ball=n===''?'':`<span title="Pitches">⚾ ${H(n)}</span>`;
+function batLabel(b,slot,hand,o){o=o||{};b=b||{};const side=hand==='L'?'LHB':'RHB';const rawNum=b.num?String(b.num):'';const rawName=b.name||('Batter '+(+slot+1));const num=rawNum?'#'+H(rawNum):'';const name=H(rawName);const who=num||name;const n=o.count==null?'':String(o.count);const ball=n===''?'':`<span class="pit" title="Pitches">⚾ ${H(n)}</span>`;
   const html=o.short?`<b>${who}</b> ${side}${ball?' '+ball:''}`:o.wide?`<span class="ic" aria-hidden="true">👤</span><b>${num?num+' ':''}${name}</b> · ${side}${ball?' · '+ball:''}`:`<b>${who}</b> · ${side}${ball?' · '+ball:''}`;
   return {html,label:[(rawNum?'#'+rawNum+' ':'')+rawName,side,n===''?'':'⚾ '+n].filter(Boolean).join(' · ')};}
 function reparseCall(){if(D.callTxt)D.parsed=PC.parseCall(D.callTxt,curHand(),pitcherHand(),S().customTypes);}
