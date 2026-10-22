@@ -365,10 +365,10 @@ body.padmode main{padding-bottom:calc(var(--pad-h,0px) + 12px)}
 .coach.compact .cs-hint{font-size:10px}
 .coach.compact .cs-hint.msg.warn{font-size:var(--fs-13);line-height:1.2}
 .cs-aimrow{display:contents}
-.coach.compact .cstatus:has(.cs-aim.warn){display:grid;grid-template-rows:auto auto auto 1fr;row-gap:1px;height:var(--c-sth);overflow:hidden}
+.coach.compact .cstatus:has(.cs-aim.warn){display:grid;grid-template-rows:auto calc(var(--fs-sm) * 2) auto 1fr;row-gap:1px;height:var(--c-sth);overflow:hidden}
 .coach.compact .cstatus:has(.cs-aim.warn) .cs-top{grid-row:1}
-.coach.compact .cstatus:has(.cs-aim.warn) .cs-aimrow{display:flow-root;grid-row:2;min-width:0}
-.coach.compact .cstatus:has(.cs-aim.warn) .cs-aimrow .cs-bat{float:left;margin-right:var(--s1)}
+.coach.compact .cstatus:has(.cs-aim.warn) .cs-aimrow{display:flow-root;grid-row:2;min-width:0;min-height:0;overflow:hidden}
+.coach.compact .cstatus:has(.cs-aim.warn) .cs-aimrow .cs-bat{float:left;margin-right:0;font-size:9px;letter-spacing:-.03em}
 .coach.compact .cstatus:has(.cs-aim.warn) .cs-call{grid-row:3;justify-self:start}
 .coach.compact .cstatus:has(.cs-aim.warn) .cs-aim.warn{display:block;margin:0;font-size:var(--fs-13);line-height:var(--fs-sm);font-weight:800;color:var(--c-coach-accent);white-space:normal;height:auto}
 .coach.compact .cstatus:has(.cs-aim.warn) .cs-foot{grid-row:4;align-self:end;margin:0}
