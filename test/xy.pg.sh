@@ -64,9 +64,7 @@ insert into public.pitches (id, team_id, mode, loc) values
   ('d7000000-0000-0000-0000-000000000004', 'u', 'game', 14);
 SQL
 
-# The backup refuses a folder inside the repo and a remote host without Jim's go-ahead.
-if bash "$bk" backup "$PWD/tmp-backup" 2>/dev/null; then echo "a backup inside the repo was allowed" >&2; exit 1; fi
-test ! -e "$PWD/tmp-backup"
+# The backup refuses a remote host without Jim's go-ahead.
 if SOURCE_URL='postgresql://u@db.example.com/x' bash "$bk" backup "$out/remote" 2>/dev/null; then echo "a remote backup ran without JIM_GO_AHEAD" >&2; exit 1; fi
 
 # Each way around the local-only guard is refused, before anything is written.
@@ -93,22 +91,42 @@ JIM_GO_AHEAD=yes PATH="$out/fake:$PATH" bash "$bk" backup "$out/go" >/dev/null
 test "$(ls "$out/go" | wc -l)" = 3
 echo "D-7 guard: PGHOSTADDR, PGSERVICE, PGSERVICEFILE, a SOURCE_URL with ? or host=, and a remote server address are refused; JIM_GO_AHEAD lets only backup through"
 
+# CI's Postgres is a service container. Through the port mapping the server sees its own bridge address, and the real guard refuses it.
+# There the runs below get 127.0.0.1 for the address query from a stub psql. Locally they go through the real check.
+lo=$PATH
+real=$(q -c "select coalesce(host(inet_server_addr()), 'socket')")
+case "$real" in
+  socket|127.0.0.1|::1) echo "D-7 guard: the real server address is $real, so the runs below use the real check";;
+  *) refuses "connected to $real" bash "$bk" verify "$out/neg.dump"
+     mkdir "$out/lo"
+     printf '#!/bin/bash\ncase "$*" in *inet_server_addr*) echo 127.0.0.1;; *) exec %s "$@";; esac\n' "$(command -v psql)" > "$out/lo/psql"
+     chmod +x "$out/lo/psql"
+     lo="$out/lo:$PATH"
+     echo "D-7 guard: the real guard refuses the container address $real, so the runs below report 127.0.0.1";;
+esac
+bkl() { PATH="$lo" bash "$bk" "$@"; }
+
+# The backup refuses a folder inside the repo.
+if bkl backup "$PWD/tmp-backup" 2>/dev/null; then echo "a backup inside the repo was allowed" >&2; exit 1; fi
+test ! -e "$PWD/tmp-backup"
+
 # Backup, then the sha256 verifies and the restore into a scratch schema matches the counts.
-dump=$(bash "$bk" backup "$out/bk" | tail -1)
+dump=$(bkl backup "$out/bk" | tail -1)
 name=$(basename "$dump" .dump)
 test -s "$dump"
 test -s "$out/bk/$name.dump.sha256"
 test "$(wc -l < "$out/bk/$name.counts.txt")" = 2
 grep -q '^t|3|' "$out/bk/$name.counts.txt"
 grep -q '^u|1|' "$out/bk/$name.counts.txt"
-bash "$bk" verify "$dump"
+bkl verify "$dump"
 test "$(q -c "select count(*) from information_schema.schemata where schema_name like 'scratch_%'")" = 0
 
 # A changed dump fails the sha256 check.
 mkdir "$out/bad"
 cp "$out/bk/$name".* "$out/bad/"
 printf 'x' >> "$out/bad/$name.dump"
-if bash "$bk" verify "$out/bad/$name.dump" >/dev/null 2>&1; then echo "a changed dump passed" >&2; exit 1; fi
+if bkl verify "$out/bad/$name.dump" >/dev/null 2>"$out/err"; then echo "a changed dump passed" >&2; exit 1; fi
+grep -q 'did NOT match' "$out/err"
 
 # Migrate (twice changes nothing), write (0.5, 0.5, 5), then roll back.
 q -f "$mig" >/dev/null
