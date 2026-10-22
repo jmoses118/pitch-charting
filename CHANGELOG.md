@@ -6,6 +6,7 @@
 - The call code stays 18px on the narrow coach screen, in the same place as when no warning shows. The batter number, hand and pitch count stay full size on the batter line. The warning sits in its own cell beside that line.
 - On the narrow coach screen that warning reads "5: miss", "CB: low", "CH: low", "Drop: low", or "DC: low". The full sentence stays in the screen-reader label. Wider screens and the pitch log keep the longer warning.
 - On that narrow screen the warning sits 6px from the pitch count, the bottom of "Drop" stays visible, and the batter's screen-reader label says how many pitches.
+- The batter number keeps that same inset when a warning shows, so it does not touch the blue rail or jump. Drop: low still ends inside the card.
 - Cache: `te-pitch-v89`.
 
 ## v88 – Shared code stays in one place
