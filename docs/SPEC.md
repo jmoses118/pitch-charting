@@ -95,7 +95,8 @@ The UI only renders these. `heatStats` is the per-type rollup.
   Night buttons, selects and inputs use a 2px border, the same as Field. Night fills (`--c-royal`) are #3A5CF0. If `theme.js` does not load, the page stays Night and the browser bar stays black.
   `themeColor` is #fff for field and #000 otherwise. The head script and the coach screen both use it. The head script keeps its names private.
   The Night status card and pitch-log rows use the same box as Field. A pressed Night primary is a darker shade of #3A5CF0. The coach screen still opens if `theme.js` does not load.
-- **VIEW-5** Jim ruled on 22 October 2026. On the narrow coach screen a tiny warning stays in the cell beside the batter when that cell can hold it. The tiny labels use normal letter spacing. In the normal font, `#2 LHB` keeps 5: miss, CB: low, CH: low, and DC: low in that cell. When the warning does not fit, it moves to the hint line and replaces the step prompt. That is `Drop: low` beside `#2 LHB`, a batter with no number, `#12` with 100 or more pitches, and every tiny label in the wider fallback font.
+- **VIEW-5** Jim ruled on 22 October 2026. On the narrow coach screen a tiny warning stays in the cell beside the batter when that cell can hold it. The tiny labels use normal letter spacing. In the normal font, `#2 LHB` keeps 5: miss, CB: low, CH: low, and DC: low in that cell.
+  When the warning does not fit, it moves to the hint line and replaces the step prompt. That is `Drop: low` beside `#2 LHB`, a batter with no number, `#12` with 100 or more pitches, and every tiny label in the wider fallback font.
   The aim text stays visible at 14px, 6px after the call code, as it is with no warning. The screen-reader label stays the full sentence.
 
 ## LATER (out of scope for v1: do not build)
