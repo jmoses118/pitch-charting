@@ -38,7 +38,9 @@ function hintText(){const cmp=$('coach').classList.contains('compact');if(sideCa
   const step=PC.scoreStep(pullDraft());
   if(step==='type')return['1',cmp?'Tap a cell':'Tap a wristband cell'];
   if(step==='called')return['2',cmp?'Aim?':'Tap the aim'];if(step==='actual')return['2',cmp?'Where?':'Tap where it went'];return['3',cmp?'Result?':'Tap the result'];}
+let aimHold=null;
 function renderHint(note){const e=$('cxHint');if(!e)return;const d=pullDraft();if(cMsg&&(!d.aimEdit||cMsg.kind==='warn')){e.className='cs-hint msg '+cMsg.kind;e.textContent=cMsg.t;if(cMsg.label)e.setAttribute('aria-label',cMsg.label);else e.removeAttribute('aria-label');return;}
+  if(aimHold){e.className='cs-hint msg warn';e.textContent=aimHold.text;if(aimHold.label)e.setAttribute('aria-label',aimHold.label);else e.removeAttribute('aria-label');return;}
   e.removeAttribute('aria-label');
   if(note==null)note=(D.ip||D.bbAsk)?'':PC.aimLine(d,{short:true});
   if(note&&!$('coach').classList.contains('compact')){e.className='cs-hint msg warn';e.textContent=note;return;}
@@ -92,7 +94,19 @@ function sizeCoach() {
   set("--mid", mid(z));
   fitCoachCol({ compact, z, k, cols, RH, LW, Hh, bandH, STH, ZG, ACT, set, v });
 }
-function placeAim(warn){const aim=$('cxAim'),row=$('cxAimRow'),call=$('cStatus').querySelector('.cs-call');if(!aim||!row||!call)return;if(warn){if(aim.parentNode!==row)row.appendChild(aim);}else if(aim.parentNode!==call)call.appendChild(aim);}
+function placeAim(warn){
+  const aim=$('cxAim'),row=$('cxAimRow'),call=$('cStatus').querySelector('.cs-call');
+  if(!aim||!row||!call)return;
+  if(!warn){aimHold=null;if(aim.parentNode!==call)call.appendChild(aim);return;}
+  if(aim.parentNode!==row)row.appendChild(aim);
+  if(aim.scrollWidth>aim.clientWidth){
+    aimHold={text:aim.textContent,label:aim.getAttribute('aria-label')||''};
+    aim.textContent='';
+    aim.classList.remove('warn');
+    aim.removeAttribute('aria-label');
+    if(aim.parentNode!==call)call.appendChild(aim);
+  }else aimHold=null;
+}
 function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,hand=curHand(),cp=curPitcherId();
   document.body.classList.toggle('mirror',PREF.get('mirror','0')==='1');
   // band
