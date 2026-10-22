@@ -2204,3 +2204,14 @@ test('D-6: a read clears a point whose xy_loc is not the resolved actualLoc',()=
   assert.equal(q.loc,31);
   XY_KEYS.forEach(key=>assert.strictEqual(q[key],null,key));
 });
+test('HM-9a drill: the up tag and sentence name the pitch type from BASE_TYPES',()=>{
+  assert.deepEqual(PC.upWords({CB:2}),{tag:'CB up',text:'2 curveballs were up in the zone.'});
+  assert.deepEqual(PC.upWords({CH:1}),{tag:'CH up',text:'1 change-up was up in the zone.'});
+  assert.deepEqual(PC.upWords({DR:1}),{tag:'DR up',text:'1 drop was up in the zone.'});
+  assert.deepEqual(PC.upWords({DC:2}),{tag:'DC up',text:'2 drop curves were up in the zone.'});
+  assert.deepEqual(PC.upWords({CH:1,CB:2}),{tag:'3 up',text:'3 pitches were up in the zone.'});
+  assert.equal(PC.upWords({}),null);assert.equal(PC.upWords(undefined),null);assert.equal(PC.upWords({CB:0}),null);
+  const d=PC.missData([[7,1],[7,2],[7,1],[7,8]].map(([t,l],i)=>({p:{type:i===2?'CH':'CB',targets:[t],loc:l}})),{});
+  assert.deepEqual(d.cells[7].land[1].upBy,{CB:1,CH:1});assert.deepEqual(d.cells[7].land[2].upBy,{CB:1});assert.equal(d.cells[7].land[8].upBy,undefined);
+  const dr=PC.missData([{p:{type:'DR',targets:[7],loc:5}},{p:{type:'DR',targets:[7],loc:16}}],{});
+  assert.deepEqual(dr.cells[7].land[5].upBy,{DR:1});assert.equal(dr.cells[7].land[16].upBy,undefined,'the 16/17 drop ring is not up');});

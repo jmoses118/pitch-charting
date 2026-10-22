@@ -67,8 +67,12 @@ function missData(items,f){
   // pitchMiss is the one severity. e.d is missD to the nearest target, the same number on every aimed cell.
   q.forEach(({p})=>{const m=pitchMiss(p);if(!m)return;const t=PC.calledBoxes(p),loc=landOf(p),sev=m.sev,mmMiss=m.mm,up=m.chUp,loose=looseHit(p,m),typ=!!m.typeMiss;total++;if(mmMiss)mm++;if(up)chu++;if(m.lowDirt)lowDirt++;
     t.forEach(z=>{const c=cells[z];if(!c)return;c.n++;c.sum+=sev;if(hitSpot(p,m))c.hit++;if(loose)c.loose++;if(onTarget(p,m))c.good=(c.good||0)+1;if(mmMiss)c.mm++;if(up)c.chUp=(c.chUp||0)+1;if(typ)c.typeMiss++;(c._v=c._v||[]).push(m);
-      const L=(c.land=c.land||{});const e=(L[loc]=L[loc]||{n:0,sev:0,mm:0,chUp:0,d:0,typeMiss:0});e.n++;e.sev=Math.max(e.sev,sev);e.d=m.d;if(mmMiss)e.mm++;if(up)e.chUp++;if(typ)e.typeMiss++;});});
+      const L=(c.land=c.land||{});const e=(L[loc]=L[loc]||{n:0,sev:0,mm:0,chUp:0,d:0,typeMiss:0});e.n++;e.sev=Math.max(e.sev,sev);e.d=m.d;if(mmMiss)e.mm++;if(up){e.chUp++;const u=(e.upBy=e.upBy||{}),k=penaltyType(p);u[k]=(u[k]||0)+1;}if(typ)e.typeMiss++;});});
   ALL_CELLS.forEach(z=>{const c=cells[z];if(!c.n)return;c.avg=Math.round(10*c.sum/c.n)/10;c.cls=missClass(c._v);c.strictPct=wholePct(c.hit,c.n);c.loosePct=wholePct(c.loose,c.n);delete c._v;});return{cells,total,matched:q.length,mm,chUp:chu,lowDirt};}
+// HM-9a. The drill's up tag and sentence name the type with the BASE_TYPES word. Mixed types say pitches.
+const typeWord=t=>{const b=PC.BASE_TYPES.find(x=>x.code===t);return b?b.name.toLowerCase():'pitch';};
+function upWords(by){const ks=Object.keys(by||{}).filter(k=>by[k]>0),n=ks.reduce((a,k)=>a+by[k],0);if(!n)return null;
+  const w=ks.length===1?typeWord(ks[0]):'pitch',pl=n===1?w:w+(w==='pitch'?'es':'s');return {tag:(ks.length===1?ks[0]:n)+' up',text:`${n} ${pl} ${n===1?'was':'were'} up in the zone.`};}
 // one sentence that always accounts for every pitch: shown + left out (no aim in Miss, no location in Landed)
 const pz=n=>`${n} pitch${n===1?'':'es'}`;
 function heatSummary(d,miss){const out=d.matched-d.total;
@@ -339,5 +343,5 @@ function shakeoffs(pitches){const P=(pitches||[]).filter(p=>!p.deleted&&countsAs
     list:S.map(p=>{const q=prevOf(p);const z=landOf(p);return{id:p.id,called:p.call||p.callRaw||'?',thrown:(p.type||'?')+(z!=null?' '+z:''),count:(p.b!=null&&p.s!=null)?`${p.b}-${p.s}`:'',
       prev:q?`${q.type||'?'} · ${outcomeOf(q)}`:'',outcome:outcomeOf(p),inning:p.inning,batter:p.batter||''};})};}
 Object.assign(PC,{shakeoffs,shakeLine,isHard,heatSummary,strikeOf,strikePct,hitSpot,looseHit,lowSample,missClass,medianMiss,middleBucket,heatStats,dirCounts,missTxt,MISS_DIRS,topDir,bestWeak,pitchMark,MARK_LABEL,recentPitches,heatItems,HEAT_KEYS,heatFilter,heatData});
-Object.assign(PC,{CH_MIN_SEV,GOOD_MAX_SEV,isGoodSev,wasteAim,isBullpenPitch,WAY_SEV,LOW_RING,LOW_TYPES,LOW_CALL,penaltyType,lowGood,adjSev,chUp,missData,MISS_CLASS,LAND_RAMP,LAND_STEPS,landStep,landColor,classColor,heatEdge,kCredit,summarize,pitchMiss,grpStats,TYPE_NAME,FIX,sessionReport,typeFeedback,COUNTS,countStats,trendPoints});
+Object.assign(PC,{CH_MIN_SEV,GOOD_MAX_SEV,isGoodSev,wasteAim,isBullpenPitch,WAY_SEV,LOW_RING,LOW_TYPES,LOW_CALL,penaltyType,lowGood,adjSev,chUp,missData,upWords,MISS_CLASS,LAND_RAMP,LAND_STEPS,landStep,landColor,classColor,heatEdge,kCredit,summarize,pitchMiss,grpStats,TYPE_NAME,FIX,sessionReport,typeFeedback,COUNTS,countStats,trendPoints});
 })(typeof window!=='undefined'?window:globalThis);

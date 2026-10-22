@@ -14,24 +14,24 @@ const heatTheme=()=>document.documentElement.dataset.theme;
 function heatBase(svg,o){zoneSVG(svg,'R',Object.assign({noNums:true,noSide:true},o));const th=heatTheme(),f=svg.querySelector('.zframe');f.style.stroke=PC.heatEdge(th);f.style.strokeWidth='1.4';return th;}
 function heatCell(el,col,th){el.style.fill=col.fill;el.style.stroke=PC.heatEdge(th);}
 const KID_LEGEND='<b>✓ Dark blue</b> = you hit your spot. <b>◐ Light blue</b> = 1 box off. <b>✗ Pale</b> = 2 or more boxes off. Each box shows how many were on target out of how many you aimed there. '+
-  '🎁 Souvenir = right down the middle when you didn\'t aim there. The biggest miss, because hitters send those out of the park. Change-ups only count when they finish low (bottom row or below) – a change-up up in the zone is a miss. '+
+  '🎁 Souvenir = right down the middle when you didn\'t aim there. The biggest miss, because hitters send those out of the park. A change-up or curve in the top row is a miss, and so is a drop or drop curve in the middle or top row. '+
   'The ring just outside the box is still a good, competitive pitch (hitters chase it): on or 1 box from your spot = on target. A change-up or drop just below the knees always counts as a good pitch. 🚫 Way off = nowhere near the plate, always a miss.';
 function paintKid(svg,d){const th=heatBase(svg);let ex='';PC.ALL_CELLS.forEach(z=>{const c=d.cells[z],el=svg.querySelector(`[data-z="${z}"]`);if(!el)return;const[cx,cy]=center(z);
   const col=PC.classColor(c.cls,th);heatCell(el,col,th);const tc=col.text;const g=c.good||0;const lbl=c.n?`Aimed here ${c.n} time${c.n===1?'':'s'}, ${g} on target${c.mm?`, ${c.mm} souvenir${c.mm===1?'':'s'}`:''}`:'Not aimed here';el.setAttribute('aria-label',lbl);el.innerHTML=`<title>${lbl}</title>`;
   if(c.n){ex+=`<text x="${cx}" y="${cy-2}" style="fill:${tc};font-size:7px;font-weight:800;text-anchor:middle;dominant-baseline:middle">${g}/${c.n}</text><text x="${cx}" y="${cy+5}" style="fill:${tc};font-size:3.8px;font-weight:700;text-anchor:middle">on target</text>`;if(c.mm)ex+=`<text x="${cx}" y="${cy+10}" style="fill:${tc};font-size:4.2px;font-weight:800;text-anchor:middle">🎁${c.mm}</text>`;}});svg.insertAdjacentHTML('beforeend',ex);}
 // ---------- tap-a-box drill-down ----------
 const DD_NAME=z=>z===5?'right down the middle':(z<10?'box '+z:'outside spot '+z);
-function openDrill(z,c,title){const svg=$('ddMap');const th=heatBase(svg,{orient:true});let ex='';const L=c.land||{};let near=0,far=0,mm=0,up=0;
+function openDrill(z,c,title){const svg=$('ddMap');const th=heatBase(svg,{orient:true});let ex='';const L=c.land||{};let near=0,far=0,mm=0;const up={};
   PC.ALL_CELLS.forEach(q=>{const el=svg.querySelector(`[data-z="${q}"]`);if(!el)return;const e=L[q];const[cx,cy]=center(q);
     const col=PC.landColor(e?e.n:0,th);heatCell(el,col,th);if(q==z)el.style.strokeWidth='2.2';
-    if(!e)return;const good=PC.isGoodSev(e.sev);if(e.mm)mm+=e.mm;if(e.chUp)up+=e.chUp;if(good)near+=e.n;else far+=e.n-(e.mm||0);
+    if(!e)return;const good=PC.isGoodSev(e.sev);if(e.mm)mm+=e.mm;for(const k in e.upBy||{})up[k]=(up[k]||0)+e.upBy[k];if(good)near+=e.n;else far+=e.n-(e.mm||0);
     const lbl=`${e.n} landed ${DD_NAME(q)}${good?' (on target)':e.mm?' – souvenir':' (missed)'}`;el.setAttribute('aria-label',lbl);el.innerHTML=`<title>${lbl}</title>`;
-    const[bx,by]=markPos(q);ex+=ballSVG(bx,by,e.n,e.mm?'souvenir':good?'good':'miss',5.4);if(e.chUp)ex+=`<text x="${cx}" y="${cy+9}" style="fill:${col.text};font-size:3.6px;font-weight:700;text-anchor:middle">CH up</text>`;});
+    const[bx,by]=markPos(q);ex+=ballSVG(bx,by,e.n,e.mm?'souvenir':good?'good':'miss',5.4);const uw=PC.upWords(e.upBy);if(uw)ex+=`<text x="${cx}" y="${cy+9}" style="fill:${col.text};font-size:3.6px;font-weight:700;text-anchor:middle">${uw.tag}</text>`;});
   const [tx,ty]=center(Number(z));ex+=`<text x="${tx}" y="${ty-9}" style="fill:${PC.landColor(L[z]?L[z].n:0,th).text};font-size:3.6px;font-weight:800;text-anchor:middle">AIM</text>`;svg.insertAdjacentHTML('beforeend',ex);
-  const W=[21,22,23,24].filter(q=>L[q]).map(q=>`${L[q].n} ${PC.WAY[q]}`);const wn=[21,22,23,24].reduce((a,q)=>a+(L[q]?L[q].n:0),0);
+  const W=[21,22,23,24].filter(q=>L[q]).map(q=>`${L[q].n} ${PC.WAY[q]}`);const wn=[21,22,23,24].reduce((a,q)=>a+(L[q]?L[q].n:0),0);const upw=PC.upWords(up);
   $('ddT').textContent=(title?title+' – ':'')+'aimed at '+DD_NAME(Number(z));
-  $('ddCap').innerHTML=`You aimed here <b>${c.n}</b> time${c.n===1?'':'s'}: <b>${near} on target</b> (or 1 box off)${far?`, <b>${far} missed</b>`:''}${mm?`, <b>${mm} souvenir${mm===1?'':'s'} 🎁</b>`:''}.`+(up?` ${up} change-up${up===1?' was':'s were'} up in the zone.`:'')+(wn?` <b>🚫 ${wn} way off</b> (${W.join(', ')}) – not shown on the grid.`:'');
-  $('ddKey').textContent='Outlined box = where you aimed. Numbers = how many landed there. The shade steps up every 2 pitches, as in the Landed view. 🎁 = souvenir, 🚫 way off = nowhere near the plate (listed above).';openSheet($('ddDlg'));}
+  $('ddCap').innerHTML=`You aimed here <b>${c.n}</b> time${c.n===1?'':'s'}: <b>${near} on target</b> (or 1 box off)${far?`, <b>${far} missed</b>`:''}${mm?`, <b>${mm} souvenir${mm===1?'':'s'} 🎁</b>`:''}.`+(upw?' '+upw.text:'')+(wn?` <b>🚫 ${wn} way off</b> (${W.join(', ')}) – not shown on the grid.`:'');
+  $('ddKey').textContent='Thick outline + AIM = where you aimed. Numbers = how many landed there. One shade step per 2 pitches, as in the Landed view. 🎁 = souvenir, 🚫 way off = nowhere near the plate (listed above).';openSheet($('ddDlg'));}
 $('ddClose').onclick=()=>$('ddDlg').close();
 function hookDrill(svg,d,title){svg.querySelectorAll('[data-z]').forEach(el=>{const z=el.dataset.z,c=d.cells[z];if(!c||!c.n)return;el.setAttribute('tabindex','0');el.setAttribute('role','button');el.style.cursor='pointer';
   const go=()=>openDrill(z,c,title);el.addEventListener('click',go);el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}});});}
