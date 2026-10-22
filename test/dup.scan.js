@@ -8,7 +8,7 @@
 const fs=require('fs'),path=require('path'),os=require('os'),{execSync}=require('child_process');
 const {readBase}=require('./git-base.js');
 const repo=path.join(__dirname,'..');
-const MIN_TOKENS=30,MIN_LINES=5;
+const MIN_TOKENS=30,MIN_LINES=5,MAX_LINES=5000;
 const PRETTIER='prettier@3.6.2',JSCPD='jscpd@4.0.5';
 const RESERVED=new Set('function const let var return null true false if else new this typeof void in of for while do switch case break continue throw try catch finally class extends super import export default from async await yield delete instanceof undefined get set'.split(' '));
 let fails=0;
@@ -24,9 +24,14 @@ function key(s){return s.file+':'+s.start+'-'+s.end;}
 function norm(c){let a=side(c.firstFile),b=side(c.secondFile);if(key(a)>key(b)){const t=a;a=b;b=t;}return{a,b};}
 function same(x,y){return key(x.a)===key(y.a)&&key(x.b)===key(y.b);}
 function jscpd(dir,minTokens){const out=path.join(dir,'report');fs.rmSync(out,{recursive:true,force:true});
-  execSync('npx --yes '+JSCPD+' js --min-lines '+MIN_LINES+' --min-tokens '+minTokens+' --threshold 100 --reporters json --output '+JSON.stringify(out)+' --silent',{cwd:dir,stdio:'pipe'});
+  execSync('npx --yes '+JSCPD+' js --min-lines '+MIN_LINES+' --max-lines '+MAX_LINES+' --min-tokens '+minTokens+' --threshold 100 --reporters json --output '+JSON.stringify(out)+' --silent',{cwd:dir,stdio:'pipe'});
   const rep=JSON.parse(fs.readFileSync(path.join(out,'jscpd-report.json'),'utf8'));
   return (rep.duplicates||[]).map(norm);}
+function scannedOf(dir){const rep=JSON.parse(fs.readFileSync(path.join(dir,'report','jscpd-report.json'),'utf8'));const names=[];
+  const formats=(rep.statistics&&rep.statistics.formats)||{};
+  for(const fmt of Object.values(formats))for(const name of Object.keys((fmt&&fmt.sources)||{}))names.push(relJs(name));
+  return names;}
+function missedJs(dir){const have=new Set(scannedOf(dir));return walk(path.join(dir,'js')).map(relJs).filter(f=>!have.has(f));}
 function gate(detected,baseline,minTokens,baseLine){const bad=[];
   const floor=Math.min(minTokens,baseline&&baseline.minTokens!=null?baseline.minTokens:minTokens);
   if(floor<MIN_TOKENS)bad.push('token floor lowered below '+MIN_TOKENS);
@@ -51,6 +56,9 @@ const formatted=copyJs();
 const pretty=formatDir(formatted);
 if(pretty){console.log(pretty);process.exit(1);}
 const detected=jscpd(formatted,MIN_TOKENS);
+const missed=missedJs(formatted);
+say(!missed.length,'every js file under js/ is scanned');
+if(missed.length)console.log('not scanned '+missed.join(', '));
 const realBad=gate(detected,baseline,MIN_TOKENS,baseLine);
 say(!realBad.length,'e real tree passes ('+detected.length+' clone'+(detected.length===1?'':'s')+')');
 if(realBad.length)console.log(realBad.slice(0,8).join('\n'));

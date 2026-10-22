@@ -103,8 +103,13 @@ const BOX5='Box 5 is always scored as a missed spot';
   const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());const ev=(f,a)=>p.evaluate(f,a);
   await p.goto(BASE);await ev(g=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';S.games=[g];S.activeGame='g1';S.sessions=[];__app.store.save();__app.render();},GAME);
   await p.click('nav [data-t="game"]');await p.waitForTimeout(200);
-  await p.click('#types [data-c="CB"]');await tapZ(p,3);await p.waitForTimeout(150);
+  await p.click('#types [data-c="CB"]');
+  const lay0=await ev(()=>{const z=document.getElementById('zone').getBoundingClientRect();return {y:z.top,scroll:document.documentElement.scrollHeight};});
+  await tapZ(p,3);await p.waitForTimeout(150);
   ok((await p.textContent('#phase')).trim()==='curveball is usually not aimed up','HM-9b portrait: curve on 3 warns and names the curveball');
+  ok(await ev(()=>getComputedStyle(document.getElementById('phase')).fontSize)==='13px','HM-9b portrait: the call warning is 13px');
+  const lay1=await ev(()=>{const z=document.getElementById('zone').getBoundingClientRect();const phase=document.getElementById('phase');return {y:z.top,scroll:document.documentElement.scrollHeight,lh:getComputedStyle(phase).lineHeight};});
+  ok(Math.abs(lay1.y-lay0.y)<1&&lay1.scroll===lay0.scroll,'HM-9b portrait: the warning does not move the zone '+JSON.stringify({before:lay0,after:{y:lay1.y,scroll:lay1.scroll,lh:lay1.lh}}));
   ok(await ev(()=>{const d=pullDraft();return d.called[0]===3&&PC.scoreStep(d)==='actual'&&!Object.hasOwn(d,'callWarn');}),'HM-9b portrait: curve on 3 is accepted and not stored');
   await tapZ(p,3);await p.waitForTimeout(100);await p.click('#resBtns [data-r="ball"]');await p.waitForTimeout(150);
   const logged=await ev(()=>{const x=__app.store.real.games[0].pitches.at(-1);const phase=getComputedStyle(document.getElementById('phase'));return {has:Object.hasOwn(x,'callWarn'),warn:PC.callWarnOf(x),short:PC.callWarnOf(x,{short:true}),log:document.getElementById('log').textContent,recent:document.getElementById('recent').textContent,px:phase.fontSize};});
@@ -112,14 +117,37 @@ const BOX5='Box 5 is always scored as a missed spot';
   await p.screenshot({path:`${SHOT}/flow-callwarn-cb3.png`});
   await ev(()=>{resetDraft();render();});await p.click('#types [data-c="FB"]');await tapZ(p,5);await p.waitForTimeout(150);
   ok((await p.textContent('#phase')).trim()===BOX5,'HM-9b portrait: fastball on 5 shows the box 5 warning');
+  ok(await ev(()=>getComputedStyle(document.getElementById('phase')).fontSize)==='13px','HM-9b portrait: the box 5 warning is 13px');
   ok(await ev(()=>pullDraft().called[0]===5&&PC.scoreStep(pullDraft())==='actual'),'HM-9b portrait: fastball on 5 is accepted');
   await ev(()=>{resetDraft();render();});await p.click('#types [data-c="CH"]');await tapZ(p,5);await p.waitForTimeout(150);
   const refused=await ev(()=>PC.aimRejectMsg('CH',5));
   const shown=((await p.textContent('#toast'))||'')+((await p.textContent('#phase'))||'');
   ok(shown.includes(refused)&&!shown.includes(BOX5)&&await ev(()=>!(pullDraft().called||[]).includes(5)),'HM-9b portrait: change-up on 5 stays a hard block ('+shown.trim()+')');
+  await ev(()=>{resetDraft();render();});
+  await p.click('#wbTog');await p.waitForTimeout(150);
+  await p.click('#wbTbl button[data-r="1"][data-c="6"]');await p.waitForTimeout(200);
+  await p.click('#shakeBtn');await p.waitForTimeout(150);
+  await p.click('#types [data-c="CH"]');await p.waitForTimeout(200);
+  const chLine=await ev(()=>{const phase=document.getElementById('phase');return {text:phase.textContent.trim(),px:getComputedStyle(phase).fontSize};});
+  ok(chLine.text==='Change-ups are aimed low: 4, 7, 8, 9 or 13, 14, 18'&&chLine.px==='13px','HM-9b portrait: a tapped change-up refusal is 13px '+JSON.stringify(chLine));
   await ev(()=>{resetDraft();render();});await p.click('#types [data-c="DR"]');await tapZ(p,4);await p.waitForTimeout(150);
   ok((await p.textContent('#phase')).trim()==='drop is usually not aimed in the middle row','HM-9b portrait: drop on 4 warns about the middle row');
+  ok(await ev(()=>getComputedStyle(document.getElementById('phase')).fontSize)==='13px','HM-9b portrait: the middle-row warning is 13px');
+  await tapZ(p,4);await p.waitForTimeout(100);await p.click('#resBtns [data-r="ball"]');await p.waitForTimeout(150);
+  const mid=await ev(()=>{const x=__app.store.real.games[0].pitches.at(-1);const phase=getComputedStyle(document.getElementById('phase'));return {short:PC.callWarnOf(x,{short:true}),full:PC.callWarnOf(x),log:document.getElementById('log').textContent,recent:document.getElementById('recent').textContent,px:phase.fontSize};});
+  ok(mid.short==='drop: not aimed middle'&&mid.full==='drop is usually not aimed in the middle row'&&mid.log.includes(mid.short)&&mid.recent.includes(mid.full)&&mid.px==='12px','HM-9b portrait: the log uses the short not-aimed-middle line and the step line stays 12px '+JSON.stringify({short:mid.short,px:mid.px}));
   ok(!errs.length,'HM-9b portrait: no page errors '+errs.join('|'));await c.close();}
+{const c=await b.newContext({viewport:{width:375,height:667},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());await c.addInitScript(()=>localStorage.setItem('te_ui_portrait_ok','1'));
+  const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());const ev=(f,a)=>p.evaluate(f,a);
+  await p.goto(BASE);await ev(g=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';S.games=[g];S.activeGame='g1';S.sessions=[];__app.store.save();__app.render();},GAME);
+  await p.click('nav [data-t="game"]');await p.waitForTimeout(200);
+  await p.click('#types [data-c="CB"]');
+  const lay0=await ev(()=>{const z=document.getElementById('zone').getBoundingClientRect();return {y:z.top,scroll:document.documentElement.scrollHeight};});
+  await tapZ(p,3);await p.waitForTimeout(150);
+  ok((await p.textContent('#phase')).trim()==='curveball is usually not aimed up','HM-9b portrait 375: curve on 3 warns');
+  const lay1=await ev(()=>{const z=document.getElementById('zone').getBoundingClientRect();const phase=document.getElementById('phase');return {y:z.top,scroll:document.documentElement.scrollHeight,lh:getComputedStyle(phase).lineHeight};});
+  ok(Math.abs(lay1.y-lay0.y)<1&&lay1.scroll===lay0.scroll,'HM-9b portrait 375: the warning does not move the zone '+JSON.stringify({before:lay0,after:{y:lay1.y,scroll:lay1.scroll,lh:lay1.lh}}));
+  ok(!errs.length,'HM-9b portrait 375: no page errors '+errs.join('|'));await c.close();}
 {const c=await b.newContext({viewport:{width:844,height:390},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());
   const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());const ev=f=>p.evaluate(f);
   await p.goto(BASE);await ev(()=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';S.games=[{id:'g1',date:'2026-10-14',opponent:'Storm',homeAway:'home',status:'active',started:1,lineup:[{slot:1,name:'Batter 1',num:'1',hand:'R'}],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:1},pitches:[]}];S.activeGame='g1';__app.store.save();__app.render();});
@@ -127,13 +155,13 @@ const BOX5='Box 5 is always scored as a missed spot';
   const hintIs=t=>p.waitForFunction(t=>document.getElementById('cxHint').textContent.trim()===t,t,{timeout:5000}).then(()=>true,()=>false);
   await ev(()=>{placeCall('FB',[]);render();});await p.click('#cZone button[data-z="5"]');await p.waitForTimeout(150);
   ok((await p.textContent('#cxHint')).trim()==='✎ Aim → 5','HM-9b coach: the aim confirmation shows before the warning');
-  ok(await hintIs('Box 5 = missed spot'),'HM-9b coach: the warning returns after the confirmation clears');
+  ok(await hintIs('Box 5: always a miss'),'HM-9b coach: the warning returns after the confirmation clears');
   await ev(()=>toast('View only – another phone is scoring'));await p.waitForTimeout(100);
   ok((await p.textContent('#cxHint')).trim()==='View only – another phone is scoring','HM-9b coach: an active toast shows before the warning');
-  ok(await hintIs('Box 5 = missed spot'),'HM-9b coach: the warning returns after the toast clears');
+  ok(await hintIs('Box 5: always a miss'),'HM-9b coach: the warning returns after the toast clears');
   const shown=async()=>{const hint=(await p.textContent('#cxHint')).trim();const fit=await ev(()=>{const h=document.getElementById('cxHint'),s=document.getElementById('cStatus'),hr=h.getBoundingClientRect(),sr=s.getBoundingClientRect(),cs=getComputedStyle(h);const lines=Math.round(h.clientHeight/parseFloat(cs.lineHeight));return {in:hr.top>=sr.top-1&&hr.bottom<=sr.bottom+1&&hr.left>=sr.left-1&&hr.right<=sr.right+1&&h.scrollHeight<=h.clientHeight+1&&h.scrollWidth<=h.clientWidth+1,px:cs.fontSize,lh:cs.lineHeight,color:cs.color,clamp:cs.webkitLineClamp,lines};});return {hint,fit};};
   let box=await shown();
-  ok(box.hint==='Box 5 = missed spot'&&box.fit.in&&box.fit.px==='13px'&&box.fit.lh==='15.6px'&&box.fit.color==='rgb(157, 178, 255)'&&box.fit.clamp==='2'&&box.fit.lines<=2,'HM-9b coach: fastball on 5 shows the short box 5 warning ('+JSON.stringify(box)+')');
+  ok(box.hint==='Box 5: always a miss'&&box.fit.in&&box.fit.px==='13px'&&box.fit.lh==='15.6px'&&box.fit.color==='rgb(157, 178, 255)'&&box.fit.clamp==='2'&&box.fit.lines<=2,'HM-9b coach: fastball on 5 shows the short box 5 warning ('+JSON.stringify(box)+')');
   ok(await ev(()=>pullDraft().called[0]===5&&PC.scoreStep(pullDraft())==='actual'),'HM-9b coach: fastball on 5 is accepted');
   await p.screenshot({path:`${SHOT}/flow-callwarn-coach.png`});
   await p.click('#cZone button[data-z="5"]');await p.waitForTimeout(100);
@@ -141,9 +169,9 @@ const BOX5='Box 5 is always scored as a missed spot';
   await p.click('#cRes [data-ip="out"]');await p.waitForTimeout(100);
   const contact=await ev(()=>{const h=document.getElementById('cxHint'),r=h.getBoundingClientRect();return {hide:h.classList.contains('hide'),bb:!!D.bbAsk,h:r.height};});
   ok(contact.bb&&contact.hide&&contact.h<1,'HM-9b coach: the warning stays hidden while the contact chips show '+JSON.stringify(contact));
-  await ev(()=>{D.bbAsk=null;D.ip=false;placeCall('DC',[]);render();});await p.click('#cZone button[data-z="6"]');await hintIs('drop curve: not middle');
+  await ev(()=>{D.bbAsk=null;D.ip=false;placeCall('DC',[]);render();});await p.click('#cZone button[data-z="6"]');await hintIs('drop curve: not aimed middle');
   box=await shown();
-  ok(box.hint==='drop curve: not middle'&&box.fit.in&&box.fit.lines<=2,'HM-9b coach: drop curve on 6 shows the short middle warning ('+JSON.stringify(box)+')');
+  ok(box.hint==='drop curve: not aimed middle'&&box.fit.in&&box.fit.lines<=2,'HM-9b coach: drop curve on 6 shows the short middle warning ('+JSON.stringify(box)+')');
   await ev(()=>{placeCall('CH',[]);render();});await p.click('#cZone button[data-z="2"]');await p.waitForTimeout(150);
   const blocked=await ev(()=>{const h=document.getElementById('cxHint'),cs=getComputedStyle(h);return {text:h.textContent,color:cs.color,hidden:h.classList.contains('hide')};});
   ok(!(await ev(()=>(pullDraft().called||[]).length))&&/aim low|CH: aim low/i.test(blocked.text)&&blocked.color==='rgb(157, 178, 255)'&&!blocked.hidden,'HM-9b coach: change-up on 2 stays a hard block in team blue ('+JSON.stringify(blocked)+')');
@@ -153,11 +181,162 @@ const BOX5='Box 5 is always scored as a missed spot';
   ok(!errs.length,'HM-9b coach: no page errors '+errs.join('|'));await c.close();}
 {const c=await b.newContext({viewport:{width:667,height:375},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());
   const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));const ev=f=>p.evaluate(f);
-  await p.goto(BASE);await ev(()=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';S.games=[{id:'g1',date:'2026-10-14',opponent:'Storm',homeAway:'home',status:'active',started:1,lineup:[{slot:1,name:'Batter 1',num:'1',hand:'R'}],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:1},pitches:[]}];S.activeGame='g1';__app.store.save();__app.render();});
+  await p.goto(BASE);await p.addStyleTag({content:'#coach,#coach *{font-family:"DejaVu Sans",sans-serif !important}'});await ev(()=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';S.games=[{id:'g1',date:'2026-10-14',opponent:'Storm',homeAway:'home',status:'active',started:1,lineup:[{slot:1,name:'Batter 2',num:'2',hand:'L'}],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:1},pitches:[]}];S.activeGame='g1';__app.store.save();__app.render();});
   await p.waitForTimeout(300);
-  await ev(()=>{placeCall('DC',[]);render();});await p.click('#cZone button[data-z="6"]');
-  await p.waitForFunction(()=>document.getElementById('cxHint').textContent.trim()==='drop curve: not middle',null,{timeout:5000}).catch(()=>{});
-  const narrow=await ev(()=>{const h=document.getElementById('cxHint'),cs=getComputedStyle(h);return {hint:h.textContent.trim(),px:cs.fontSize,lines:Math.round(h.clientHeight/parseFloat(cs.lineHeight)),fit:h.scrollHeight<=h.clientHeight+1&&h.scrollWidth<=h.clientWidth+1};});
-  ok(narrow.hint==='drop curve: not middle'&&narrow.px==='13px'&&narrow.lines<=2&&narrow.fit,'HM-9b coach 667: short warning is 13px and at most two lines '+JSON.stringify(narrow));
+  await ev(()=>{curSheet().rows[0][0]='DC 6';render();});
+  const coachAt=()=>ev(()=>{
+    const bat=document.getElementById('cxBat'),menu=document.getElementById('cxMenu'),zone=document.getElementById('cZone'),st=document.getElementById('cStatus'),code=document.getElementById('cxCode');
+    const br=bat.getBoundingClientRect(),mr=menu.getBoundingClientRect(),zr=zone.getBoundingClientRect(),sr=st.getBoundingClientRect(),cr=code.getBoundingClientRect();
+    return {bat:bat.textContent.replace(/\s+/g,' ').trim(),aria:bat.getAttribute('aria-label')||'',on:getComputedStyle(bat).display!=='none'&&br.height>1,menuX:mr.left,menuY:mr.top,zone:zr.top,st:sr.height,codeTop:cr.top,codeLeft:cr.left,batX:bat.querySelector('b').getBoundingClientRect().left};
+  });
+  const parked=await coachAt();
+  ok(parked.on&&parked.bat.includes('#2 · LHB')&&parked.bat.includes('⚾')&&parked.st===112&&Math.abs(parked.menuX-506)<0.5&&Math.abs(parked.menuY-71)<0.5&&Math.abs(parked.batX-410)<0.5,'HM-9b coach 667: the batter line starts full at x410, matching main, and the menu is at 506, 71 '+JSON.stringify(parked));
+  await p.click('#cBand button[data-r="0"][data-c="0"]');
+  await p.waitForFunction(()=>document.getElementById('cxAim').textContent.trim()===PC.aimLine(pullDraft(),{tiny:true}),null,{timeout:5000}).catch(()=>{});
+  const warnAt=()=>ev(()=>{
+    const h=document.getElementById('cxAim'),code=document.getElementById('cxCode'),bat=document.getElementById('cxBat');
+    const menu=document.getElementById('cxMenu'),st=document.getElementById('cStatus'),pit=bat.querySelector('.pit');
+    const cs=getComputedStyle(h),ccs=getComputedStyle(code),bcs=getComputedStyle(bat);
+    const hr=h.getBoundingClientRect(),cr=code.getBoundingClientRect(),br=bat.getBoundingClientRect();
+    const mr=menu.getBoundingClientRect(),sr=st.getBoundingClientRect(),pr=pit.getBoundingClientRect();
+    const at=r=>document.elementFromPoint(r.left+Math.min(12,r.width/2),r.top+r.height/2);
+    const mid=at(cr),seenPit=at(pr),range=document.createRange();
+    const node=h.firstChild,text=node&&node.nodeType===3?node.textContent:'';
+    let shown='';
+    if(node&&node.nodeType===3){for(let i=0;i<text.length;i++){range.setStart(node,i);range.setEnd(node,i+1);const r=range.getBoundingClientRect();const cx=(r.left+r.right)/2,cy=(r.top+r.bottom)/2;if(cx>=hr.left-0.5&&cx<=hr.right+0.5&&cy>=hr.top-0.5&&cy<=hr.bottom+0.5)shown+=text[i];}}
+    range.selectNodeContents(h);
+    const raw=[...range.getClientRects()].filter(r=>r.width>0.5&&r.height>0.5);
+    const clip=(r,box)=>({left:Math.max(r.left,box.left),right:Math.min(r.right,box.right),top:Math.max(r.top,box.top),bottom:Math.min(r.bottom,box.bottom)});
+    const rects=raw.map(r=>clip(r,hr)).filter(r=>r.right-r.left>0.5&&r.bottom-r.top>0.5);
+    const first=rects[0];
+    const hit=(a,b)=>!(a.right<=b.left+0.5||b.right<=a.left+0.5||a.bottom<=b.top+0.5||b.bottom<=a.top+0.5);
+    const pi=text.indexOf('p');
+    const pBottom=node&&pi>=0?(range.setStart(node,pi),range.setEnd(node,pi+1),range.getBoundingClientRect().bottom):null;
+    const end=node&&text.length?(range.setStart(node,text.length-1),range.setEnd(node,text.length),range.getBoundingClientRect().right):0;
+    const batX=bat.querySelector('b').getBoundingClientRect().left;
+    const spNode=bat.querySelector('b').nextSibling;
+    const space=spNode&&spNode.nodeType===3&&spNode.textContent.includes(' ')?(range.setStart(spNode,spNode.textContent.indexOf(' ')),range.setEnd(spNode,spNode.textContent.indexOf(' ')+1),range.getBoundingClientRect().width):0;
+    const toast=document.getElementById('cxHint'),tr=toast.getBoundingClientRect();
+    const tNode=toast.firstChild,tText=tNode&&tNode.nodeType===3?tNode.textContent:'';
+    let toastShown='';
+    if(tNode&&tNode.nodeType===3){for(let i=0;i<tText.length;i++){range.setStart(tNode,i);range.setEnd(tNode,i+1);const r=range.getBoundingClientRect();const cx=(r.left+r.right)/2,cy=(r.top+r.bottom)/2;if(cx>=tr.left-0.5&&cx<=tr.right+0.5&&cy>=tr.top-0.5&&cy<=tr.bottom+0.5)toastShown+=tText[i];}}
+    const toastEnd=tNode&&tText.length?(range.setStart(tNode,tText.length-1),range.setEnd(tNode,tText.length),range.getBoundingClientRect().right):0;
+    const beside=!!first&&first.left>=br.right-1&&first.top<=br.bottom&&br.top<=first.bottom;
+    const inside=pr.left>=sr.left-1&&pr.right<=sr.right+1&&pr.top>=sr.top-1&&pr.bottom<=sr.bottom+1;
+    const pitMid=(pr.top+pr.bottom)/2;
+    const pitOn=pr.height>8&&pitMid>=br.top&&pitMid<=br.bottom&&pr.left>=br.left-1&&pr.right<=br.right+1;
+    return {hint:h.textContent.trim(),label:h.getAttribute('aria-label')||'',px:cs.fontSize,fw:cs.fontWeight,ls:cs.letterSpacing,callGap:hr.left-cr.right,aimTop:hr.top,codePx:ccs.fontSize,batPx:bcs.fontSize,batLs:bcs.letterSpacing,
+      code:code.textContent.replace(/\s+/g,' ').trim(),vis:ccs.visibility,seen:mid===code||code.contains(mid),
+      overlap:hit(hr,cr)||rects.some(r=>hit(r,cr)),beside,bat:bat.textContent.replace(/\s+/g,' ').trim(),
+      pitIn:inside&&pr.height>8&&!hit(pr,cr)&&!hit(pr,mr)&&(seenPit===pit||pit.contains(seenPit)),
+      pitOn,codeTop:cr.top,codeLeft:cr.left,lines:rects.length,shown,fit:h.scrollWidth<=h.clientWidth+1,indent:cs.textIndent,col:cs.gridColumn,clamp:cs.webkitLineClamp,
+      gap:getComputedStyle(st).columnGap,ov:cs.overflow,sep:hr.left-br.right,aimBottom:hr.bottom,pBottom,batX,end,space,
+      toast:toast.textContent.trim(),toastShown,toastLabel:toast.getAttribute('aria-label')||'',toastFit:toast.scrollWidth<=toast.clientWidth+1,toastEnd,cardR:sr.right,toastOverlap:hit(tr,cr)};
+  });
+  const narrow=await warnAt();
+  const narrowExp=await ev(()=>({tiny:PC.aimLine(pullDraft(),{tiny:true}),full:PC.aimLine(pullDraft())}));
+  ok(narrow.hint==='DC: low'&&narrow.hint===narrowExp.tiny&&narrow.shown===narrow.hint&&narrow.lines===1&&narrow.fit&&narrow.px==='13px'&&narrow.ls==='normal'&&narrow.beside&&!narrow.overlap,'HM-9b coach 667: DC: low paints in full on one line beside the batter '+JSON.stringify(narrow));
+  ok(narrow.label===narrowExp.full&&narrow.label==='drop curve is usually not aimed in the middle row'&&narrow.indent==='0px'&&/^2(\s|\/|$)/.test(narrow.col),'HM-9b coach 667: the warning cell keeps the full sentence for the screen reader '+JSON.stringify(narrow));
+  ok(/DC 6/.test(narrow.code)&&narrow.codePx==='18px'&&narrow.vis==='visible'&&narrow.seen&&Math.abs(narrow.codeTop-parked.codeTop)<0.5,'HM-9b coach 667: the call code stays 18px and in the same place '+JSON.stringify({narrow,parked:parked.codeTop}));
+  ok(narrow.batPx==='11px'&&narrow.batLs==='normal'&&narrow.space>=2&&narrow.pitIn&&narrow.pitOn&&narrow.bat==='#2 LHB ⚾ 0','HM-9b coach 667: the batter number, hand and pitch count stay on the batter line with a real space '+JSON.stringify(narrow));
+  const aimed=await coachAt();
+  await p.click('#cZone button[data-z="16"]');await p.waitForTimeout(150);
+  const resulted=await coachAt();
+  const still=(row,name)=>ok(row.on&&row.bat.includes('#2')&&row.bat.includes('LHB')&&row.bat.includes('⚾')&&row.aria.includes('Batter 2')&&row.aria.includes('LHB')&&row.aria.includes('0 pitches')&&!row.aria.includes('⚾'),'HM-9b coach 667: the batter line stays up '+name+' '+JSON.stringify(row));
+  still(aimed,'on the aim');still(resulted,'on the result');
+  const held=row=>Math.abs(row.menuX-parked.menuX)<0.5&&Math.abs(row.menuY-parked.menuY)<0.5&&Math.abs(row.zone-parked.zone)<0.5&&row.st===112&&Math.abs(row.batX-parked.batX)<0.5&&Math.abs(row.batX-410)<0.5;
+  ok(held(aimed)&&held(resulted),'HM-9b coach 667: menu and zone stay at the start '+JSON.stringify({parked,aimed,resulted}));
+  await ev(()=>{curSheet().rows[0][0]='FB 4';render();callCell(0,0);});await p.waitForTimeout(80);
+  const plain=await warnAt();
+  ok(plain.hint==='aim 4'&&plain.px==='14px'&&plain.fw==='800'&&plain.callGap>=5.5&&plain.callGap<=6.5&&!plain.overlap&&/Where\?/.test(plain.toast),'VIEW-5: with no warning the aim is 14px, 6px after the call code '+JSON.stringify(plain));
+  const warns=[['FB 5','5: miss','Box 5 is always scored as a missed spot','cell'],['CB 3','CB: low','curveball is usually not aimed up','cell'],['DR 4','Drop: low','drop is usually not aimed in the middle row','hint'],['DC 6','DC: low','drop curve is usually not aimed in the middle row','cell']];
+  for(const [cell,hint,full,where] of warns){
+    await p.evaluate(t=>{curSheet().rows[0][0]=t;render();callCell(0,0);},cell);await p.waitForTimeout(80);
+    const row=await warnAt();
+    const exp=await p.evaluate(()=>({tiny:PC.aimLine(pullDraft(),{tiny:true}),full:PC.aimLine(pullDraft())}));
+    const room=row.gap==='6px'&&row.sep>=5.5&&row.sep<=6.5&&row.ov==='visible'&&row.aimBottom<=row.codeTop+0.5&&Math.abs(row.codeLeft-parked.codeLeft)<0.5;
+    const desc=hint!=='Drop: low'||(row.pBottom>row.aimBottom+0.4);
+    const inCell=row.hint===exp.tiny&&row.shown===row.hint&&row.label===exp.full&&row.lines===1&&row.fit&&!row.overlap&&room&&desc&&row.ls==='normal'&&row.indent==='0px'&&/^2(\s|\/|$)/.test(row.col)&&(hint!=='Drop: low'||row.end<550)&&/Where\?/.test(row.toast);
+    const inHint=row.hint==='aim '+cell.slice(-1)&&row.shown===row.hint&&row.toast===exp.tiny&&row.toastShown===exp.tiny&&row.toastLabel===exp.full&&row.toastFit&&row.toastEnd<=row.cardR&&!row.toastOverlap&&!row.overlap&&row.px===plain.px&&row.fw===plain.fw&&row.ls===plain.ls&&row.callGap>=5.5&&row.callGap<=6.5&&Math.abs(row.aimTop-plain.aimTop)<0.5&&!/Where\?|Result\?/.test(row.toast);
+    const one=where==='hint'?inHint&&!inCell:inCell&&!inHint;
+    ok(exp.tiny===hint&&exp.full===full&&one&&row.bat==='#2 LHB ⚾ 0'&&row.space>=2&&row.pitOn&&Math.abs(row.codeTop-parked.codeTop)<0.5&&row.codePx==='18px'&&Math.abs(row.batX-parked.batX)<0.5&&Math.abs(row.batX-410)<0.5,'VIEW-5: normal font '+(where==='hint'?'moves '+hint+' to the hint, aim 14px and 6px after the code':'keeps '+hint+' in the cell beside #2')+' '+JSON.stringify(row));
+  }
+  await ev(()=>{const d=pullDraft();d.type='CH';d.called=[2];d.calledFlag=true;d.actual=null;takeDraft({ok:true,draft:d});cMsg=null;render();});await p.waitForTimeout(80);
+  const ch=await warnAt();
+  const chExp=await ev(()=>({tiny:PC.aimLine(pullDraft(),{tiny:true}),full:PC.aimLine(pullDraft())}));
+  ok(chExp.tiny==='CH: low'&&chExp.full==='Change-ups are aimed low: 4, 7, 8, 9 or 13, 14, 18'&&ch.hint===chExp.tiny&&ch.shown===ch.hint&&ch.label===chExp.full&&ch.lines===1&&ch.fit&&!ch.overlap&&ch.ls==='normal'&&ch.indent==='0px'&&/^2(\s|\/|$)/.test(ch.col)&&ch.bat==='#2 LHB ⚾ 0'&&ch.pitOn&&Math.abs(ch.codeTop-parked.codeTop)<0.5&&/Where\?/.test(ch.toast),'VIEW-5: normal font keeps CH: low in the cell beside #2 '+JSON.stringify(ch));
   ok(!errs.length,'HM-9b coach 667: no page errors '+errs.join('|'));await c.close();}
+{const c=await b.newContext({viewport:{width:667,height:375},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());
+  const p=await c.newPage();const ev=(f,a)=>p.evaluate(f,a);
+  await p.goto(BASE);
+  // The 0.12em batter spacing stands in for a wider fallback font: it widens only the batter line, so the warning cell beside it starts further right.
+  await p.addStyleTag({content:'#coach,#coach *{font-family:"DejaVu Sans",sans-serif !important}#coach .cs-bat{letter-spacing:0.12em !important}'});
+  await ev(()=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';S.games=[{id:'g1',date:'2026-10-14',opponent:'Storm',homeAway:'home',status:'active',started:1,lineup:[{slot:1,name:'Batter 2',num:'2',hand:'L'}],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:1},pitches:[]}];S.activeGame='g1';__app.store.save();__app.render();});
+  await p.waitForTimeout(200);
+  const parked=await ev(()=>{const bat=document.getElementById('cxBat'),code=document.getElementById('cxCode');return {codeTop:code.getBoundingClientRect().top,batX:bat.querySelector('b').getBoundingClientRect().left};});
+  const read=()=>ev(()=>{
+    const h=document.getElementById('cxAim'),bat=document.getElementById('cxBat'),code=document.getElementById('cxCode'),st=document.getElementById('cStatus'),toast=document.getElementById('cxHint');
+    const hr=h.getBoundingClientRect(),br=bat.getBoundingClientRect(),cr=code.getBoundingClientRect(),tr=toast.getBoundingClientRect(),sr=st.getBoundingClientRect();
+    const paint=(el,box)=>{const node=el.firstChild,text=node&&node.nodeType===3?node.textContent:'';const range=document.createRange();let shown='';
+      if(node&&node.nodeType===3){for(let i=0;i<text.length;i++){range.setStart(node,i);range.setEnd(node,i+1);const r=range.getBoundingClientRect();const cx=(r.left+r.right)/2,cy=(r.top+r.bottom)/2;if(cx>=box.left-0.5&&cx<=box.right+0.5&&cy>=box.top-0.5&&cy<=box.bottom+0.5)shown+=text[i];}}
+      const end=node&&text.length?(range.setStart(node,text.length-1),range.setEnd(node,text.length),range.getBoundingClientRect().right):0;
+      return {text:text.trim(),shown,end,fit:el.scrollWidth<=el.clientWidth+1};};
+    const a=paint(h,hr),t=paint(toast,tr),sp=bat.querySelector('b').nextSibling,si=sp&&sp.nodeType===3?sp.textContent.indexOf(' '):-1;
+    const gap=si>=0?(()=>{const r=document.createRange();r.setStart(sp,si);r.setEnd(sp,si+1);return r.getBoundingClientRect().width;})():0;
+    const hit=(x,y)=>!(x.right<=y.left+0.5||y.right<=x.left+0.5||x.bottom<=y.top+0.5||y.bottom<=x.top+0.5);
+    const acs=getComputedStyle(h);
+    return {hint:a.text,shown:a.shown,fit:a.fit,end:a.end,px:acs.fontSize,fw:acs.fontWeight,callGap:hr.left-cr.right,gap:getComputedStyle(st).columnGap,sep:hr.left-br.right,ov:getComputedStyle(h).overflow,
+      codeTop:cr.top,bat:bat.textContent.replace(/\s+/g,' ').trim(),batX:bat.querySelector('b').getBoundingClientRect().left,space:gap,font:getComputedStyle(h).fontFamily,
+      toast:t.text,toastShown:t.shown,toastFit:t.fit,toastEnd:t.end,toastLabel:toast.getAttribute('aria-label')||'',cardR:sr.right,overlap:hit(hr,cr)||hit(tr,cr),warn:h.classList.contains('warn'),prompt:(toast.textContent||'').replace(/\s+/g,' ').trim()};
+  });
+  const fb=[['FB 5','5: miss','Box 5 is always scored as a missed spot','aim 5'],['CB 3','CB: low','curveball is usually not aimed up','aim 3'],['DR 4','Drop: low','drop is usually not aimed in the middle row','aim 4'],['DC 6','DC: low','drop curve is usually not aimed in the middle row','aim 6'],['CH 2','CH: low','Change-ups are aimed low: 4, 7, 8, 9 or 13, 14, 18','aim 2 ✎']];
+  for(const [cell,hint,full,aim] of fb){
+    if(cell==='CH 2')await ev(()=>{const d=pullDraft();d.type='CH';d.called=[2];d.calledFlag=true;d.actual=null;takeDraft({ok:true,draft:d});cMsg=null;render();});
+    else await ev(t=>{curSheet().rows[0][0]=t;render();callCell(0,0);},cell);
+    const row=await read();
+    const same=Math.abs(row.batX-parked.batX)<0.5&&Math.abs(row.batX-410)<0.5&&row.bat==='#2 LHB ⚾ 0'&&row.space>=2;
+    const inCell=row.hint===hint&&row.shown===hint&&row.fit&&row.gap==='6px'&&row.sep>=5.5&&row.sep<=6.5&&row.ov==='visible'&&(hint!=='Drop: low'||row.end<550)&&/Where\?/.test(row.prompt);
+    const inHint=row.hint===aim&&row.shown===aim&&row.toast===hint&&row.toastShown===hint&&row.toastLabel===full&&row.toastFit&&row.toastEnd<=row.cardR&&row.warn&&row.gap==='6px'&&row.px==='14px'&&row.fw==='800'&&row.callGap>=5.5&&row.callGap<=6.5&&!/Where\?|Result\?/.test(row.prompt);
+    const one=inHint&&!inCell;
+    ok(one&&!row.overlap&&Math.abs(row.codeTop-parked.codeTop)<0.5&&same,'VIEW-5: wider fallback font moves '+hint+' to the hint, aim 14px and 6px after the code '+JSON.stringify(row));
+  }
+  await c.close();}
+async function longBat(deja, setup, tag){
+  const c=await b.newContext({viewport:{width:667,height:375},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());
+  const p=await c.newPage();const ev=(f,a)=>p.evaluate(f,a);
+  await p.goto(BASE);
+  if(deja)await p.addStyleTag({content:'#coach,#coach *{font-family:"DejaVu Sans",sans-serif !important}'});
+  await ev(s=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';
+    const hand=s.hand,num=s.num,n=s.pitches;
+    S.games=[{id:'g1',date:'2026-10-14',opponent:'Storm',homeAway:'home',status:'active',started:1,lineup:[{slot:1,name:'Batter 2',num,hand}],cur:{inning:1,outs:0,slot:0,b:0,s:0,hand,abn:1},pitches:Array.from({length:n},()=>({pitcherId:'p_a'}))}];
+    S.activeGame='g1';__app.store.save();__app.render();},setup);
+  await p.waitForTimeout(200);
+  const parked=await ev(()=>{const bat=document.getElementById('cxBat'),code=document.getElementById('cxCode'),menu=document.getElementById('cxMenu'),zone=document.getElementById('cZone'),st=document.getElementById('cStatus');
+    return {batX:bat.querySelector('b').getBoundingClientRect().left,codeTop:code.getBoundingClientRect().top,codeLeft:code.getBoundingClientRect().left,menuX:menu.getBoundingClientRect().left,menuY:menu.getBoundingClientRect().top,zone:zone.getBoundingClientRect().top,st:st.getBoundingClientRect().height};});
+  await ev(()=>{curSheet().rows[0][0]='DR 4';render();callCell(0,0);});
+  const row=await ev(()=>{
+    const aim=document.getElementById('cxAim'),toast=document.getElementById('cxHint'),bat=document.getElementById('cxBat'),code=document.getElementById('cxCode'),menu=document.getElementById('cxMenu'),zone=document.getElementById('cZone'),st=document.getElementById('cStatus');
+    const paint=(el)=>{const node=el.firstChild,text=node&&node.nodeType===3?node.textContent:'';const box=el.getBoundingClientRect();const range=document.createRange();let shown='';
+      if(node&&node.nodeType===3){for(let i=0;i<text.length;i++){range.setStart(node,i);range.setEnd(node,i+1);const r=range.getBoundingClientRect();const cx=(r.left+r.right)/2,cy=(r.top+r.bottom)/2;if(cx>=box.left-0.5&&cx<=box.right+0.5&&cy>=box.top-0.5&&cy<=box.bottom+0.5)shown+=text[i];}}
+      const end=node&&text.length?(range.setStart(node,text.length-1),range.setEnd(node,text.length),range.getBoundingClientRect().right):0;
+      return {text:(el.textContent||'').trim(),shown,fit:el.scrollWidth<=el.clientWidth+1,end};};
+    const a=paint(aim),t=paint(toast),br=bat.getBoundingClientRect(),cr=code.getBoundingClientRect(),sr=st.getBoundingClientRect(),tr=toast.getBoundingClientRect();
+    const sp=bat.querySelector('b').nextSibling;const si=sp&&sp.nodeType===3?sp.textContent.indexOf(' '):-1;
+    const gap=si>=0?(()=>{const r=document.createRange();r.setStart(sp,si);r.setEnd(sp,si+1);return r.getBoundingClientRect().width;})():0;
+    const hit=(x,y)=>!(x.right<=y.left+0.5||y.right<=x.left+0.5||x.bottom<=y.top+0.5||y.bottom<=x.top+0.5);
+    const ar=aim.getBoundingClientRect(),acs=getComputedStyle(aim);
+    return {aim:a,toast:t,toastLabel:toast.getAttribute('aria-label')||'',bat:bat.textContent.replace(/\s+/g,' ').trim(),space:gap,batX:bat.querySelector('b').getBoundingClientRect().left,
+      aimPx:acs.fontSize,aimFw:acs.fontWeight,callGap:ar.left-cr.right,
+      batFit:bat.scrollWidth<=bat.clientWidth+1,cardR:sr.right,overlap:hit(br,cr)||hit(tr,cr)||hit(ar,cr),codeTop:cr.top,codeLeft:cr.left,menuX:menu.getBoundingClientRect().left,menuY:menu.getBoundingClientRect().top,zone:zone.getBoundingClientRect().top,st:sr.height,warn:aim.classList.contains('warn'),gapCss:getComputedStyle(st).columnGap};
+  });
+  const full=row.aim.text==='Drop: low'&&row.aim.shown==='Drop: low'&&row.aim.fit&&row.aim.end<=row.cardR;
+  const hinted=row.toast.text==='Drop: low'&&row.toast.shown==='Drop: low'&&row.toast.fit&&row.toast.end<=row.cardR&&row.toastLabel==='drop is usually not aimed in the middle row'&&row.aim.text==='aim 4'&&row.aim.shown==='aim 4'&&row.aimPx==='14px'&&row.aimFw==='800'&&row.callGap>=5.5&&row.callGap<=6.5&&row.warn&&row.gapCss==='6px'&&!/Where\?|Result\?/.test(row.toast.text);
+  const still=Math.abs(row.batX-parked.batX)<0.5&&Math.abs(row.codeTop-parked.codeTop)<0.5&&Math.abs(row.codeLeft-parked.codeLeft)<0.5&&Math.abs(row.menuX-parked.menuX)<0.5&&Math.abs(row.menuY-parked.menuY)<0.5&&Math.abs(row.zone-parked.zone)<0.5&&row.st===parked.st;
+  ok(hinted&&!full&&!row.overlap&&still&&row.space>=2&&row.batFit&&row.bat===setup.bat,'VIEW-5: '+tag+' moves Drop: low to the hint '+JSON.stringify(row));
+  await c.close();
+}
+await longBat(true,{hand:'R',num:'',pitches:0,bat:'Batter 2 RHB ⚾ 0'},'no batter number');
+await longBat(true,{hand:'L',num:'12',pitches:100,bat:'#12 LHB ⚾ 100'},'#12 with 100 pitches');
+await longBat(false,{hand:'R',num:'',pitches:0,bat:'Batter 2 RHB ⚾ 0'},'wider font, no batter number');
+await longBat(false,{hand:'L',num:'12',pitches:105,bat:'#12 LHB ⚾ 105'},'wider font, #12 with 100+ pitches');
 await b.close();console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);})().catch(e=>{console.error(e);process.exit(1);});

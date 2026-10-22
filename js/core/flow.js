@@ -73,15 +73,24 @@ function callWarn(type,z){
   const rule=PC.TYPE_MISS[type];
   return !!(rule&&Array.isArray(rule.warn)&&rule.warn.includes(z));
 }
+// One short label per warning for the narrow coach cell. Box 5 wins inside this map. A refused change-up reads TINY_WARN.CH.
+const TINY_WARN={5:'5: miss',CB:'CB: low',CH:'CH: low',DR:'Drop: low',DC:'DC: low'};
 // Does not check validCalled: a refused change-up on 5 still gets the box 5 text here. Callers that show a stored aim go through callWarnOf.
 function callWarnMsg(type,z,opt){
-  if(!callWarn(type,z))return '';
   z=+z;
+  if(opt&&opt.tiny){
+    if(PC.isWay(z)||PC.isActualOnly(z))return '';
+    if(z===5)return TINY_WARN[5];
+    if(type==='CH'&&!validCalled(type,z))return TINY_WARN.CH;
+    if(!callWarn(type,z))return '';
+    return TINY_WARN[type]||'';
+  }
+  if(!callWarn(type,z))return '';
   const short=!!(opt&&opt.short);
-  if(z===5)return short?'Box 5 = missed spot':BOX5_WARN;
+  if(z===5)return short?'Box 5: always a miss':BOX5_WARN;
   const name=PC.BASE_TYPES.find(t=>t.code===type).name.toLowerCase();
   if(PC.TOP_ROW.includes(z))return short?name+': not up':name+' is usually not aimed up';
-  return short?name+': not middle':name+' is usually not aimed in the middle row';
+  return short?name+': not aimed middle':name+' is usually not aimed in the middle row';
 }
 // The aim is calledBoxes. The called type is calledTypeOf. A box that fails validCalled is kept and is not a soft warning.
 function callWarnOf(p,opt){
@@ -100,7 +109,12 @@ function callWarnDraft(d,opt){
   const called=Array.isArray(d.called)?d.called.slice():[];
   return callWarnOf({type:d.type||'',calledType:d.type||'',targets:called,shook:!!d.shook,call:d.call||'',hand:d.hand||''},opt);
 }
-// The hard refusal wins. Otherwise the soft warning. {short:true} picks the short refusal and the short warning for the coach line.
-function aimLine(d,opt){const note=aimNote(d,opt&&opt.short?'short':undefined);return note||callWarnDraft(d,opt);}
-Object.assign(PC,{FLOW,GAME_RESULTS,flowSteps,flowLabel,scoreStep,scoreApply,scoreTap,scoreCommit,validCalled,validActual,aimFlag,aimNote,callWarn,callWarnMsg,callWarnOf,callWarnDraft,aimLine});
+// The hard refusal wins. Otherwise the soft warning. {short:true} picks the short refusal and the short warning. {tiny:true} picks the narrow-cell map.
+function aimLine(d,opt){
+  const tiny=!!(opt&&opt.tiny);
+  const note=aimNote(d,tiny?'tiny':opt&&opt.short?'short':undefined);
+  if(note)return note;
+  return callWarnDraft(d,opt);
+}
+Object.assign(PC,{FLOW,GAME_RESULTS,flowSteps,flowLabel,scoreStep,scoreApply,scoreTap,scoreCommit,validCalled,validActual,aimFlag,aimNote,callWarn,callWarnMsg,callWarnOf,callWarnDraft,aimLine,TINY_WARN});
 })(typeof window!=='undefined'?window:globalThis);

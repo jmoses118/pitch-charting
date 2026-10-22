@@ -44,7 +44,9 @@ function render(skipCallInput){const s=S();applyViewOnly(viewOnly());if(typeof r
   renderSteps();
   const step=PC.scoreStep(pullDraft()),aims=aimSet();
   const aimNote=PC.aimLine(pullDraft());
-  $('phase').innerHTML=aimNote?H(aimNote):tab==='bullpen'?bpPhase():step==='type'?'Pick the pitch type':step==='called'?'Tap the <b>called target</b> on the grid':step==='actual'?'Tap where it went':`Tap the result${aims.length?` · ${aims.join('/')} → ${locTxt(D.loc)}`:''}`;
+  const phase=$('phase');
+  phase.classList.toggle('warn',!!aimNote);
+  phase.innerHTML=aimNote?H(aimNote):tab==='bullpen'?bpPhase():step==='type'?'Pick the pitch type':step==='called'?'Tap the <b>called target</b> on the grid':step==='actual'?'Tap where it went':`Tap the result${aims.length?` · ${aims.join('/')} → ${locTxt(D.loc)}`:''}`;
   $('resBtns').classList.toggle('hide',!!D.ip);$('ipBtns').classList.toggle('hide',!D.ip);
   $('undo').textContent=D.loc?'Undo location':(editUndo?'Undo edit':tab==='bullpen'&&(D.type||D.target||D.callTxt)?'Undo step':'Undo');
   $('redo').disabled=!redoStack.length;$('pRedo').disabled=!redoStack.length;

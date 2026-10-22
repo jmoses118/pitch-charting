@@ -34,9 +34,9 @@ const AIM_ALL=[1,2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18];
 const aimOpts=type=>AIM_ALL.filter(z=>PC.validCalled(type,z));
 const CH_AIM_MSG='Change-ups are aimed low: 4, 7, 8, 9 or 13, 14, 18';
 const ACTUAL_ONLY_MSG='In dirt and over the catcher are where it went, not an aim';
-function aimRejectMsg(type,z,compact){if(PC.isWay(+z)||PC.isActualOnly(+z))return ACTUAL_ONLY_MSG;return compact==='tiny'?CH_AIM_TINY:compact==='short'?CH_AIM_SHORT:CH_AIM_MSG;}
-// short forms for the coach status strip, where the faded boxes already show which ones are allowed
-const CH_AIM_SHORT='Change-up: aim low',CH_AIM_TINY='CH: aim low',CH_BAND_NOTE='Change-ups aim low: 4, 7, 8, 9, 13, 14 or 18.';
+function aimRejectMsg(type,z,compact){if(PC.isWay(+z)||PC.isActualOnly(+z))return ACTUAL_ONLY_MSG;return compact==='tiny'?PC.TINY_WARN.CH:compact==='short'?CH_AIM_SHORT:CH_AIM_MSG;}
+// short form for the coach status strip, where the faded boxes already show which ones are allowed
+const CH_AIM_SHORT='Change-up: aim low',CH_BAND_NOTE='Change-ups aim low: 4, 7, 8, 9, 13, 14 or 18.';
 function parseCall(code,hand,throws,custom){if(code==null)return null;const hand0=hand;hand=hand==='L'?'L':'R';throws=throws==='L'?'L':'R';
   let s=String(code).toUpperCase().trim().replace(/\s+/g,' ');if(!s)return null;
   if(s==='H+'||s==='A'||s==='IN')s='FB '+s;              // bare waste/in calls are fastballs
@@ -72,5 +72,5 @@ function unmappedCells(sheet,custom){const g={};((sheet&&sheet.rows)||[]).forEac
 // aim chosen in band setup for an unmapped call (sheet.aims[norm] = zone, 0 = "no spot"); null when none
 function bandAim(sheet,parsed){if(!parsed||parsed.targets.length||!sheet||!sheet.aims)return null;const v=+sheet.aims[parsed.norm];return v>0&&PC.validCalled(parsed.type,v)?v:null;}
 const bandSetupDone=(sheet,custom)=>unmappedCells(sheet,custom).every(u=>!!sheet.aims&&u.norm in sheet.aims);
-Object.assign(PC,{CH_TARGETS,AIM_ALL,aimOpts,aimRejectMsg,CH_AIM_MSG,ACTUAL_ONLY_MSG,CH_AIM_SHORT,CH_AIM_TINY,CH_BAND_NOTE,BASE_TYPES,ALIAS,normType,CALL_SUFFIX,parseCall,WRISTBAND_1,sheetCols,defaultCallSheet,parseCellRef,cellCode,unmappedCells,bandAim,bandSetupDone});
+Object.assign(PC,{CH_TARGETS,AIM_ALL,aimOpts,aimRejectMsg,CH_AIM_MSG,ACTUAL_ONLY_MSG,CH_AIM_SHORT,CH_BAND_NOTE,BASE_TYPES,ALIAS,normType,CALL_SUFFIX,parseCall,WRISTBAND_1,sheetCols,defaultCallSheet,parseCellRef,cellCode,unmappedCells,bandAim,bandSetupDone});
 })(typeof window!=='undefined'?window:globalThis);
