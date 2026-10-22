@@ -364,13 +364,14 @@ body.padmode main{padding-bottom:calc(var(--pad-h,0px) + 12px)}
 .coach.compact .cs-top{font-size:11px}.coach.compact .cs-count{font-size:14px}.coach.compact .cchip{font-size:10px;line-height:14px;padding:0 3px}
 .coach.compact .cs-hint{font-size:10px}
 .coach.compact .cs-hint.msg.warn{font-size:var(--fs-13);line-height:1.2}
-.coach.compact .cstatus:has(.cs-aim.warn){display:grid;grid-template-columns:max-content minmax(0,1fr);grid-template-rows:auto auto auto 1fr;row-gap:1px;height:var(--c-sth);overflow:hidden}
-.coach.compact .cstatus:has(.cs-aim.warn) .cs-top{grid-column:1 / -1;grid-row:1}
-.coach.compact .cstatus:has(.cs-aim.warn) .cs-bat{grid-column:1;grid-row:2;align-self:start;z-index:1}
-.coach.compact .cstatus:has(.cs-aim.warn) .cs-call{display:contents}
-.coach.compact .cstatus:has(.cs-aim.warn) #cxCode{grid-column:1 / -1;grid-row:3;justify-self:start;align-self:start}
-.coach.compact .cstatus:has(.cs-aim.warn) .cs-aim.warn{grid-column:1 / -1;grid-row:2;align-self:start;display:block;margin:0;text-indent:var(--bat-indent,48px);font-size:var(--fs-13);line-height:14px;font-weight:800;color:var(--c-coach-accent);white-space:normal;height:auto;overflow:hidden}
-.coach.compact .cstatus:has(.cs-aim.warn) .cs-foot{grid-column:1 / -1;grid-row:4;align-self:end;margin:0}
+.cs-aimrow{display:contents}
+.coach.compact .cstatus:has(.cs-aim.warn){display:grid;grid-template-rows:auto auto auto 1fr;row-gap:1px;height:var(--c-sth);overflow:hidden}
+.coach.compact .cstatus:has(.cs-aim.warn) .cs-top{grid-row:1}
+.coach.compact .cstatus:has(.cs-aim.warn) .cs-aimrow{display:flow-root;grid-row:2;min-width:0}
+.coach.compact .cstatus:has(.cs-aim.warn) .cs-aimrow .cs-bat{float:left;margin-right:var(--s1)}
+.coach.compact .cstatus:has(.cs-aim.warn) .cs-call{grid-row:3;justify-self:start}
+.coach.compact .cstatus:has(.cs-aim.warn) .cs-aim.warn{display:block;margin:0;font-size:var(--fs-13);line-height:var(--fs-sm);font-weight:800;color:var(--c-coach-accent);white-space:normal;height:auto}
+.coach.compact .cstatus:has(.cs-aim.warn) .cs-foot{grid-row:4;align-self:end;margin:0}
 .coach.compact .cmenu{width:44px;padding:0;font-size:20px}
 #wayBtns button{min-height:48px}body.padmode .bpad #wayBtns button,body.padmode #wayBtns button{min-height:48px}
 @media (max-height:720px){body.padmode .bpad{padding:2px 8px 2px;row-gap:2px}body.padmode .padact{margin-top:2px}body.padmode #wayBtns button,body.padmode #actBtns button{min-height:48px;height:auto;font-size:11px;line-height:1.05}}

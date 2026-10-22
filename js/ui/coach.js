@@ -86,6 +86,7 @@ function sizeCoach() {
   set("--mid", mid(z));
   fitCoachCol({ compact, z, k, cols, RH, LW, Hh, bandH, STH, ZG, ACT, set, v });
 }
+function placeAim(warn){const aim=$('cxAim'),row=$('cxAimRow'),call=$('cStatus').querySelector('.cs-call');if(!aim||!row||!call)return;if(warn){if(aim.parentNode!==row)row.appendChild(aim);}else if(aim.parentNode!==call)call.appendChild(aim);}
 function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,hand=curHand(),cp=curPitcherId();
   document.body.classList.toggle('mirror',PREF.get('mirror','0')==='1');
   // band
@@ -98,14 +99,11 @@ function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,h
   const pit=S().pitchers.find(p=>p.id===cp);$('cxPitcher').textContent=pit?PC.pitcherLabel(pit):'Pick a pitcher';$('cxInn').textContent=inningTag(g);const cmp=$('coach').classList.contains('compact');$('cxOuts').textContent=cmp?'●'.repeat(c.outs)+'○'.repeat(Math.max(0,3-c.outs)):c.outs+(c.outs===1?' out':' outs');$('cxOuts').setAttribute('aria-label',c.outs+' out'+(c.outs===1?'':'s'));$('cxCount').textContent=c.b+'-'+c.s;
   const b=g.lineup[c.slot]||{};
   const aimWarn=(D.ip||D.bbAsk)?'':PC.aimLine(pullDraft(),{short:true});
-  const side=hand==='L'?'LHB':'RHB',who=b.num?'#'+H(b.num):H(b.name||'Batter '+(c.slot+1));
-  const pitches=`<span title="Pitches">⚾ ${PC.pitchCount(g.pitches,cp)}</span>`;
-  $('cxBat').innerHTML=cmp&&aimWarn?`<b>${who}</b> ${side}`:cmp?`<b>${who}</b> · ${side} · ${pitches}`:`<span class="ic" aria-hidden="true">👤</span><b>${b.num?'#'+H(b.num)+' ':''}${H(b.name||'Batter '+(c.slot+1))}</b> · ${side} · ${pitches}`;
-  if(cmp&&aimWarn)$('cxAim').style.setProperty('--bat-indent',($('cxBat').offsetWidth+6)+'px');
-  else $('cxAim').style.removeProperty('--bat-indent');
+  const bat=batLabel(b,c.slot,hand,{short:!!(cmp&&aimWarn),wide:!cmp,count:PC.pitchCount(g.pitches,cp)});
+  $('cxBat').innerHTML=bat.html;$('cxBat').setAttribute('aria-label',bat.label);
   const code=callCode(),aims=aimSet();$('cxCode').innerHTML=D.shook?`⤺ ${H(D.shook.norm)} → ${H(D.type||'?')}`:D.parsed?`${H(code)}&nbsp; ${H(D.callTxt)}`:'<span class="cs-none">– –&nbsp; no call yet</span>';
   const own=D.parsed&&D.parsed.targets&&D.parsed.targets.length===1&&D.aim===+D.parsed.targets[0]; // pencil only for an override, not the call's own spot
-  paintAim(own, aims, cmp?aimWarn:'');
+  paintAim(own, aims, cmp?aimWarn:'');placeAim(!!(cmp&&aimWarn));
   renderHint(aimWarn);const n=store.pendingCount(),st=store.real.sync;$('cxNet').textContent=store.isTest?'Test mode – not saved':!navigator.onLine?`Offline – saved on phone${n?' · '+n+' to sync':''}`:(!st.teamCode?'Saved on phone':n?`Saved on phone · ${n} to sync`:'Saved · synced');
   // in play: spray field replaces the status details
   $('cSprayWrap').classList.toggle('hide',!D.ip);['cs-bat','cs-call','cs-hint','cs-foot'].forEach(k=>$('cStatus').querySelector('.'+k).classList.toggle('hide',!!D.ip));
