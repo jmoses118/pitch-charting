@@ -16,7 +16,8 @@ function dbHost(url){
 function namesProd(url){const host=dbHost(url),ref=PROD.ref.toLowerCase();return host.indexOf(ref)!==-1;}
 function prodHost(host){const h=String(host||'').toLowerCase();return PROD.hosts.some(x=>String(x).toLowerCase()===h);}
 function pcPickConfig(host,env){
-  const flags={scorerColumn:true,shakeColumn:true,chartColumn:true};
+  // xyColumn turns on only after 20261022120000_pitches_xy.sql is applied to production (D-6).
+  const flags={scorerColumn:true,shakeColumn:true,chartColumn:true,xyColumn:false};
   env=env||{};
   if(prodHost(host))return Object.assign({url:PROD.url,key:PROD.key,fallback:false,banner:''},flags);
   let url=env.PC_SUPABASE_URL||PROD.local,key=env.PC_SUPABASE_ANON_KEY||'',fallback=false;

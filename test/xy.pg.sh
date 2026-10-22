@@ -84,7 +84,7 @@ test "$(q -c "select count(*) from information_schema.schemata where schema_name
 mkdir "$out/bad"
 cp "$out/bk/$name".* "$out/bad/"
 printf 'x' >> "$out/bad/$name.dump"
-if bash "$bk" verify "$out/bad/$name.dump" 2>/dev/null; then echo "a changed dump passed" >&2; exit 1; fi
+if bash "$bk" verify "$out/bad/$name.dump" >/dev/null 2>&1; then echo "a changed dump passed" >&2; exit 1; fi
 
 # Migrate (twice changes nothing), write (0.5, 0.5, 5), then roll back.
 q -f "$mig" >/dev/null

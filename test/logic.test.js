@@ -2088,7 +2088,7 @@ test('D-5: export then import round-trips 0.123 and 0.987 and sets xy_loc to act
   const p={type:'FB',hand:'R',targets:[12],calledLoc:12,loc:12,actualLoc:12,actual_x:0.987,actual_y:0.123,xy_loc:12};
   const back=PC.parseCSV(PC.toCSV([PC.csvRow(p,{mode:'bullpen'})]))[0];
   assert.equal(back.actual_x,'0.987');assert.equal(back.actual_y,'0.123');
-  assert.deepEqual(PC.csvXY(back),{x:0.987,y:0.123});
+  assert.deepEqual(PC.csvXY(back),{x:0.987,y:0.123,xy_loc:12});
   const got=PC.csvApply({},back);
   assert.equal(got.actual_x,0.987);assert.equal(got.actual_y,0.123);assert.equal(got.xy_loc,12);
   const r14=PC.csvApply({},{location:'14',actual_location:'14',actual_x:'0.9',actual_y:'0.95'});
@@ -2104,7 +2104,7 @@ test('D-5: an old 40-column file has no point, and a bad point is a row error',(
   const line=old.map(c=>c==='mode'?'game':c==='location'||c==='actual_location'?'5':'').join(',');
   const r=PC.parseCSV(old.join(',')+'\n'+line+'\n')[0];
   assert.equal(r.actual_x,undefined);
-  assert.deepEqual(PC.csvXY(r),{x:null,y:null});
+  assert.deepEqual(PC.csvXY(r),{x:null,y:null,xy_loc:null});
   const a=PC.csvApply({},r);
   XY_KEYS.forEach(k=>assert.equal(a[k]==null,true,k));
   const row=(x,y,at)=>({location:at,actual_location:at,actual_x:x,actual_y:y});
@@ -2115,9 +2115,9 @@ test('D-5: an old 40-column file has no point, and a bad point is a row error',(
   assert.ok(PC.csvXY(row('-0.001','0.5','5')).error);
   assert.ok(PC.csvXY(row('abc','0.5','5')).error);
   assert.ok(PC.csvXY(row('0.5','0.5','')).error);
-  assert.deepEqual(PC.csvXY(row('0.5','0.5','5')),{x:0.5,y:0.5});
-  assert.deepEqual(PC.csvXY(row('1','1','14')),{x:1,y:1});
-  assert.deepEqual(PC.csvXY(row('0.1','0.1','23')),{x:0.1,y:0.1});
+  assert.deepEqual(PC.csvXY(row('0.5','0.5','5')),{x:0.5,y:0.5,xy_loc:5});
+  assert.deepEqual(PC.csvXY(row('1','1','14')),{x:1,y:1,xy_loc:14});
+  assert.deepEqual(PC.csvXY(row('0.1','0.1','23')),{x:0.1,y:0.1,xy_loc:23});
   const bad=PC.csvApply({},row('1.2','0.5','5'));
   XY_KEYS.forEach(k=>assert.equal(Object.hasOwn(bad,k),false,k));
 });

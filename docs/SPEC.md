@@ -82,6 +82,10 @@ The UI only renders these. `heatStats` is the per-type rollup.
 | `strikePct(list)` | scoring.js | → whole % or null. The only strike-% math, including first-pitch % and shake-offs |
 | `wholePct(a, b)` | grid.js | → whole % or null, next to `pct` |
 | `towardMiddle(aim, land)` | grid.js | → bool |
+| `tapXY(u, v, bin)` | grid.js | one tap → `{actual_x, actual_y, xy_loc, loc, actualLoc}`, or null. A frame tap's cell is `cellOfXY`. A way-off, dirt, or backstop bin keeps its code |
+| `xyOf(p)` | location.js | → `{actual_x, actual_y, xy_loc}` while `xy_loc` is the landed code, otherwise all null. `pitchRow`, `rowPitch`, and `csvRow` read the point through it |
+| `csvXY(row)` | csv.js | CSV row → `{x, y, xy_loc}` or `{error}`. Half a pair, a value outside 0 to 1, or a frame point off `actual_location` is a row error |
+| `xyDropped(row)` | sync.js | pulled row → true when the read cleared its point. Derived, never stored |
 
 - **HM-26a.** Aim 21 landing 2 is toward the middle. Chebyshev distance to box 5 goes from 3 to 1, and box 2 is in the frame.
 
@@ -173,6 +177,8 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | SYNC-1 | unit: “push: a 403 row is retried row by row”; “every row 401”; “rejected rows: list, retry” |
 | SYNC-2 | unit: “pull: incremental since last updated_at”; “sessions: last writer wins”; “rowPitch keeps every valid spot”; “localDate” |
 | SYNC-3 | unit: “team settings sync: coach only… never pushed by markAllDirty” |
+| D-1, D-6, D-7 | `test/xy.pg.sh` (run by `test/dropbackup.pg.sh`): the x/y check, an upsert without the columns keeps the point, and the scratch dry run of `supabase/backup/pitches_backup.sh` and the rollback. `xyColumn` stays false until the migration is on production (`test/prodref.test.js`) |
+| D-5, D-6 | unit: “D-5: actual_x and actual_y are the last CSV columns”; “D-5: export then import round-trips 0.123 and 0.987”; “D-5: an old 40-column file has no point”; “D-6: x, y, and xy_loc stay off the wire until xyCol is set”; “D-6: a read clears a point whose xy_loc is not the resolved actualLoc” |
 | INFRA-3 | `test/prodref.test.js`: a non-production host shows the sync-off warning and does not point at production; an uppercase production URL and a split project ref are refused; a migration on the base branch with identical bytes is exempt; a backdated new migration is not; `test/pg-migrate.sh` allows only `localhost` or `127.0.0.1` |
 | INFRA-4 | unit: “INFRA-4: one release label matches the cache and the changelog”; “INFRA-4: a fresh install stores the version and shows no notice”; “INFRA-4: an update notice shows once”; “INFRA-4: a worker already in control reloads once”; `test/version.ui.js` (run from `test/coach.ui.js`): the label in Setup and the game menu at 844×390, 667×375 and 956×440 in Field and Night; the notice once, and not on a fresh install; the controlling worker cache matches the label |
 | BRIEF-1, BRIEF-2, BRIEF-3, BRIEF-4, BRIEF-5, BRIEF-6, BRIEF-7, BRIEF-8 | `AGENTS.md` Standard builder brief. BRIEF-5 is `test/prsize.js` and `test/prgate.negative.js`. BRIEF-7 is `test/changelog.js` and `test/prgate.negative.js`. BRIEF-6 is not enforced in this tree. |
