@@ -975,7 +975,7 @@ test('edited flag syncs on the pitch row and round-trips in CSV without a new co
   const chart=PC.csvChart({type:'FB',call:'CH8',shook:true,edited:true,loc:31,actualLoc:31,calledLoc:8,hand:'R'});
   assert.equal(chart.from_video,1);assert.equal(chart.edited,undefined);assert.equal(chart.shook,1);assert.equal(chart.actual_location,31);
   const csv=PC.toCSV([Object.assign({mode:'game',pitcher:'Avery',location:31},chart)]);
-  assert.ok(csv.split('\n')[0].endsWith('from_video'));assert.equal(csv.split('\n')[0].includes(',edited'),false);
+  assert.ok(csv.split('\n')[0].endsWith('from_video,actual_x,actual_y'));assert.equal(csv.split('\n')[0].includes(',edited'),false);
   const applied=PC.csvApply({},PC.parseCSV(csv)[0]);assert.equal(applied.edited,true);assert.equal(applied.shook,true);
   assert.equal(PC.csvApply({},{from_video:'0'}).edited,undefined);assert.equal(PC.csvApply({},{from_video:'yes'}).edited,true);
   assert.equal(PC.csvApply({},{edited:'yes'}).edited,true);assert.equal(PC.csvApply({},{edited:'1',from_video:'0'}).edited,true);
