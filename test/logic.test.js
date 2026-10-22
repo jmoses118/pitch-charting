@@ -710,7 +710,11 @@ test('RULE-3a: dirt, way off and backstop are actual locations only',()=>{
   assert.equal(PC.scoreTap(aimed.draft,31).draft.actual,31);
   assert.equal(PC.chUp({type:'CH',loc:32}),false);
   assert.equal(PC.aimRejectMsg('FB',31),'In dirt and over the catcher are where it went, not an aim');
-  assert.equal(PC.aimRejectMsg('CH',2,'tiny'),PC.CH_AIM_TINY);
+  assert.equal(PC.aimRejectMsg('CH',2,'tiny'),'CH: low');
+  assert.equal(PC.aimRejectMsg('CH',2,'tiny'),PC.callWarnMsg('CH',2,{tiny:true}));
+  assert.equal(PC.aimRejectMsg('CH',5,'tiny'),'CH: low');
+  assert.equal(PC.aimRejectMsg('CH',31,'tiny'),'In dirt and over the catcher are where it went, not an aim');
+  assert.equal(PC.aimLine({type:'CH',called:[2]},{tiny:true}),PC.aimRejectMsg('CH',2,'tiny'));
 });
 test('scoring flow: game requires a result, bullpen saves on the actual spot',()=>{
   assert.deepEqual(PC.flowSteps('game'),['type','called','actual','result']);assert.deepEqual(PC.flowSteps('bullpen'),['type','called','actual']);
