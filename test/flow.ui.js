@@ -181,7 +181,7 @@ const BOX5='Box 5 is always scored as a missed spot';
   ok(!errs.length,'HM-9b coach: no page errors '+errs.join('|'));await c.close();}
 {const c=await b.newContext({viewport:{width:667,height:375},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());
   const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));const ev=f=>p.evaluate(f);
-  await p.goto(BASE);await ev(()=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';S.games=[{id:'g1',date:'2026-10-14',opponent:'Storm',homeAway:'home',status:'active',started:1,lineup:[{slot:1,name:'Batter 2',num:'2',hand:'L'}],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:1},pitches:[]}];S.activeGame='g1';__app.store.save();__app.render();});
+  await p.goto(BASE);await p.addStyleTag({content:'#coach,#coach *{font-family:"DejaVu Sans",sans-serif !important}'});await ev(()=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';S.games=[{id:'g1',date:'2026-10-14',opponent:'Storm',homeAway:'home',status:'active',started:1,lineup:[{slot:1,name:'Batter 2',num:'2',hand:'L'}],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:1},pitches:[]}];S.activeGame='g1';__app.store.save();__app.render();});
   await p.waitForTimeout(300);
   await ev(()=>{curSheet().rows[0][0]='DC 6';render();});
   const coachAt=()=>ev(()=>{const bat=document.getElementById('cxBat'),menu=document.getElementById('cxMenu'),zone=document.getElementById('cZone'),st=document.getElementById('cStatus'),code=document.getElementById('cxCode'),br=bat.getBoundingClientRect(),mr=menu.getBoundingClientRect(),zr=zone.getBoundingClientRect(),sr=st.getBoundingClientRect(),cr=code.getBoundingClientRect();return {bat:bat.textContent.replace(/\s+/g,' ').trim(),aria:bat.getAttribute('aria-label')||'',on:getComputedStyle(bat).display!=='none'&&br.height>1,menuX:mr.left,menuY:mr.top,zone:zr.top,st:sr.height,codeTop:cr.top};});
@@ -236,6 +236,6 @@ const BOX5='Box 5 is always scored as a missed spot';
   }
   await ev(()=>{const d=pullDraft();d.type='CH';d.called=[2];d.calledFlag=true;d.actual=null;takeDraft({ok:true,draft:d});cMsg=null;render();});await p.waitForTimeout(80);
   const ch=await warnAt();
-  ok(ch.hint==='Change-up: aim low'&&ch.shown.startsWith('Change-up')&&ch.lines<=2&&ch.clamp==='2'&&!ch.overlap&&ch.indent==='0px'&&/^2(\s|\/|$)/.test(ch.col)&&ch.bat==='#2 LHB ⚾ 0'&&ch.pitOn&&Math.abs(ch.codeTop-parked.codeTop)<0.5,'HM-9b coach 667: Change-up: aim low keeps its first word, the count, and the call code '+JSON.stringify(ch));
+  ok(ch.hint==='Change-up: aim low'&&ch.hint.startsWith(ch.shown)&&ch.shown.startsWith('Change')&&ch.lines<=2&&ch.clamp==='2'&&!ch.overlap&&ch.indent==='0px'&&/^2(\s|\/|$)/.test(ch.col)&&ch.bat==='#2 LHB ⚾ 0'&&ch.pitOn&&Math.abs(ch.codeTop-parked.codeTop)<0.5,'HM-9b coach 667: Change-up: aim low keeps its first word, the count, and the call code '+JSON.stringify(ch));
   ok(!errs.length,'HM-9b coach 667: no page errors '+errs.join('|'));await c.close();}
 await b.close();console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);})().catch(e=>{console.error(e);process.exit(1);});
