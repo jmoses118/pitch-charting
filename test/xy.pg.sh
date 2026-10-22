@@ -69,6 +69,30 @@ if bash "$bk" backup "$PWD/tmp-backup" 2>/dev/null; then echo "a backup inside t
 test ! -e "$PWD/tmp-backup"
 if SOURCE_URL='postgresql://u@db.example.com/x' bash "$bk" backup "$out/remote" 2>/dev/null; then echo "a remote backup ran without JIM_GO_AHEAD" >&2; exit 1; fi
 
+# Each way around the local-only guard is refused, before anything is written.
+refuses() { local why=$1; shift
+  if env "$@" >/dev/null 2>"$out/err"; then echo "allowed: $*" >&2; exit 1; fi
+  grep -q "$why" "$out/err" || { echo "wrong refusal for $*: $(cat "$out/err")" >&2; exit 1; }
+  test ! -e "$out/neg"; }
+mkdir "$out/fake"
+printf '#!/bin/bash\ncase "$*" in *inet_server_addr*) echo 10.1.2.3;; *) exec %s "$@";; esac\n' "$(command -v psql)" > "$out/fake/psql"
+chmod +x "$out/fake/psql"
+printf '[pitch]\nhost=localhost\n' > "$out/pg_service.conf"
+touch "$out/neg.dump"
+for run in "backup $out/neg" "verify $out/neg.dump"; do
+  refuses PGHOSTADDR PGHOSTADDR=10.255.255.1 bash "$bk" $run
+  refuses PGSERVICE PGSERVICE=pitch bash "$bk" $run
+  refuses PGSERVICEFILE PGSERVICEFILE="$out/pg_service.conf" bash "$bk" $run
+  refuses SOURCE_URL SOURCE_URL='postgresql://localhost/pitch?host=db.example.com' bash "$bk" $run
+  refuses SOURCE_URL SOURCE_URL='host=db.example.com dbname=pitch' bash "$bk" $run
+  refuses 10.1.2.3 PATH="$out/fake:$PATH" bash "$bk" $run
+done
+refuses 10.1.2.3 JIM_GO_AHEAD=yes PATH="$out/fake:$PATH" bash "$bk" verify "$out/neg.dump"
+refuses PGHOSTADDR JIM_GO_AHEAD=yes PGHOSTADDR=10.255.255.1 bash "$bk" verify "$out/neg.dump"
+JIM_GO_AHEAD=yes PATH="$out/fake:$PATH" bash "$bk" backup "$out/go" >/dev/null
+test "$(ls "$out/go" | wc -l)" = 3
+echo "D-7 guard: PGHOSTADDR, PGSERVICE, PGSERVICEFILE, a SOURCE_URL with ? or host=, and a remote server address are refused; JIM_GO_AHEAD lets only backup through"
+
 # Backup, then the sha256 verifies and the restore into a scratch schema matches the counts.
 dump=$(bash "$bk" backup "$out/bk" | tail -1)
 name=$(basename "$dump" .dump)
@@ -96,10 +120,37 @@ q -f "$back" >/dev/null
 test "$(cols)" = 0
 test "$(q -c "select count(*) from private.pitches_xy_backup_${day}")" = 1
 test "$(q -c "select id || ':' || actual_x || ',' || actual_y || ',' || xy_loc from private.pitches_xy_backup_${day}")" = 'd7000000-0000-0000-0000-000000000001:0.500,0.500,5'
-test "$(q -c "select has_table_privilege('anon', 'private.pitches_xy_backup_${day}', 'select')")" = f
+test "$(q -c "select relrowsecurity from pg_class where oid = 'private.pitches_xy_backup_${day}'::regclass")" = t
+for role in anon authenticated; do
+  test "$(q -c "select has_table_privilege('$role', 'private.pitches_xy_backup_${day}', 'select')")" = f
+  if q -c "set role $role; select count(*) from private.pitches_xy_backup_${day}" >/dev/null 2>&1; then echo "$role read the backup" >&2; exit 1; fi
+  test "$(q -q <<SQL
+begin;
+grant usage on schema private to $role;
+grant select on private.pitches_xy_backup_${day} to $role;
+set local role $role;
+select count(*) from private.pitches_xy_backup_${day};
+rollback;
+SQL
+)" = 0
+done
 now=$(q -c "select team_id || '|' || count(*) || '|' || md5(string_agg(id::text, ',' order by id)) from public.pitches group by team_id order by team_id")
 test "$now" = "$(cat "$out/bk/$name.counts.txt")"
 echo "D-7 postgres: backup, sha256, restore, migrate, write (0.5, 0.5, 5), roll back: 1 row kept, counts match"
+echo "D-7 postgres: the rollback copy has RLS on, and anon and authenticated read nothing, even with a grant"
+
+# The restore needs the backup name, puts the kept point back, and never overwrites a newer point.
+res=supabase/rollback/20261022120000_pitches_xy_restore.sql
+point() { q -c "select actual_x || ',' || actual_y || ',' || xy_loc from public.pitches where id = 'd7000000-0000-0000-0000-000000000001'"; }
+q -f "$mig" >/dev/null
+if q -f "$res" >/dev/null 2>&1; then echo "the restore ran without -v backup" >&2; exit 1; fi
+q -v backup="pitches_xy_backup_${day}" -f "$res" >/dev/null
+test "$(point)" = '0.500,0.500,5'
+q -c "update public.pitches set actual_x = 0.6, actual_y = 0.6 where id = 'd7000000-0000-0000-0000-000000000001'"
+q -v backup="pitches_xy_backup_${day}" -f "$res" >/dev/null
+test "$(point)" = '0.600,0.600,5'
+test "$(q -c "select count(*) from public.pitches where actual_x is not null")" = 1
+echo "D-7 postgres: the restore puts (0.5, 0.5, 5) back and leaves a newer point alone"
 
 # Leave the schema migrated for anything that runs later.
 q -c "drop table private.pitches_xy_backup_${day}"
