@@ -17,6 +17,7 @@ UI tests use a throwaway browser profile and block Supabase (`route(/supabase\.c
 
 ## Database (CI)
 The FLOW-6a job starts a throwaway Postgres, applies `supabase/migrations` with `test/pg-migrate.sh`, then runs `test/flow6a.pg.sh`, `test/badaim.pg.sh`, `test/pendingbadaim.pg.sh`, and `test/dropbackup.pg.sh`, which ends with `test/xy.pg.sh` (D-1, D-6, and the D-7 backup guard, rollback, and restore dry run). Do not point those scripts at a hosted database.
+In CI the server sees its container address, so `test/xy.pg.sh` runs again inside the service container through `docker exec`, with `FAR` set to that address. Locally `FAR` defaults to this machine's network address, which Postgres must listen on.
 
 ## Before pushing
 Check no codes leaked: `grep -rqF "$PC_TEST_COACH" .` must find nothing.

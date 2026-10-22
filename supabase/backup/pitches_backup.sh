@@ -4,23 +4,22 @@
 #   verify DUMP     checks the sha256, restores into a scratch schema on a local database, and compares the counts.
 #   restore NAME    runs supabase/rollback/20261022120000_pitches_xy_restore.sql with -v backup=NAME on a local database.
 # The database is SOURCE_URL, or the PG* variables when it is empty.
-# Local only: PGHOSTADDR, PGSERVICE, PGSERVICEFILE, PGLOADBALANCEHOSTS, PGTARGETSESSIONATTRS, a comma in PGHOST, PGPORT or SOURCE_URL,
-# a host other than localhost, and a SOURCE_URL with ? or host= are refused. Every verify and restore session first checks
-# that its own server address is a socket, 127.0.0.1, or ::1.
-# JIM_GO_AHEAD=yes skips that guard for backup only, once Jim says go (the production URL needs ?sslmode=require).
-# verify and restore never skip it; on production Jim runs the restore SQL himself.
+# Local only: PGHOSTADDR, PGSERVICE, PGSERVICEFILE, PGLOADBALANCEHOSTS, PGTARGETSESSIONATTRS, PGOPTIONS, a comma in PGHOST, PGPORT or SOURCE_URL,
+# a host other than localhost, 127.0.0.1, ::1 or [::1], and a SOURCE_URL with ? or host= are refused. Every psql session
+# (the backup counts, verify, and restore) first runs local_only.sql, which checks its own server address.
+# JIM_GO_AHEAD=yes skips both for backup only, once Jim says go (the production URL needs ?sslmode=require).
+# verify and restore never skip them; on production Jim runs the restore SQL himself with -v jim_go_ahead=yes.
 # Keep the three files out of the repo: the private Storage bucket db-backups/pitches/, or Jim's encrypted drive.
 set -euo pipefail
 repo=$(cd "$(dirname "$0")/../.." && pwd)
 counts="select team_id, count(*), md5(string_agg(id::text, ',' order by id)) from %s group by team_id order by team_id"
 src=()
 [ -z "${SOURCE_URL:-}" ] || src=(-d "$SOURCE_URL")
-check="do \$\$ declare a text := coalesce(host(inet_server_addr()), 'socket'); begin
-  if a not in ('socket', '127.0.0.1', '::1') then raise exception 'connected to %, not this machine', a; end if; end \$\$"
-lpsql() { psql "${src[@]}" -v ON_ERROR_STOP=1 -q -c "$check" "$@"; }
+go=no
+lpsql() { psql "${src[@]}" -X -v ON_ERROR_STOP=1 -q -v jim_go_ahead="$go" -f "$repo/supabase/backup/local_only.sql" "$@"; }
 local_only() {
   local v host
-  for v in PGHOSTADDR PGSERVICE PGSERVICEFILE PGLOADBALANCEHOSTS PGTARGETSESSIONATTRS; do
+  for v in PGHOSTADDR PGSERVICE PGSERVICEFILE PGLOADBALANCEHOSTS PGTARGETSESSIONATTRS PGOPTIONS; do
     [ -z "${!v:-}" ] || { echo "$v is set: unset it, the guard cannot see where it points" >&2; exit 1; }
   done
   for v in PGHOST PGPORT SOURCE_URL; do
@@ -28,8 +27,8 @@ local_only() {
   done
   case "${SOURCE_URL:-}" in *'?'*|*host=*) echo "SOURCE_URL has ? or host=: give a plain local URL" >&2; exit 1;; esac
   host=${PGHOST:-localhost}
-  [ -z "${SOURCE_URL:-}" ] || host=$(printf '%s' "$SOURCE_URL" | sed -E 's#^[a-z]+://([^@/]*@)?([^:/?]*).*#\2#')
-  case "$host" in localhost|127.0.0.1|::1|/*) ;; *) echo "$host is not local (a backup needs JIM_GO_AHEAD=yes once Jim says go)" >&2; exit 1;; esac
+  [ -z "${SOURCE_URL:-}" ] || host=$(printf '%s' "$SOURCE_URL" | sed -E 's#^[a-z]+://([^@/]*@)?(\[[^]/]*\]|[^:/?]*).*#\2#')
+  case "$host" in localhost|127.0.0.1|::1|'[::1]'|/*) ;; *) echo "$host is not local (a backup needs JIM_GO_AHEAD=yes once Jim says go)" >&2; exit 1;; esac
   lpsql
 }
 cmd=${1:-}
@@ -37,7 +36,7 @@ arg=${2:-}
 case "$cmd" in
   backup)
     [ -n "$arg" ] || { echo "usage: $0 backup OUT_DIR" >&2; exit 2; }
-    [ "${JIM_GO_AHEAD:-}" = yes ] || local_only
+    if [ "${JIM_GO_AHEAD:-}" = yes ]; then go=yes; else local_only; fi
     case "$(mkdir -p "$arg" && cd "$arg" && pwd)/" in
       "$repo"/*) rmdir "$arg" 2>/dev/null || true; echo "keep backups out of the repo" >&2; exit 1;;
     esac
@@ -45,7 +44,7 @@ case "$cmd" in
     name="pitches-$(date -u +%Y%m%d-%H%M)"
     pg_dump "${src[@]}" -t public.pitches --data-only -Fc -f "$out/$name.dump"
     (cd "$out" && sha256sum "$name.dump" > "$name.dump.sha256")
-    psql "${src[@]}" -v ON_ERROR_STOP=1 -tA -c "$(printf "$counts" public.pitches)" > "$out/$name.counts.txt"
+    lpsql -tA -c "$(printf "$counts" public.pitches)" > "$out/$name.counts.txt"
     echo "$out/$name.dump";;
   verify)
     [ -f "$arg" ] || { echo "usage: $0 verify DUMP" >&2; exit 2; }
@@ -63,6 +62,7 @@ case "$cmd" in
   restore)
     [ -n "$arg" ] || { echo "usage: $0 restore pitches_xy_backup_YYYYMMDD" >&2; exit 2; }
     local_only
+    # The check runs twice here: once from lpsql, and again from the restore SQL's own \ir of local_only.sql.
     lpsql -v backup="$arg" -f "$repo/supabase/rollback/20261022120000_pitches_xy_restore.sql";;
   *) echo "usage: $0 backup OUT_DIR | verify DUMP | restore NAME" >&2; exit 2;;
 esac
