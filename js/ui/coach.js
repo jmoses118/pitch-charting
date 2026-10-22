@@ -101,6 +101,8 @@ function renderCoach(){const g=game();if(!g)return;const sh=curSheet(),c=g.cur,h
   const side=hand==='L'?'LHB':'RHB',who=b.num?'#'+H(b.num):H(b.name||'Batter '+(c.slot+1));
   const pitches=`<span title="Pitches">⚾ ${PC.pitchCount(g.pitches,cp)}</span>`;
   $('cxBat').innerHTML=cmp&&aimWarn?`<b>${who}</b> ${side}`:cmp?`<b>${who}</b> · ${side} · ${pitches}`:`<span class="ic" aria-hidden="true">👤</span><b>${b.num?'#'+H(b.num)+' ':''}${H(b.name||'Batter '+(c.slot+1))}</b> · ${side} · ${pitches}`;
+  if(cmp&&aimWarn)$('cxAim').style.setProperty('--bat-indent',($('cxBat').offsetWidth+6)+'px');
+  else $('cxAim').style.removeProperty('--bat-indent');
   const code=callCode(),aims=aimSet();$('cxCode').innerHTML=D.shook?`⤺ ${H(D.shook.norm)} → ${H(D.type||'?')}`:D.parsed?`${H(code)}&nbsp; ${H(D.callTxt)}`:'<span class="cs-none">– –&nbsp; no call yet</span>';
   const own=D.parsed&&D.parsed.targets&&D.parsed.targets.length===1&&D.aim===+D.parsed.targets[0]; // pencil only for an override, not the call's own spot
   paintAim(own, aims, cmp?aimWarn:'');
