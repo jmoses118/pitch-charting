@@ -201,12 +201,15 @@ const BOX5='Box 5 is always scored as a missed spot';
     let shown='';
     if(node&&node.nodeType===3){for(let i=0;i<text.length;i++){range.setStart(node,i);range.setEnd(node,i+1);const r=range.getBoundingClientRect();const cx=(r.left+r.right)/2,cy=(r.top+r.bottom)/2;if(cx>=hr.left-0.5&&cx<=hr.right+0.5&&cy>=hr.top-0.5&&cy<=hr.bottom+0.5)shown+=text[i];}}
     range.selectNodeContents(h);
-    const rects=[...range.getClientRects()].filter(r=>{const cy=(r.top+r.bottom)/2;return r.width>0.5&&cy>=hr.top-0.5&&cy<=hr.bottom+0.5&&r.left<hr.right&&r.right>hr.left;});
+    const raw=[...range.getClientRects()].filter(r=>r.width>0.5&&r.height>0.5);
+    const clip=(r,box)=>({left:Math.max(r.left,box.left),right:Math.min(r.right,box.right),top:Math.max(r.top,box.top),bottom:Math.min(r.bottom,box.bottom)});
+    const rects=raw.map(r=>clip(r,hr)).filter(r=>r.right-r.left>0.5&&r.bottom-r.top>0.5);
     const first=rects[0];
     const hit=(a,b)=>!(a.right<=b.left+0.5||b.right<=a.left+0.5||a.bottom<=b.top+0.5||b.bottom<=a.top+0.5);
     const beside=!!first&&first.left>=br.right-1&&first.top<=br.bottom&&br.top<=first.bottom;
     const inside=pr.left>=sr.left-1&&pr.right<=sr.right+1&&pr.top>=sr.top-1&&pr.bottom<=sr.bottom+1;
-    const pitOn=pr.height>8&&pr.top>=br.top-1&&pr.bottom<=br.bottom+1&&pr.left>=br.left-1;
+    const pitMid=(pr.top+pr.bottom)/2;
+    const pitOn=pr.height>8&&pitMid>=br.top&&pitMid<=br.bottom&&pr.left>=br.left-1&&pr.right<=br.right+1;
     return {hint:h.textContent.trim(),px:cs.fontSize,codePx:ccs.fontSize,batPx:bcs.fontSize,batLs:bcs.letterSpacing,
       code:code.textContent.replace(/\s+/g,' ').trim(),vis:ccs.visibility,seen:mid===code||code.contains(mid),
       overlap:hit(hr,cr)||rects.some(r=>hit(r,cr)),beside,bat:bat.textContent.replace(/\s+/g,' ').trim(),
