@@ -55,4 +55,7 @@ ok(await ev(()=>{const res=html=>{const m=String(html).match(/class="plist-res">
   const bll=pitchLine({type:'FB',loc:11,targets:[11],inning:1,abn:1,hand:'R'},1,'game');
   const pen=pitchLine({type:'FB',loc:5,targets:[5]},0,'bullpen');
   return res(k)==='K'&&res(bll)==='B'&&res(pen)==='';}),'strikeOf: game K at 5, B at 11, bullpen shows neither');
-ok(errs.length===0,'no page errors '+errs.join(' | '));console.log(fails?fails+' FAILED':'ALL PASS');await b.close();process.exit(fails?1:0);})();
+ok(errs.length===0,'no page errors '+errs.join(' | '));await b.close();
+// The heat map palette checks (P-2, P-4, HM-6, HM-7, HM-8) run in this CI step.
+ok(require('child_process').spawnSync(process.execPath,[require('path').join(__dirname,'heatgrid.ui.js'),BASE],{stdio:'inherit'}).status===0,'heatgrid.ui.js passes');
+console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);})();
