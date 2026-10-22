@@ -4,7 +4,7 @@
 #   verify DUMP     checks the sha256, restores into a scratch schema on a local database, and compares the counts.
 #   restore NAME    runs supabase/rollback/20261022120000_pitches_xy_restore.sql with -v backup=NAME on a local database.
 # The database is SOURCE_URL, or the PG* variables when it is empty.
-# Local only: PGHOSTADDR, PGSERVICE, PGSERVICEFILE, PGLOADBALANCEHOSTS, PGTARGETSESSIONATTRS, a comma in PGHOST, PGPORT or SOURCE_URL,
+# Local only: PGHOSTADDR, PGSERVICE, PGSERVICEFILE, PGLOADBALANCEHOSTS, PGTARGETSESSIONATTRS, PGOPTIONS, a comma in PGHOST, PGPORT or SOURCE_URL,
 # a host other than localhost, 127.0.0.1, ::1 or [::1], and a SOURCE_URL with ? or host= are refused. Every psql session
 # (the backup counts, verify, and restore) first runs local_only.sql, which checks its own server address.
 # JIM_GO_AHEAD=yes skips both for backup only, once Jim says go (the production URL needs ?sslmode=require).
@@ -19,7 +19,7 @@ go=no
 lpsql() { psql "${src[@]}" -X -v ON_ERROR_STOP=1 -q -v jim_go_ahead="$go" -f "$repo/supabase/backup/local_only.sql" "$@"; }
 local_only() {
   local v host
-  for v in PGHOSTADDR PGSERVICE PGSERVICEFILE PGLOADBALANCEHOSTS PGTARGETSESSIONATTRS; do
+  for v in PGHOSTADDR PGSERVICE PGSERVICEFILE PGLOADBALANCEHOSTS PGTARGETSESSIONATTRS PGOPTIONS; do
     [ -z "${!v:-}" ] || { echo "$v is set: unset it, the guard cannot see where it points" >&2; exit 1; }
   done
   for v in PGHOST PGPORT SOURCE_URL; do
@@ -62,6 +62,7 @@ case "$cmd" in
   restore)
     [ -n "$arg" ] || { echo "usage: $0 restore pitches_xy_backup_YYYYMMDD" >&2; exit 2; }
     local_only
+    # The check runs twice here: once from lpsql, and again from the restore SQL's own \ir of local_only.sql.
     lpsql -v backup="$arg" -f "$repo/supabase/rollback/20261022120000_pitches_xy_restore.sql";;
   *) echo "usage: $0 backup OUT_DIR | verify DUMP | restore NAME" >&2; exit 2;;
 esac

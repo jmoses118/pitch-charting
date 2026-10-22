@@ -16,7 +16,7 @@ UI tests use a throwaway browser profile and block Supabase (`route(/supabase\.c
 `live.roles`, `live.pcoach`, `live.supabase`, `live.playergame`, `live.sync`, `live.settings` use `PC_CONFIG`. That is local Supabase, or the staging preview branch when `PC_SUPABASE_URL` and `PC_SUPABASE_ANON_KEY` are set. They do not use production. The `zztest` team code comes from env `PC_TEST_COACH` or the gitignored `.test-env` — never commit it. Clean `zztest` rows before/after runs.
 
 ## Database (CI)
-The FLOW-6a job starts a throwaway Postgres, applies `supabase/migrations` with `test/pg-migrate.sh`, then runs `test/flow6a.pg.sh`, `test/badaim.pg.sh`, `test/pendingbadaim.pg.sh`, and `test/dropbackup.pg.sh`, which ends with `test/xy.pg.sh` (D-1, D-6, and the D-7 backup guard, rollback, and restore dry run). In CI the server sees its container address, so the real guard's passing runs go through `docker exec` inside the service container. Do not point those scripts at a hosted database.
+The FLOW-6a job starts a throwaway Postgres, applies `supabase/migrations` with `test/pg-migrate.sh`, then runs `test/flow6a.pg.sh`, `test/badaim.pg.sh`, `test/pendingbadaim.pg.sh`, and `test/dropbackup.pg.sh`, which ends with `test/xy.pg.sh` (D-1, D-6, and the D-7 backup guard, rollback, and restore dry run). In CI the server sees its container address, so `test/xy.pg.sh` runs again inside the service container through `docker exec`, with `FAR` set to that address; locally `FAR` defaults to this machine's network address, which Postgres must listen on. Do not point those scripts at a hosted database.
 
 ## Before pushing
 Check no codes leaked: `grep -rqF "$PC_TEST_COACH" .` must find nothing.

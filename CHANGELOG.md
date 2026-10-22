@@ -4,6 +4,7 @@
 ### Changed
 - The script that puts saved exact spots back now refuses to run on any database but this computer's own, even when someone runs it by hand. Jim can still run it on the live database by adding `-v jim_go_ahead=yes`.
 - The backup script and that restore share one check, which also covers the backup's pitch counts, and a local address written as `[::1]` is no longer refused.
+- That check can't be fooled by a database setting that swaps in look-alike functions, and the backup script refuses to run when such settings are passed in.
 - Cache: `te-pitch-v93`.
 
 ## v92 – The exact spot can be saved and exported
