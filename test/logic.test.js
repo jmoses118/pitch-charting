@@ -877,7 +877,7 @@ test('CSV export per pitcher per date, with called and actual location columns',
   const hit=PC.filterPitcherDate(rows,{pitcher:'Avery',num:'45',date:'2026-10-14'});
   assert.equal(hit.length,1);assert.equal(hit[0].actual_location,31);
   assert.equal(PC.filterPitcherDate(rows,{}).length,4);
-  assert.ok(PC.toCSV(hit).includes('called_location'));assert.ok(PC.toCSV(hit).split('\n')[0].endsWith('from_video'));
+  assert.ok(PC.toCSV(hit).includes('called_location'));assert.ok(PC.toCSV(hit).split('\n')[0].endsWith('from_video,actual_x,actual_y'));
   assert.ok(PC.toCSV(hit).split('\n')[0].includes('shook'));assert.ok(PC.toCSV(hit).split('\n')[0].includes('called_type'));
 });
 test('called location is the target nearest the actual spot',()=>{
@@ -975,7 +975,7 @@ test('edited flag syncs on the pitch row and round-trips in CSV without a new co
   const chart=PC.csvChart({type:'FB',call:'CH8',shook:true,edited:true,loc:31,actualLoc:31,calledLoc:8,hand:'R'});
   assert.equal(chart.from_video,1);assert.equal(chart.edited,undefined);assert.equal(chart.shook,1);assert.equal(chart.actual_location,31);
   const csv=PC.toCSV([Object.assign({mode:'game',pitcher:'Avery',location:31},chart)]);
-  assert.ok(csv.split('\n')[0].endsWith('from_video'));assert.equal(csv.split('\n')[0].includes(',edited'),false);
+  assert.ok(csv.split('\n')[0].endsWith('from_video,actual_x,actual_y'));assert.equal(csv.split('\n')[0].includes(',edited'),false);
   const applied=PC.csvApply({},PC.parseCSV(csv)[0]);assert.equal(applied.edited,true);assert.equal(applied.shook,true);
   assert.equal(PC.csvApply({},{from_video:'0'}).edited,undefined);assert.equal(PC.csvApply({},{from_video:'yes'}).edited,true);
   assert.equal(PC.csvApply({},{edited:'yes'}).edited,true);assert.equal(PC.csvApply({},{edited:'1',from_video:'0'}).edited,true);
@@ -2069,4 +2069,119 @@ test('D-4: applyChart copies the ten chart fields and leaves ip unset off a ball
   const dirt=PC.scoreCommit({mode:'bullpen',type:'FB',called:[8],actual:31,actual_x:0.25,actual_y:0.5,xy_loc:31});
   assert.equal(dirt.loc,31);assert.equal(dirt.actualLoc,31);assert.equal(dirt.result,null);
   assert.equal(dirt.actual_x,0.25);assert.equal(dirt.actual_y,0.5);assert.equal(dirt.xy_loc,31);
+});
+// D-5 and D-6. The tap point in the CSV and on the wire. The database check and the D-7 dry run are test/xy.pg.sh.
+const XY_KEYS=['actual_x','actual_y','xy_loc'];
+test('D-5: actual_x and actual_y are the last CSV columns, 3 decimals, empty when null',()=>{
+  assert.deepEqual(PC.CSV_COLS.slice(-3),['from_video','actual_x','actual_y']);
+  assert.equal(PC.CSV_COLS.length,42);
+  const p={type:'FB',hand:'R',targets:[8],calledLoc:8,loc:8,actualLoc:8,actual_x:0.5,actual_y:0.7,xy_loc:8};
+  const row=PC.csvRow(p,{mode:'game'});
+  assert.equal(row.actual_x,'0.500');assert.equal(row.actual_y,'0.700');
+  const bare=PC.csvRow({type:'FB',targets:[8],loc:8,actualLoc:8},{mode:'bullpen'});
+  assert.equal(bare.actual_x,'');assert.equal(bare.actual_y,'');
+  const stale=PC.csvRow(Object.assign({},p,{loc:31,actualLoc:31}),{mode:'game'});
+  assert.equal(stale.actual_x,'');assert.equal(stale.actual_y,'');
+  assert.ok(PC.toCSV([row]).split('\n')[0].endsWith('from_video,actual_x,actual_y'));
+});
+test('D-5: export then import round-trips 0.123 and 0.987 and sets xy_loc to actual_location',()=>{
+  const p={type:'FB',hand:'R',targets:[12],calledLoc:12,loc:12,actualLoc:12,actual_x:0.987,actual_y:0.123,xy_loc:12};
+  const back=PC.parseCSV(PC.toCSV([PC.csvRow(p,{mode:'bullpen'})]))[0];
+  assert.equal(back.actual_x,'0.987');assert.equal(back.actual_y,'0.123');
+  assert.deepEqual(PC.csvXY(back),{x:0.987,y:0.123,xy_loc:12});
+  const got=PC.csvApply({},back);
+  assert.equal(got.actual_x,0.987);assert.equal(got.actual_y,0.123);assert.equal(got.xy_loc,12);
+  const dirt=PC.csvApply({},{location:'31',actual_location:'31',actual_x:'0.25',actual_y:'0.5'});
+  assert.deepEqual([dirt.actual_x,dirt.actual_y,dirt.xy_loc],[0.25,0.5,31]);
+  const onlyLoc=PC.csvApply({},{location:'5',actual_x:'0.5',actual_y:'0.5'});
+  assert.equal(onlyLoc.xy_loc,5);
+});
+test('D-5: an old 40-column file has no point, and a bad point is a row error',()=>{
+  const old=PC.CSV_COLS.slice(0,40);
+  assert.equal(old[39],'from_video');
+  const line=old.map(c=>c==='mode'?'game':c==='location'||c==='actual_location'?'5':'').join(',');
+  const r=PC.parseCSV(old.join(',')+'\n'+line+'\n')[0];
+  assert.equal(r.actual_x,undefined);
+  assert.deepEqual(PC.csvXY(r),{x:null,y:null,xy_loc:null});
+  const a=PC.csvApply({},r);
+  XY_KEYS.forEach(k=>assert.equal(a[k]==null,true,k));
+  const row=(x,y,at)=>({location:at,actual_location:at,actual_x:x,actual_y:y});
+  assert.ok(PC.csvXY(row('1.2','0.5','5')).error);
+  assert.ok(PC.csvXY(row('0.1','0.1','5')).error);
+  assert.ok(PC.csvXY(row('0.5','','5')).error);
+  assert.ok(PC.csvXY(row('','0.5','5')).error);
+  assert.ok(PC.csvXY(row('-0.001','0.5','5')).error);
+  assert.ok(PC.csvXY(row('abc','0.5','5')).error);
+  assert.ok(PC.csvXY(row('0.5','0.5','')).error);
+  assert.deepEqual(PC.csvXY(row('0.5','0.5','5')),{x:0.5,y:0.5,xy_loc:5});
+  assert.deepEqual(PC.csvXY(row('1','1','14')),{x:1,y:1,xy_loc:14});
+  assert.deepEqual(PC.csvXY(row('0.1','0.1','23')),{x:0.1,y:0.1,xy_loc:23});
+  const bad=PC.csvApply({},row('1.2','0.5','5'));
+  XY_KEYS.forEach(k=>assert.equal(Object.hasOwn(bad,k),false,k));
+});
+test('D-5: import a row with actual_location 14 and x/y, and xy_loc is 14',()=>{
+  const r14=PC.csvApply({},{location:'14',actual_location:'14',actual_x:'0.9',actual_y:'0.95'});
+  assert.deepEqual([r14.actual_x,r14.actual_y,r14.xy_loc],[0.9,0.95,14]);
+});
+test('D-5: x and y are plain decimals, so hex, exponents, and Infinity are row errors',()=>{
+  const row=(x,y)=>({location:'5',actual_location:'5',actual_x:x,actual_y:y});
+  ['0x1','1e-1','.5e0','Infinity','+0.5','0.5.1','1.'].forEach(v=>{assert.ok(PC.csvXY(row(v,'0.5')).error,v);assert.ok(PC.csvXY(row('0.5',v)).error,v);});
+  assert.deepEqual(PC.csvXY(row(' 0.500 ','.5')),{x:0.5,y:0.5,xy_loc:5});
+});
+test('D-5: importFlagCount does not count a row the x/y check rejects',()=>{
+  const flagged={type:'CH',call_target:'2/8',location:'5',actual_location:'5'};
+  assert.equal(PC.importFlagCount([flagged]),1);
+  assert.equal(PC.importFlagCount([flagged,Object.assign({},flagged,{actual_x:'0x1',actual_y:'0.5'}),Object.assign({},flagged,{actual_x:'0.5'})]),1);
+  assert.equal(PC.importFlagCount([Object.assign({},flagged,{actual_x:'0.5',actual_y:'0.5'})]),1);
+});
+test('D-6: x, y, and xy_loc stay off the wire until xyCol is set, then values and null round-trip',()=>{
+  const p={id:'p1',ts:1,type:'FB',targets:[8],calledLoc:8,loc:8,actualLoc:8,result:'ball',mode:'game',actual_x:0.5,actual_y:0.7,xy_loc:8};
+  const off=PC.pitchRow(p,{mode:'game',chartCol:true});
+  XY_KEYS.forEach(k=>assert.equal(Object.hasOwn(off,k),false,k));
+  assert.equal(off.loc,8);
+  const pre=PC.rowPitch(off);
+  XY_KEYS.forEach(k=>assert.equal(Object.hasOwn(pre,k),false,k));
+  const on=PC.pitchRow(p,{mode:'game',chartCol:true,xyCol:true});
+  assert.deepEqual([on.actual_x,on.actual_y,on.xy_loc],[0.5,0.7,8]);
+  const back=PC.rowPitch(on);
+  assert.deepEqual([back.actual_x,back.actual_y,back.xy_loc],[0.5,0.7,8]);
+  const none=PC.pitchRow({id:'p2',type:'FB',targets:[8],loc:8,actualLoc:8,mode:'game'},{mode:'game',chartCol:true,xyCol:true});
+  XY_KEYS.forEach(k=>assert.strictEqual(none[k],null,k));
+  const nb=PC.rowPitch(none);
+  XY_KEYS.forEach(k=>assert.strictEqual(nb[k],null,k));
+  const text=PC.rowPitch(Object.assign({},on,{actual_x:'0.500',actual_y:'0.700'}));
+  assert.deepEqual([text.actual_x,text.actual_y,text.xy_loc],[0.5,0.7,8]);
+  const st=coachStore(),s=st.real;
+  s.games.push({id:'g',date:'d',opponent:'o',homeAway:'home',lineup:[],cur:{},pitches:[p]});
+  s.sync.queue.pitches.p1=1;s.sync.chartCol=true;
+  assert.equal(Object.hasOwn(PC.buildRows(s).rows.pitches[0],'actual_x'),false);
+  s.sync.xyCol=true;
+  const wire=PC.buildRows(s).rows.pitches[0];
+  assert.deepEqual([wire.actual_x,wire.actual_y,wire.xy_loc],[0.5,0.7,8]);
+});
+test('D-6: a read clears a point whose xy_loc is not the resolved actualLoc',()=>{
+  const row=(loc,actual,xy,x,y)=>({id:'r',mode:'game',type:'FB',targets:[8],loc,actual_loc:actual,actual_x:x,actual_y:y,xy_loc:xy});
+  [[31,31,8],[32,32,31],[8,8,31],[8,8,5]].forEach(([loc,act,xy])=>{
+    const r=row(loc,act,xy,0.5,0.5),p=PC.rowPitch(r);
+    XY_KEYS.forEach(k=>assert.strictEqual(p[k],null,xy+'→'+act+' '+k));
+    assert.equal(PC.xyDropped(r),true,xy+'→'+act);
+  });
+  const keep=row(8,8,8,0.5,0.7),k=PC.rowPitch(keep);
+  assert.deepEqual([k.actual_x,k.actual_y,k.xy_loc,k.actualLoc],[0.5,0.7,8,8]);
+  assert.equal(PC.xyDropped(keep),false);
+  const byLoc=PC.rowPitch(row(31,null,31,0.25,0.5));
+  assert.deepEqual([byLoc.actual_x,byLoc.xy_loc],[0.25,31]);
+  const junk=PC.rowPitch(row(31,99,31,0.25,0.5));
+  assert.deepEqual([junk.actualLoc,junk.xy_loc],[31,31]);
+  assert.equal(PC.xyDropped(row(8,8,null,null,null)),false);
+  assert.equal(PC.xyDropped({id:'r',mode:'game',loc:8}),false);
+  assert.deepEqual(PC.xyOf({loc:8,actualLoc:8,actual_x:0.5,actual_y:0.7,xy_loc:8}),{actual_x:0.5,actual_y:0.7,xy_loc:8});
+  assert.deepEqual(PC.xyOf({loc:8,actualLoc:31,actual_x:0.5,actual_y:0.7,xy_loc:8}),{actual_x:null,actual_y:null,xy_loc:null});
+  assert.deepEqual(PC.xyOf({loc:8,actual_x:0.5,actual_y:0.7,xy_loc:8}),{actual_x:0.5,actual_y:0.7,xy_loc:8});
+  assert.deepEqual(PC.xyOf({loc:8,actualLoc:8,actual_x:1.2,actual_y:0.7,xy_loc:8}),{actual_x:null,actual_y:null,xy_loc:null});
+  const st={pitchers:[],games:[],sessions:[{id:'s1',pitches:[{id:'q',mode:'bullpen',loc:8,actualLoc:8,actual_x:0.5,actual_y:0.7,xy_loc:8,_u:'2026-10-22T10:00:00Z'}]}],sync:{queue:{pitches:{},pitchers:{},games:{},sessions:{}}}};
+  PC.mergeRemote(st,{pitches:[{id:'q',mode:'bullpen',session_id:'s1',loc:31,actual_loc:31,actual_x:0.5,actual_y:0.7,xy_loc:8,updated_at:'2026-10-22T11:00:00Z'}]});
+  const q=st.sessions[0].pitches[0];
+  assert.equal(q.loc,31);
+  XY_KEYS.forEach(key=>assert.strictEqual(q[key],null,key));
 });

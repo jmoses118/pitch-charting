@@ -25,7 +25,9 @@ function rowShook(r,raw){return !!(r&&(r.shook===true||(typeof raw==='string'&&r
 function pitchRow(p,ctx){const row=pitchRow0(p,ctx);if(p.shook){row.call_raw=SHOOK_TAG+(p.callRaw||p.call||'');if(ctx.shakeCol)row.shook=true;}else if(ctx.shakeCol)row.shook=false;
   if(p.edited)row.call_raw=(row.call_raw||'')+EDITED_TAG;
   // New chart columns exist only after 20261014180000_scoring_chart.sql. Until chartColumn is set, they stay on the phone.
+  // D-6. x, y, and xy_loc exist only after 20261022120000_pitches_xy.sql. With xyCol off the keys are left out, so the database keeps its values.
   if(ctx.chartCol){const called=PC.calledOf(p),actual=PC.actualOf(p);row.called_loc=typeof called==='number'?called:null;row.actual_loc=actual==null?null:+actual;row.foul_time=p.foulTime||null;row.wp_pb=p.wpPb||null;row.velo=p.velo==null||p.velo===''?null:+p.velo;}
+  if(ctx.xyCol)Object.assign(row,PC.xyOf(p));
   return row;}
 function pitchRow0(p,ctx){return{id:p.id,mode:ctx.mode,game_id:ctx.game_id||null,session_id:ctx.session_id||null,pitcher_id:p.pitcherId||null,ts:p.ts||null,hand:p.hand||null,type:p.type||null,call:p.call||null,call_raw:p.callRaw||null,
   targets:p.targets||[],loc:p.loc==null?null:p.loc,result:p.result||null,ip:p.ip||null,end_event:p.end||null,inning:p.inning==null?null:p.inning,outs_before:p.outsBefore==null?null:p.outsBefore,slot:p.slot==null?null:p.slot,
@@ -42,6 +44,7 @@ function rowPitch(r){let raw=r.call_raw,edited=false;if(typeof raw==='string'&&r
   if(r.mode==='game')Object.assign(p,{inning:r.inning,outsBefore:r.outs_before,slot:r.slot,batter:r.batter,batterNum:r.batter_num,b:r.b,s:r.s,abn:r.abn,firstPitch:r.first_pitch,prevHand:r.prev_hand});else{p.b=0;p.s=0;delete p.result;delete p.ip;delete p.end;delete p.bpResult;}
   if(r.no_pitch)p.noPitch=true;p.mode=r.mode==='bullpen'?'bullpen':'game';
   if(r.actual_loc!=null&&r.actual_loc!==''&&onGrid(+r.actual_loc))p.actualLoc=+r.actual_loc;else if(p.loc!=null)p.actualLoc=p.loc;
+  if(XY_KEYS.some(k=>k in r))Object.assign(p,PC.xyOf(Object.assign({},p,pickXY(r))));
   if(r.foul_time==='early'||r.foul_time==='ontime'||r.foul_time==='late')p.foulTime=r.foul_time;if(r.wp_pb==='wp'||r.wp_pb==='pb')p.wpPb=r.wp_pb;if(r.velo!=null&&r.velo!==''&&Number.isFinite(+r.velo))p.velo=+r.velo;
   return p;}
 // role rules (mirrors server RLS): coach = everything; player = writes own bullpen sessions/pitches only, reads own game+bullpen pitches and games she pitched in; viewer = read only
@@ -58,7 +61,7 @@ function buildRows(st){let held=0;const q=st.sync.queue,team=st.sync.teamId,dev=
     else if(t==='notes'){const x=(st.notes||[]).find(y=>y.id===id);if(x)row={id:x.id,pitcher_id:x.pitcherId,session_id:x.sessionId||null,game_id:x.gameId||null,body:String(x.body||'').slice(0,2000),deleted:!!x.deleted};}
     else if(t==='team_settings'){if(id===TEAM_SETTINGS_ID&&st.settings)row=settingsRow(st.settings);}
     else if(t==='sessions'){const x=st.sessions.find(y=>y.id===id);if(x){row={id:x.id,date:x.date,started:x.started||null,imported:!!x.imported,pitcher_id:x.pitcherId||null};if(st.sync.scorerCol)row.scorer=x.scorer||null;}}
-    else{const hit=idx[id];if(hit)row=pitchRow(hit[0],Object.assign({},hit[1],{shakeCol:!!st.sync.shakeCol,chartCol:!!st.sync.chartCol}));else if(st.sync.tomb[id]){const tb=st.sync.tomb[id];row=pitchRow(tb,{mode:tb.mode,game_id:tb.game_id,session_id:tb.session_id,shakeCol:!!st.sync.shakeCol,chartCol:!!st.sync.chartCol});row.deleted=true;}}
+    else{const hit=idx[id];if(hit)row=pitchRow(hit[0],Object.assign({},hit[1],wireCols(st.sync)));else if(st.sync.tomb[id]){const tb=st.sync.tomb[id];row=pitchRow(tb,{mode:tb.mode,game_id:tb.game_id,session_id:tb.session_id,...wireCols(st.sync)});row.deleted=true;}}
     if(row&&!roleAllows(st.sync,t,row)){held++;continue;} // never send what this code can't write, but KEEP it queued for a code that can
     if(row){row.team_id=team;row.device_id=dev;out[t].push(row);}else delete q[t][id];}}
   return{rows:out,ver,held};}
@@ -140,5 +143,11 @@ function makeSync(store,cfg){const f=cfg.fetch||(typeof fetch!=='undefined'?fetc
       const a=st0.sync.role==='viewer'?{sent:0}:await api.push();const pe=st0.sync.lastError;const b=await api.pull(); // always pull, even if the push failed
       if((a.error||a.rejected)&&!b.error){st0.sync.lastError=pe;store.save();}return Object.assign({},b,a);}};
   return api;}
-Object.assign(PC,{SHOOK_TAG,EDITED_TAG,SYNC_WHY,syncWhy,validSpot,scorerOfRow,quarantine,retryRejected,discardRejected,rejectedList,sinceOf,pullUrl,PAGE,TABLES,keyOf,TEAM_SETTINGS_ID,settingsRow,rowSettings,pitchRow,rowPitch,roleAllows,buildRows,gameStatus,newerThan,mergeRemote,makeSync});
+// The optional pitch columns this phone may send. Each flag turns on only after its migration is on the database.
+function wireCols(sync){return {shakeCol:!!sync.shakeCol,chartCol:!!sync.chartCol,xyCol:!!sync.xyCol};}
+const XY_KEYS=['actual_x','actual_y','xy_loc'];
+const pickXY=r=>({actual_x:r.actual_x,actual_y:r.actual_y,xy_loc:r.xy_loc});
+// D-6. Derived, never stored: the pulled row had a point that the read cleared.
+const xyDropped=r=>!!r&&r.xy_loc!=null&&r.xy_loc!==''&&rowPitch(r).xy_loc==null;
+Object.assign(PC,{SHOOK_TAG,EDITED_TAG,SYNC_WHY,syncWhy,validSpot,scorerOfRow,quarantine,retryRejected,discardRejected,rejectedList,sinceOf,pullUrl,PAGE,TABLES,keyOf,TEAM_SETTINGS_ID,settingsRow,rowSettings,pitchRow,rowPitch,xyDropped,roleAllows,buildRows,gameStatus,newerThan,mergeRemote,makeSync});
 })(typeof window!=='undefined'?window:globalThis);

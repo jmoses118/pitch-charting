@@ -20,6 +20,7 @@ function offProd(cfg,where){
   assert.equal(new URL(cfg.url).hostname.toLowerCase().includes(PROD.ref),false,where+' url');
   assert.notEqual(cfg.key,PROD.key,where+' key');
   assert.equal(cfg.scorerColumn,true);assert.equal(cfg.shakeColumn,true);assert.equal(cfg.chartColumn,true);
+  assert.equal(cfg.xyColumn,false,where+' xyColumn stays off until the D-1 migration is on production');
 }
 // Join adjacent quoted pieces before a case-insensitive search.
 function sourceNamesProd(src){
@@ -38,7 +39,7 @@ test('INFRA-3: non-production builds do not point at the production project',()=
   const staging=load('localhost',{PC_SUPABASE_URL:'https://staging-example.supabase.co',PC_SUPABASE_ANON_KEY:'sb_publishable_staging'});
   assert.equal(staging.url,'https://staging-example.supabase.co');assert.equal(staging.key,'sb_publishable_staging');assert.equal(staging.fallback,false);assert.match(staging.banner,/does not use production/);
   const prod=load(PROD.hosts[0],{PC_SUPABASE_URL:PROD.local,PC_SUPABASE_ANON_KEY:'other'});
-  assert.equal(prod.url,PROD.url);assert.equal(prod.key,PROD.key);assert.equal(prod.banner,'');
+  assert.equal(prod.url,PROD.url);assert.equal(prod.key,PROD.key);assert.equal(prod.banner,'');assert.equal(prod.xyColumn,false);
   PROD.hosts.push('preview.example');
   try{assert.equal(load('preview.example').url,PROD.url);}finally{PROD.hosts.pop();}
 });
