@@ -1,5 +1,10 @@
 # Changelog
 
+## v96 – The pitcher menu hides on Stats and Setup
+### Changed
+- The pitcher name, the jersey button, and the add button at the top now show only on Game and Bullpen. Stats and Setup keep the Thunder Elite name and the tabs, and the page below starts higher. Nothing new sits in that spot.
+- Cache: `te-pitch-v96`.
+
 ## v95 – The tap-a-box view names the right pitch
 ### Fixed
 - When a curveball, drop, or drop curve misses up, the tap-a-box view now tags it "CB up", "DR up", or "DC up" and says, for example, "2 curveballs were up in the zone." It used to call every one of them a change-up.
