@@ -1,5 +1,10 @@
 # Changelog
 
+## v97 – The Field wordmark can be read
+### Fixed
+- In the Field theme, the Elite script on the wordmark is now the same dark ink as the rest of the page, so it shows on the white header. The blue Thunder letters stay as they are, and Night is unchanged.
+- Cache: `te-pitch-v97`.
+
 ## v96 – The pitcher menu hides on Stats and Setup
 ### Changed
 - The pitcher name, the jersey button, and the add button at the top now show only on Game and Bullpen. Stats and Setup keep the Thunder Elite name and the tabs, and the page below starts higher. Nothing new sits in that spot.
