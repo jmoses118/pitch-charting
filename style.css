@@ -33,6 +33,7 @@ input,textarea{caret-color:var(--c-royal-text)}
 /* ---------- header ---------- */
 header{position:sticky;top:0;z-index:5;background:var(--c-hdr);border-bottom:2px solid var(--c-royal);padding:calc(var(--s2) + env(safe-area-inset-top)) var(--s3) var(--s2)}
 .topbar{margin-bottom:var(--s2)}.pickrow{margin-bottom:var(--s2)}
+body.tab-stats .pickrow,body.tab-setup .pickrow,body.tab-stats #wlMsg,body.tab-setup #wlMsg{display:none}
 .brand{display:block}
 .tag{display:inline-flex;align-items:center;font-size:var(--fs-xs);font-weight:600;padding:2px var(--s2);border-radius:var(--r-pill);background:var(--c-surface-3);color:var(--c-text-2);line-height:1.5}
 #modeTag{background:var(--c-royal-tint);color:var(--c-royal-text)}
