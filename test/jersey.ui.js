@@ -71,5 +71,102 @@ ok(await p.evaluate(()=>document.querySelector('#wbTbl td button').getBoundingCl
 await p.click('#wbTog');await p.waitForTimeout(100);
 ok(await p.evaluate(()=>parseFloat(getComputedStyle(document.getElementById('cxMenu')).minHeight)>=44),'coach menu is at least 44px');
 ok(!errs.length,'no page errors '+errs.join('|'));
+// VIEW-4: the Field wordmark plate (Elite script plus the letter outline) must clear 4.5:1 on the white header.
+// Night keeps that plate white. The royal Thunder fill stays #1E3FD0. Coach landscape does not show the header.
+function decodePNG(buf){
+  let o=8,w=0,h=0,depth=0,ctype=0;const idats=[];
+  while(o<buf.length){
+    const len=buf.readUInt32BE(o);const type=buf.toString('ascii',o+4,o+8);const data=buf.subarray(o+8,o+8+len);
+    if(type==='IHDR'){w=data.readUInt32BE(0);h=data.readUInt32BE(4);depth=data[8];ctype=data[9];}
+    else if(type==='IDAT')idats.push(data);
+    else if(type==='IEND')break;
+    o+=12+len;
+  }
+  if(depth!==8||(ctype!==6&&ctype!==2))throw new Error('png '+ctype+'/'+depth);
+  const raw=require('zlib').inflateSync(Buffer.concat(idats));
+  const ch=ctype===6?4:3,px=Buffer.alloc(w*h*4);let i=0;
+  for(let y=0;y<h;y++){
+    const filter=raw[i++],row=y*w*4,prev=y?yy=>px[row-w*4+yy]:()=>0;
+    for(let x=0;x<w;x++){
+      const di=row+x*4,src=[];
+      for(let c=0;c<ch;c++)src.push(raw[i++]);
+      if(ch===3)src.push(255);
+      const L=[0,1,2,3].map(c=>x?px[di-4+c]:0),U=[0,1,2,3].map(c=>prev(x*4+c));
+      for(let c=0;c<4;c++){
+        let v=src[c];
+        if(filter===1)v+=L[c];
+        else if(filter===2)v+=U[c];
+        else if(filter===3)v+=Math.floor((L[c]+U[c])/2);
+        else if(filter===4){const a=L[c],bb=U[c],cc=x?prev((x-1)*4+c):0,p=a+bb-cc,pa=Math.abs(p-a),pb=Math.abs(p-bb),pc=Math.abs(p-cc);v+=(pa<=pb&&pa<=pc)?a:(pb<=pc?bb:cc);}
+        px[di+c]=v&255;
+      }
+    }
+  }
+  return {w,h,px};
+}
+function linC(c){c/=255;return c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4);}
+function lumC(p){return 0.2126*linC(p[0])+0.7152*linC(p[1])+0.0722*linC(p[2]);}
+function ratioC(a,b){const x=lumC(a),y=lumC(b);return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05);}
+function plateOf(png,bg){
+  const {px}=decodePNG(png),blue=[30,63,208],dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
+  const plate=[];let blueN=0;
+  for(let i=0;i<px.length;i+=4){
+    const p=[px[i],px[i+1],px[i+2]];
+    if(px[i+3]<20||dist(p,bg)<18)continue;
+    if(dist(p,blue)<70){blueN++;continue;}
+    plate.push(p);
+  }
+  plate.sort((a,b)=>lumC(a)-lumC(b));
+  const at=q=>plate.length?plate[Math.min(plate.length-1,Math.floor(plate.length*q))]:null;
+  const ink=at(0.1),light=at(0.9);
+  return {blueN,plateN:plate.length,ink,inkContrast:ink?ratioC(ink,bg):0,light,lightContrast:light?ratioC(light,bg):0};
+}
+const markInfo=()=>p=>p.evaluate(()=>{
+  const img=document.querySelector('.brand img'),r=img.getBoundingClientRect(),header=document.querySelector('header'),hs=getComputedStyle(header);
+  const zone=document.getElementById('cZone'),band=document.querySelector('#cBand');
+  const box=el=>{if(!el)return null;const b=el.getBoundingClientRect();return {w:+b.width.toFixed(1),h:+b.height.toFixed(1),on:b.width>0&&b.left>=-1&&b.top>=-1&&b.right<=innerWidth+1&&b.bottom<=innerHeight+1};};
+  return {alt:img.getAttribute('alt'),filter:getComputedStyle(img).filter,theme:document.documentElement.dataset.theme,
+    x:+r.x.toFixed(2),y:+r.y.toFixed(2),w:+r.width.toFixed(2),h:+r.height.toFixed(2),
+    headerDisplay:hs.display,headerBg:hs.backgroundColor,coach:document.body.classList.contains('coachmode'),
+    text:getComputedStyle(document.documentElement).getPropertyValue('--c-text').trim(),
+    nav:getComputedStyle(document.querySelector('nav')).display,zone:box(zone),band:box(band)};
+});
+const rgbOf=hex=>{const m=String(hex).match(/^#([0-9a-f]{6})$/i);if(!m)return null;const n=m[1];return [parseInt(n.slice(0,2),16),parseInt(n.slice(2,4),16),parseInt(n.slice(4,6),16)];};
+const readBg=s=>{const m=String(s).match(/[\d.]+/g).map(Number);return [m[0],m[1],m[2]];};
+const GAME={id:'g1',date:'2026-10-13',opponent:'Storm',homeAway:'home',status:'active',started:1,lineup:[{slot:1,name:'B',num:'1',hand:'R'}],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:1},pitches:[]};
+for(const [W,H,theme,land] of [[375,667,'field',false],[390,844,'field',false],[430,932,'field',false],[375,667,'night',false],[667,375,'field',true],[844,390,'field',true],[932,430,'field',true],[667,375,'night',true]]){
+  const tag=`VIEW-4 ${theme} ${W}x${H}`;
+  const c=await b.newContext({viewport:{width:W,height:H},isMobile:true,hasTouch:true});
+  await c.addInitScript(t=>localStorage.setItem('te_ui_theme',t),theme);
+  await c.route(/supabase\.co/,r=>r.abort());
+  const p=await c.newPage();const perr=[];p.on('pageerror',e=>perr.push(e.message));
+  await p.goto(BASE);await p.waitForTimeout(200);
+  if(land){
+    await p.evaluate(g=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';S.games.push(g);S.activeGame='g1';__app.store.save();__app.render();},GAME);
+    await p.click('nav [data-t="game"]').catch(()=>{});await p.waitForTimeout(250);
+  }else{await p.click('nav [data-t="setup"]').catch(()=>{});await p.waitForTimeout(150);}
+  const info=await markInfo()(p);
+  ok(info.alt==='Thunder Elite',`${tag}: wordmark name stays Thunder Elite`);
+  ok(!perr.length,`${tag}: no page errors ${perr.join('|')}`);
+  if(land){
+    ok(info.coach&&info.headerDisplay==='none'&&info.h===0,`${tag}: coach screen hides the header, wordmark box ${info.w}x${info.h}`);
+    ok(info.zone&&info.zone.on&&info.band&&info.band.on,`${tag}: wristband and zone stay on screen`);
+  }else{
+    const shot=await p.locator('.brand img').screenshot();
+    const plate=plateOf(shot,readBg(info.headerBg));
+    ok(info.h===30&&info.w>=80&&info.w<=88&&info.x>=0&&info.x+info.w<=W+0.5,`${tag}: wordmark box ${info.w}x${info.h} at ${info.x},${info.y}`);
+    ok(info.nav!=='none',`${tag}: tab bar stays visible`);
+    ok(plate.blueN>50,`${tag}: Thunder stays royal blue (${plate.blueN} px)`);
+    if(theme==='field'){
+      const want=rgbOf(info.text);
+      ok(plate.plateN>plate.blueN&&plate.inkContrast>=4.5&&want&&plate.ink.join(',')===want.join(','),`${tag}: Elite plate ${plate.inkContrast.toFixed(2)}:1 matches --c-text ${info.text} (${plate.plateN} px, ink ${plate.ink})`);
+      ok(info.filter.includes('wmField'),`${tag}: field wordmark uses the plate filter`);
+    }else{
+      ok(plate.lightContrast>=4.5,`${tag}: Night plate stays light ${plate.lightContrast.toFixed(2)}:1 ${plate.light}`);
+      ok(info.filter==='none',`${tag}: Night wordmark is not recolored`);
+    }
+  }
+  await c.close();
+}
 await b.close();console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);
 })().catch(e=>{console.error(e);process.exit(1);});
