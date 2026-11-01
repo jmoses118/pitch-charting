@@ -54,6 +54,8 @@ jobs:
         run: node test/modes.ui.js http://localhost:8766/
       - name: Jersey number
         run: node test/jersey.ui.js http://localhost:8766/
+      - name: Top pitcher bar
+        run: node test/topbar.ui.js http://localhost:8766/
       - name: Edit a pitch and optional detail
         run: node test/editpitch.ui.js http://localhost:8766/ && node test/detail.ui.js http://localhost:8766/
       - name: Full inning and 20-pitch bullpen

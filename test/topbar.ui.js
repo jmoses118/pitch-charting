@@ -10,7 +10,7 @@ if(SHOT)fs.mkdirSync(SHOT,{recursive:true});
 let fails=0;
 const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};
 const near=(a,b,tol)=>Math.abs(a-b)<=tol;
-const SIZES=[[375,667],[390,844],[430,932],[667,375]];
+const SIZES=[[375,667],[390,844],[430,932],[440,956],[667,375],[844,390]];
 const BAR=56;
 (async()=>{
   const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});
@@ -101,6 +101,7 @@ const BAR=56;
     const bull=await metrics();
     await shot('bullpen');
     ok(barOn(bull)&&bull.label==='Reese #7'&&tapsOk(bull),`${tag} TB-1 Bullpen shows Reese #7 at least 48px (${bull.label}, ${JSON.stringify(bull.boxes)})`);
+    ok(bull.body.includes('tab-bullpen')&&!/\btab-game\b/.test(bull.body)&&!bull.body.includes('tab-stats')&&!bull.body.includes('tab-setup'),`${tag} TB-1 Bullpen sets only tab-bullpen`);
     // TB-5 then TB-1/TB-3/TB-6 on Stats and Setup. Avery is the global pick.
     await ev(()=>{__app.store.real.curPitcher='p_a';delete document.getElementById('sPitcher').dataset.picked;__app.store.save();__app.render();});
     await go('stats');
