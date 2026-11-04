@@ -1,5 +1,10 @@
 # Changelog
 
+## v98 – Shared agent skills are in the repo
+### Changed
+- The chart works the same. Two shared notes for agents are now in the repo: how to start a project in modules, and how to check the work before saying it is done.
+- Cache: `te-pitch-v98`.
+
 ## v97 – The Field wordmark can be read
 ### Fixed
 - In the Field theme, the Elite script on the wordmark is now the same dark ink as the rest of the page, so it shows on the white header. The blue Thunder letters stay as they are, and Night is unchanged.
