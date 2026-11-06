@@ -218,9 +218,27 @@ function fitZone(){const z=$('zone'),w=z.parentElement;if($('entry').classList.c
   // the extra header row drops this chip onto the fixed Way row or bullpen pad; keep its center above that bar
   let chipTop=124*m.d+m.f-r.top;const block=document.body.classList.contains('padmode')?$('bpPad'):$('locRow');const br=block&&block.getBoundingClientRect();
   if(br&&br.height>20){const fixed=getComputedStyle(block).position==='fixed';const maxTop=br.top-r.top-(fixed?scrollY:0)-32;if(chipTop>maxTop)chipTop=maxTop;}
-  bs.left=(-13*m.a+m.e-r.left)+'px';bs.top=chipTop+'px';bs.width=(43*m.a)+'px';
+  bs.left=(-13*m.a+m.e-r.left)+'px';bs.top=chipTop+'px';bs.width=(43*m.a)+'px';bs.zIndex='';
   // a short zone makes this slot narrower than "Batter: none"; grow it so the label is not cut off
-  const chip=$('batTog'),over=chip.scrollWidth-chip.clientWidth;if(over>1)bs.width=(43*m.a+over)+'px';}
+  const chip=$('batTog'),over=chip.scrollWidth-chip.clientWidth;if(over>1)bs.width=(43*m.a+over)+'px';
+  const ip=$('ipContact');if(ip)ip.style.paddingLeft='';
+  // RULE-8. A tall zone lays this chip on Ground and Liner. Fit the label and shift that row to its right.
+  if(!ip||!ip.offsetParent)return;
+  const cross=(a,b)=>Math.min(a.right,b.right)-Math.max(a.left,b.left)>2&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>2;
+  const btns=[...ip.querySelectorAll('[data-bb]')];
+  if(!btns.some(b=>cross(b.getBoundingClientRect(),chip.getBoundingClientRect())))return;
+  const slot=bs.width,wideTop=bs.top;
+  bs.width='48px';const grow=chip.scrollWidth-chip.clientWidth;if(grow>1)bs.width=(48+grow)+'px';
+  const bat=chip.getBoundingClientRect();
+  ip.style.paddingLeft=Math.max(0,Math.ceil(bat.right-ip.getBoundingClientRect().left+6))+'px';
+  bs.zIndex='9';
+  let lift=0;const b2=chip.getBoundingClientRect();
+  for(const o of document.querySelectorAll('#ipBtns [data-ip]')){const q=o.getBoundingClientRect();const ox=Math.min(q.right,b2.right)-Math.max(q.left,b2.left),oy=Math.min(q.bottom,b2.bottom)-Math.max(q.top,b2.top);if(ox>0&&oy>0)lift=Math.max(lift,oy+2);}
+  if(lift)bs.top=(parseFloat(bs.top)-lift)+'px';
+  const b3=chip.getBoundingClientRect();
+  const zoneHit=[...document.querySelectorAll('#zone [data-z]')].some(e=>cross(e.getBoundingClientRect(),b3));
+  const chipBad=chip.scrollWidth>chip.clientWidth+1||btns.some(b=>{const q=b.getBoundingClientRect();return q.width<48||q.right>innerWidth+1||b.scrollWidth>b.clientWidth+1||cross(q,b3);});
+  if(chipBad||zoneHit){bs.width=slot;bs.top=wideTop;bs.zIndex='';ip.style.paddingLeft='';}}
 addEventListener('resize',()=>fitZone());
 
 // ---------- shake-off (game): she shook off the coach's call and threw her own pitch ----------

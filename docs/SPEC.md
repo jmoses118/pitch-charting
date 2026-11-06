@@ -152,7 +152,7 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | RULE-11, RULE-12 | UI: edit jersey number saves, and Cancel leaves it unchanged; smoke: branding unchanged |
 | RULE-11a | unit: `0` and `00` are allowed, empty is allowed, and a duplicate active number errors |
 | RULE-13 | unit: “RULE-13: contact is Ground, Liner, Fly, Pop up, and Bunt”; `test/detail.ui.js` portrait Bunt saves and can be skipped |
-| RULE-13a | `test/contact.ui.js`: coach chips are at least 48×48 in the result column, top and bottom stay put, Back and Undo save nothing, Skip and Escape record no contact, and 440×956 portrait insets are included |
+| RULE-13a | `test/contact.ui.js`: coach chips are at least 48×48 in the result column, top and bottom stay put, Back and Undo save nothing, Skip and Escape record no contact, and 440×956 portrait insets are included. Portrait Ground and Liner stay clear of `#batTog` at 375, 390, and 430 (`test/fit.ui.js` too) |
 | VIEW-1, VIEW-2 | `zonegfx.ui.js`: numbered, colored markers and list; one-tap scheduled start. `test/resultcontrast.ui.js`: soft coach result labels are at least 4.5:1 in Night and Field; Redo may stay dim |
 | VIEW-3 | unit: “VIEW-2 todaysScheduled returns only that day's scheduled games” |
 | VIEW-4 | unit: “VIEW-4: nothing saved is Night, and a saved Field or Night stays”; “VIEW-4: themeFromStorage reads THEME_KEY and stays Night when getItem throws”; `test/coach.ui.js`: Night by default, the game menu reaches Field and Night, a saved Field stays Field, no Field frame paints on load, a throwing theme read stays Night, Night controls are 2px, Night fills are #3A5CF0, themeColor paints the bar, a missing theme.js opens Night and the coach screen, and Night boxes match Field |
