@@ -1,5 +1,10 @@
 # Changelog
 
+## v99 – Result buttons stay readable before the pitch is ready
+### Fixed
+- On the coach screen, Ball, Strike, Foul, In play and HBP stay readable in Night and in Field before you tap where the pitch went. The colours are the same. A button that is switched off, such as Redo, stays dim.
+- Cache: `te-pitch-v99`.
+
 ## v98 – Shared agent skills are in the repo
 ### Changed
 - The chart works the same. Two shared notes for agents are now in the repo: how to start a project in modules, and how to check the work before saying it is done.

@@ -91,7 +91,7 @@ The UI only renders these. `heatStats` is the per-type rollup.
 
 ## VIEW
 - **VIEW-1** The zone is shown Gameday-style, from the catcher's eye. Each pitch is a small numbered softball colored by its result. The pitch list sits under the zone.
-- **VIEW-2** As in GameChanger, a scheduled game starts with one tap, and the result buttons are big.
+- **VIEW-2** As in GameChanger, a scheduled game starts with one tap, and the result buttons are big. On the coach screen a result button keeps its label and its Okabe-Ito colour before the pitch is ready, and that label is at least 4.5:1 on the button in Night and in Field. A control that is only switched off, such as Redo, may stay dim.
 - **VIEW-3** The Game tab lists only today's scheduled games. Jim's ruling, 2026-10-15. `todaysScheduled` keeps scheduled rows whose date is that day.
 - **VIEW-4** Night is the default palette. Jim approved this on 2026-10-20. `themeOf` and `themeFromStorage` in `js/core/theme.js` are the one reading of `THEME_KEY` (`te_ui_theme`).
   Nothing saved opens in `night`. A saved `field` or `night` stays that palette. Any other saved value, and `auto` with an hour that is not a number, opens in `night`.
@@ -153,7 +153,7 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | RULE-11a | unit: `0` and `00` are allowed, empty is allowed, and a duplicate active number errors |
 | RULE-13 | unit: “RULE-13: contact is Ground, Liner, Fly, Pop up, and Bunt”; `test/detail.ui.js` portrait Bunt saves and can be skipped |
 | RULE-13a | `test/contact.ui.js`: coach chips are at least 48×48 in the result column, top and bottom stay put, Back and Undo save nothing, Skip and Escape record no contact, and 440×956 portrait insets are included |
-| VIEW-1, VIEW-2 | `zonegfx.ui.js`: numbered, colored markers and list; one-tap scheduled start |
+| VIEW-1, VIEW-2 | `zonegfx.ui.js`: numbered, colored markers and list; one-tap scheduled start. `test/resultcontrast.ui.js`: soft coach result labels are at least 4.5:1 in Night and Field; Redo may stay dim |
 | VIEW-3 | unit: “VIEW-2 todaysScheduled returns only that day's scheduled games” |
 | VIEW-4 | unit: “VIEW-4: nothing saved is Night, and a saved Field or Night stays”; “VIEW-4: themeFromStorage reads THEME_KEY and stays Night when getItem throws”; `test/coach.ui.js`: Night by default, the game menu reaches Field and Night, a saved Field stays Field, no Field frame paints on load, a throwing theme read stays Night, Night controls are 2px, Night fills are #3A5CF0, themeColor paints the bar, a missing theme.js opens Night and the coach screen, and Night boxes match Field |
 | VIEW-5 | `test/flow.ui.js`: normal font keeps 5: miss, CB: low, CH: low, and DC: low in the cell beside `#2 LHB` with normal spacing; `Drop: low` beside `#2 LHB`, no number, `#12` with 100 pitches, and every label in the wider fallback font move to the hint, replace the step prompt, and keep the aim at 14px, 6px after the code |
