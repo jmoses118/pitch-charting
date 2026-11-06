@@ -25,6 +25,13 @@ for(const [W,H] of [[375,667],[390,844],[430,932]])for(const theme of ['field','
   const outs=await p.evaluate(chipSel,'#ipBtns [data-ip]');
   const fit=chips.length===5&&chips.every(x=>x.w>=48&&x.h>=48&&!x.clip&&!x.off)&&!clash(chips)&&!chips.some(ch=>outs.some(o=>hits(ch,o)));
   ok(chips.map(x=>x.t).join()===NAMES&&fit,`${tag}: full names, 48px, no overlap ${chips.map(x=>x.t+' '+x.w.toFixed(0)+'×'+x.h.toFixed(0)+(x.clip?' clip':'')).join(' ')}`);
+  const batClear=await p.evaluate(()=>{
+    const b=document.getElementById('batTog').getBoundingClientRect();
+    const hit=r=>Math.min(r.right,b.right)-Math.max(r.left,b.left)>2&&Math.min(r.bottom,b.bottom)-Math.max(r.top,b.top)>2;
+    const name=e=>(e.textContent||'').trim();
+    return {chips:[...document.querySelectorAll('#ipContact [data-bb]')].filter(e=>hit(e.getBoundingClientRect())).map(name),zones:[...document.querySelectorAll('#zone [data-z]')].filter(e=>hit(e.getBoundingClientRect())).map(e=>e.getAttribute('data-z')),clip:document.getElementById('batTog').scrollWidth>document.getElementById('batTog').clientWidth+1};
+  });
+  ok(!batClear.chips.length&&!batClear.zones.length&&!batClear.clip,`${tag}: RULE-8 #batTog clear of GB/LD contact chips ${JSON.stringify(batClear)}`);
   ok(!errs.length,`${tag}: no page errors`);
   await c.close();}
 for(const theme of ['field','night']){const tag=`440x956 inset portrait ${theme}`;
@@ -42,6 +49,13 @@ for(const theme of ['field','night']){const tag=`440x956 inset portrait ${theme}
   const outs=await p.evaluate(chipSel,'#ipBtns [data-ip]');
   const fit=chips.length===5&&chips.every(x=>x.w>=48&&x.h>=48&&!x.clip&&!x.off)&&!clash(chips)&&!chips.some(ch=>outs.some(o=>hits(ch,o)));
   ok(chips.map(x=>x.t).join()===NAMES&&fit,`${tag}: full names, 48px, no overlap ${chips.map(x=>x.t+' '+x.w.toFixed(0)+'×'+x.h.toFixed(0)+(x.clip?' clip':'')).join(' ')}`);
+  const batClear=await p.evaluate(()=>{
+    const b=document.getElementById('batTog').getBoundingClientRect();
+    const hit=r=>Math.min(r.right,b.right)-Math.max(r.left,b.left)>2&&Math.min(r.bottom,b.bottom)-Math.max(r.top,b.top)>2;
+    const name=e=>(e.textContent||'').trim();
+    return {chips:[...document.querySelectorAll('#ipContact [data-bb]')].filter(e=>hit(e.getBoundingClientRect())).map(name),zones:[...document.querySelectorAll('#zone [data-z]')].filter(e=>hit(e.getBoundingClientRect())).map(e=>e.getAttribute('data-z')),clip:document.getElementById('batTog').scrollWidth>document.getElementById('batTog').clientWidth+1};
+  });
+  ok(!batClear.chips.length&&!batClear.zones.length&&!batClear.clip,`${tag}: RULE-8 #batTog clear of GB/LD contact chips ${JSON.stringify(batClear)}`);
   ok(!errs.length,`${tag}: no page errors`);
   await c.close();}
 const land=[[844,390,0],[667,375,0],[956,440,0],[956,440,62],[956,384,0],[956,375,0],[956,360,0],[932,430,0]];

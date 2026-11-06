@@ -1,5 +1,10 @@
 # Changelog
 
+## v100 – Ground and Liner stay off the Batter button
+### Fixed
+- On a wide phone, Ground and Liner no longer sit on the Batter button when a ball is in play. The Batter button keeps its full label and the five contact choices stay readable.
+- Cache: `te-pitch-v100`.
+
 ## v99 – Result buttons stay readable before the pitch is ready
 ### Fixed
 - On the coach screen, Ball, Strike, Foul, In play and HBP stay readable in Night and in Field before you tap where the pitch went. The colours are the same. A button that is switched off, such as Redo, stays dim.
