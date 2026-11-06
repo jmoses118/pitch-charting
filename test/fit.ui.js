@@ -63,4 +63,24 @@ for(const [W,H] of [[390,844],[375,667],[430,932]]){const tag=`${W}x${H}`;
     ok(face.fullFits?face.text==='Alexandria #12':(/… #12$/.test(face.text)&&!face.text.endsWith('…')),`${tag}: long name keeps #12 (${face.text})`);
     if(W===375||W===390){const n=(face.text.match(/^(.*?)(?:…)? #12$/)||['',''])[1].length;ok(n>=8,`${tag}: at least 8 name characters plus #12 (${face.text})`);}}
   ok(!errs.length,`${tag}: no page errors `+errs.join('|'));await c.close();}
+// RULE-8 / RULE-13. Portrait ball-in-play: Ground and Liner must not cover the batter toggle.
+const GAME2={id:'g1',date:'2026-10-13',opponent:'Storm',homeAway:'home',status:'active',started:1,lineup:[{slot:1,name:'Batter 1',num:'1',hand:'R'}],cur:{inning:1,outs:0,slot:0,b:0,s:0,abn:1},pitches:[]};
+for(const [W,H] of [[375,667],[390,844],[430,932]])for(const theme of ['night','field']){const tag=`${W}x${H} ${theme}`;
+  const c=await b.newContext({viewport:{width:W,height:H},isMobile:true,hasTouch:true});await c.route(/supabase\.co/,r=>r.abort());
+  await c.addInitScript(t=>{localStorage.setItem('te_ui_portrait_ok','1');localStorage.setItem('te_ui_theme',t);},theme);
+  const p=await c.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));p.on('dialog',d=>d.accept());
+  await p.goto(BASE);
+  await p.evaluate(g=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Avery',num:'45',throws:'R'}];S.curPitcher='p_a';S.games=[g];S.activeGame='g1';S.sessions=[];__app.store.save();__app.render();},GAME2);
+  await p.click('nav [data-t="game"]').catch(()=>{});await p.waitForTimeout(150);
+  const tapZ=async z=>{const xy=await p.$eval(`#zone [data-z="${z}"]`,e=>{const s=e.ownerSVGElement,pt=s.createSVGPoint(),bb=e.getBBox();pt.x=bb.x+bb.width/2;pt.y=bb.y+bb.height/2;const q=pt.matrixTransform(s.getScreenCTM());return [q.x,q.y];});await p.mouse.click(xy[0],xy[1]);};
+  await p.click('#types [data-c="FB"]');await tapZ(5);await tapZ(5);await p.click('#resBtns [data-r="inplay"]');await p.waitForTimeout(150);
+  const batClear=await p.evaluate(()=>{
+    const b=document.getElementById('batTog').getBoundingClientRect();
+    const hit=r=>Math.min(r.right,b.right)-Math.max(r.left,b.left)>2&&Math.min(r.bottom,b.bottom)-Math.max(r.top,b.top)>2;
+    const name=e=>(e.textContent||'').trim();
+    return {chips:[...document.querySelectorAll('#ipContact [data-bb]')].filter(e=>hit(e.getBoundingClientRect())).map(name),zones:[...document.querySelectorAll('#zone [data-z]')].filter(e=>hit(e.getBoundingClientRect())).map(e=>e.getAttribute('data-z')),clip:document.getElementById('batTog').scrollWidth>document.getElementById('batTog').clientWidth+1};
+  });
+  ok(!batClear.chips.length&&!batClear.zones.length&&!batClear.clip,`${tag}: RULE-8 #batTog clear of GB/LD contact chips ${JSON.stringify(batClear)}`);
+  ok(!errs.length,`${tag}: contact overlap check, no page errors`);
+  await c.close();}
 await b.close();console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);})();
