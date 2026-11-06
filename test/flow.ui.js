@@ -339,4 +339,6 @@ await longBat(true,{hand:'R',num:'',pitches:0,bat:'Batter 2 RHB ⚾ 0'},'no batt
 await longBat(true,{hand:'L',num:'12',pitches:100,bat:'#12 LHB ⚾ 100'},'#12 with 100 pitches');
 await longBat(false,{hand:'R',num:'',pitches:0,bat:'Batter 2 RHB ⚾ 0'},'wider font, no batter number');
 await longBat(false,{hand:'L',num:'12',pitches:105,bat:'#12 LHB ⚾ 105'},'wider font, #12 with 100+ pitches');
+// VIEW-2 soft result contrast runs in this CI step.
+ok(require('child_process').spawnSync(process.execPath,[require('path').join(__dirname,'resultcontrast.ui.js'),BASE],{stdio:'inherit'}).status===0,'VIEW-2 soft result contrast');
 await b.close();console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);})().catch(e=>{console.error(e);process.exit(1);});

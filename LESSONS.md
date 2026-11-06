@@ -1,5 +1,6 @@
 ## Gotchas
 
+Soft coach result buttons used opacity, so Ball, Strike, Foul, In play and HBP sat around 2:1 before the pitch was ready. They keep the Okabe-Ito fills at full strength, and Redo may stay dim. Regression: test/resultcontrast.ui.js VIEW-2.
 The Elite script on the wordmark is white, so it vanished on the white Field header. Field paints that plate with `--c-text`. Night keeps it white. Regression: test/jersey.ui.js VIEW-4.
 A -0.07em squeeze made the narrow tiny warnings fit, and the moved aim dropped to 13px with no gap after the call code. Normal spacing now decides fit, and the moved aim matches the no-warning aim. Regression: test/flow.ui.js VIEW-5.
 An or-branch in the narrow warning test let Drop: low sit in the cell or on the hint. Jim ruled it moves to the hint only when it does not fit, and that hint replaces the step prompt. The aim text stays. Regression: test/flow.ui.js VIEW-5.
