@@ -1,7 +1,7 @@
 // Regression (PR G): walk EVERY tab and state (Game idle / scheduled list / in progress, Bullpen, Stats, Setup) at 390x844, 375x667, 430x932
 // and assert no text is clipped or ellipsized (scrollWidth > clientWidth), the pitcher name never truncates, nothing runs off-screen, and nothing overlaps.
 // Throwaway profile, Supabase blocked, test data only (first names). usage: node test/layout.ui.js <url>
-const {chromium}=require('playwright-core');const fs=require('fs'),path=require('path');const BASE=process.argv[2]||'http://localhost:8766/';let fails=0;const SHOT=process.env.SHOT_DIR||'';if(SHOT)require('fs').mkdirSync(SHOT,{recursive:true});const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};
+const {chromium}=require('playwright-core');const fs=require('fs'),path=require('path'),vm=require('vm');const BASE=process.argv[2]||'http://localhost:8766/';let fails=0;const SHOT=process.env.SHOT_DIR||'';if(SHOT)require('fs').mkdirSync(SHOT,{recursive:true});const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};
 const PROD=require('../logic.js').pcPickConfig.PROD;
 const {AUDIT}=require('./lib/audit');
 (async()=>{const b=await chromium.launch({executablePath:'/usr/bin/google-chrome'});
@@ -173,4 +173,121 @@ for(const [L,R,B] of [[0,0,0],[62,0,21],[0,62,21],[62,62,21]])await coach956(b,{
 await coach956(b,{W:956,H:384,L:62,R:0,B:0,theme:'field',mirror:false,shift:false});
 await coach956(b,{W:956,H:440,L:62,R:62,B:21,theme:'night',mirror:false,shift:true});
 await coach956(b,{W:956,H:440,L:62,R:62,B:21,theme:'field',mirror:true,shift:false});
+// VIEW-6. Oct 21, iPhone 440×956: Game home left a 62pt black band under the tab bar.
+// That page was shorter than the screen. Bullpen and scoring already filled it, and the bar met the glass.
+// index.html is the only detector. It adds html.standalone for an installed iPhone or a standalone display.
+// The installed portrait page then fills 100vh. A normal browser tab stays unmarked, and Game home stays short.
+// The checks below run that script. They do not add the class.
+function detectorSource(){
+  const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
+  const re=/<script>([\s\S]*?)<\/script>/g; let m, found='';
+  while((m=re.exec(html))){ if(m[1].includes('navigator.standalone')&&m[1].includes('display-mode: standalone')) found=m[1]; }
+  return found;
+}
+function runDetector(src, env){
+  if(!src) return {ran:false, cls:false, threw:false};
+  const cls=new Set(); let threw=false;
+  const matchMedia=env.mediaThrows?()=>{throw new Error('matchMedia');}:(q)=>({matches:!!env.display&&String(q).includes('display-mode: standalone')});
+  try{ vm.runInNewContext(src,{navigator:{standalone:env.standalone},matchMedia,document:{documentElement:{classList:{add(c){cls.add(c);}}}}},{timeout:1000}); }
+  catch(e){ threw=true; }
+  return {ran:true, cls:cls.has('standalone'), threw};
+}
+const detSrc=detectorSource();
+ok(!/classList\.add\(['"]standalone['"]\)/.test(fs.readFileSync(__filename,'utf8')),'VIEW-6 detector: this test does not add the standalone class');
+ok(!!detSrc,'VIEW-6 detector: index.html contains the installed-app script');
+{
+  const note=r=>r.ran?(r.threw?'threw':String(r.cls)):'no script';
+  const ios=runDetector(detSrc,{standalone:true,display:false});
+  ok(ios.ran&&ios.cls&&!ios.threw,'VIEW-6 detector: navigator.standalone marks the page ('+note(ios)+')');
+  const disp=runDetector(detSrc,{standalone:false,display:true});
+  ok(disp.ran&&disp.cls&&!disp.threw,'VIEW-6 detector: display-mode standalone marks the page ('+note(disp)+')');
+  const plain=runDetector(detSrc,{standalone:undefined,display:false});
+  ok(plain.ran&&!plain.cls&&!plain.threw,'VIEW-6 detector: a normal browser is not marked ('+note(plain)+')');
+  const boom=runDetector(detSrc,{standalone:false,mediaThrows:true});
+  ok(boom.ran&&!boom.cls&&!boom.threw,'VIEW-6 detector: a throwing matchMedia leaves a normal browser unmarked ('+note(boom)+')');
+  const iosBoom=runDetector(detSrc,{standalone:true,mediaThrows:true});
+  ok(iosBoom.ran&&iosBoom.cls&&!iosBoom.threw,'VIEW-6 detector: an installed iPhone is still marked when matchMedia throws ('+note(iosBoom)+')');
+}
+const readBar=p=>p.evaluate(()=>{
+  const nav=document.querySelector('nav'),nr=nav.getBoundingClientRect();
+  const btn=nav.querySelector('button.on')||nav.querySelector('button'),br=btn.getBoundingClientRect();
+  const probe=document.createElement('div');probe.style.cssText='position:fixed;height:100vh;width:0;visibility:hidden';document.body.append(probe);
+  const vh=probe.getBoundingClientRect().height;probe.remove();
+  const env=document.createElement('div');env.style.cssText='position:fixed;padding-bottom:env(safe-area-inset-bottom);visibility:hidden';document.body.append(env);
+  const inset=parseFloat(getComputedStyle(env).paddingBottom)||0;env.remove();
+  const z=document.getElementById('zone').getBoundingClientRect();
+  const hasDetector=[...document.scripts].some(s=>s.textContent.includes('navigator.standalone')&&s.textContent.includes('display-mode: standalone'));
+  return {body:document.body.getBoundingClientRect().height,vh,ih:innerHeight,scroll:document.documentElement.scrollHeight,
+    gap:innerHeight-nr.bottom,navTop:nr.top,labelGap:innerHeight-br.bottom,inset,entry:document.body.classList.contains('entrymode'),
+    zone:+z.top.toFixed(2),marked:document.documentElement.classList.contains('standalone'),hasDetector};
+});
+const barOk=g=>g.gap<=1&&g.labelGap+0.5>=g.inset;
+const barDetail=g=>`body ${g.body.toFixed(1)} / ${g.vh} gap ${g.gap.toFixed(1)} label ${g.labelGap.toFixed(1)} inset ${g.inset} scroll ${g.scroll} marked ${g.marked} detector ${g.hasDetector}`;
+async function openBar(W,H,top,bot,mode){
+  const c=await b.newContext({viewport:{width:W,height:H},isMobile:true,hasTouch:true,userAgent:IOS_UA,colorScheme:'dark'});
+  await c.addInitScript(mode=>{
+    localStorage.setItem('te_ui_portrait_ok','1');
+    if(mode==='ios') Object.defineProperty(navigator,'standalone',{configurable:true,get(){return true;}});
+    if(mode==='display'){
+      const orig=window.matchMedia.bind(window);
+      window.matchMedia=function(q){
+        if(String(q).replace(/\s+/g,'')==='(display-mode:standalone)') return {matches:true,media:String(q),onchange:null,addListener(){},removeListener(){},addEventListener(){},removeEventListener(){},dispatchEvent(){return false;}};
+        return orig(q);
+      };
+    }
+  },mode);
+  const p=await c.newPage();
+  const cdp=await c.newCDPSession(p);
+  if(top||bot)await cdp.send('Emulation.setSafeAreaInsetsOverride',{insets:{top,left:0,right:0,bottom:bot}});
+  await p.goto(BASE);await p.waitForTimeout(200);
+  return {c,p};
+}
+async function tabBar(W,H,top,bot){
+  const tag=`${W}x${H} inset ${top}/${bot}`;
+  const {c,p}=await openBar(W,H,top,bot,'ios');
+  let g=await readBar(p);
+  ok(g.hasDetector&&g.marked,`${tag} VIEW-6 ios: index.html marked the installed app (${barDetail(g)})`);
+  ok(g.marked&&g.body+0.5>=g.vh&&barOk(g)&&g.scroll<=g.ih+1,`${tag} VIEW-6 game home: page fills the screen, the tab bar meets the bottom, and the short page does not scroll (${barDetail(g)})`);
+  await p.evaluate(()=>{const S=__app.store.real;S.pitchers=[{id:'p_a',name:'Reese',num:'12',throws:'R'}];S.curPitcher='p_a';
+    S.games.push({id:'g1',date:'2026-10-18',opponent:'Team all American',status:'active',started:1,pitches:[],cur:{inning:4,outs:0,b:0,s:0,abn:1},lineup:[]});
+    S.games.push({id:'g2',date:'2026-10-17',opponent:'Outlaws',status:'paused',started:1,pitches:[{id:'x'}],cur:{inning:1,outs:0,b:0,s:0,abn:0},lineup:[]});
+    __app.store.save();__app.render();});
+  await p.waitForTimeout(150);
+  g=await readBar(p);
+  ok(!g.entry&&g.body+0.5>=g.vh&&barOk(g),`${tag} VIEW-6 game list: still fills the screen, bar flush (${barDetail(g)})`);
+  await p.evaluate(()=>{const S=__app.store.real;S.games.find(x=>x.id==='g1').lineup=[{slot:1,name:'B',num:'1',hand:'R'}];S.activeGame='g1';__app.store.save();__app.render();});
+  await p.waitForTimeout(250);
+  const scoring=await readBar(p);
+  ok(scoring.entry&&barOk(scoring),`${tag} VIEW-6 scoring: tab bar flush and labels clear the home indicator (${barDetail(scoring)})`);
+  if(W===440){
+    await p.evaluate(()=>document.documentElement.classList.remove('standalone'));
+    await p.waitForTimeout(200);
+    const plain=await readBar(p);
+    ok(!plain.marked&&plain.entry&&Math.abs(plain.zone-scoring.zone)<=1&&Math.abs(plain.navTop-scoring.navTop)<=1,`${tag} VIEW-6 scoring layout is the same when the page is not marked installed (zone ${plain.zone} vs ${scoring.zone})`);
+  }
+  await p.evaluate(()=>{const S=__app.store.real;const g=S.games.find(x=>x.id==='g1');g.ended=Date.now();g.status='final';S.activeGame=null;__app.store.save();__app.render();});
+  await p.click('nav [data-t="bullpen"]');await p.waitForTimeout(250);
+  const bull=await readBar(p);
+  ok(bull.entry&&bull.body+0.5>=bull.vh&&barOk(bull),`${tag} VIEW-6 bullpen: page fills the screen and the tab bar meets the bottom (${barDetail(bull)})`);
+  await p.click('nav [data-t="stats"]');await p.waitForTimeout(150);
+  const stats=await readBar(p);
+  ok(!stats.entry&&barOk(stats)&&stats.body+0.5>=stats.vh,`${tag} VIEW-6 stats: tab bar flush (${barDetail(stats)})`);
+  await p.click('nav [data-t="setup"]');await p.waitForTimeout(150);
+  const setup=await readBar(p);
+  ok(!setup.entry&&barOk(setup)&&setup.body+0.5>=setup.vh,`${tag} VIEW-6 setup: tab bar flush (${barDetail(setup)})`);
+  await c.close();
+}
+const BAR_SIZES=[[440,956,62,34],[390,844,59,34],[430,932,59,34],[375,667,20,0]];
+for(const [W,H,top,bot] of BAR_SIZES)await tabBar(W,H,top,bot);
+for(const [W,H,top,bot] of BAR_SIZES){
+  const tag=`${W}x${H} inset ${top}/${bot}`;
+  const disp=await openBar(W,H,top,bot,'display');
+  const dg=await readBar(disp.p);
+  ok(dg.hasDetector&&dg.marked&&dg.body+0.5>=dg.vh&&barOk(dg)&&dg.scroll<=dg.ih+1,`${tag} VIEW-6 display-mode: index.html marked the page and Game home fills the screen (${barDetail(dg)})`);
+  await disp.c.close();
+  const norm=await openBar(W,H,top,bot,'browser');
+  const ng=await readBar(norm.p);
+  ok(!ng.marked&&ng.body+0.5<ng.vh&&barOk(ng),`${tag} VIEW-6 browser: a normal tab is unmarked and Game home stays short (${barDetail(ng)})`);
+  await norm.c.close();
+}
 await b.close();console.log(fails?fails+' FAILED':'ALL PASS');process.exit(fails?1:0);})();

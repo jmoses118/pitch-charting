@@ -139,6 +139,8 @@ table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}td,th{padding:v
 
 /* ---------- nav (thumb zone) ---------- */
 nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--c-nav);border-top:1px solid var(--c-line);padding:var(--s1) var(--s2) calc(var(--s1) + env(safe-area-inset-bottom));z-index:6}
+/* VIEW-6. Game home was the short page, so the installed app left a black band under this bar. Bullpen and scoring already filled the screen. */
+@media (orientation:portrait){html.standalone,html.standalone body{min-height:100vh}}
 nav button{flex:1;border:0;border-radius:var(--r-md);background:none;min-height:60px;color:var(--c-text-3);font-size:var(--fs-xs);font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;letter-spacing:.02em}
 nav button.on{color:#fff;background:var(--c-royal-tint)}nav button.on svg{stroke:var(--c-royal-text)}
 
