@@ -1,5 +1,10 @@
 # Changelog
 
+## v101 – The tab bar sits on the bottom of the screen
+### Fixed
+- On the iPhone home-screen app, Game home left a black band under the Game, Bullpen, Stats and Setup bar. The bar now sits on the bottom edge, the same way it does while a pitch is being charted. The labels stay above the home indicator.
+- Cache: `te-pitch-v101`.
+
 ## v100 – Ground and Liner stay off the Batter button
 ### Fixed
 - On a wide phone, Ground and Liner no longer sit on the Batter button when a ball is in play. The Batter button keeps its full label and the five contact choices stay readable.

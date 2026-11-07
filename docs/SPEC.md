@@ -102,6 +102,7 @@ The UI only renders these. `heatStats` is the per-type rollup.
 - **VIEW-5** Jim ruled on 22 October 2026. On the narrow coach screen a tiny warning stays in the cell beside the batter when that cell can hold it. The tiny labels use normal letter spacing. In the normal font, `#2 LHB` keeps 5: miss, CB: low, CH: low, and DC: low in that cell.
   When the warning does not fit, it moves to the hint line and replaces the step prompt. That is `Drop: low` beside `#2 LHB`, a batter with no number, `#12` with 100 or more pitches, and every tiny label in the wider fallback font.
   The aim text stays visible at 14px, 6px after the call code, as it is with no warning. The screen-reader label stays the full sentence.
+- **VIEW-6** The tab bar meets the bottom edge on Game home, the game list, Bullpen, Stats, and Setup, the same as while a pitch is being charted. A short Game home on the installed iPhone app used to leave a black band under the bar (62pt on a 440×956 phone). The labels stay above the home indicator. Scoring layout does not change. The coach screen is unchanged.
 
 ## LATER (out of scope for v1: do not build)
 - The overlay view: a big zone with floating count, pitcher and pitch widgets, the batter's last-at-bat widget, and a lineup edit menu.
@@ -157,6 +158,7 @@ On an iPhone-size viewport, a full inning in Game mode and a 20-pitch bullpen ca
 | VIEW-3 | unit: “VIEW-2 todaysScheduled returns only that day's scheduled games” |
 | VIEW-4 | unit: “VIEW-4: nothing saved is Night, and a saved Field or Night stays”; “VIEW-4: themeFromStorage reads THEME_KEY and stays Night when getItem throws”; `test/coach.ui.js`: Night by default, the game menu reaches Field and Night, a saved Field stays Field, no Field frame paints on load, a throwing theme read stays Night, Night controls are 2px, Night fills are #3A5CF0, themeColor paints the bar, a missing theme.js opens Night and the coach screen, and Night boxes match Field |
 | VIEW-5 | `test/flow.ui.js`: normal font keeps 5: miss, CB: low, CH: low, and DC: low in the cell beside `#2 LHB` with normal spacing; `Drop: low` beside `#2 LHB`, no number, `#12` with 100 pitches, and every label in the wider fallback font move to the hint, replace the step prompt, and keep the aim at 14px, 6px after the code |
+| VIEW-6 | `test/layout.ui.js`: runs the index.html detector for an installed iPhone, a standalone display, and a normal browser; a normal tab stays unmarked and Game home stays short; installed Game home fills the screen and does not scroll; the bar meets the bottom and the labels clear the inset at 440×956, 390×844, 430×932, and 375×667; scoring layout matches a page that is not installed |
 | FLOW-13 | unit: `createGame` returns null until the opponent and pitcher are set; a scheduled id starts that row; the toast leaves the game list unchanged |
 | FLOW-14 | unit: pause keeps the row; `endGame` waits for confirmation |
 | FLOW-15 | unit: discard pushes `deleted` and a pull does not bring the game back; the stats scope omits the draft. The picker check is `modes.ui.js` "picker shows N Resume rows and one Start" |

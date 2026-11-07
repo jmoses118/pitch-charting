@@ -7,6 +7,7 @@
 Needs `playwright-core` (in `test/node_modules`) and Chrome at `/usr/bin/google-chrome`. Serve the app: `python3 -m http.server 8766`.
 - `node test/ui.smoke.js 8766`
 - `node test/<name>.ui.js http://localhost:8766/` for `heat`, `report`, `xss`, `pitchchange`, `wayoff`, `round1`, `workload`, `modes`, `zonegfx`, `fit` (one-screen entry at 390×844 and 375×667), `layout` (every tab/state at 375×667, 390×844, 430×932: no clipping, truncated pitcher name, off-screen content or overlaps; `SHOT_DIR=… ` saves 390×844 screenshots), `sheets` (segmented-control options visible; every dialog/sheet cancels via Cancel, Escape and backdrop with data unchanged), `roles`
+- `layout.ui.js` also checks VIEW-6. It runs the index.html detector. An installed page fills the screen at 440×956, 390×844, 430×932, and 375×667. A normal tab stays unmarked and Game home stays short. Scoring layout stays put.
 
 - `node test/heatgrid.ui.js http://localhost:8766/` checks the heat map colours (HM-6, HM-8), cell edges and targets (P-4), and blue on dark (P-2) at 375×667, 667×375, 440×956 and 956×440 in Night and Field. `zonegfx.ui.js` runs it in CI.
 

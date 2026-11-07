@@ -18,7 +18,7 @@ The app is used on an iPhone, one-handed, in a dugout, often in direct sun. It i
 - **Sheets:** every `<dialog class="sheet">` becomes a bottom sheet on phones.
 - **Steps:** the `#steps` indicator above the zone shows Pitch → Aim → Landed (bullpen) or Pitch → Location → Result (game).
 - **Scoreboard:** the four tiles in the sticky header (inning, count, outs, pitches).
-- **Nav:** a bottom tab bar in the thumb zone, with authored SVG icons; the active tab gets a royal tint.
+- **Nav:** a bottom tab bar in the thumb zone, with authored SVG icons; the active tab gets a royal tint. On the installed portrait app the page fills the screen, so the bar meets the bottom edge. Its padding keeps the labels above the home indicator.
 
 ## Screen rules
 - One primary task per screen. Secondary panels are collapsed: game options, Stats → "More tables", and Setup sections (only Test mode, Cloud sync and Pitchers open by default).
